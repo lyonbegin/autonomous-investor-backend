@@ -1,0 +1,97 @@
+name: compatibility-lab
+
+on:
+  push:
+    branches: [dependency-lab]
+    paths:
+      - ".github/workflows/compatibility-lab.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  finrobot:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: python -m pip install -U pip setuptools wheel
+      - run: python -m pip install -c requirements/integration-constraints.txt -r requirements.txt
+      - name: Install FinRobot V2 correctly
+        run: |
+          python -m pip install -c requirements/integration-constraints.txt \
+            "finrobot @ git+https://github.com/AI4Finance-Foundation/FinRobot.git@2717499b8e30f242640af08c4ad9afd1113c2d45#subdirectory=finrobot_desktop"
+          python -m pip check
+          python scripts/dependency_probe.py finrobot finrobot.engine.pipelines.runner Pipeline
+
+  finrl:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: python -m pip install -U pip setuptools wheel
+      - run: python -m pip install -c requirements/integration-constraints.txt -r requirements.txt
+      - name: Clone FinRL-Trading
+        run: git clone https://github.com/AI4Finance-Foundation/FinRL-Trading.git upstream-finrl
+      - name: Pin tested FinRL commit and patch packaging only
+        run: |
+          cd upstream-finrl
+          git checkout 4409abe925c904e570be78ebfb5e77ac3491dff8
+          sed -i '/^finnhub>=/d' requirements.txt
+          git diff -- requirements.txt
+          python -m pip install -c ../requirements/integration-constraints.txt .
+          python -m pip check
+      - name: Probe FinRL import boundaries
+        run: |
+          python - <<'PY'
+          import importlib
+          for mod in ("strategies.base_strategy", "src.strategies.base_strategy"):
+              try:
+                  m=importlib.import_module(mod)
+                  print("IMPORT_OK", mod, m.__file__)
+                  print("StrategyResult", hasattr(m, "StrategyResult"))
+                  print("BaseStrategy", hasattr(m, "BaseStrategy"))
+              except Exception as e:
+                  print("IMPORT_FAIL", mod, type(e).__name__, e)
+          PY
+
+  finrobot_rdagent:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: python -m pip install -U pip setuptools wheel
+      - run: python -m pip install -c requirements/integration-constraints.txt -r requirements.txt
+      - name: Pin common Pydantic-AI
+        run: python -m pip install "pydantic-ai==1.70.0"
+      - name: Install FinRobot V2
+        run: |
+          python -m pip install -c requirements/integration-constraints.txt \
+            "finrobot @ git+https://github.com/AI4Finance-Foundation/FinRobot.git@2717499b8e30f242640af08c4ad9afd1113c2d45#subdirectory=finrobot_desktop"
+      - name: Clone RD-Agent and patch dependency metadata only
+        run: |
+          git clone https://github.com/microsoft/RD-Agent.git upstream-rdagent
+          cd upstream-rdagent
+          git checkout 484776c211e4fbbeef03e0ec00d6bbee7362a4f4
+          sed -i 's/pydantic-ai-slim\[mcp,openai,prefect\]==1\.66\.0/pydantic-ai-slim[mcp,openai,prefect]==1.70.0/' requirements.txt
+          grep 'pydantic-ai' requirements.txt
+          python -m pip install -c ../requirements/integration-constraints.txt .
+      - name: Check combined environment
+        run: |
+          python -m pip check
+          python scripts/dependency_probe.py finrobot finrobot.engine.pipelines.runner Pipeline
+          python scripts/dependency_probe.py rdagent rdagent.app.qlib_rd_loop.quant QuantRDLoop
+          python - <<'PY'
+          from rdagent.oai.backend.pydantic_ai import get_agent_model
+          from pydantic_ai import Agent
+          from pydantic_ai.mcp import MCPServerStreamableHTTP
+          print("RDAGENT_PYDANTIC_AI_IMPORT_OK", Agent, MCPServerStreamableHTTP, callable(get_agent_model))
+          PY
