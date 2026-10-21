@@ -1,0 +1,58 @@
+name: integrated-stack-lab
+
+on:
+  push:
+    branches: [dependency-lab]
+    paths:
+      - "app/adapters/**"
+      - "app/core/integrations.py"
+      - "requirements/integrated-constraints.txt"
+      - "requirements/upstream-sources.txt"
+      - "patches/**"
+      - "scripts/install_upstreams.sh"
+      - "scripts/upstream_smoke.py"
+      - "tests/test_adapters.py"
+      - ".github/workflows/integrated-stack-lab.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  integrated:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: Packaging tools
+        run: python -m pip install -U pip setuptools wheel
+
+      - name: Install complete upstream stack
+        env:
+          UPSTREAM_DIR: ${{ runner.temp }}/autonomous-investor-upstreams
+        run: bash scripts/install_upstreams.sh
+
+      - name: Verify dependency graph
+        run: python -m pip check
+
+      - name: Verify native import boundaries
+        run: python scripts/upstream_smoke.py
+
+      - name: Test adapters
+        run: |
+          python -m pip install pytest
+          python -m pytest -q tests/test_adapters.py
+
+      - name: Freeze integrated environment
+        run: python -m pip freeze | tee integrated-freeze.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: integrated-stack-freeze
+          path: integrated-freeze.txt
