@@ -26,7 +26,7 @@ SPECS: tuple[IntegrationSpec, ...] = (
     IntegrationSpec("sb3", "Stable-Baselines3", "DLR-RM/stable-baselines3", "b2878f4b83e21f16a53c54a62def628e05fd2e96", "reinforcement-learning algorithms", "stable_baselines3.common.base_class", ("BaseAlgorithm",)),
     IntegrationSpec("rllib", "Ray RLlib", "ray-project/ray", None, "distributed reinforcement learning", "ray.rllib"),
     IntegrationSpec("vectorbt", "vectorbt", "polakowo/vectorbt", "dd8eb3a3fe9ed918b1cdaf177455759ae4ac68cb", "high-throughput strategy screening", "vectorbt.portfolio.base", ("Portfolio",)),
-    IntegrationSpec("finrlx", "FinRL-Trading", "AI4Finance-Foundation/FinRL-Trading", "4409abe925c904e570be78ebfb5e77ac3491dff8", "target-weight strategy contract and trading patterns", "src.strategies.base_strategy", ("StrategyResult", "BaseStrategy")),
+    IntegrationSpec("finrlx", "FinRL-Trading", "AI4Finance-Foundation/FinRL-Trading", "4409abe925c904e570be78ebfb5e77ac3491dff8", "target-weight strategy contract and trading patterns", "strategies.base_strategy", ("StrategyResult", "BaseStrategy")),
     IntegrationSpec("riskfolio", "Riskfolio-Lib", "dcajasn/Riskfolio-Lib", "7b1b26ac9760974c12ecefe290a9d3bd37b66b7a", "portfolio optimization and risk measures", "riskfolio", ("Portfolio",)),
     IntegrationSpec("pyportfolioopt", "PyPortfolioOpt", "robertmartin8/PyPortfolioOpt", None, "portfolio optimization and allocation", "pypfopt.efficient_frontier", ("EfficientFrontier",)),
     IntegrationSpec("nautilus", "NautilusTrader", "nautechsystems/nautilus_trader", "2ebdbd71da1511c0bf5e808915a79e55a1e877e4", "event-driven backtest, portfolio, risk, paper/live execution runtime", "nautilus_trader"),
