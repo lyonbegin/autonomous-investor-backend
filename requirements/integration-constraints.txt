@@ -1,0 +1,16 @@
+# Initial common constraints derived from current upstream metadata.
+# This file is intentionally conservative; unresolved conflicts are NOT hidden.
+numpy>=2.4.6,<3
+pandas>=3.0.6,<4
+torch>=2.8,<3
+gymnasium==1.2.2
+scipy>=1.16.1
+scikit-learn>=1.7
+matplotlib>=3.9.2
+cvxpy>=1.7.2
+pydantic>=2.12,<3
+pydantic-settings>=2.1
+filelock>=3.16,<3.30
+requests>=2.32.4
+fastapi>=0.115,<1
+uvicorn>=0.34,<1
