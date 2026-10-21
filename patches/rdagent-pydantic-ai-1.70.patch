@@ -1,0 +1,9 @@
+diff --git a/requirements.txt b/requirements.txt
+--- a/requirements.txt
++++ b/requirements.txt
+@@ -73,7 +73,7 @@ types-pytz
+
+ # Agent
+-pydantic-ai-slim[mcp,openai,prefect]==1.66.0
++pydantic-ai-slim[mcp,openai,prefect]==1.70.0
+ nest-asyncio
