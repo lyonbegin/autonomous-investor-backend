@@ -5,6 +5,7 @@ on:
     branches: [dependency-lab]
     paths:
       - ".github/workflows/compatibility-lab.yml"
+      - "requirements/integration-constraints.txt"
   workflow_dispatch:
 
 permissions:
