@@ -35,7 +35,7 @@ jobs:
 
           # Keep the exact RLlib source corresponding to the installed Ray wheel.
           git clone --depth 1 --branch ray-2.59.0 --filter=blob:none --sparse https://github.com/ray-project/ray.git ray-src
-          git -C ray-src sparse-checkout set rllib python/setup.py python/ray/_version.py
+          git -C ray-src sparse-checkout set rllib python
 
       - name: Apply RD-Agent dependency metadata overlay
         run: |
