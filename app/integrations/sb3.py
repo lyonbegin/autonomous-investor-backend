@@ -20,3 +20,8 @@ class StableBaselinesBridge:
     @staticmethod
     def learn(model: Any, total_timesteps: int, **kwargs: Any) -> Any:
         return model.learn(total_timesteps=total_timesteps, **kwargs)
+
+    @staticmethod
+    def predict(model: Any, observation: Any, *, deterministic: bool = True) -> Any:
+        """Call the native SB3 model.predict() inference boundary."""
+        return model.predict(observation, deterministic=deterministic)
