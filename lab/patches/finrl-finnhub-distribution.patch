@@ -1,0 +1,5 @@
+--- a/requirements.txt
++++ b/requirements.txt
+@@
+-finnhub>=2.4.19
++finnhub-python>=2.4.19
