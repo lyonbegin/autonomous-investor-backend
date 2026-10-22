@@ -1,0 +1,64 @@
+name: Nautilus Official Develop Wheel
+
+on:
+  push:
+    branches: [integration-lab]
+    paths:
+      - ".github/workflows/integration-nautilus-wheel.yml"
+
+jobs:
+  validate-official-wheel:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install exact official develop wheel
+        run: |
+          set -euxo pipefail
+          python -m venv env
+          source env/bin/activate
+          python -m pip install -U pip
+          python -m pip install             --extra-index-url=https://packages.nautechsystems.io/simple             "nautilus-trader==2.0.0rc8.dev20261022+19711"
+          python -m pip check
+
+      - name: Verify Nautilus native runtime facade
+        run: |
+          set -euxo pipefail
+          source env/bin/activate
+          python - <<'PY'
+          import nautilus_trader
+          from nautilus_trader.trading import Strategy, StrategyConfig
+          from nautilus_trader.backtest import BacktestEngineConfig, BacktestNode
+          from nautilus_trader.risk import RiskEngineConfig
+          from nautilus_trader.execution import ExecutionEngineConfig
+
+          risk = RiskEngineConfig()
+          execution = ExecutionEngineConfig()
+          backtest = BacktestEngineConfig(risk_engine=risk, exec_engine=execution)
+
+          assert nautilus_trader.__version__ == "2.0.0rc8.dev20261022+19711"
+          print("NAUTILUS_OFFICIAL_WHEEL_OK")
+          print("version", nautilus_trader.__version__)
+          print("strategy", Strategy, StrategyConfig)
+          print("backtest", BacktestNode, type(backtest))
+          print("risk", type(risk), risk.bypass)
+          print("execution", type(execution), execution.allow_overfills)
+          PY
+
+      - name: Freeze exact wheel environment
+        run: |
+          source env/bin/activate
+          python -m pip freeze | sort > nautilus-wheel-freeze.txt
+          python -m pip check > nautilus-wheel-pip-check.txt
+
+      - name: Upload evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: nautilus-official-develop-wheel-evidence
+          path: |
+            nautilus-wheel-freeze.txt
+            nautilus-wheel-pip-check.txt
+          retention-days: 3
