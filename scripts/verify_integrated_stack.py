@@ -74,6 +74,13 @@ def main() -> None:
     from app.integrations.sb3 import StableBaselinesBridge
     from app.integrations.tradingagents import TradingAgentsBridge
     from app.integrations.vectorbt import VectorBTBridge
+    from app.orchestration.pipeline import (
+        AllocationCoordinator,
+        NautilusExecutionCoordinator,
+        QuantCoordinator,
+        RDAgentCoordinator,
+        ResearchCoordinator,
+    )
 
     close = pd.Series([1.0, 2.0, 1.5, 3.0])
     pf = VectorBTBridge.from_signals(
@@ -122,6 +129,11 @@ def main() -> None:
             ChronosBridge,
             StableBaselinesBridge,
             RLlibBridge,
+            ResearchCoordinator,
+            RDAgentCoordinator,
+            QuantCoordinator,
+            AllocationCoordinator,
+            NautilusExecutionCoordinator,
         ]
     )
 
