@@ -11,6 +11,7 @@ from .rdagent_bridge import RDAgentQuantBridge
 from .qlib_bridge import QlibBridge
 from .chronos_bridge import ChronosBridge
 from .sb3_bridge import StableBaselinesBridge
+from .rllib_bridge import RLlibBridge
 
 __all__ = [
     "TradingAgentsBridge",
@@ -20,4 +21,5 @@ __all__ = [
     "QlibBridge",
     "ChronosBridge",
     "StableBaselinesBridge",
+    "RLlibBridge",
 ]
