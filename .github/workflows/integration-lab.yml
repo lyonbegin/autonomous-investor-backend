@@ -1,4 +1,4 @@
-name: Integration Lab SB3
+name: Integration Lab RLlib
 
 on:
   push:
@@ -7,15 +7,17 @@ on:
       - ".github/workflows/integration-lab.yml"
 
 jobs:
-  cumulative-sb3:
+  cumulative-rllib:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
+          cache: "pip"
+          cache-dependency-path: "lab/pip-cache-key.txt"
 
-      - name: Checkout exact upstream commits
+      - name: Checkout exact upstream sources
         run: |
           set -euxo pipefail
           git clone --filter=blob:none https://github.com/TauricResearch/TradingAgents.git ta
@@ -30,6 +32,10 @@ jobs:
           git -C chronos-src checkout 1224fafa91e1ecd6674f5204066b159e40b5e4a1
           git clone --filter=blob:none https://github.com/DLR-RM/stable-baselines3.git sb3-src
           git -C sb3-src checkout b2878f4b83e21f16a53c54a62def628e05fd2e96
+
+          # Keep the exact RLlib source corresponding to the installed Ray wheel.
+          git clone --depth 1 --branch ray-2.59.0 --filter=blob:none --sparse https://github.com/ray-project/ray.git ray-src
+          git -C ray-src sparse-checkout set rllib python/setup.py python/ray/_version.py
 
       - name: Apply RD-Agent dependency metadata overlay
         run: |
@@ -56,8 +62,8 @@ jobs:
           packaging>=25,<26
           torch>=2.8,<3
           gymnasium==1.2.2
+          ray==2.59.0
           EOF
-          cat constraints.txt
 
       - name: Create shared Python 3.13 environment
         run: |
@@ -65,64 +71,74 @@ jobs:
           source env/bin/activate
           python -m pip install -U pip setuptools wheel cython
 
-      - name: Install verified five engines
+      - name: Install verified six engines
         run: |
           set -euxo pipefail
           source env/bin/activate
-          python -m pip install -c constraints.txt ./ta ./fr/finrobot_desktop ./rd ./qlib-src ./chronos-src
+          python -m pip install -c constraints.txt ./ta ./fr/finrobot_desktop ./rd ./qlib-src ./chronos-src ./sb3-src
           python -m pip check
 
-      - name: Add Stable-Baselines3 to the same environment
+      - name: Add Ray RLlib 2.59.0 to the same environment
         run: |
           set -euxo pipefail
           source env/bin/activate
-          python -m pip install -c constraints.txt ./sb3-src
+          python -m pip install -c constraints.txt "ray[rllib]==2.59.0"
           python -m pip check
 
-      - name: Verify SB3 native API and tiny PPO lifecycle
+      - name: Verify RLlib native API and one PPO iteration
         run: |
           set -euxo pipefail
           source env/bin/activate
           python - <<'PY'
+          import ray
           import gymnasium as gym
-          import stable_baselines3 as sb3
-          import torch, pandas, chronos, qlib
-          from stable_baselines3.common.base_class import BaseAlgorithm
-          from stable_baselines3.common.vec_env import VecEnv
-          from stable_baselines3 import PPO, SAC
-          from tradingagents.graph.trading_graph import TradingAgentsGraph
-          from finrobot import FinRobot
+          from ray.rllib.algorithms.algorithm import Algorithm
+          from ray.rllib.algorithms.algorithm_config import AlgorithmConfig
+          from ray.rllib.algorithms.ppo import PPOConfig
+          from ray.rllib.env.env_runner import EnvRunner
+          from stable_baselines3 import PPO as SB3PPO
+          from chronos import Chronos2Pipeline
           from rdagent.app.qlib_rd_loop.quant import QuantRDLoop
+          from finrobot import FinRobot
+          from tradingagents.graph.trading_graph import TradingAgentsGraph
+          import qlib
 
-          env = gym.make("CartPole-v1")
-          model = PPO("MlpPolicy", env, n_steps=8, batch_size=8, n_epochs=1, device="cpu", verbose=0)
-          model.learn(total_timesteps=16)
-          obs, info = env.reset(seed=7)
-          action, _ = model.predict(obs, deterministic=True)
-          print("SIX_OK")
-          print("sb3", sb3.__version__)
+          config = (
+              PPOConfig()
+              .environment("CartPole-v1")
+              .env_runners(num_env_runners=0)
+              .training(
+                  train_batch_size_per_learner=64,
+                  minibatch_size=32,
+                  num_epochs=1,
+              )
+          )
+          algo = config.build()
+          result = algo.train()
+          print("SEVEN_OK")
+          print("ray", ray.__version__)
           print("gymnasium", gym.__version__)
-          print("torch", torch.__version__)
-          print("ppo_action", action)
-          print("native", BaseAlgorithm, VecEnv, PPO, SAC)
-          print("prior", TradingAgentsGraph, FinRobot, QuantRDLoop, chronos.Chronos2Pipeline, qlib.__version__)
-          env.close()
+          print("training_iteration", result.get("training_iteration"))
+          print("native", Algorithm, AlgorithmConfig, PPOConfig, EnvRunner)
+          print("prior", TradingAgentsGraph, FinRobot, QuantRDLoop, qlib.__version__, Chronos2Pipeline, SB3PPO)
+          algo.stop()
+          ray.shutdown()
           PY
 
-      - name: Freeze successful six-engine environment
+      - name: Freeze successful seven-engine environment
         run: |
           source env/bin/activate
-          python -m pip freeze | sort > resolved-six.txt
-          python -m pip check > pip-check-six.txt
+          python -m pip freeze | sort > resolved-seven.txt
+          python -m pip check > pip-check-seven.txt
 
       - name: Upload evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: cumulative-six-sb3-evidence
+          name: cumulative-seven-rllib-evidence
           path: |
             constraints.txt
             rdagent-dependency-compat.patch
-            resolved-six.txt
-            pip-check-six.txt
+            resolved-seven.txt
+            pip-check-seven.txt
           retention-days: 3
