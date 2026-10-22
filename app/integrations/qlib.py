@@ -36,3 +36,8 @@ class QlibBridge:
             exchange_kwargs=exchange_kwargs or {},
             pos_type=pos_type,
         )
+
+    @staticmethod
+    def predict(model: Any, dataset: Any, *, segment: Any = "test") -> Any:
+        """Call Qlib Model.predict(dataset, segment) without reinterpreting scores."""
+        return model.predict(dataset, segment=segment)
