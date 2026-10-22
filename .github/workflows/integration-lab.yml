@@ -29,11 +29,11 @@ jobs:
           cd ..
           tar -czf artifacts/TradingAgents-e8f5503e.tar.gz upstream-TradingAgents
 
-      - name: Resolve and download wheels
+      - name: Resolve and build wheelhouse
         run: |
           set -euxo pipefail
           python -m pip install --upgrade pip setuptools wheel
-          python -m pip download --dest artifacts/wheelhouse ./upstream-TradingAgents
+          python -m pip wheel --wheel-dir artifacts/wheelhouse ./upstream-TradingAgents
           python -m pip install --dry-run --report artifacts/tradingagents-pip-report.json ./upstream-TradingAgents
 
       - name: Verify installation on clean Python 3.13
@@ -41,7 +41,8 @@ jobs:
           set -euxo pipefail
           python -m venv verify-venv
           source verify-venv/bin/activate
-          python -m pip install --no-index --find-links artifacts/wheelhouse ./upstream-TradingAgents
+          python -m pip install --no-index --find-links artifacts/wheelhouse tradingagents==0.7.0
+          python -m pip check
           python - <<'PY'
           import tradingagents
           from tradingagents.graph.trading_graph import TradingAgentsGraph
@@ -50,6 +51,7 @@ jobs:
           PY
 
       - name: Upload source and wheelhouse
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: tradingagents-python313-wheelhouse
