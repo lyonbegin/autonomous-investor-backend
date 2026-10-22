@@ -30,3 +30,12 @@ class RLlibBridge:
     @staticmethod
     def train(algorithm: Any) -> dict[str, Any]:
         return algorithm.train()
+
+    @staticmethod
+    def forward_inference(algorithm: Any, batch: Any, *, module_id: str | None = None) -> Any:
+        """Use RLlib 2.59's native RLModule inference path.
+
+        Algorithm.compute_single_action() is deprecated in this upstream version.
+        """
+        module = algorithm.get_module(module_id) if module_id is not None else algorithm.get_module()
+        return module.forward_inference(batch)
