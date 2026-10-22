@@ -343,3 +343,81 @@ def test_nautilus_execution_requires_complete_explicit_mapping_when_mapping_is_g
     else:
         raise AssertionError("expected missing InstrumentId mapping error")
 
+def test_quant_coordinator_preserves_native_engine_semantics():
+    from app.orchestration.pipeline import QuantCoordinator
+
+    class Predictions:
+        def items(self):
+            yield (datetime(2026, 10, 22, tzinfo=UTC), "AAPL"), 0.25
+
+    class Qlib:
+        def predict(self, model, dataset, *, segment="test"):
+            assert model == "model"
+            assert dataset == "dataset"
+            assert segment == "test"
+            return Predictions()
+
+    class ForecastFrame:
+        columns = ["item_id", "timestamp", "target_name", "predictions", "0.1", "0.9"]
+
+        def iterrows(self):
+            yield 0, {
+                "item_id": "AAPL",
+                "timestamp": datetime(2026, 10, 23, tzinfo=UTC),
+                "target_name": "close",
+                "predictions": 101.0,
+                "0.1": 98.0,
+                "0.9": 104.0,
+            }
+
+    class Chronos:
+        def predict_df(self, frame, **kwargs):
+            assert frame == "history"
+            assert kwargs["prediction_length"] == 1
+            return ForecastFrame()
+
+    class SB3:
+        def predict(self, model, observation, *, deterministic=True):
+            assert model == "ppo"
+            assert observation == [1, 2, 3]
+            assert deterministic is True
+            return ([0.25, -0.5], None)
+
+    class Module:
+        def forward_inference(self, batch):
+            return {"actions": [1], "batch": batch}
+
+    class Algorithm:
+        def get_module(self):
+            return Module()
+
+    class RLlib:
+        def forward_inference(self, algorithm, batch, *, module_id=None):
+            assert module_id is None
+            return algorithm.get_module().forward_inference(batch)
+
+    coordinator = QuantCoordinator(qlib=Qlib(), chronos=Chronos(), sb3=SB3(), rllib=RLlib())
+
+    scores = coordinator.qlib_scores("model", "dataset", model_id="qlib-test")
+    assert scores[0].score == 0.25
+
+    forecasts = coordinator.chronos_forecasts(
+        "history",
+        model_id="chronos2",
+        horizon="1d",
+        prediction_length=1,
+    )
+    assert forecasts[0].point_forecast == 101.0
+    assert [(x.quantile, x.value) for x in forecasts[0].quantiles] == [(0.1, 98.0), (0.9, 104.0)]
+
+    action = coordinator.sb3_action(
+        "ppo",
+        [1, 2, 3],
+        policy_id="sb3-ppo",
+        instrument_scope=["AAPL", "MSFT"],
+    )
+    assert action.action == [0.25, -0.5]
+    assert action.metadata["source"] == "Stable-Baselines3"
+
+    raw = coordinator.rllib_inference(Algorithm(), {"obs": [[1.0, 2.0]]})
+    assert raw == {"actions": [1], "batch": {"obs": [[1.0, 2.0]]}}
