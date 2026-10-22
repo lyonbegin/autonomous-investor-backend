@@ -5,6 +5,7 @@ from datetime import UTC, datetime
 from app.core.contracts import TargetPortfolio, TargetWeight
 from app.orchestration.allocation import target_portfolio_from_finrl
 from app.orchestration.research import merge_finrobot_result, research_bundle_from_tradingagents
+from app.orchestration.rdagent import hypothesis_from_rdagent, inject_research_into_rdagent
 from app.orchestration.runtime import plan_rebalance
 
 
@@ -118,3 +119,43 @@ def test_rebalance_planner_closes_removed_positions_and_opens_targets():
     assert by_instrument["C"].side == "sell"
     assert by_instrument["C"].quantity == 10.0
     assert by_instrument["C"].target_weight == 0.0
+
+def test_research_bundle_uses_rdagent_native_user_instruction_plan():
+    bundle = research_bundle_from_tradingagents(
+        {
+            "company_of_interest": "AAPL",
+            "trade_date": "2026-10-22",
+            "market_report": "market evidence",
+            "investment_debate_state": {},
+        }
+    )
+
+    class FakeLoop:
+        plan = {"features": {}, "feature_codes": {}}
+
+    loop = FakeLoop()
+    inject_research_into_rdagent(loop, bundle)
+
+    assert "user_instruction" in loop.plan
+    assert "AAPL" in loop.plan["user_instruction"]
+    assert "market evidence" in loop.plan["user_instruction"]
+
+
+def test_native_rdagent_hypothesis_maps_without_inventing_fail_condition():
+    class NativeHypothesis:
+        hypothesis = "Momentum conditioned on volatility improves IC"
+        action = "factor"
+        reason = "Observed regime behavior"
+        concise_reason = "regime"
+        concise_observation = "momentum dispersion"
+        concise_justification = "testable in Qlib"
+        concise_knowledge = "volatility interaction"
+
+    mapped = hypothesis_from_rdagent(NativeHypothesis(), instrument_scope=["AAPL"])
+
+    assert mapped.action == "factor"
+    assert mapped.instrument_scope == ["AAPL"]
+    assert mapped.fail_conditions == []
+    assert mapped.market_expectation is None
+    assert mapped.thesis == NativeHypothesis.hypothesis
+
