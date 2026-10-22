@@ -11,6 +11,7 @@ from .rdagent import (
     research_instruction_for_rdagent,
 )
 from .runtime import plan_rebalance
+from .quant import forecasts_from_chronos_df, model_scores_from_qlib, policy_action
 from .allocation import (
     target_portfolio_from_finrl,
     target_portfolio_from_mapping,
@@ -27,4 +28,7 @@ __all__ = [
     "target_portfolio_from_mapping",
     "target_portfolio_from_riskfolio",
     "plan_rebalance",
+    "policy_action",
+    "model_scores_from_qlib",
+    "forecasts_from_chronos_df",
 ]
