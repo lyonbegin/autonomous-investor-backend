@@ -1,0 +1,57 @@
+name: Integration Lab Wheelhouse
+
+on:
+  push:
+    branches: [integration-lab]
+    paths:
+      - ".github/workflows/integration-lab.yml"
+      - "lab/**"
+
+jobs:
+  tradingagents-wheelhouse:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout lab branch
+        uses: actions/checkout@v4
+
+      - name: Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Prepare upstream source
+        run: |
+          set -euxo pipefail
+          mkdir -p artifacts/wheelhouse
+          git clone https://github.com/TauricResearch/TradingAgents.git upstream-TradingAgents
+          cd upstream-TradingAgents
+          git checkout e8f5503e9b86d5c2710b0c76b1f686703968c9df
+          cd ..
+          tar -czf artifacts/TradingAgents-e8f5503e.tar.gz upstream-TradingAgents
+
+      - name: Resolve and download wheels
+        run: |
+          set -euxo pipefail
+          python -m pip install --upgrade pip setuptools wheel
+          python -m pip download --dest artifacts/wheelhouse ./upstream-TradingAgents
+          python -m pip install --dry-run --report artifacts/tradingagents-pip-report.json ./upstream-TradingAgents
+
+      - name: Verify installation on clean Python 3.13
+        run: |
+          set -euxo pipefail
+          python -m venv verify-venv
+          source verify-venv/bin/activate
+          python -m pip install --no-index --find-links artifacts/wheelhouse ./upstream-TradingAgents
+          python - <<'PY'
+          import tradingagents
+          from tradingagents.graph.trading_graph import TradingAgentsGraph
+          print("tradingagents_module=", tradingagents.__file__)
+          print("TradingAgentsGraph=", TradingAgentsGraph)
+          PY
+
+      - name: Upload source and wheelhouse
+        uses: actions/upload-artifact@v4
+        with:
+          name: tradingagents-python313-wheelhouse
+          path: artifacts/
+          retention-days: 3
