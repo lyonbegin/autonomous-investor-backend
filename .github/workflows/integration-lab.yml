@@ -1,4 +1,4 @@
-name: Integration Lab Incremental Chronos
+name: Integration Lab SB3
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
       - ".github/workflows/integration-lab.yml"
 
 jobs:
-  incremental-chronos:
+  cumulative-sb3:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -28,8 +28,10 @@ jobs:
           git -C qlib-src checkout 54355232463878d2eebb91fe0ee5fa7fa1f5976c
           git clone --filter=blob:none https://github.com/amazon-science/chronos-forecasting.git chronos-src
           git -C chronos-src checkout 1224fafa91e1ecd6674f5204066b159e40b5e4a1
+          git clone --filter=blob:none https://github.com/DLR-RM/stable-baselines3.git sb3-src
+          git -C sb3-src checkout b2878f4b83e21f16a53c54a62def628e05fd2e96
 
-      - name: Apply RD-Agent metadata compatibility overlay
+      - name: Apply RD-Agent dependency metadata overlay
         run: |
           cp rd/requirements.txt rd/requirements.upstream.txt
           python - <<'PY'
@@ -43,7 +45,7 @@ jobs:
           PY
           diff -u rd/requirements.upstream.txt rd/requirements.txt > rdagent-dependency-compat.patch || true
 
-      - name: Create constraints
+      - name: Shared constraints
         run: |
           cat > constraints.txt <<'EOF'
           pydantic-ai==1.70.0
@@ -53,6 +55,7 @@ jobs:
           filelock>=3.16,<3.30
           packaging>=25,<26
           torch>=2.8,<3
+          gymnasium==1.2.2
           EOF
           cat constraints.txt
 
@@ -62,63 +65,64 @@ jobs:
           source env/bin/activate
           python -m pip install -U pip setuptools wheel cython
 
-      - name: Install verified first four
+      - name: Install verified five engines
         run: |
           set -euxo pipefail
           source env/bin/activate
-          python -m pip install -c constraints.txt ./ta ./fr/finrobot_desktop ./rd ./qlib-src
+          python -m pip install -c constraints.txt ./ta ./fr/finrobot_desktop ./rd ./qlib-src ./chronos-src
           python -m pip check
-          python - <<'PY'
-          import tradingagents, finrobot, rdagent, qlib, pandas, pydantic_ai
-          from tradingagents.graph.trading_graph import TradingAgentsGraph
-          from finrobot import FinRobot
-          from rdagent.app.qlib_rd_loop.quant import QuantRDLoop
-          from qlib.model.base import BaseModel
-          print("BASE4_OK", pandas.__version__, pydantic_ai.__version__, qlib.__version__)
-          print(TradingAgentsGraph, FinRobot, QuantRDLoop, BaseModel)
-          PY
 
-      - name: Add Chronos to the same environment
+      - name: Add Stable-Baselines3 to the same environment
         run: |
           set -euxo pipefail
           source env/bin/activate
-          python -m pip install -c constraints.txt ./chronos-src
+          python -m pip install -c constraints.txt ./sb3-src
           python -m pip check
 
-      - name: Verify Chronos native surfaces and prior engines
+      - name: Verify SB3 native API and tiny PPO lifecycle
         run: |
           set -euxo pipefail
           source env/bin/activate
           python - <<'PY'
-          import chronos, torch, pandas, qlib, tradingagents, finrobot, rdagent, pydantic_ai
-          from chronos import BaseChronosPipeline, ChronosPipeline, ChronosBoltPipeline, Chronos2Pipeline
+          import gymnasium as gym
+          import stable_baselines3 as sb3
+          import torch, pandas, chronos, qlib
+          from stable_baselines3.common.base_class import BaseAlgorithm
+          from stable_baselines3.common.vec_env import VecEnv
+          from stable_baselines3 import PPO, SAC
           from tradingagents.graph.trading_graph import TradingAgentsGraph
           from finrobot import FinRobot
           from rdagent.app.qlib_rd_loop.quant import QuantRDLoop
-          from qlib.model.base import BaseModel
-          print("FIVE_OK")
-          print("chronos", chronos.__version__)
+
+          env = gym.make("CartPole-v1")
+          model = PPO("MlpPolicy", env, n_steps=8, batch_size=8, n_epochs=1, device="cpu", verbose=0)
+          model.learn(total_timesteps=16)
+          obs, info = env.reset(seed=7)
+          action, _ = model.predict(obs, deterministic=True)
+          print("SIX_OK")
+          print("sb3", sb3.__version__)
+          print("gymnasium", gym.__version__)
           print("torch", torch.__version__)
-          print("pandas", pandas.__version__)
-          print("pydantic_ai", pydantic_ai.__version__)
-          print(BaseChronosPipeline, ChronosPipeline, ChronosBoltPipeline, Chronos2Pipeline)
-          print(TradingAgentsGraph, FinRobot, QuantRDLoop, BaseModel)
+          print("ppo_action", action)
+          print("native", BaseAlgorithm, VecEnv, PPO, SAC)
+          print("prior", TradingAgentsGraph, FinRobot, QuantRDLoop, chronos.Chronos2Pipeline, qlib.__version__)
+          env.close()
           PY
 
-      - name: Freeze successful five-engine environment
+      - name: Freeze successful six-engine environment
         run: |
           source env/bin/activate
-          python -m pip freeze | sort > resolved-five.txt
-          python -m pip check > pip-check-five.txt
+          python -m pip freeze | sort > resolved-six.txt
+          python -m pip check > pip-check-six.txt
 
       - name: Upload evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: incremental-five-chronos-evidence
+          name: cumulative-six-sb3-evidence
           path: |
             constraints.txt
             rdagent-dependency-compat.patch
-            resolved-five.txt
-            pip-check-five.txt
+            resolved-six.txt
+            pip-check-six.txt
           retention-days: 3
