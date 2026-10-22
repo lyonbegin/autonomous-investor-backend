@@ -32,6 +32,9 @@ def test_contract_schema():
     assert r.status_code == 200
     body = r.json()
     assert "ResearchBundle" in body
+    assert "PolicyAction" in body
+    assert "Forecast" in body
+    assert "ModelScore" in body
     assert "TargetPortfolio" in body
     assert "OrderIntent" in body
     assert "ExecutionReport" in body
