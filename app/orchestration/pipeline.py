@@ -262,3 +262,103 @@ class QuantCoordinator:
             batch,
             module_id=module_id,
         )
+
+class AllocationCoordinator:
+    """Run native allocation engines and map only their explicit weight outputs."""
+
+    def __init__(
+        self,
+        *,
+        finrl: Any | None = None,
+        riskfolio: Any | None = None,
+        pypfopt: Any | None = None,
+    ) -> None:
+        self.finrl = finrl
+        self.riskfolio = riskfolio
+        self.pypfopt = pypfopt
+
+    def from_finrl(
+        self,
+        strategy: Any,
+        data: dict[str, Any],
+        *,
+        as_of: Any = None,
+        target_date: str | None = None,
+        cash_weight: float = 0.0,
+    ) -> TargetPortfolio:
+        if self.finrl is None:
+            raise RuntimeError("FinRL bridge is not configured")
+        from app.orchestration.allocation import target_portfolio_from_finrl
+
+        native = self.finrl.generate_weights(
+            strategy,
+            data,
+            target_date=target_date,
+        )
+        return target_portfolio_from_finrl(
+            native,
+            as_of=as_of,
+            cash_weight=cash_weight,
+        )
+
+    def from_riskfolio(
+        self,
+        returns: Any,
+        *,
+        strategy_id: str,
+        as_of: Any = None,
+        estimate_kwargs: dict[str, Any] | None = None,
+        optimize_kwargs: dict[str, Any] | None = None,
+        cash_weight: float = 0.0,
+    ) -> TargetPortfolio:
+        if self.riskfolio is None:
+            raise RuntimeError("Riskfolio bridge is not configured")
+        from app.orchestration.allocation import target_portfolio_from_riskfolio
+
+        portfolio = self.riskfolio.portfolio(returns)
+        self.riskfolio.estimate(portfolio, **(estimate_kwargs or {}))
+        native = self.riskfolio.optimize(portfolio, **(optimize_kwargs or {}))
+        return target_portfolio_from_riskfolio(
+            native,
+            strategy_id=strategy_id,
+            as_of=as_of,
+            cash_weight=cash_weight,
+        )
+
+    def from_pypfopt(
+        self,
+        expected_returns: Any,
+        cov_matrix: Any,
+        *,
+        strategy_id: str,
+        as_of: Any = None,
+        objective: str = "min_volatility",
+        objective_kwargs: dict[str, Any] | None = None,
+        frontier_kwargs: dict[str, Any] | None = None,
+        cash_weight: float = 0.0,
+    ) -> TargetPortfolio:
+        if self.pypfopt is None:
+            raise RuntimeError("PyPortfolioOpt bridge is not configured")
+        from app.orchestration.allocation import target_portfolio_from_mapping
+
+        frontier = self.pypfopt.efficient_frontier(
+            expected_returns,
+            cov_matrix,
+            **(frontier_kwargs or {}),
+        )
+        kwargs = objective_kwargs or {}
+        if objective == "min_volatility":
+            self.pypfopt.min_volatility(frontier)
+        elif objective == "max_sharpe":
+            self.pypfopt.max_sharpe(frontier, **kwargs)
+        else:
+            raise ValueError(f"unsupported PyPortfolioOpt objective: {objective}")
+
+        weights = self.pypfopt.clean_weights(frontier)
+        return target_portfolio_from_mapping(
+            weights,
+            strategy_id=strategy_id,
+            as_of=as_of,
+            cash_weight=cash_weight,
+            metadata={"source": "PyPortfolioOpt", "objective": objective},
+        )
