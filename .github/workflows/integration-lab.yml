@@ -1,4 +1,4 @@
-name: Integration Lab Chronos
+name: Integration Lab Incremental Chronos
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
       - ".github/workflows/integration-lab.yml"
 
 jobs:
-  cumulative-chronos:
+  incremental-chronos:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -18,18 +18,18 @@ jobs:
       - name: Checkout exact upstream commits
         run: |
           set -euxo pipefail
-          git clone https://github.com/TauricResearch/TradingAgents.git ta
+          git clone --filter=blob:none https://github.com/TauricResearch/TradingAgents.git ta
           git -C ta checkout e8f5503e9b86d5c2710b0c76b1f686703968c9df
-          git clone https://github.com/AI4Finance-Foundation/FinRobot.git fr
+          git clone --filter=blob:none https://github.com/AI4Finance-Foundation/FinRobot.git fr
           git -C fr checkout 2717499b8e30f242640af08c4ad9afd1113c2d45
-          git clone https://github.com/microsoft/RD-Agent.git rd
+          git clone --filter=blob:none https://github.com/microsoft/RD-Agent.git rd
           git -C rd checkout 484776c211e4fbbeef03e0ec00d6bbee7362a4f4
-          git clone https://github.com/microsoft/qlib.git qlib-src
+          git clone --filter=blob:none https://github.com/microsoft/qlib.git qlib-src
           git -C qlib-src checkout 54355232463878d2eebb91fe0ee5fa7fa1f5976c
-          git clone https://github.com/amazon-science/chronos-forecasting.git chronos-src
+          git clone --filter=blob:none https://github.com/amazon-science/chronos-forecasting.git chronos-src
           git -C chronos-src checkout 1224fafa91e1ecd6674f5204066b159e40b5e4a1
 
-      - name: RD-Agent compatibility overlay
+      - name: Apply RD-Agent metadata compatibility overlay
         run: |
           cp rd/requirements.txt rd/requirements.upstream.txt
           python - <<'PY'
@@ -43,54 +43,82 @@ jobs:
           PY
           diff -u rd/requirements.upstream.txt rd/requirements.txt > rdagent-dependency-compat.patch || true
 
-      - name: Shared constraints
+      - name: Create constraints
         run: |
           cat > constraints.txt <<'EOF'
           pydantic-ai==1.70.0
           pydantic-ai-slim==1.70.0
-          pandas>=3.0.6,<4
+          pandas==3.0.6
           mlflow<3.13
-          filelock>=3.16.0,<3.30
+          filelock>=3.16,<3.30
+          packaging>=25,<26
           torch>=2.8,<3
           EOF
+          cat constraints.txt
 
-      - name: Install first five engines together
+      - name: Create shared Python 3.13 environment
         run: |
-          set -euxo pipefail
           python -m venv env
           source env/bin/activate
-          python -m pip install -U pip setuptools wheel cython "numpy>=1.24"
-          python -m pip install -c constraints.txt ./ta ./fr/finrobot_desktop ./rd ./qlib-src ./chronos-src
-          python -m pip check
-          python -m pip freeze > resolved-five.txt
+          python -m pip install -U pip setuptools wheel cython
 
-      - name: Verify Chronos and prior surfaces
+      - name: Install verified first four
         run: |
           set -euxo pipefail
           source env/bin/activate
+          python -m pip install -c constraints.txt ./ta ./fr/finrobot_desktop ./rd ./qlib-src
+          python -m pip check
           python - <<'PY'
-          import pandas, qlib, tradingagents, finrobot, rdagent, chronos, torch
+          import tradingagents, finrobot, rdagent, qlib, pandas, pydantic_ai
           from tradingagents.graph.trading_graph import TradingAgentsGraph
           from finrobot import FinRobot
           from rdagent.app.qlib_rd_loop.quant import QuantRDLoop
           from qlib.model.base import BaseModel
-          from chronos import BaseChronosPipeline, ChronosPipeline, ChronosBoltPipeline, Chronos2Pipeline
-          print("ALL_FIVE_IMPORTS_OK")
-          print("pandas", pandas.__version__)
-          print("torch", torch.__version__)
-          print("qlib", getattr(qlib, "__version__", None))
-          print("chronos", getattr(chronos, "__version__", None))
-          print("Chronos surfaces", BaseChronosPipeline, ChronosPipeline, ChronosBoltPipeline, Chronos2Pipeline)
-          print("prior", TradingAgentsGraph, FinRobot, QuantRDLoop, BaseModel)
+          print("BASE4_OK", pandas.__version__, pydantic_ai.__version__, qlib.__version__)
+          print(TradingAgentsGraph, FinRobot, QuantRDLoop, BaseModel)
           PY
+
+      - name: Add Chronos to the same environment
+        run: |
+          set -euxo pipefail
+          source env/bin/activate
+          python -m pip install -c constraints.txt ./chronos-src
+          python -m pip check
+
+      - name: Verify Chronos native surfaces and prior engines
+        run: |
+          set -euxo pipefail
+          source env/bin/activate
+          python - <<'PY'
+          import chronos, torch, pandas, qlib, tradingagents, finrobot, rdagent, pydantic_ai
+          from chronos import BaseChronosPipeline, ChronosPipeline, ChronosBoltPipeline, Chronos2Pipeline
+          from tradingagents.graph.trading_graph import TradingAgentsGraph
+          from finrobot import FinRobot
+          from rdagent.app.qlib_rd_loop.quant import QuantRDLoop
+          from qlib.model.base import BaseModel
+          print("FIVE_OK")
+          print("chronos", chronos.__version__)
+          print("torch", torch.__version__)
+          print("pandas", pandas.__version__)
+          print("pydantic_ai", pydantic_ai.__version__)
+          print(BaseChronosPipeline, ChronosPipeline, ChronosBoltPipeline, Chronos2Pipeline)
+          print(TradingAgentsGraph, FinRobot, QuantRDLoop, BaseModel)
+          PY
+
+      - name: Freeze successful five-engine environment
+        run: |
+          source env/bin/activate
+          python -m pip freeze | sort > resolved-five.txt
+          python -m pip check > pip-check-five.txt
 
       - name: Upload evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: cumulative-five-chronos-evidence
+          name: incremental-five-chronos-evidence
           path: |
             constraints.txt
             rdagent-dependency-compat.patch
             resolved-five.txt
+            pip-check-five.txt
           retention-days: 3
