@@ -7,6 +7,7 @@ from app.orchestration.allocation import target_portfolio_from_finrl
 from app.orchestration.research import merge_finrobot_result, research_bundle_from_tradingagents
 from app.orchestration.rdagent import hypothesis_from_rdagent, inject_research_into_rdagent
 from app.orchestration.runtime import plan_rebalance
+from app.orchestration.quant import forecasts_from_chronos_df, model_scores_from_qlib, policy_action
 
 
 class _FakeFrame:
@@ -158,4 +159,49 @@ def test_native_rdagent_hypothesis_maps_without_inventing_fail_condition():
     assert mapped.fail_conditions == []
     assert mapped.market_expectation is None
     assert mapped.thesis == NativeHypothesis.hypothesis
+
+def test_qlib_prediction_remains_raw_model_score():
+    class Predictions:
+        def items(self):
+            yield (datetime(2026, 10, 22, tzinfo=UTC), "AAPL"), 0.123
+
+    rows = model_scores_from_qlib(Predictions(), model_id="qlib-lgb")
+    assert rows[0].instrument == "AAPL"
+    assert rows[0].score == 0.123
+    assert not hasattr(rows[0], "expected_return")
+
+
+def test_chronos_predict_df_maps_mean_and_quantiles_without_trade_direction():
+    class ForecastFrame:
+        columns = ["item_id", "timestamp", "target_name", "predictions", "0.1", "0.5", "0.9"]
+
+        def iterrows(self):
+            yield 0, {
+                "item_id": "AAPL",
+                "timestamp": datetime(2026, 10, 23, tzinfo=UTC),
+                "target_name": "close",
+                "predictions": 101.0,
+                "0.1": 98.0,
+                "0.5": 100.5,
+                "0.9": 104.0,
+            }
+
+    rows = forecasts_from_chronos_df(ForecastFrame(), model_id="chronos2", horizon="1d")
+    assert rows[0].point_forecast == 101.0
+    assert [(q.quantile, q.value) for q in rows[0].quantiles] == [
+        (0.1, 98.0),
+        (0.5, 100.5),
+        (0.9, 104.0),
+    ]
+
+
+def test_rl_action_is_kept_uninterpreted_until_environment_adapter():
+    wrapped = policy_action(
+        [0.25, -0.5],
+        policy_id="ppo-1",
+        timestamp=datetime(2026, 10, 22, tzinfo=UTC),
+        instrument_scope=["AAPL", "MSFT"],
+    )
+    assert wrapped.action == [0.25, -0.5]
+    assert wrapped.instrument_scope == ["AAPL", "MSFT"]
 
