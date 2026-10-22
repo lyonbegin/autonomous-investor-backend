@@ -1,5 +1,9 @@
 name: Reproducible Integrated Stack
 
+concurrency:
+  group: reproducible-integrated-stack-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   push:
     branches: [integration-lab]
