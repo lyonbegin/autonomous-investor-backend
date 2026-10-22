@@ -1,7 +1,5 @@
-# Railway deployment image for the validated 12-engine Autonomous Investor stack.
-# Heavy third-party engine installation is isolated in a cacheable layer so
-# normal application-code changes do not rebuild NautilusTrader from source.
-FROM python:3.13-bookworm AS builder
+# Fast deployment image using the exact validated NautilusTrader wheel.
+FROM python:3.13-slim-bookworm AS builder
 
 ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONDONTWRITEBYTECODE=1 \
@@ -9,51 +7,50 @@ ENV DEBIAN_FRONTEND=noninteractive \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PIP_NO_CACHE_DIR=1 \
     VIRTUAL_ENV=/opt/venv \
-    PATH=/opt/venv/bin:/root/.cargo/bin:$PATH
+    PATH=/opt/venv/bin:$PATH
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
       build-essential \
       ca-certificates \
-      clang \
       curl \
       git \
       patchelf \
-      pkg-config \
     && rm -rf /var/lib/apt/lists/*
-
-# NautilusTrader validated source build requires Rust 1.99.0.
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
-      | sh -s -- -y --profile minimal --default-toolchain 1.99.0 \
-    && rustc --version \
-    && cargo --version
 
 WORKDIR /app
 RUN python -m venv "$VIRTUAL_ENV"
 
-# Copy only files that determine the integrated dependency layer first.
-# Railway/BuildKit can reuse this expensive layer when only app code changes.
+# Heavy Python dependencies are isolated in a cacheable layer.
 COPY requirements/ /app/requirements/
 COPY scripts/install_integrated_stack.py /app/scripts/install_integrated_stack.py
 
 RUN python -m pip install --upgrade pip setuptools wheel cython \
-    && python scripts/install_integrated_stack.py --source-dir /tmp/autonomous-investor-upstreams \
+    && python scripts/install_integrated_stack.py --source-dir /tmp/autonomous-investor-upstreams --skip-nautilus \
     && python -m pip check
 
-# Application and bridge/orchestration code changes happen after the heavy
-# dependency layer, so they should not force another Nautilus Rust rebuild.
+ARG NAUTILUS_WHEEL_URL="https://github.com/lyonbegin/autonomous-investor-backend/releases/download/nautilus-wheel-2.0.0rc8.dev20261022-19732/nautilus_trader-2.0.0rc8.dev20261022%2B19732-cp313-cp313-manylinux_2_34_x86_64.whl"
+ARG NAUTILUS_WHEEL_SHA256="e77ef52d9c5593e1c420c60cc1bb4e7c1af13c7515729475064a679e46bbab50"
+
+RUN curl -fL "$NAUTILUS_WHEEL_URL" -o /tmp/nautilus_trader-2.0.0rc8.dev20261022+19732-cp313-cp313-manylinux_2_34_x86_64.whl \
+    && echo "$NAUTILUS_WHEEL_SHA256  /tmp/nautilus_trader-2.0.0rc8.dev20261022+19732-cp313-cp313-manylinux_2_34_x86_64.whl" | sha256sum -c - \
+    && python -m pip install --no-deps /tmp/nautilus_trader-2.0.0rc8.dev20261022+19732-cp313-cp313-manylinux_2_34_x86_64.whl \
+    && python -m pip check \
+    && rm -f /tmp/nautilus_trader-2.0.0rc8.dev20261022+19732-cp313-cp313-manylinux_2_34_x86_64.whl \
+    && rm -rf /tmp/autonomous-investor-upstreams /root/.cache/pip
+
 COPY . .
 
 RUN python scripts/verify_integrated_stack.py \
-    && rm -rf /tmp/autonomous-investor-upstreams /root/.cache/pip /root/.cargo/registry /root/.cargo/git
+    && python -m pip check
 
-FROM python:3.13-bookworm AS runtime
+FROM python:3.13-slim-bookworm AS runtime
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
     VIRTUAL_ENV=/opt/venv \
     PATH=/opt/venv/bin:$PATH \
-    PORT=8000
+    PORT=8080
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
       ca-certificates \
@@ -64,9 +61,9 @@ WORKDIR /app
 COPY --from=builder /opt/venv /opt/venv
 COPY --from=builder /app /app
 
-EXPOSE 8000
+EXPOSE 8080
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-  CMD python -c "import os,urllib.request; urllib.request.urlopen('http://127.0.0.1:'+os.environ.get('PORT','8000')+'/health', timeout=5).read()" || exit 1
+  CMD python -c "import os,urllib.request; urllib.request.urlopen('http://127.0.0.1:'+os.environ.get('PORT','8080')+'/health', timeout=5).read()" || exit 1
 
-CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8080}"]
