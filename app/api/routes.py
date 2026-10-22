@@ -11,6 +11,7 @@ from app.core.contracts import (
     ExecutionReport,
     ExperimentResult,
     Hypothesis,
+    OrderIntent,
     ResearchBundle,
     RiskDecision,
     Signal,
@@ -56,6 +57,7 @@ def contracts() -> dict:
     models = [
         ResearchBundle,
         Hypothesis,
+        OrderIntent,
         ExperimentResult,
         Signal,
         TargetPortfolio,
