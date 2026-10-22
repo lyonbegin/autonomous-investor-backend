@@ -55,18 +55,18 @@ def main() -> None:
         ]
     )
 
-    from lab.bridges.chronos_bridge import ChronosBridge
-    from lab.bridges.finrl_bridge import FinRLBridge
-    from lab.bridges.finrobot_bridge import FinRobotBridge
-    from lab.bridges.nautilus_bridge import NautilusBridge
-    from lab.bridges.pypfopt_bridge import PyPortfolioOptBridge
-    from lab.bridges.qlib_bridge import QlibBridge
-    from lab.bridges.rdagent_bridge import RDAgentQuantBridge
-    from lab.bridges.riskfolio_bridge import RiskfolioBridge
-    from lab.bridges.rllib_bridge import RLlibBridge
-    from lab.bridges.sb3_bridge import StableBaselinesBridge
-    from lab.bridges.tradingagents_bridge import TradingAgentsBridge
-    from lab.bridges.vectorbt_bridge import VectorBTBridge
+    from app.integrations.chronos import ChronosBridge
+    from app.integrations.finrl import FinRLBridge
+    from app.integrations.finrobot import FinRobotBridge
+    from app.integrations.nautilus import NautilusBridge
+    from app.integrations.pypfopt import PyPortfolioOptBridge
+    from app.integrations.qlib import QlibBridge
+    from app.integrations.rdagent import RDAgentQuantBridge
+    from app.integrations.riskfolio import RiskfolioBridge
+    from app.integrations.rllib import RLlibBridge
+    from app.integrations.sb3 import StableBaselinesBridge
+    from app.integrations.tradingagents import TradingAgentsBridge
+    from app.integrations.vectorbt import VectorBTBridge
 
     close = pd.Series([1.0, 2.0, 1.5, 3.0])
     pf = VectorBTBridge.from_signals(
