@@ -1,0 +1,99 @@
+name: Nautilus Source Build Preflight
+
+on:
+  push:
+    branches: [integration-lab]
+    paths:
+      - ".github/workflows/integration-nautilus.yml"
+
+jobs:
+  nautilus-source-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Checkout exact Nautilus develop source
+        run: |
+          set -euxo pipefail
+          git clone --filter=blob:none https://github.com/nautechsystems/nautilus_trader.git nautilus-src
+          git -C nautilus-src checkout a82b470c1ea214ac1bd1139e2f5ff455d45dbd99
+          echo "NAUTILUS_SHA=$(git -C nautilus-src rev-parse HEAD)" | tee nautilus-source-revision.txt
+
+      - name: Install Rust 1.99.0
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: "1.99.0"
+          override: true
+          cache: false
+
+      - name: Install native build prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y lld patchelf
+
+      - name: Create Python 3.13 build environment
+        run: |
+          python -m venv env
+          source env/bin/activate
+          python -m pip install -U pip setuptools wheel "maturin==1.15.0"
+
+      - name: Build exact source wheel with maturin
+        run: |
+          set -euxo pipefail
+          source env/bin/activate
+          export PYO3_PYTHON="$VIRTUAL_ENV/bin/python"
+          export CARGO_BUILD_JOBS=2
+          cd nautilus-src/python
+          maturin build --locked --release --out ../dist
+          ls -lh ../dist
+
+      - name: Install source-built wheel
+        run: |
+          set -euxo pipefail
+          source env/bin/activate
+          python -m pip install nautilus-src/dist/*.whl
+          python -m pip check
+
+      - name: Verify current develop Python facade
+        run: |
+          set -euxo pipefail
+          source env/bin/activate
+          python - <<'PY'
+          import nautilus_trader
+          from nautilus_trader.trading import Strategy, StrategyConfig
+          from nautilus_trader.backtest import BacktestEngineConfig, BacktestNode
+          from nautilus_trader.risk import RiskEngineConfig
+          from nautilus_trader.execution import ExecutionEngineConfig
+
+          risk = RiskEngineConfig()
+          execution = ExecutionEngineConfig()
+          backtest = BacktestEngineConfig(risk_engine=risk, exec_engine=execution)
+
+          print("NAUTILUS_SOURCE_OK", nautilus_trader.__version__)
+          print("strategy", Strategy, StrategyConfig)
+          print("backtest", BacktestNode, type(backtest))
+          print("risk", type(risk), risk.bypass)
+          print("execution", type(execution), execution.allow_overfills)
+          print("module", nautilus_trader.__file__)
+          PY
+
+      - name: Record installed package
+        run: |
+          source env/bin/activate
+          python -m pip freeze | sort > nautilus-source-freeze.txt
+          sha256sum nautilus-src/dist/*.whl > nautilus-wheel-sha256.txt
+
+      - name: Upload source build evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nautilus-source-build-evidence
+          path: |
+            nautilus-source-revision.txt
+            nautilus-source-freeze.txt
+            nautilus-wheel-sha256.txt
+            nautilus-src/dist/*.whl
+          retention-days: 3
