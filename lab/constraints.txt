@@ -10,3 +10,4 @@ torch>=2.8,<3
 gymnasium==1.2.2
 ray==2.59.0
 numpy>=2.4.6,<3
+nautilus-trader==2.0.0rc8.dev20261022+19732
