@@ -10,6 +10,7 @@ from .finrobot_bridge import FinRobotBridge
 from .rdagent_bridge import RDAgentQuantBridge
 from .qlib_bridge import QlibBridge
 from .chronos_bridge import ChronosBridge
+from .sb3_bridge import StableBaselinesBridge
 
 __all__ = [
     "TradingAgentsBridge",
@@ -18,4 +19,5 @@ __all__ = [
     "RDAgentQuantBridge",
     "QlibBridge",
     "ChronosBridge",
+    "StableBaselinesBridge",
 ]
