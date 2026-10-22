@@ -19,7 +19,12 @@ class RDAgentQuantBridge:
         loop_n: int | None = None,
         all_duration: str | None = None,
         base_features_path: str | None = None,
+        research_bundle: Any | None = None,
     ) -> Any:
+        if research_bundle is not None:
+            from app.orchestration.rdagent import inject_research_into_rdagent
+
+            inject_research_into_rdagent(self.loop, research_bundle)
         self.loop._init_base_features(base_features_path)
         await self.loop.run(step_n=step_n, loop_n=loop_n, all_duration=all_duration)
         return self.loop.trace
