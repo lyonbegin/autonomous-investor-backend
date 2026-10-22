@@ -16,6 +16,7 @@ from .vectorbt_bridge import VectorBTBridge
 from .finrl_bridge import FinRLBridge
 from .riskfolio_bridge import RiskfolioBridge
 from .pypfopt_bridge import PyPortfolioOptBridge
+from .nautilus_bridge import NautilusBridge
 
 __all__ = [
     "TradingAgentsBridge",
@@ -28,6 +29,7 @@ __all__ = [
     "RLlibBridge",
     "VectorBTBridge",
     "PyPortfolioOptBridge",
+    "NautilusBridge",
     "RiskfolioBridge",
     "FinRLBridge",
 ]
