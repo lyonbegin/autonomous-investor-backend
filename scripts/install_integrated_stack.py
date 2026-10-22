@@ -8,7 +8,7 @@ import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
-CONSTRAINTS = ROOT / "requirements" / "integration-constraints.txt"
+CONSTRAINTS = ROOT / "requirements" / "integration-lock-linux-py313.txt"
 
 UPSTREAMS = [
     ("TradingAgents", "https://github.com/TauricResearch/TradingAgents.git", "e8f5503e9b86d5c2710b0c76b1f686703968c9df", "."),
