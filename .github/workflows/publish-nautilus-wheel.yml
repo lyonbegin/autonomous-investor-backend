@@ -1,0 +1,48 @@
+name: Publish Validated Nautilus Wheel
+
+on:
+  push:
+    branches: [predeploy-verify]
+    paths:
+      - ".github/workflows/publish-nautilus-wheel.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download exact validated Nautilus wheel artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: nautilus-19732-exact-wheel
+          path: wheel
+          github-token: ${{ github.token }}
+          repository: lyonbegin/autonomous-investor-backend
+          run-id: 39773534982
+
+      - name: Verify exact wheel
+        run: |
+          set -euxo pipefail
+          WHEEL="$(find wheel -name 'nautilus_trader-2.0.0rc8.dev20261022+19732-cp313-cp313-manylinux_2_34_x86_64.whl' -print -quit)"
+          test -n "$WHEEL"
+          echo "e77ef52d9c5593e1c420c60cc1bb4e7c1af13c7515729475064a679e46bbab50  $WHEEL" | sha256sum -c -
+          ls -lh "$WHEEL"
+
+      - name: Create release and upload wheel
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          TAG="nautilus-wheel-2.0.0rc8.dev20261022-19732"
+          WHEEL="$(find wheel -name 'nautilus_trader-2.0.0rc8.dev20261022+19732-cp313-cp313-manylinux_2_34_x86_64.whl' -print -quit)"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$WHEEL" --clobber
+          else
+            gh release create "$TAG" "$WHEEL"               --title "Validated NautilusTrader wheel 2.0.0rc8.dev20261022+19732"               --notes "Exact Python 3.13 Linux wheel validated in the twelve-engine integration. Source commit: 69aa8a283c8735cee4a536084078e3b19ac9a1be. SHA-256: e77ef52d9c5593e1c420c60cc1bb4e7c1af13c7515729475064a679e46bbab50."
+          fi
