@@ -5,6 +5,7 @@ validated native outputs at explicit engine boundaries.
 """
 
 from .research import merge_finrobot_result, research_bundle_from_tradingagents
+from .runtime import plan_rebalance
 from .allocation import (
     target_portfolio_from_finrl,
     target_portfolio_from_mapping,
@@ -17,4 +18,5 @@ __all__ = [
     "target_portfolio_from_finrl",
     "target_portfolio_from_mapping",
     "target_portfolio_from_riskfolio",
+    "plan_rebalance",
 ]
