@@ -38,6 +38,7 @@ __all__ = [
     "ExecutionFlowResult",
     "QuantCoordinator",
     "QuantFlowResult",
+    "AllocationCoordinator",
 ]
 
 from .pipeline import (
@@ -49,3 +50,5 @@ from .pipeline import (
 )
 
 from .pipeline import QuantCoordinator, QuantFlowResult
+
+from .pipeline import AllocationCoordinator
