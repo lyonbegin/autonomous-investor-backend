@@ -113,3 +113,16 @@ Reproducibility evidence:
 - Repository integration verifier passed.
 - Exact Python 3.13 Linux integration lock was honored.
 
+## Cross-engine orchestration
+
+Validated thin coordinators now connect the native engine boundaries without
+reimplementing upstream internals:
+
+1. Research: TradingAgents native graph -> ResearchBundle -> optional FinRobot native pipeline.
+2. Autonomous R&D: ResearchBundle -> RD-Agent native ExperimentPlan.user_instruction -> QuantRDLoop.
+3. Quant: Qlib Model.predict, Chronos predict_df, SB3 model.predict, RLlib RLModule.forward_inference.
+4. Allocation: FinRL StrategyResult, Riskfolio Portfolio.optimization, PyPortfolioOpt EfficientFrontier -> TargetPortfolio.
+5. Runtime: TargetPortfolio -> OrderIntent -> explicit symbol-to-Nautilus InstrumentId map -> native Nautilus order factory / submit_order.
+
+Backend boundary unit tests after these coordinators: **19 passed**.
+Nautilus venue identifiers are never guessed; execution accepts an explicit instrument mapping.
