@@ -9,6 +9,7 @@ from .tradingagents_bridge import TradingAgentsBridge, TradingAgentsRun
 from .finrobot_bridge import FinRobotBridge
 from .rdagent_bridge import RDAgentQuantBridge
 from .qlib_bridge import QlibBridge
+from .chronos_bridge import ChronosBridge
 
 __all__ = [
     "TradingAgentsBridge",
@@ -16,4 +17,5 @@ __all__ = [
     "FinRobotBridge",
     "RDAgentQuantBridge",
     "QlibBridge",
+    "ChronosBridge",
 ]
