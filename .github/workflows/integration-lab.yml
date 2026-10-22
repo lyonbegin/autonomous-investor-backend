@@ -8,7 +8,7 @@ on:
       - "lab/**"
 
 jobs:
-  tradingagents-wheelhouse:
+  finrobot-wheelhouse:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout lab branch
@@ -19,41 +19,40 @@ jobs:
         with:
           python-version: "3.13"
 
-      - name: Prepare upstream source
+      - name: Prepare FinRobot V2 source
         run: |
           set -euxo pipefail
           mkdir -p artifacts/wheelhouse
-          git clone https://github.com/TauricResearch/TradingAgents.git upstream-TradingAgents
-          cd upstream-TradingAgents
-          git checkout e8f5503e9b86d5c2710b0c76b1f686703968c9df
+          git clone https://github.com/AI4Finance-Foundation/FinRobot.git upstream-FinRobot
+          cd upstream-FinRobot
+          git checkout 2717499b8e30f242640af08c4ad9afd1113c2d45
           cd ..
-          tar -czf artifacts/TradingAgents-e8f5503e.tar.gz upstream-TradingAgents
+          tar -czf artifacts/FinRobot-2717499b.tar.gz upstream-FinRobot
 
-      - name: Resolve and build wheelhouse
+      - name: Resolve and build FinRobot V2 wheelhouse
         run: |
           set -euxo pipefail
           python -m pip install --upgrade pip setuptools wheel
-          python -m pip wheel --wheel-dir artifacts/wheelhouse ./upstream-TradingAgents
-          python -m pip install --dry-run --report artifacts/tradingagents-pip-report.json ./upstream-TradingAgents
+          python -m pip wheel --wheel-dir artifacts/wheelhouse ./upstream-FinRobot/finrobot_desktop
+          python -m pip install --dry-run --report artifacts/finrobot-pip-report.json ./upstream-FinRobot/finrobot_desktop
 
-      - name: Verify installation on clean Python 3.13
+      - name: Verify FinRobot V2 installation on clean Python 3.13
         run: |
           set -euxo pipefail
           python -m venv verify-venv
           source verify-venv/bin/activate
-          python -m pip install --no-index --find-links artifacts/wheelhouse tradingagents==0.7.0
+          python -m pip install --no-index --find-links artifacts/wheelhouse finrobot==2.0.0
           python -m pip check
           python - <<'PY'
-          import tradingagents
-          from tradingagents.graph.trading_graph import TradingAgentsGraph
-          print("tradingagents_module=", tradingagents.__file__)
-          print("TradingAgentsGraph=", TradingAgentsGraph)
+          import finrobot
+          print("finrobot_module=", finrobot.__file__)
+          print("finrobot_version=", getattr(finrobot, "__version__", None))
           PY
 
       - name: Upload source and wheelhouse
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: tradingagents-python313-wheelhouse
+          name: finrobot-v2-python313-wheelhouse
           path: artifacts/
           retention-days: 3
