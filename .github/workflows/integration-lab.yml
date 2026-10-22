@@ -1,4 +1,4 @@
-name: Integration Lab Compatibility
+name: Integration Lab Qlib
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
       - ".github/workflows/integration-lab.yml"
 
 jobs:
-  compat-three:
+  cumulative-qlib:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -24,10 +24,11 @@ jobs:
           git -C fr checkout 2717499b8e30f242640af08c4ad9afd1113c2d45
           git clone https://github.com/microsoft/RD-Agent.git rd
           git -C rd checkout 484776c211e4fbbeef03e0ec00d6bbee7362a4f4
+          git clone https://github.com/microsoft/qlib.git qlib-src
+          git -C qlib-src checkout 54355232463878d2eebb91fe0ee5fa7fa1f5976c
 
-      - name: Apply dependency-only RD-Agent compatibility metadata
+      - name: Apply RD-Agent dependency metadata compatibility
         run: |
-          set -euxo pipefail
           cp rd/requirements.txt rd/requirements.upstream.txt
           python - <<'PY'
           from pathlib import Path
@@ -38,73 +39,58 @@ jobs:
           assert old in s
           p.write_text(s.replace(old,new))
           PY
-          diff -u rd/requirements.upstream.txt rd/requirements.txt | tee rdagent-dependency-compat.patch || true
+          diff -u rd/requirements.upstream.txt rd/requirements.txt > rdagent-dependency-compat.patch || true
 
-      - name: Write common constraints
+      - name: Common constraints after Qlib analysis
         run: |
           cat > constraints.txt <<'EOF'
           pydantic-ai==1.70.0
           pydantic-ai-slim==1.70.0
           pandas>=3.0.6,<4
+          mlflow<3.13
+          filelock>=3.16.0,<3.30
           EOF
           cat constraints.txt
 
-      - name: Install all three together into one Python 3.13 venv
+      - name: Install first four engines together
         run: |
           set -euxo pipefail
           python -m venv env
           source env/bin/activate
-          python -m pip install -U pip setuptools wheel
-          python -m pip install -c constraints.txt ./ta ./fr/finrobot_desktop ./rd
+          python -m pip install -U pip setuptools wheel cython "numpy>=1.24"
+          python -m pip install -c constraints.txt ./ta ./fr/finrobot_desktop ./rd ./qlib-src
           python -m pip check
-          python -m pip freeze > resolved-three.txt
+          python -m pip freeze > resolved-four.txt
 
-      - name: Verify original execution surfaces
+      - name: Verify Qlib and prior execution surfaces
         run: |
           set -euxo pipefail
           source env/bin/activate
           python - <<'PY'
-          import pandas
-          import pydantic_ai
-          import tradingagents
-          import finrobot
-          import rdagent
+          import pandas, qlib, tradingagents, finrobot, rdagent
           from tradingagents.graph.trading_graph import TradingAgentsGraph
           from finrobot import FinRobot
           from rdagent.app.qlib_rd_loop.quant import QuantRDLoop
-          from rdagent.components.agent.base import PAIAgent
-          from pydantic_ai import Agent
-          from pydantic_ai.mcp import MCPServerStreamableHTTP
-          from pydantic_ai.models.openai import OpenAIChatModel, OpenAIChatModelSettings
-          from pydantic_ai.providers.litellm import LiteLLMProvider
+          from qlib.model.base import BaseModel
+          from qlib.strategy.base import BaseStrategy
+          from qlib.backtest.decision import BaseTradeDecision
+          from qlib.backtest.executor import BaseExecutor
+          from qlib.backtest import backtest
           print("pandas", pandas.__version__)
-          print("pydantic_ai", getattr(pydantic_ai,"__version__",None))
+          print("qlib", getattr(qlib, "__version__", None))
           print("TradingAgentsGraph", TradingAgentsGraph)
           print("FinRobot", FinRobot)
           print("QuantRDLoop", QuantRDLoop)
-          print("PAIAgent", PAIAgent)
-          print("Pydantic surfaces", Agent, MCPServerStreamableHTTP, OpenAIChatModel, OpenAIChatModelSettings, LiteLLMProvider)
+          print("Qlib surfaces", BaseModel, BaseStrategy, BaseTradeDecision, BaseExecutor, backtest)
           PY
 
-      - name: FinRobot offline TestModel smoke
-        run: |
-          set -euxo pipefail
-          source env/bin/activate
-          python - <<'PY'
-          from pydantic_ai import Agent
-          from pydantic_ai.models.test import TestModel
-          a=Agent(TestModel(custom_output_text="ok"))
-          r=a.run_sync("test")
-          print("FinRobot-compatible Agent smoke:", r.output)
-          PY
-
-      - name: Upload compatibility evidence
+      - name: Upload Qlib cumulative evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: compat-three-evidence
+          name: cumulative-four-qlib-evidence
           path: |
             constraints.txt
             rdagent-dependency-compat.patch
-            resolved-three.txt
+            resolved-four.txt
           retention-days: 3
