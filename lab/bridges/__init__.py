@@ -12,6 +12,7 @@ from .qlib_bridge import QlibBridge
 from .chronos_bridge import ChronosBridge
 from .sb3_bridge import StableBaselinesBridge
 from .rllib_bridge import RLlibBridge
+from .vectorbt_bridge import VectorBTBridge
 
 __all__ = [
     "TradingAgentsBridge",
@@ -22,4 +23,5 @@ __all__ = [
     "ChronosBridge",
     "StableBaselinesBridge",
     "RLlibBridge",
+    "VectorBTBridge",
 ]
