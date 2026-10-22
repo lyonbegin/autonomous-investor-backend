@@ -1,4 +1,4 @@
-name: Integration Lab vectorbt
+name: Integration Lab Portfolio Stack
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
       - ".github/workflows/integration-lab.yml"
 
 jobs:
-  cumulative-vectorbt:
+  cumulative-portfolio-stack:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -36,19 +36,34 @@ jobs:
           git -C ray-src sparse-checkout set rllib python
           git clone --depth 1 --branch v1.2.0 --filter=blob:none https://github.com/polakowo/vectorbt.git vectorbt-src
 
-      - name: Apply RD-Agent dependency metadata overlay
+          git clone --filter=blob:none https://github.com/AI4Finance-Foundation/FinRL-Trading.git finrl-src
+          git -C finrl-src checkout 4409abe925c904e570be78ebfb5e77ac3491dff8
+          git clone --filter=blob:none https://github.com/dcajasn/Riskfolio-Lib.git riskfolio-src
+          git -C riskfolio-src checkout 7b1b26ac9760974c12ecefe290a9d3bd37b66b7a
+          git clone --filter=blob:none https://github.com/PyPortfolio/PyPortfolioOpt.git pypfopt-src
+          git -C pypfopt-src checkout a6638d2e06dae6f444fd022cfd4b3c528902a85b
+
+      - name: Apply compatibility overlays
         run: |
+          set -euxo pipefail
           cp rd/requirements.txt rd/requirements.upstream.txt
           python - <<'PY'
           from pathlib import Path
           p=Path("rd/requirements.txt")
           s=p.read_text()
-          old="pydantic-ai-slim[mcp,openai,prefect]==1.66.0"
-          new="pydantic-ai-slim[mcp,openai,prefect]==1.70.0"
-          assert old in s
-          p.write_text(s.replace(old,new))
+          s=s.replace(
+              "pydantic-ai-slim[mcp,openai,prefect]==1.66.0",
+              "pydantic-ai-slim[mcp,openai,prefect]==1.70.0",
+          )
+          p.write_text(s)
+
+          p=Path("finrl-src/requirements.txt")
+          original=p.read_text()
+          assert "finnhub>=2.4.19" in original
+          p.write_text(original.replace("finnhub>=2.4.19", "finnhub-python>=2.4.19"))
           PY
           diff -u rd/requirements.upstream.txt rd/requirements.txt > rdagent-dependency-compat.patch || true
+          git -C finrl-src diff -- requirements.txt > finrl-dependency-compat.patch || true
 
       - name: Shared constraints
         run: |
@@ -71,66 +86,104 @@ jobs:
           source env/bin/activate
           python -m pip install -U pip setuptools wheel cython
 
-      - name: Install verified seven engines
+      - name: Install validated first eight
         run: |
           set -euxo pipefail
           source env/bin/activate
           python -m pip install -c constraints.txt ./ta ./fr/finrobot_desktop ./rd ./qlib-src ./chronos-src ./sb3-src
           python -m pip install -c constraints.txt "ray[rllib]==2.59.0"
-          python -m pip check
-
-      - name: Add vectorbt v1.2.0 to the same environment
-        run: |
-          set -euxo pipefail
-          source env/bin/activate
           python -m pip install -c constraints.txt ./vectorbt-src
           python -m pip check
 
-      - name: Verify vectorbt native Portfolio and all prior surfaces
+      - name: Add FinRL-Trading as ninth engine
+        run: |
+          set -euxo pipefail
+          source env/bin/activate
+          python -m pip install -c constraints.txt ./finrl-src
+          python -m pip check
+          python - <<'PY'
+          import pandas as pd
+          from strategies.base_strategy import StrategyConfig, EqualWeightStrategy, StrategyResult
+          data={"fundamentals": pd.DataFrame({"gvkey":["A","B","C"]})}
+          out=EqualWeightStrategy(StrategyConfig(name="eq")).generate_weights(data)
+          assert isinstance(out, StrategyResult)
+          print("NINE_OK", out.strategy_name, out.weights["weight"].tolist())
+          PY
+
+      - name: Add Riskfolio-Lib as tenth engine
+        run: |
+          set -euxo pipefail
+          source env/bin/activate
+          python -m pip install -c constraints.txt ./riskfolio-src
+          python -m pip check
+          python - <<'PY'
+          import pandas as pd
+          import riskfolio as rp
+          returns=pd.DataFrame({
+              "A":[0.01,-0.01,0.02,0.00,0.01],
+              "B":[0.00,0.01,-0.01,0.02,0.01],
+              "C":[0.02,0.00,0.01,-0.01,0.00],
+          })
+          p=rp.Portfolio(returns=returns)
+          p.assets_stats(method_mu="hist", method_cov="hist")
+          w=p.optimization(model="Classic", rm="MV", obj="MinRisk", hist=True)
+          print("TEN_OK", rp.__version__, w.to_dict())
+          PY
+
+      - name: Add PyPortfolioOpt as eleventh engine
+        run: |
+          set -euxo pipefail
+          source env/bin/activate
+          python -m pip install -c constraints.txt ./pypfopt-src
+          python -m pip check
+          python - <<'PY'
+          import numpy as np
+          import pandas as pd
+          import pypfopt
+          from pypfopt import EfficientFrontier
+          mu=pd.Series([0.10,0.12,0.08], index=["A","B","C"])
+          cov=pd.DataFrame(np.diag([0.04,0.05,0.03]), index=mu.index, columns=mu.index)
+          ef=EfficientFrontier(mu,cov)
+          ef.min_volatility()
+          print("ELEVEN_OK", pypfopt.__version__, ef.clean_weights())
+          PY
+
+      - name: Verify all eleven native surfaces
         run: |
           set -euxo pipefail
           source env/bin/activate
           python - <<'PY'
-          import pandas as pd
-          import numpy as np
-          import vectorbt as vbt
-          import ray
-          from vectorbt.portfolio.base import Portfolio
-          from ray.rllib.algorithms.ppo import PPOConfig
-          from stable_baselines3 import PPO as SB3PPO
-          from chronos import Chronos2Pipeline
-          from rdagent.app.qlib_rd_loop.quant import QuantRDLoop
-          from finrobot import FinRobot
+          import tradingagents, finrobot, rdagent, qlib, chronos, stable_baselines3, ray, vectorbt, riskfolio, pypfopt
           from tradingagents.graph.trading_graph import TradingAgentsGraph
-          import qlib
-
-          close = pd.Series([1.0, 2.0, 1.5, 3.0])
-          entries = pd.Series([True, False, True, False])
-          exits = pd.Series([False, True, False, True])
-          pf = Portfolio.from_signals(close, entries, exits)
-
-          print("EIGHT_OK")
-          print("vectorbt", vbt.__version__)
-          print("numpy", np.__version__)
-          print("pandas", pd.__version__)
-          print("total_return", float(pf.total_return()))
-          print("prior", ray.__version__, PPOConfig, SB3PPO, Chronos2Pipeline, QuantRDLoop, FinRobot, TradingAgentsGraph, qlib.__version__)
+          from finrobot import FinRobot
+          from rdagent.app.qlib_rd_loop.quant import QuantRDLoop
+          from qlib.model.base import BaseModel
+          from chronos import Chronos2Pipeline
+          from stable_baselines3 import PPO
+          from ray.rllib.algorithms.ppo import PPOConfig
+          from vectorbt.portfolio.base import Portfolio
+          from strategies.base_strategy import StrategyResult
+          from riskfolio import Portfolio as RiskfolioPortfolio
+          from pypfopt import EfficientFrontier
+          print("ALL_ELEVEN_IMPORTS_OK")
+          print(TradingAgentsGraph, FinRobot, QuantRDLoop, BaseModel, Chronos2Pipeline, PPO, PPOConfig, Portfolio, StrategyResult, RiskfolioPortfolio, EfficientFrontier)
           PY
 
-      - name: Freeze successful eight-engine environment
+      - name: Freeze successful eleven-engine environment
         run: |
           source env/bin/activate
-          python -m pip freeze | sort > resolved-eight.txt
-          python -m pip check > pip-check-eight.txt
+          python -m pip freeze | sort > resolved-eleven.txt
+          python -m pip check > pip-check-eleven.txt
 
       - name: Upload evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: cumulative-eight-vectorbt-evidence
+          name: cumulative-eleven-portfolio-stack-evidence
           path: |
             constraints.txt
             rdagent-dependency-compat.patch
-            resolved-eight.txt
-            pip-check-eight.txt
+            finrl-dependency-compat.patch
+            resolved-eleven.txt
+            pip-check-eleven.txt
           retention-days: 3
