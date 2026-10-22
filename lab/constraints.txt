@@ -8,3 +8,4 @@ filelock>=3.16,<3.30
 packaging>=25,<26
 torch>=2.8,<3
 gymnasium==1.2.2
+ray==2.59.0
