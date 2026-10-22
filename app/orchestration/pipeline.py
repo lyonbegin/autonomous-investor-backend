@@ -144,6 +144,7 @@ class NautilusExecutionCoordinator:
         prices: Mapping[str, float],
         current_quantities: Mapping[str, float] | None = None,
         min_notional: float = 0.0,
+        instrument_id_map: Mapping[str, str] | None = None,
     ) -> ExecutionFlowResult:
         intents = self.plan(
             target,
@@ -152,8 +153,17 @@ class NautilusExecutionCoordinator:
             current_quantities=current_quantities,
             min_notional=min_notional,
         )
+        native_ids = dict(instrument_id_map or {})
+        missing = [intent.instrument for intent in intents if intent.instrument not in native_ids]
+        if instrument_id_map is not None and missing:
+            raise KeyError(f"missing Nautilus InstrumentId mapping for: {sorted(missing)}")
+
         orders = [
-            self.nautilus.submit_market_intent(strategy, intent)
+            self.nautilus.submit_market_intent(
+                strategy,
+                intent,
+                native_instrument_id=native_ids.get(intent.instrument),
+            )
             for intent in intents
         ]
         return ExecutionFlowResult(
