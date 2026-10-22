@@ -6,7 +6,7 @@ This file records only combinations that were actually exercised in clean GitHub
 
 ## Validated cumulative stack
 
-The following eleven engines coexist in one Python 3.13 environment and passed `pip check` plus native import/smoke execution.
+The following twelve engines coexist in one Python 3.13 environment and passed `pip check` plus native import/smoke execution.
 
 1. TradingAgents — `e8f5503e9b86d5c2710b0c76b1f686703968c9df`
 2. FinRobot V2 — `2717499b8e30f242640af08c4ad9afd1113c2d45`
@@ -19,6 +19,7 @@ The following eleven engines coexist in one Python 3.13 environment and passed `
 9. FinRL-Trading — `4409abe925c904e570be78ebfb5e77ac3491dff8`
 10. Riskfolio-Lib — `7b1b26ac9760974c12ecefe290a9d3bd37b66b7a`
 11. PyPortfolioOpt — `a6638d2e06dae6f444fd022cfd4b3c528902a85b`
+12. NautilusTrader — `69aa8a283c8735cee4a536084078e3b19ac9a1be` / `2.0.0rc8.dev20261022+19732`
 
 Cumulative eleven-engine evidence:
 - Workflow run: `39770419578`
@@ -88,26 +89,27 @@ Upstream projects retain their native main/runtime flow. Our code only supplies 
 
 ## NautilusTrader
 
-Source commit under test:
-`a82b470c1ea214ac1bd1139e2f5ff455d45dbd99`
-
-Source metadata:
-- version: `2.0.0rc8`
+Validated source/wheel identity:
+- Source commit: `69aa8a283c8735cee4a536084078e3b19ac9a1be`
+- Validated wheel version: `2.0.0rc8.dev20261022+19732`
+- Wheel SHA-256: `e77ef52d9c5593e1c420c60cc1bb4e7c1af13c7515729475064a679e46bbab50`
 - Python: `>=3.13,<3.15`
-- Rust toolchain: `1.99.0`
-- build backend: `maturin==1.15.0`
-- runtime dependencies declared by the Python project: none
+- Rust/PyO3 facade validated.
 
-PyPI currently exposes up to rc7, so rc8 is being built from the exact develop source rather than downgraded.
+Final twelve-engine evidence:
+- Workflow run: `39773808554`
+- Result: success
+- Eleven-engine stack installed under shared constraints.
+- Exact validated Nautilus wheel installed as the twelfth engine.
+- All twelve native surfaces imported together.
+- Thin bridge layer smoke tests passed.
+- Final `pip check`: passed.
 
-Official exact-commit CPython 3.13 wheel evidence:
-- Upstream build run: `39708020392`
-- Upstream run number: `19711`
-- Head SHA: `a82b470c1ea214ac1bd1139e2f5ff455d45dbd99`
-- Wheel version: `2.0.0rc8.dev20261022+19711`
-- Wheel filename: `nautilus_trader-2.0.0rc8.dev20261022+19711-cp313-cp313-manylinux_2_34_x86_64.whl`
+Reproducibility evidence:
+- Workflow run: `39779527155`
+- Result: success
+- Repository installer recreated the eleven-engine environment.
+- Exact validated Nautilus wheel was added.
+- Repository integration verifier passed.
+- Exact Python 3.13 Linux integration lock was honored.
 
-Independent source-build workflow run: `39770520751`
-Final twelve-engine workflow run: `39771869178`
-
-After this build succeeds, the source-built wheel must be installed into the validated eleven-engine environment and the complete twelve-engine environment must pass `pip check`, native imports, and bridge smoke tests.
