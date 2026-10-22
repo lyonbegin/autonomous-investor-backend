@@ -1,4 +1,4 @@
-name: Integration Lab Compatibility
+name: Integration Lab Chronos
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
       - ".github/workflows/integration-lab.yml"
 
 jobs:
-  compat-three:
+  cumulative-chronos:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -24,73 +24,73 @@ jobs:
           git -C fr checkout 2717499b8e30f242640af08c4ad9afd1113c2d45
           git clone https://github.com/microsoft/RD-Agent.git rd
           git -C rd checkout 484776c211e4fbbeef03e0ec00d6bbee7362a4f4
+          git clone https://github.com/microsoft/qlib.git qlib-src
+          git -C qlib-src checkout 54355232463878d2eebb91fe0ee5fa7fa1f5976c
+          git clone https://github.com/amazon-science/chronos-forecasting.git chronos-src
+          git -C chronos-src checkout 1224fafa91e1ecd6674f5204066b159e40b5e4a1
 
-      - name: Create shared environment
+      - name: RD-Agent compatibility overlay
         run: |
+          cp rd/requirements.txt rd/requirements.upstream.txt
+          python - <<'PY'
+          from pathlib import Path
+          p=Path("rd/requirements.txt")
+          s=p.read_text()
+          old="pydantic-ai-slim[mcp,openai,prefect]==1.66.0"
+          new="pydantic-ai-slim[mcp,openai,prefect]==1.70.0"
+          assert old in s
+          p.write_text(s.replace(old,new))
+          PY
+          diff -u rd/requirements.upstream.txt rd/requirements.txt > rdagent-dependency-compat.patch || true
+
+      - name: Shared constraints
+        run: |
+          cat > constraints.txt <<'EOF'
+          pydantic-ai==1.70.0
+          pydantic-ai-slim==1.70.0
+          pandas>=3.0.6,<4
+          mlflow<3.13
+          filelock>=3.16.0,<3.30
+          torch>=2.8,<3
+          EOF
+
+      - name: Install first five engines together
+        run: |
+          set -euxo pipefail
           python -m venv env
           source env/bin/activate
-          python -m pip install -U pip setuptools wheel
-
-      - name: Install common compatibility versions
-        run: |
-          source env/bin/activate
-          python -m pip install "pandas==3.0.6" "pydantic-ai==1.70.0" "pydantic-ai-slim[mcp,openai,prefect]==1.70.0"
-
-      - name: Install TradingAgents and FinRobot V2
-        run: |
-          source env/bin/activate
-          python -m pip install ./ta ./fr/finrobot_desktop
+          python -m pip install -U pip setuptools wheel cython "numpy>=1.24"
+          python -m pip install -c constraints.txt ./ta ./fr/finrobot_desktop ./rd ./qlib-src ./chronos-src
           python -m pip check
-          python - <<'PY'
-          import tradingagents, finrobot
-          import pandas, pydantic_ai
-          print("tradingagents", tradingagents.__version__)
-          print("finrobot", getattr(finrobot, "__version__", None))
-          print("pandas", pandas.__version__)
-          print("pydantic_ai", pydantic_ai.__version__)
-          PY
+          python -m pip freeze > resolved-five.txt
 
-      - name: Install RD-Agent dependencies with compatibility override
+      - name: Verify Chronos and prior surfaces
         run: |
+          set -euxo pipefail
           source env/bin/activate
-          grep -v '^pydantic-ai-slim' rd/requirements.txt > rd-requirements-compat.txt
-          python -m pip install -r rd-requirements-compat.txt "pandas==3.0.6" "pydantic-ai-slim[mcp,openai,prefect]==1.70.0"
-          python -m pip install --no-deps ./rd
-
-      - name: Verify all three and RD-Agent Pydantic-AI surface
-        run: |
-          source env/bin/activate
-          python -m pip check
           python - <<'PY'
-          import tradingagents, finrobot, rdagent, pandas, pydantic_ai
+          import pandas, qlib, tradingagents, finrobot, rdagent, chronos, torch
           from tradingagents.graph.trading_graph import TradingAgentsGraph
-          from pydantic_ai import Agent
-          from pydantic_ai.mcp import MCPServerStreamableHTTP
-          from pydantic_ai.models.openai import OpenAIChatModel, OpenAIChatModelSettings
-          from pydantic_ai.providers.litellm import LiteLLMProvider
-          import rdagent.components.agent.base as rd_agent_base
-          import rdagent.oai.backend.pydantic_ai as rd_pai
-          print("ALL_IMPORTS_OK")
+          from finrobot import FinRobot
+          from rdagent.app.qlib_rd_loop.quant import QuantRDLoop
+          from qlib.model.base import BaseModel
+          from chronos import BaseChronosPipeline, ChronosPipeline, ChronosBoltPipeline, Chronos2Pipeline
+          print("ALL_FIVE_IMPORTS_OK")
           print("pandas", pandas.__version__)
-          print("pydantic_ai", pydantic_ai.__version__)
-          print("TradingAgentsGraph", TradingAgentsGraph)
-          print("RD_PAIAgent", rd_agent_base.PAIAgent)
-          print("RD_get_agent_model", rd_pai.get_agent_model)
-          print("MCPServerStreamableHTTP", MCPServerStreamableHTTP)
+          print("torch", torch.__version__)
+          print("qlib", getattr(qlib, "__version__", None))
+          print("chronos", getattr(chronos, "__version__", None))
+          print("Chronos surfaces", BaseChronosPipeline, ChronosPipeline, ChronosBoltPipeline, Chronos2Pipeline)
+          print("prior", TradingAgentsGraph, FinRobot, QuantRDLoop, BaseModel)
           PY
-
-      - name: Freeze unified environment
-        run: |
-          source env/bin/activate
-          python -m pip freeze | sort > unified-three-freeze.txt
-          python -m pip check > unified-three-pip-check.txt
 
       - name: Upload evidence
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: unified-three-compat-evidence
+          name: cumulative-five-chronos-evidence
           path: |
-            unified-three-freeze.txt
-            unified-three-pip-check.txt
-            rd-requirements-compat.txt
+            constraints.txt
+            rdagent-dependency-compat.patch
+            resolved-five.txt
           retention-days: 3
