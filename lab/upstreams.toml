@@ -48,7 +48,7 @@ name = "Ray RLlib"
 repo = "ray-project/ray"
 ref = "ray-2.59.0"
 install = "ray[rllib]==2.59.0"
-status = "pending"
+status = "validated"
 
 [[projects]]
 name = "vectorbt"
