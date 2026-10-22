@@ -1,5 +1,3 @@
 fastapi>=0.115,<1.0
-uvicorn[standard]>=0.34,<1.0
-pydantic>=2.12,<3
-pydantic-settings>=2.1
-git+https://github.com/TauricResearch/TradingAgents.git@e8f5503e9b86d5c2710b0c76b1f686703968c9df
+uvicorn[standard]>=0.30,<1.0
+pydantic>=2.9,<3.0
