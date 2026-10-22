@@ -42,12 +42,12 @@ jobs:
           git clone --filter=blob:none https://github.com/PyPortfolio/PyPortfolioOpt.git pypfopt-src
           git -C pypfopt-src checkout a6638d2e06dae6f444fd022cfd4b3c528902a85b
           git clone --filter=blob:none https://github.com/nautechsystems/nautilus_trader.git nautilus-src
-          git -C nautilus-src checkout a82b470c1ea214ac1bd1139e2f5ff455d45dbd99
+          git -C nautilus-src checkout 69aa8a283c8735cee4a536084078e3b19ac9a1be
 
       - name: Verify Nautilus source identity
         run: |
           set -euxo pipefail
-          test "$(git -C nautilus-src rev-parse HEAD)" = "a82b470c1ea214ac1bd1139e2f5ff455d45dbd99"
+          test "$(git -C nautilus-src rev-parse HEAD)" = "69aa8a283c8735cee4a536084078e3b19ac9a1be"
           python - <<'PY'
           import tomllib
           with open("nautilus-src/python/pyproject.toml","rb") as f:
@@ -114,15 +114,27 @@ jobs:
           python -m pip install -c constraints.txt ./pypfopt-src
           python -m pip check
 
-      - name: Install exact Nautilus develop wheel as twelfth engine
+      - name: Download captured exact Nautilus wheel
+        uses: actions/download-artifact@v4
+        with:
+          name: nautilus-19732-exact-wheel
+          path: captured-nautilus
+          github-token: ${{ github.token }}
+          repository: lyonbegin/autonomous-investor-backend
+          run-id: 39773534982
+
+      - name: Install captured exact Nautilus wheel as twelfth engine
         run: |
           set -euxo pipefail
           source env/bin/activate
-          python -m pip install --no-deps             --index-url=https://packages.nautechsystems.io/simple             "nautilus-trader==2.0.0rc8.dev20261022+19711"
+          wheel_file="$(find captured-nautilus -name 'nautilus_trader-2.0.0rc8.dev20261022+19732-cp313-cp313-manylinux_2_34_x86_64.whl' -print -quit)"
+          test -n "$wheel_file"
+          echo "e77ef52d9c5593e1c420c60cc1bb4e7c1af13c7515729475064a679e46bbab50  $wheel_file" | sha256sum -c -
+          python -m pip install --no-deps "$wheel_file"
           python -m pip check
           python - <<'PY'
           import nautilus_trader
-          assert nautilus_trader.__version__ == "2.0.0rc8.dev20261022+19711"
+          assert nautilus_trader.__version__ == "2.0.0rc8.dev20261022+19732"
           print("TWELVE_INSTALL_OK", nautilus_trader.__version__)
           PY
 
