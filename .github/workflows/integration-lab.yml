@@ -1,94 +1,105 @@
-name: Integration Lab Wheelhouse
+name: Integration Lab Cumulative
 
 on:
   push:
     branches: [integration-lab]
     paths:
       - ".github/workflows/integration-lab.yml"
-      - "lab/**"
 
 jobs:
-  rdagent-wheelhouse:
+  cumulative-3:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout lab branch
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Python 3.13
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
 
-      - name: Prepare RD-Agent source
+      - name: Checkout exact upstream commits
         run: |
           set -euxo pipefail
-          mkdir -p artifacts/wheelhouse
-          git clone https://github.com/microsoft/RD-Agent.git upstream-RD-Agent
-          cd upstream-RD-Agent
-          git checkout 484776c211e4fbbeef03e0ec00d6bbee7362a4f4
-          cd ..
-          tar -czf artifacts/RD-Agent-484776c2.tar.gz upstream-RD-Agent
+          git clone https://github.com/TauricResearch/TradingAgents.git ta
+          git -C ta checkout e8f5503e9b86d5c2710b0c76b1f686703968c9df
+          git clone https://github.com/AI4Finance-Foundation/FinRobot.git fr
+          git -C fr checkout 2717499b8e30f242640af08c4ad9afd1113c2d45
+          git clone https://github.com/microsoft/RD-Agent.git rd
+          git -C rd checkout 484776c211e4fbbeef03e0ec00d6bbee7362a4f4
 
-      - name: Resolve and build RD-Agent wheelhouse
+      - name: Create one shared Python environment
         run: |
-          set -euxo pipefail
-          python -m pip install --upgrade pip setuptools wheel
-          python -m pip wheel --wheel-dir artifacts/wheelhouse ./upstream-RD-Agent
-          python -m pip install --dry-run --report artifacts/rdagent-pip-report.json ./upstream-RD-Agent
+          python -m venv env
+          source env/bin/activate
+          python -m pip install -U pip setuptools wheel
 
-      - name: Verify RD-Agent base install on clean Python 3.13
+      - name: Install TradingAgents
         run: |
-          set -euxo pipefail
-          python -m venv verify-venv
-          source verify-venv/bin/activate
-          python -m pip install --no-index --find-links artifacts/wheelhouse rdagent
+          source env/bin/activate
+          python -m pip install ./ta
           python -m pip check
           python - <<'PY'
-          import rdagent
-          print("rdagent_module=", rdagent.__file__)
+          import tradingagents
+          from tradingagents.graph.trading_graph import TradingAgentsGraph
+          print("TradingAgents", tradingagents.__version__, TradingAgentsGraph)
           PY
 
-      - name: Split wheelhouse for transfer
+      - name: Add FinRobot V2 to same environment
         run: |
-          set -euxo pipefail
-          tar -C artifacts/wheelhouse -cf artifacts/rdagent-wheelhouse.tar .
-          split -b 350M artifacts/rdagent-wheelhouse.tar artifacts/rdagent-wheelhouse.part.
-          sha256sum artifacts/rdagent-wheelhouse.part.* > artifacts/rdagent-wheelhouse.sha256
-          rm -f artifacts/rdagent-wheelhouse.tar
-          rm -rf artifacts/wheelhouse
-          ls -lh artifacts/
+          source env/bin/activate
+          python -m pip install ./fr/finrobot_desktop
+          python -m pip check
+          python - <<'PY'
+          import tradingagents, finrobot
+          print("TradingAgents", tradingagents.__version__)
+          print("FinRobot", getattr(finrobot, "__version__", None))
+          PY
+          python -m pip show pydantic-ai pydantic-ai-slim pydantic > after-finrobot.txt
+          cat after-finrobot.txt
 
-      - name: Upload RD-Agent source and manifest
+      - name: Resolve all three together
+        id: resolve3
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          source env/bin/activate
+          python -m pip install --dry-run ./ta ./fr/finrobot_desktop ./rd 2>&1 | tee resolve-three.log
+
+      - name: Add RD-Agent to same environment
+        id: installrd
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          source env/bin/activate
+          python -m pip install ./rd 2>&1 | tee install-rdagent.log
+
+      - name: Check cumulative environment
+        if: always()
+        run: |
+          source env/bin/activate
+          echo "=== pip check ==="
+          python -m pip check || true
+          echo "=== critical versions ==="
+          python -m pip show tradingagents finrobot rdagent pydantic-ai pydantic-ai-slim pydantic pydantic-settings 2>/dev/null || true
+          echo "=== imports ==="
+          python - <<'PY'
+          mods=["tradingagents","finrobot","rdagent"]
+          for m in mods:
+              try:
+                  mod=__import__(m)
+                  print(m, "IMPORT_OK", getattr(mod,"__version__",None), getattr(mod,"__file__",None))
+              except Exception as e:
+                  print(m, "IMPORT_FAIL", type(e).__name__, str(e))
+          PY
+          echo "resolve3_outcome=${{ steps.resolve3.outcome }}"
+          echo "installrd_outcome=${{ steps.installrd.outcome }}"
+
+      - name: Upload resolver evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: rdagent-source-report
+          name: cumulative-ta-finrobot-rdagent-evidence
           path: |
-            artifacts/RD-Agent-484776c2.tar.gz
-            artifacts/rdagent-pip-report.json
-            artifacts/rdagent-wheelhouse.sha256
-          retention-days: 3
-
-      - name: Upload RD-Agent wheelhouse part aa
-        if: ${{ hashFiles('artifacts/rdagent-wheelhouse.part.aa') != '' }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: rdagent-wheelhouse-aa
-          path: artifacts/rdagent-wheelhouse.part.aa
-          retention-days: 3
-
-      - name: Upload RD-Agent wheelhouse part ab
-        if: ${{ hashFiles('artifacts/rdagent-wheelhouse.part.ab') != '' }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: rdagent-wheelhouse-ab
-          path: artifacts/rdagent-wheelhouse.part.ab
-          retention-days: 3
-
-      - name: Upload RD-Agent wheelhouse part ac
-        if: ${{ hashFiles('artifacts/rdagent-wheelhouse.part.ac') != '' }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: rdagent-wheelhouse-ac
-          path: artifacts/rdagent-wheelhouse.part.ac
+            resolve-three.log
+            install-rdagent.log
+            after-finrobot.txt
           retention-days: 3
