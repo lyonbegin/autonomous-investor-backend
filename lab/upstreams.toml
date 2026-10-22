@@ -55,7 +55,7 @@ name = "vectorbt"
 repo = "polakowo/vectorbt"
 ref = "v1.2.0"
 install_path = "."
-status = "pending"
+status = "validated"
 
 [[projects]]
 name = "FinRL-Trading"
