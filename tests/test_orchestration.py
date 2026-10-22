@@ -286,9 +286,13 @@ def test_nautilus_execution_coordinator_plans_then_submits_native_orders():
         def __init__(self):
             self.intents = []
 
-        def submit_market_intent(self, strategy, intent):
-            self.intents.append(intent)
-            return {"instrument": intent.instrument, "side": intent.side}
+        def submit_market_intent(self, strategy, intent, *, native_instrument_id=None):
+            self.intents.append((intent, native_instrument_id))
+            return {
+                "instrument": intent.instrument,
+                "side": intent.side,
+                "native_instrument_id": native_instrument_id,
+            }
 
     native = Nautilus()
     result = NautilusExecutionCoordinator(native).submit(
@@ -297,6 +301,7 @@ def test_nautilus_execution_coordinator_plans_then_submits_native_orders():
         equity=1000.0,
         prices={"A": 10.0, "B": 20.0},
         current_quantities={"A": 20.0},
+        instrument_id_map={"A": "A.XNAS", "B": "B.XNAS"},
     )
 
     assert [(x.instrument, x.side, x.quantity) for x in result.intents] == [
@@ -304,8 +309,37 @@ def test_nautilus_execution_coordinator_plans_then_submits_native_orders():
         ("B", "buy", 20.0),
     ]
     assert result.native_orders == [
-        {"instrument": "A", "side": "buy"},
-        {"instrument": "B", "side": "buy"},
+        {"instrument": "A", "side": "buy", "native_instrument_id": "A.XNAS"},
+        {"instrument": "B", "side": "buy", "native_instrument_id": "B.XNAS"},
     ]
-    assert native.intents == result.intents
+    assert [item[0] for item in native.intents] == result.intents
+    assert [item[1] for item in native.intents] == ["A.XNAS", "B.XNAS"]
+
+
+def test_nautilus_execution_requires_complete_explicit_mapping_when_mapping_is_given():
+    from app.orchestration.pipeline import NautilusExecutionCoordinator
+
+    target = TargetPortfolio(
+        strategy_id="s1",
+        as_of=datetime(2026, 10, 22, tzinfo=UTC),
+        weights=[TargetWeight(instrument="A", weight=1.0)],
+    )
+
+    class Nautilus:
+        def submit_market_intent(self, *args, **kwargs):
+            raise AssertionError("must not submit before mapping validation")
+
+    coordinator = NautilusExecutionCoordinator(Nautilus())
+    try:
+        coordinator.submit(
+            object(),
+            target,
+            equity=1000.0,
+            prices={"A": 10.0},
+            instrument_id_map={},
+        )
+    except KeyError as exc:
+        assert "A" in str(exc)
+    else:
+        raise AssertionError("expected missing InstrumentId mapping error")
 
