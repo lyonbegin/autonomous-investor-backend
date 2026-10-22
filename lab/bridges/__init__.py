@@ -13,6 +13,9 @@ from .chronos_bridge import ChronosBridge
 from .sb3_bridge import StableBaselinesBridge
 from .rllib_bridge import RLlibBridge
 from .vectorbt_bridge import VectorBTBridge
+from .finrl_bridge import FinRLBridge
+from .riskfolio_bridge import RiskfolioBridge
+from .pypfopt_bridge import PyPortfolioOptBridge
 
 __all__ = [
     "TradingAgentsBridge",
@@ -24,4 +27,7 @@ __all__ = [
     "StableBaselinesBridge",
     "RLlibBridge",
     "VectorBTBridge",
+    "PyPortfolioOptBridge",
+    "RiskfolioBridge",
+    "FinRLBridge",
 ]
