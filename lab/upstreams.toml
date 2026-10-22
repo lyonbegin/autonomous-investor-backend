@@ -41,7 +41,7 @@ name = "Stable-Baselines3"
 repo = "DLR-RM/stable-baselines3"
 ref = "b2878f4b83e21f16a53c54a62def628e05fd2e96"
 install_path = "."
-status = "testing"
+status = "validated"
 
 [[projects]]
 name = "Ray RLlib"
