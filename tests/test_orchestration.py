@@ -205,3 +205,107 @@ def test_rl_action_is_kept_uninterpreted_until_environment_adapter():
     assert wrapped.action == [0.25, -0.5]
     assert wrapped.instrument_scope == ["AAPL", "MSFT"]
 
+def test_research_coordinator_runs_native_tradingagents_then_finrobot():
+    import asyncio
+    from types import SimpleNamespace
+
+    from app.orchestration.pipeline import ResearchCoordinator
+
+    class TradingAgents:
+        def run(self, instrument, trade_date, *, asset_type="stock", portfolio=None):
+            assert instrument == "AAPL"
+            assert trade_date == "2026-10-22"
+            return SimpleNamespace(
+                final_state={
+                    "company_of_interest": instrument,
+                    "trade_date": trade_date,
+                    "asset_type": asset_type,
+                    "market_report": "market",
+                    "investment_debate_state": {},
+                },
+                signal="BUY",
+            )
+
+    class FinRobot:
+        async def research(self, ticker):
+            assert ticker == "AAPL"
+            return _FakePipelineResult()
+
+    out = asyncio.run(ResearchCoordinator(TradingAgents(), FinRobot()).run("AAPL", "2026-10-22"))
+
+    assert out.tradingagents_signal == "BUY"
+    assert out.bundle.instrument == "AAPL"
+    assert out.bundle.evidence[0].payload["native_signal"] == "BUY"
+    assert out.bundle.evidence[-1].source == "FinRobot:research"
+
+
+def test_rdagent_coordinator_uses_native_loop_plan_then_runs_bridge():
+    import asyncio
+
+    from app.orchestration.pipeline import RDAgentCoordinator
+
+    bundle = research_bundle_from_tradingagents(
+        {
+            "company_of_interest": "AAPL",
+            "trade_date": "2026-10-22",
+            "market_report": "market evidence",
+            "investment_debate_state": {},
+        }
+    )
+
+    class Bridge:
+        def __init__(self):
+            self.loop = type("Loop", (), {"plan": {"features": {}, "feature_codes": {}}})()
+            self.called = None
+
+        async def run(self, **kwargs):
+            self.called = kwargs
+            return {"trace": "native"}
+
+    bridge = Bridge()
+    result = asyncio.run(RDAgentCoordinator(bridge).run(bundle, step_n=2))
+
+    assert result == {"trace": "native"}
+    assert bridge.called["step_n"] == 2
+    assert "AAPL" in bridge.loop.plan["user_instruction"]
+
+
+def test_nautilus_execution_coordinator_plans_then_submits_native_orders():
+    from app.orchestration.pipeline import NautilusExecutionCoordinator
+
+    target = TargetPortfolio(
+        strategy_id="s1",
+        as_of=datetime(2026, 10, 22, tzinfo=UTC),
+        weights=[
+            TargetWeight(instrument="A", weight=0.6),
+            TargetWeight(instrument="B", weight=0.4),
+        ],
+    )
+
+    class Nautilus:
+        def __init__(self):
+            self.intents = []
+
+        def submit_market_intent(self, strategy, intent):
+            self.intents.append(intent)
+            return {"instrument": intent.instrument, "side": intent.side}
+
+    native = Nautilus()
+    result = NautilusExecutionCoordinator(native).submit(
+        object(),
+        target,
+        equity=1000.0,
+        prices={"A": 10.0, "B": 20.0},
+        current_quantities={"A": 20.0},
+    )
+
+    assert [(x.instrument, x.side, x.quantity) for x in result.intents] == [
+        ("A", "buy", 40.0),
+        ("B", "buy", 20.0),
+    ]
+    assert result.native_orders == [
+        {"instrument": "A", "side": "buy"},
+        {"instrument": "B", "side": "buy"},
+    ]
+    assert native.intents == result.intents
+
