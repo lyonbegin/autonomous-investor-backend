@@ -9,9 +9,12 @@ from app import __version__
 from app.core.architecture import ARCHITECTURE
 from app.core.contracts import (
     ExecutionReport,
+    Forecast,
     ExperimentResult,
     Hypothesis,
+    ModelScore,
     OrderIntent,
+    PolicyAction,
     ResearchBundle,
     RiskDecision,
     Signal,
@@ -56,6 +59,9 @@ def integration(key: str) -> dict:
 def contracts() -> dict:
     models = [
         ResearchBundle,
+        ModelScore,
+        Forecast,
+        PolicyAction,
         Hypothesis,
         OrderIntent,
         ExperimentResult,
