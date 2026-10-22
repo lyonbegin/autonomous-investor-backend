@@ -1,0 +1,70 @@
+name: Predeploy Validated Wheel Image
+
+on:
+  push:
+    branches: [predeploy-verify]
+    paths:
+      - "Dockerfile.release-wheel"
+      - ".github/workflows/predeploy-release-wheel.yml"
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Free runner disk space
+        run: |
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc || true
+          docker system prune -af || true
+          df -h
+
+      - name: Build exact release-wheel deployment image
+        run: |
+          set -euxo pipefail
+          docker build --progress=plain -f Dockerfile.release-wheel -t autonomous-investor:release-wheel .
+
+      - name: Start image and wait for health
+        run: |
+          set -euxo pipefail
+          docker run -d --name autonomous-investor-release-wheel -p 18080:8080 -e PORT=8080 autonomous-investor:release-wheel
+          for i in $(seq 1 90); do
+            if curl --fail --silent http://127.0.0.1:18080/health; then
+              echo
+              echo HEALTH_OK
+              exit 0
+            fi
+            sleep 2
+          done
+          docker logs autonomous-investor-release-wheel
+          exit 1
+
+      - name: Verify twelve runtime integrations
+        run: |
+          set -euxo pipefail
+          curl --fail --silent "http://127.0.0.1:18080/api/v1/integrations?probe_runtime=true" | tee /tmp/integrations.json
+          python - <<'PY'
+          import json
+          p=json.load(open("/tmp/integrations.json"))
+          assert p["count"] == 12, p
+          failures=[x for x in p["integrations"] if not x.get("installed") or not x.get("import_ok")]
+          assert not failures, failures
+          print("RELEASE_WHEEL_ALL_TWELVE_RUNTIME_OK")
+          PY
+
+      - name: Verify exact Nautilus identity and pip environment
+        run: |
+          set -euxo pipefail
+          docker exec autonomous-investor-release-wheel python - <<'PY'
+          import nautilus_trader
+          assert nautilus_trader.__version__ == "2.0.0rc8.dev20261022+19732", nautilus_trader.__version__
+          print("NAUTILUS_EXACT_WHEEL_OK", nautilus_trader.__version__)
+          PY
+          docker exec autonomous-investor-release-wheel python -m pip check
+          docker exec autonomous-investor-release-wheel python scripts/verify_integrated_stack.py
+
+      - name: Logs
+        if: always()
+        run: docker logs autonomous-investor-release-wheel || true
