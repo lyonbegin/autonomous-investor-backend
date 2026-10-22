@@ -171,3 +171,94 @@ class NautilusExecutionCoordinator:
             intents=intents,
             native_orders=orders,
         )
+
+@dataclass(slots=True)
+class QuantFlowResult:
+    qlib_scores: list[Any]
+    chronos_forecasts: list[Any]
+    sb3_action: Any | None = None
+    rllib_output: Any | None = None
+
+
+class QuantCoordinator:
+    """Keep Qlib, Chronos, SB3 and RLlib outputs distinct and attributable."""
+
+    def __init__(
+        self,
+        *,
+        qlib: Any | None = None,
+        chronos: Any | None = None,
+        sb3: Any | None = None,
+        rllib: Any | None = None,
+    ) -> None:
+        self.qlib = qlib
+        self.chronos = chronos
+        self.sb3 = sb3
+        self.rllib = rllib
+
+    def qlib_scores(
+        self,
+        model: Any,
+        dataset: Any,
+        *,
+        model_id: str,
+        segment: Any = "test",
+    ) -> list[Any]:
+        if self.qlib is None:
+            raise RuntimeError("Qlib bridge is not configured")
+        from app.orchestration.quant import model_scores_from_qlib
+
+        native = self.qlib.predict(model, dataset, segment=segment)
+        return model_scores_from_qlib(native, model_id=model_id)
+
+    def chronos_forecasts(
+        self,
+        frame: Any,
+        *,
+        model_id: str,
+        horizon: str,
+        **predict_kwargs: Any,
+    ) -> list[Any]:
+        if self.chronos is None:
+            raise RuntimeError("Chronos bridge is not configured")
+        from app.orchestration.quant import forecasts_from_chronos_df
+
+        native = self.chronos.predict_df(frame, **predict_kwargs)
+        return forecasts_from_chronos_df(native, model_id=model_id, horizon=horizon)
+
+    def sb3_action(
+        self,
+        model: Any,
+        observation: Any,
+        *,
+        policy_id: str,
+        instrument_scope: list[str] | None = None,
+        deterministic: bool = True,
+    ) -> Any:
+        if self.sb3 is None:
+            raise RuntimeError("SB3 bridge is not configured")
+        from app.orchestration.quant import policy_action
+
+        native = self.sb3.predict(model, observation, deterministic=deterministic)
+        action = native[0] if isinstance(native, tuple) else native
+        return policy_action(
+            action,
+            policy_id=policy_id,
+            instrument_scope=instrument_scope or [],
+            metadata={"source": "Stable-Baselines3"},
+        )
+
+    def rllib_inference(
+        self,
+        algorithm: Any,
+        batch: Any,
+        *,
+        module_id: str | None = None,
+    ) -> Any:
+        if self.rllib is None:
+            raise RuntimeError("RLlib bridge is not configured")
+        return self.rllib.forward_inference(
+            algorithm,
+            batch,
+            module_id=module_id,
+        )
