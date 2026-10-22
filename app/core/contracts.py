@@ -90,6 +90,18 @@ class TargetPortfolio(BaseModel):
         return sum(x.weight for x in self.weights)
 
 
+class OrderIntent(BaseModel):
+    instrument: str
+    side: Literal["buy", "sell"]
+    quantity: float = Field(gt=0.0)
+    target_weight: float
+    current_quantity: float
+    target_quantity: float
+    reference_price: float = Field(gt=0.0)
+    notional_delta: float
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
 class RiskDecision(BaseModel):
     approved: bool
     target: TargetPortfolio
