@@ -421,3 +421,83 @@ def test_quant_coordinator_preserves_native_engine_semantics():
 
     raw = coordinator.rllib_inference(Algorithm(), {"obs": [[1.0, 2.0]]})
     assert raw == {"actions": [1], "batch": {"obs": [[1.0, 2.0]]}}
+
+def test_allocation_coordinator_maps_each_native_weight_boundary():
+    from app.orchestration.pipeline import AllocationCoordinator
+
+    class FinRL:
+        def generate_weights(self, strategy, data, *, target_date=None):
+            assert strategy == "strategy"
+            assert data == {"x": 1}
+            return _FakeStrategyResult()
+
+    class RiskPortfolio:
+        pass
+
+    class RiskWeights:
+        columns = ["weights"]
+
+        class Column:
+            def items(self):
+                yield "A", 0.7
+                yield "B", 0.3
+
+        def __getitem__(self, key):
+            assert key == "weights"
+            return self.Column()
+
+    class Riskfolio:
+        def portfolio(self, returns):
+            assert returns == "returns"
+            return RiskPortfolio()
+
+        def estimate(self, portfolio, **kwargs):
+            assert isinstance(portfolio, RiskPortfolio)
+            assert kwargs == {"method_mu": "hist"}
+
+        def optimize(self, portfolio, **kwargs):
+            assert kwargs == {"model": "Classic", "rm": "MV", "obj": "MinRisk"}
+            return RiskWeights()
+
+    class Frontier:
+        pass
+
+    class PyPortfolioOpt:
+        def efficient_frontier(self, expected_returns, cov_matrix, **kwargs):
+            assert expected_returns == "mu"
+            assert cov_matrix == "cov"
+            return Frontier()
+
+        def min_volatility(self, frontier):
+            assert isinstance(frontier, Frontier)
+
+        def max_sharpe(self, frontier, **kwargs):
+            raise AssertionError("not selected")
+
+        def clean_weights(self, frontier):
+            return {"A": 0.25, "B": 0.75}
+
+    coordinator = AllocationCoordinator(
+        finrl=FinRL(),
+        riskfolio=Riskfolio(),
+        pypfopt=PyPortfolioOpt(),
+    )
+
+    finrl_target = coordinator.from_finrl("strategy", {"x": 1})
+    assert [(x.instrument, x.weight) for x in finrl_target.weights] == [("A", 0.6), ("B", 0.4)]
+
+    risk_target = coordinator.from_riskfolio(
+        "returns",
+        strategy_id="risk-minvar",
+        estimate_kwargs={"method_mu": "hist"},
+        optimize_kwargs={"model": "Classic", "rm": "MV", "obj": "MinRisk"},
+    )
+    assert [(x.instrument, x.weight) for x in risk_target.weights] == [("A", 0.7), ("B", 0.3)]
+
+    pypfopt_target = coordinator.from_pypfopt(
+        "mu",
+        "cov",
+        strategy_id="ef-minvol",
+    )
+    assert [(x.instrument, x.weight) for x in pypfopt_target.weights] == [("A", 0.25), ("B", 0.75)]
+    assert pypfopt_target.metadata["objective"] == "min_volatility"
