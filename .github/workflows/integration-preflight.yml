@@ -1,0 +1,158 @@
+name: Remaining Engines Preflight
+
+on:
+  push:
+    branches: [integration-lab]
+    paths:
+      - ".github/workflows/integration-preflight.yml"
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: "pip"
+          cache-dependency-path: "lab/pip-cache-key.txt"
+
+      - name: Checkout remaining exact sources
+        run: |
+          set -euxo pipefail
+          git clone --filter=blob:none https://github.com/polakowo/vectorbt.git vectorbt-src
+          git -C vectorbt-src checkout v1.2.0
+
+          git clone --filter=blob:none https://github.com/AI4Finance-Foundation/FinRL-Trading.git finrl-src
+          git -C finrl-src checkout 4409abe925c904e570be78ebfb5e77ac3491dff8
+
+          git clone --filter=blob:none https://github.com/dcajasn/Riskfolio-Lib.git riskfolio-src
+          git -C riskfolio-src checkout 7b1b26ac9760974c12ecefe290a9d3bd37b66b7a
+
+          git clone --filter=blob:none https://github.com/PyPortfolio/PyPortfolioOpt.git pypfopt-src
+          git -C pypfopt-src checkout a6638d2e06dae6f444fd022cfd4b3c528902a85b
+
+          git clone --filter=blob:none https://github.com/nautechsystems/nautilus_trader.git nautilus-src
+          git -C nautilus-src checkout a82b470c1ea214ac1bd1139e2f5ff455d45dbd99
+
+      - name: Preflight vectorbt v1.2.0
+        run: |
+          set -euxo pipefail
+          python -m venv env-vectorbt
+          source env-vectorbt/bin/activate
+          python -m pip install -U pip setuptools wheel
+          python -m pip install ./vectorbt-src
+          python -m pip check
+          python - <<'PY'
+          import numpy as np
+          import pandas as pd
+          import vectorbt as vbt
+          from vectorbt.portfolio.base import Portfolio
+          close = pd.Series([1.0, 2.0, 1.5, 3.0])
+          entries = pd.Series([True, False, True, False])
+          exits = pd.Series([False, True, False, True])
+          pf = Portfolio.from_signals(close, entries, exits)
+          print("VECTORBT_OK", vbt.__version__, np.__version__, pd.__version__, float(pf.total_return()))
+          PY
+          deactivate
+
+      - name: Preflight FinRL-Trading
+        run: |
+          set -euxo pipefail
+          python -m venv env-finrl
+          source env-finrl/bin/activate
+          python -m pip install -U pip setuptools wheel
+          python -m pip install ./finrl-src
+          python -m pip check
+          python - <<'PY'
+          import pandas as pd
+          from strategies.base_strategy import StrategyResult, StrategyConfig, EqualWeightStrategy
+          data={"fundamentals": pd.DataFrame({"gvkey":["A","B","C"]})}
+          out=EqualWeightStrategy(StrategyConfig(name="eq")).generate_weights(data)
+          print("FINRL_OK", out.strategy_name, out.weights["weight"].tolist())
+          PY
+          deactivate
+
+      - name: Preflight Riskfolio-Lib
+        run: |
+          set -euxo pipefail
+          python -m venv env-riskfolio
+          source env-riskfolio/bin/activate
+          python -m pip install -U pip setuptools wheel
+          python -m pip install ./riskfolio-src
+          python -m pip check
+          python - <<'PY'
+          import pandas as pd
+          import riskfolio as rp
+          returns=pd.DataFrame({
+              "A":[0.01,-0.01,0.02,0.00,0.01],
+              "B":[0.00,0.01,-0.01,0.02,0.01],
+              "C":[0.02,0.00,0.01,-0.01,0.00],
+          })
+          p=rp.Portfolio(returns=returns)
+          p.assets_stats(method_mu="hist", method_cov="hist")
+          w=p.optimization(model="Classic", rm="MV", obj="MinRisk", hist=True)
+          print("RISKFOLIO_OK", rp.__version__, w.to_dict())
+          PY
+          deactivate
+
+      - name: Preflight PyPortfolioOpt
+        run: |
+          set -euxo pipefail
+          python -m venv env-pypfopt
+          source env-pypfopt/bin/activate
+          python -m pip install -U pip setuptools wheel
+          python -m pip install ./pypfopt-src
+          python -m pip check
+          python - <<'PY'
+          import numpy as np
+          import pandas as pd
+          import pypfopt
+          from pypfopt import EfficientFrontier
+          mu=pd.Series([0.10,0.12,0.08], index=["A","B","C"])
+          cov=pd.DataFrame(np.diag([0.04,0.05,0.03]), index=mu.index, columns=mu.index)
+          ef=EfficientFrontier(mu,cov)
+          ef.min_volatility()
+          print("PYPFOPT_OK", pypfopt.__version__, ef.clean_weights())
+          PY
+          deactivate
+
+      - name: Preflight NautilusTrader current develop package version
+        run: |
+          set -euxo pipefail
+          python -m venv env-nautilus
+          source env-nautilus/bin/activate
+          python -m pip install -U pip setuptools wheel
+          python -m pip install "nautilus-trader==2.0.0rc8"
+          python -m pip check
+          python - <<'PY'
+          import nautilus_trader
+          from nautilus_trader.trading import Strategy, StrategyConfig
+          from nautilus_trader.backtest import BacktestEngineConfig, BacktestNode
+          from nautilus_trader.risk import RiskEngineConfig
+          from nautilus_trader.execution import ExecutionEngineConfig
+          risk=RiskEngineConfig()
+          execution=ExecutionEngineConfig()
+          backtest=BacktestEngineConfig(risk_engine=risk, exec_engine=execution)
+          print("NAUTILUS_OK", nautilus_trader.__version__)
+          print("native", Strategy, StrategyConfig, BacktestNode, type(backtest), type(risk), type(execution))
+          PY
+          deactivate
+
+      - name: Record exact source revisions
+        run: |
+          {
+            echo "vectorbt $(git -C vectorbt-src rev-parse HEAD)"
+            echo "FinRL-Trading $(git -C finrl-src rev-parse HEAD)"
+            echo "Riskfolio-Lib $(git -C riskfolio-src rev-parse HEAD)"
+            echo "PyPortfolioOpt $(git -C pypfopt-src rev-parse HEAD)"
+            echo "NautilusTrader $(git -C nautilus-src rev-parse HEAD)"
+          } | tee remaining-source-revisions.txt
+
+      - name: Upload preflight evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: remaining-engines-preflight-evidence
+          path: remaining-source-revisions.txt
+          retention-days: 3
