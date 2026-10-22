@@ -56,6 +56,21 @@ jobs:
           PY
           deactivate
 
+      - name: FinRL dependency metadata overlay
+        run: |
+          set -euxo pipefail
+          cp finrl-src/requirements.txt finrl-src/requirements.upstream.txt
+          python - <<'PY'
+          from pathlib import Path
+          p=Path("finrl-src/requirements.txt")
+          s=p.read_text()
+          old="finnhub>=2.4.19"
+          new="finnhub-python>=2.4.19"
+          assert old in s
+          p.write_text(s.replace(old,new))
+          PY
+          diff -u finrl-src/requirements.upstream.txt finrl-src/requirements.txt > finrl-dependency-compat.patch || true
+
       - name: Preflight FinRL-Trading
         run: |
           set -euxo pipefail
@@ -140,6 +155,7 @@ jobs:
           deactivate
 
       - name: Record exact source revisions
+        if: always()
         run: |
           {
             echo "vectorbt $(git -C vectorbt-src rev-parse HEAD)"
@@ -154,5 +170,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: remaining-engines-preflight-evidence
-          path: remaining-source-revisions.txt
+          path: |
+            remaining-source-revisions.txt
+            finrl-dependency-compat.patch
           retention-days: 3
