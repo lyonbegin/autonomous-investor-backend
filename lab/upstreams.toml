@@ -62,21 +62,22 @@ name = "FinRL-Trading"
 repo = "AI4Finance-Foundation/FinRL-Trading"
 ref = "4409abe925c904e570be78ebfb5e77ac3491dff8"
 install_path = "."
-status = "pending"
+status = "validated-with-dependency-overlay"
+dependency_overlay = "finnhub>=2.4.19 -> finnhub-python>=2.4.19"
 
 [[projects]]
 name = "Riskfolio-Lib"
 repo = "dcajasn/Riskfolio-Lib"
 ref = "7b1b26ac9760974c12ecefe290a9d3bd37b66b7a"
 install_path = "."
-status = "pending"
+status = "validated"
 
 [[projects]]
 name = "PyPortfolioOpt"
 repo = "PyPortfolio/PyPortfolioOpt"
 ref = "a6638d2e06dae6f444fd022cfd4b3c528902a85b"
 install_path = "."
-status = "pending"
+status = "validated"
 
 [[projects]]
 name = "NautilusTrader"
