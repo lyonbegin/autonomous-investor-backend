@@ -1,0 +1,64 @@
+name: Railway Deployment Image
+
+on:
+  push:
+    branches: [railway-deploy]
+    paths:
+      - "Dockerfile"
+      - "railway.toml"
+      - ".dockerignore"
+      - "requirements/**"
+      - "scripts/install_integrated_stack.py"
+      - "scripts/verify_integrated_stack.py"
+      - "app/**"
+      - "lab/**"
+      - ".github/workflows/railway-image-build.yml"
+  workflow_dispatch:
+
+jobs:
+  build-and-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Free runner disk space
+        run: |
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc || true
+          docker system prune -af || true
+          df -h
+
+      - name: Build exact Railway image
+        run: |
+          set -euxo pipefail
+          docker build --progress=plain -t autonomous-investor:railway .
+
+      - name: Start deployment image
+        run: |
+          set -euxo pipefail
+          docker run -d --name autonomous-investor -p 18080:8080 autonomous-investor:railway
+          for i in $(seq 1 60); do
+            if curl --fail --silent http://127.0.0.1:18080/health; then
+              exit 0
+            fi
+            sleep 2
+          done
+          docker logs autonomous-investor
+          exit 1
+
+      - name: Probe twelve runtime integrations
+        run: |
+          set -euxo pipefail
+          curl --fail --silent "http://127.0.0.1:18080/api/v1/integrations?probe_runtime=true" | tee /tmp/integrations.json
+          python - <<'PY'
+          import json
+          p=json.load(open("/tmp/integrations.json"))
+          assert p["count"] == 12, p
+          failures=[x for x in p["integrations"] if not x.get("installed") or not x.get("import_ok")]
+          assert not failures, failures
+          print("RAILWAY_IMAGE_ALL_TWELVE_OK")
+          PY
+
+      - name: Container logs
+        if: always()
+        run: docker logs autonomous-investor || true
