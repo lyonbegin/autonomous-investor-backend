@@ -48,10 +48,47 @@ jobs:
           print("rdagent_module=", rdagent.__file__)
           PY
 
-      - name: Upload source and wheelhouse
+      - name: Split wheelhouse for transfer
+        run: |
+          set -euxo pipefail
+          tar -C artifacts/wheelhouse -cf artifacts/rdagent-wheelhouse.tar .
+          split -b 350M artifacts/rdagent-wheelhouse.tar artifacts/rdagent-wheelhouse.part.
+          sha256sum artifacts/rdagent-wheelhouse.part.* > artifacts/rdagent-wheelhouse.sha256
+          rm -f artifacts/rdagent-wheelhouse.tar
+          rm -rf artifacts/wheelhouse
+          ls -lh artifacts/
+
+      - name: Upload RD-Agent source and manifest
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: rdagent-python313-wheelhouse
-          path: artifacts/
+          name: rdagent-source-report
+          path: |
+            artifacts/RD-Agent-484776c2.tar.gz
+            artifacts/rdagent-pip-report.json
+            artifacts/rdagent-wheelhouse.sha256
+          retention-days: 3
+
+      - name: Upload RD-Agent wheelhouse part aa
+        if: ${{ hashFiles('artifacts/rdagent-wheelhouse.part.aa') != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: rdagent-wheelhouse-aa
+          path: artifacts/rdagent-wheelhouse.part.aa
+          retention-days: 3
+
+      - name: Upload RD-Agent wheelhouse part ab
+        if: ${{ hashFiles('artifacts/rdagent-wheelhouse.part.ab') != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: rdagent-wheelhouse-ab
+          path: artifacts/rdagent-wheelhouse.part.ab
+          retention-days: 3
+
+      - name: Upload RD-Agent wheelhouse part ac
+        if: ${{ hashFiles('artifacts/rdagent-wheelhouse.part.ac') != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: rdagent-wheelhouse-ac
+          path: artifacts/rdagent-wheelhouse.part.ac
           retention-days: 3
