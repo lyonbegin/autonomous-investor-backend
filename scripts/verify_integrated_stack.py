@@ -137,6 +137,25 @@ def main() -> None:
         ]
     )
 
+    from fastapi.testclient import TestClient
+    from app.main import app
+
+    client = TestClient(app)
+    health = client.get("/health")
+    assert health.status_code == 200
+    assert health.json()["python"].startswith("3.13.")
+
+    response = client.get("/api/v1/integrations?probe_runtime=true")
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["count"] == 12
+    failures = [
+        row for row in payload["integrations"]
+        if not row.get("installed") or not row.get("import_ok")
+    ]
+    assert failures == [], failures
+
+    print("FASTAPI_TWELVE_PROBES_OK")
     print("ALL_TWELVE_NATIVE_IMPORTS_OK")
     print("ALL_BRIDGES_OK")
     print("nautilus_trader", nautilus_trader.__version__)
