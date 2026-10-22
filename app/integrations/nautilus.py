@@ -49,17 +49,23 @@ class NautilusBridge:
     def submit_order(strategy: Any, order: Any, **kwargs: Any) -> None:
         strategy.submit_order(order, **kwargs)
     @staticmethod
-    def submit_market_intent(strategy: Any, intent: Any) -> Any:
+    def submit_market_intent(
+        strategy: Any,
+        intent: Any,
+        *,
+        native_instrument_id: str | None = None,
+    ) -> Any:
         """Create and submit a native Nautilus market order from our OrderIntent.
 
-        InstrumentId parsing, quantity precision, and lot-size normalization
-        remain owned by NautilusTrader.
+        Symbol-to-venue resolution is never guessed here. Callers may supply an
+        explicit native InstrumentId string (for example, a venue-qualified ID).
+        Quantity precision and lot-size normalization remain owned by NautilusTrader.
         """
         from decimal import Decimal
 
         from nautilus_trader.model import InstrumentId, OrderSide
 
-        instrument_id = InstrumentId.from_str(intent.instrument)
+        instrument_id = InstrumentId.from_str(native_instrument_id or intent.instrument)
         instrument = strategy.cache.instrument(instrument_id)
         if instrument is None:
             raise KeyError(f"Nautilus cache has no instrument: {intent.instrument}")
