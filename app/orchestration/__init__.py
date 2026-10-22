@@ -36,6 +36,8 @@ __all__ = [
     "RDAgentCoordinator",
     "NautilusExecutionCoordinator",
     "ExecutionFlowResult",
+    "QuantCoordinator",
+    "QuantFlowResult",
 ]
 
 from .pipeline import (
@@ -45,3 +47,5 @@ from .pipeline import (
     ResearchCoordinator,
     ResearchFlowResult,
 )
+
+from .pipeline import QuantCoordinator, QuantFlowResult
