@@ -1,4 +1,4 @@
-name: Integration Lab Cumulative
+name: Integration Lab Compatibility
 
 on:
   push:
@@ -7,11 +7,10 @@ on:
       - ".github/workflows/integration-lab.yml"
 
 jobs:
-  cumulative-3:
+  compat-three:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
@@ -26,80 +25,86 @@ jobs:
           git clone https://github.com/microsoft/RD-Agent.git rd
           git -C rd checkout 484776c211e4fbbeef03e0ec00d6bbee7362a4f4
 
-      - name: Create one shared Python environment
+      - name: Apply dependency-only RD-Agent compatibility metadata
         run: |
+          set -euxo pipefail
+          cp rd/requirements.txt rd/requirements.upstream.txt
+          python - <<'PY'
+          from pathlib import Path
+          p=Path("rd/requirements.txt")
+          s=p.read_text()
+          old="pydantic-ai-slim[mcp,openai,prefect]==1.66.0"
+          new="pydantic-ai-slim[mcp,openai,prefect]==1.70.0"
+          assert old in s
+          p.write_text(s.replace(old,new))
+          PY
+          diff -u rd/requirements.upstream.txt rd/requirements.txt | tee rdagent-dependency-compat.patch || true
+
+      - name: Write common constraints
+        run: |
+          cat > constraints.txt <<'EOF'
+          pydantic-ai==1.70.0
+          pydantic-ai-slim==1.70.0
+          pandas>=3.0.6,<4
+          EOF
+          cat constraints.txt
+
+      - name: Install all three together into one Python 3.13 venv
+        run: |
+          set -euxo pipefail
           python -m venv env
           source env/bin/activate
           python -m pip install -U pip setuptools wheel
-
-      - name: Install TradingAgents
-        run: |
-          source env/bin/activate
-          python -m pip install ./ta
+          python -m pip install -c constraints.txt ./ta ./fr/finrobot_desktop ./rd
           python -m pip check
+          python -m pip freeze > resolved-three.txt
+
+      - name: Verify original execution surfaces
+        run: |
+          set -euxo pipefail
+          source env/bin/activate
           python - <<'PY'
+          import pandas
+          import pydantic_ai
           import tradingagents
+          import finrobot
+          import rdagent
           from tradingagents.graph.trading_graph import TradingAgentsGraph
-          print("TradingAgents", tradingagents.__version__, TradingAgentsGraph)
+          from finrobot import FinRobot
+          from rdagent.app.qlib_rd_loop.quant import QuantRDLoop
+          from rdagent.components.agent.base import PAIAgent
+          from pydantic_ai import Agent
+          from pydantic_ai.mcp import MCPServerStreamableHTTP
+          from pydantic_ai.models.openai import OpenAIChatModel, OpenAIChatModelSettings
+          from pydantic_ai.providers.litellm import LiteLLMProvider
+          print("pandas", pandas.__version__)
+          print("pydantic_ai", getattr(pydantic_ai,"__version__",None))
+          print("TradingAgentsGraph", TradingAgentsGraph)
+          print("FinRobot", FinRobot)
+          print("QuantRDLoop", QuantRDLoop)
+          print("PAIAgent", PAIAgent)
+          print("Pydantic surfaces", Agent, MCPServerStreamableHTTP, OpenAIChatModel, OpenAIChatModelSettings, LiteLLMProvider)
           PY
 
-      - name: Add FinRobot V2 to same environment
+      - name: FinRobot offline TestModel smoke
         run: |
+          set -euxo pipefail
           source env/bin/activate
-          python -m pip install ./fr/finrobot_desktop
-          python -m pip check
           python - <<'PY'
-          import tradingagents, finrobot
-          print("TradingAgents", tradingagents.__version__)
-          print("FinRobot", getattr(finrobot, "__version__", None))
+          from pydantic_ai import Agent
+          from pydantic_ai.models.test import TestModel
+          a=Agent(TestModel(custom_output_text="ok"))
+          r=a.run_sync("test")
+          print("FinRobot-compatible Agent smoke:", r.output)
           PY
-          python -m pip show pydantic-ai pydantic-ai-slim pydantic > after-finrobot.txt
-          cat after-finrobot.txt
 
-      - name: Resolve all three together
-        id: resolve3
-        continue-on-error: true
-        run: |
-          set -o pipefail
-          source env/bin/activate
-          python -m pip install --dry-run ./ta ./fr/finrobot_desktop ./rd 2>&1 | tee resolve-three.log
-
-      - name: Add RD-Agent to same environment
-        id: installrd
-        continue-on-error: true
-        run: |
-          set -o pipefail
-          source env/bin/activate
-          python -m pip install ./rd 2>&1 | tee install-rdagent.log
-
-      - name: Check cumulative environment
-        if: always()
-        run: |
-          source env/bin/activate
-          echo "=== pip check ==="
-          python -m pip check || true
-          echo "=== critical versions ==="
-          python -m pip show tradingagents finrobot rdagent pydantic-ai pydantic-ai-slim pydantic pydantic-settings 2>/dev/null || true
-          echo "=== imports ==="
-          python - <<'PY'
-          mods=["tradingagents","finrobot","rdagent"]
-          for m in mods:
-              try:
-                  mod=__import__(m)
-                  print(m, "IMPORT_OK", getattr(mod,"__version__",None), getattr(mod,"__file__",None))
-              except Exception as e:
-                  print(m, "IMPORT_FAIL", type(e).__name__, str(e))
-          PY
-          echo "resolve3_outcome=${{ steps.resolve3.outcome }}"
-          echo "installrd_outcome=${{ steps.installrd.outcome }}"
-
-      - name: Upload resolver evidence
+      - name: Upload compatibility evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: cumulative-ta-finrobot-rdagent-evidence
+          name: compat-three-evidence
           path: |
-            resolve-three.log
-            install-rdagent.log
-            after-finrobot.txt
+            constraints.txt
+            rdagent-dependency-compat.patch
+            resolved-three.txt
           retention-days: 3
