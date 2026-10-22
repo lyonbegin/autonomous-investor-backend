@@ -19,8 +19,8 @@ jobs:
         run: |
           set -euxo pipefail
           git clone --filter=blob:none https://github.com/nautechsystems/nautilus_trader.git nautilus-src
-          git -C nautilus-src checkout a82b470c1ea214ac1bd1139e2f5ff455d45dbd99
-          test "$(git -C nautilus-src rev-parse HEAD)" = "a82b470c1ea214ac1bd1139e2f5ff455d45dbd99"
+          git -C nautilus-src checkout 69aa8a283c8735cee4a536084078e3b19ac9a1be
+          test "$(git -C nautilus-src rev-parse HEAD)" = "69aa8a283c8735cee4a536084078e3b19ac9a1be"
 
       - name: Rust 1.99.0
         uses: actions-rust-lang/setup-rust-toolchain@v1
@@ -69,7 +69,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: nautilus-exact-source-wheel
+          name: nautilus-final-source-wheel
           path: |
             nautilus-src/dist/*.whl
             nautilus-wheel-sha256.txt
