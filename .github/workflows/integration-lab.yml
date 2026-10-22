@@ -1,4 +1,4 @@
-name: Integration Lab RLlib
+name: Integration Lab vectorbt
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
       - ".github/workflows/integration-lab.yml"
 
 jobs:
-  cumulative-rllib:
+  cumulative-vectorbt:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -32,10 +32,9 @@ jobs:
           git -C chronos-src checkout 1224fafa91e1ecd6674f5204066b159e40b5e4a1
           git clone --filter=blob:none https://github.com/DLR-RM/stable-baselines3.git sb3-src
           git -C sb3-src checkout b2878f4b83e21f16a53c54a62def628e05fd2e96
-
-          # Keep the exact RLlib source corresponding to the installed Ray wheel.
           git clone --depth 1 --branch ray-2.59.0 --filter=blob:none --sparse https://github.com/ray-project/ray.git ray-src
           git -C ray-src sparse-checkout set rllib python
+          git clone --depth 1 --branch v1.2.0 --filter=blob:none https://github.com/polakowo/vectorbt.git vectorbt-src
 
       - name: Apply RD-Agent dependency metadata overlay
         run: |
@@ -57,6 +56,7 @@ jobs:
           pydantic-ai==1.70.0
           pydantic-ai-slim==1.70.0
           pandas==3.0.6
+          numpy>=2.4.6,<3
           mlflow<3.13
           filelock>=3.16,<3.30
           packaging>=25,<26
@@ -71,31 +71,32 @@ jobs:
           source env/bin/activate
           python -m pip install -U pip setuptools wheel cython
 
-      - name: Install verified six engines
+      - name: Install verified seven engines
         run: |
           set -euxo pipefail
           source env/bin/activate
           python -m pip install -c constraints.txt ./ta ./fr/finrobot_desktop ./rd ./qlib-src ./chronos-src ./sb3-src
-          python -m pip check
-
-      - name: Add Ray RLlib 2.59.0 to the same environment
-        run: |
-          set -euxo pipefail
-          source env/bin/activate
           python -m pip install -c constraints.txt "ray[rllib]==2.59.0"
           python -m pip check
 
-      - name: Verify RLlib native API and one PPO iteration
+      - name: Add vectorbt v1.2.0 to the same environment
+        run: |
+          set -euxo pipefail
+          source env/bin/activate
+          python -m pip install -c constraints.txt ./vectorbt-src
+          python -m pip check
+
+      - name: Verify vectorbt native Portfolio and all prior surfaces
         run: |
           set -euxo pipefail
           source env/bin/activate
           python - <<'PY'
+          import pandas as pd
+          import numpy as np
+          import vectorbt as vbt
           import ray
-          import gymnasium as gym
-          from ray.rllib.algorithms.algorithm import Algorithm
-          from ray.rllib.algorithms.algorithm_config import AlgorithmConfig
+          from vectorbt.portfolio.base import Portfolio
           from ray.rllib.algorithms.ppo import PPOConfig
-          from ray.rllib.env.env_runner import EnvRunner
           from stable_baselines3 import PPO as SB3PPO
           from chronos import Chronos2Pipeline
           from rdagent.app.qlib_rd_loop.quant import QuantRDLoop
@@ -103,42 +104,33 @@ jobs:
           from tradingagents.graph.trading_graph import TradingAgentsGraph
           import qlib
 
-          config = (
-              PPOConfig()
-              .environment("CartPole-v1")
-              .env_runners(num_env_runners=0)
-              .training(
-                  train_batch_size_per_learner=64,
-                  minibatch_size=32,
-                  num_epochs=1,
-              )
-          )
-          algo = config.build()
-          result = algo.train()
-          print("SEVEN_OK")
-          print("ray", ray.__version__)
-          print("gymnasium", gym.__version__)
-          print("training_iteration", result.get("training_iteration"))
-          print("native", Algorithm, AlgorithmConfig, PPOConfig, EnvRunner)
-          print("prior", TradingAgentsGraph, FinRobot, QuantRDLoop, qlib.__version__, Chronos2Pipeline, SB3PPO)
-          algo.stop()
-          ray.shutdown()
+          close = pd.Series([1.0, 2.0, 1.5, 3.0])
+          entries = pd.Series([True, False, True, False])
+          exits = pd.Series([False, True, False, True])
+          pf = Portfolio.from_signals(close, entries, exits)
+
+          print("EIGHT_OK")
+          print("vectorbt", vbt.__version__)
+          print("numpy", np.__version__)
+          print("pandas", pd.__version__)
+          print("total_return", float(pf.total_return()))
+          print("prior", ray.__version__, PPOConfig, SB3PPO, Chronos2Pipeline, QuantRDLoop, FinRobot, TradingAgentsGraph, qlib.__version__)
           PY
 
-      - name: Freeze successful seven-engine environment
+      - name: Freeze successful eight-engine environment
         run: |
           source env/bin/activate
-          python -m pip freeze | sort > resolved-seven.txt
-          python -m pip check > pip-check-seven.txt
+          python -m pip freeze | sort > resolved-eight.txt
+          python -m pip check > pip-check-eight.txt
 
       - name: Upload evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: cumulative-seven-rllib-evidence
+          name: cumulative-eight-vectorbt-evidence
           path: |
             constraints.txt
             rdagent-dependency-compat.patch
-            resolved-seven.txt
-            pip-check-seven.txt
+            resolved-eight.txt
+            pip-check-eight.txt
           retention-days: 3
