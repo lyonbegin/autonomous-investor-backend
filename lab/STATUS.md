@@ -100,6 +100,14 @@ Source metadata:
 
 PyPI currently exposes up to rc7, so rc8 is being built from the exact develop source rather than downgraded.
 
-Source-build workflow run: `39770520751`
+Official exact-commit CPython 3.13 wheel evidence:
+- Upstream build run: `39708020392`
+- Upstream run number: `19711`
+- Head SHA: `a82b470c1ea214ac1bd1139e2f5ff455d45dbd99`
+- Wheel version: `2.0.0rc8.dev20261022+19711`
+- Wheel filename: `nautilus_trader-2.0.0rc8.dev20261022+19711-cp313-cp313-manylinux_2_34_x86_64.whl`
+
+Independent source-build workflow run: `39770520751`
+Final twelve-engine workflow run: `39771869178`
 
 After this build succeeds, the source-built wheel must be installed into the validated eleven-engine environment and the complete twelve-engine environment must pass `pip check`, native imports, and bridge smoke tests.
