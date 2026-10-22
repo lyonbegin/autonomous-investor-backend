@@ -29,3 +29,7 @@ class ChronosBridge:
 
     def predict_quantiles(self, inputs: Any, **kwargs: Any) -> Any:
         return self.pipeline.predict_quantiles(inputs=inputs, **kwargs)
+
+    def predict_df(self, frame: Any, **kwargs: Any) -> Any:
+        """Call the native Chronos DataFrame forecasting interface."""
+        return self.pipeline.predict_df(frame, **kwargs)
