@@ -19,3 +19,7 @@ class PyPortfolioOptBridge:
     @staticmethod
     def max_sharpe(frontier: Any, risk_free_rate: float = 0.0) -> Any:
         return frontier.max_sharpe(risk_free_rate=risk_free_rate)
+
+    @staticmethod
+    def clean_weights(frontier: Any, **kwargs: Any) -> Any:
+        return frontier.clean_weights(**kwargs)
