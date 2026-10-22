@@ -1,5 +1,6 @@
 # Railway deployment image for the validated 12-engine Autonomous Investor stack.
-# Source of truth: integration-lab validation + exact upstream refs/lock files.
+# Heavy third-party engine installation is isolated in a cacheable layer so
+# normal application-code changes do not rebuild NautilusTrader from source.
 FROM python:3.13-bookworm AS builder
 
 ENV DEBIAN_FRONTEND=noninteractive \
@@ -27,13 +28,22 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
     && cargo --version
 
 WORKDIR /app
+RUN python -m venv "$VIRTUAL_ENV"
+
+# Copy only files that determine the integrated dependency layer first.
+# Railway/BuildKit can reuse this expensive layer when only app code changes.
+COPY requirements/ /app/requirements/
+COPY scripts/install_integrated_stack.py /app/scripts/install_integrated_stack.py
+
+RUN python -m pip install --upgrade pip setuptools wheel cython \
+    && python scripts/install_integrated_stack.py --source-dir /tmp/autonomous-investor-upstreams \
+    && python -m pip check
+
+# Application and bridge/orchestration code changes happen after the heavy
+# dependency layer, so they should not force another Nautilus Rust rebuild.
 COPY . .
 
-RUN python -m venv "$VIRTUAL_ENV" \
-    && python -m pip install --upgrade pip setuptools wheel cython \
-    && python scripts/install_integrated_stack.py --source-dir /tmp/autonomous-investor-upstreams \
-    && python -m pip check \
-    && python scripts/verify_integrated_stack.py \
+RUN python scripts/verify_integrated_stack.py \
     && rm -rf /tmp/autonomous-investor-upstreams /root/.cache/pip /root/.cargo/registry /root/.cargo/git
 
 FROM python:3.13-bookworm AS runtime
