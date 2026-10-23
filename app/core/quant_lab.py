@@ -30,6 +30,7 @@ EXPERIMENT_STATUSES = {
     "RUNNING",
     "COMPLETED",
     "FAILED",
+    "SUPERSEDED",
 }
 
 
@@ -226,6 +227,26 @@ def create_experiment(agent_id: str, symbols: list[str] | None = None) -> dict[s
     validation_plan = _default_validation_plan()
 
     with _connect() as conn:
+        conn.execute(
+            """
+            UPDATE experiments
+            SET status='SUPERSEDED',
+                blocked_reason=?,
+                updated_at=?
+            WHERE agent_id=?
+              AND experiment_id<>?
+              AND status IN (
+                'REGISTERED','BLOCKED_UNIVERSE','BLOCKED_DATA_SOURCE',
+                'BLOCKED_STRATEGY_ENGINE','READY','RUNNING','FAILED'
+              )
+            """,
+            (
+                f"Superseded by {experiment_id} because the Agent experiment inputs/universe changed.",
+                now,
+                agent_id,
+                experiment_id,
+            ),
+        )
         conn.execute(
             """
             INSERT INTO experiments (
