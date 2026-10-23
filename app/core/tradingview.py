@@ -2771,6 +2771,7 @@ def resolve_agent_universe(agent_id: str, limit: int = 20) -> dict[str, Any]:
         sort_by=sort_by,
         sort_order="desc",
     )
+    market_data_source = "COMPLETE_MARKET_UNIVERSE_DB"
     if not market_data.get("items"):
         market_data = collect_market(
             scanner_market,
@@ -2778,6 +2779,7 @@ def resolve_agent_universe(agent_id: str, limit: int = 20) -> dict[str, Any]:
             sort_by=sort_by,
             sort_order="desc",
         )
+        market_data_source = "LIVE_SCANNER_FALLBACK"
     scored: list[dict[str, Any]] = []
     for row in market_data.get("items", []):
         ticker = str(row.get("ticker") or "")
@@ -2843,6 +2845,9 @@ def resolve_agent_universe(agent_id: str, limit: int = 20) -> dict[str, Any]:
         "fixed_horizon": plan["fixed_horizon"],
         "scanner_market": scanner_market,
         "resolved": bool(selected),
+        "market_data_source": market_data_source,
+        "candidate_pool_count": len(market_data.get("items") or []),
+        "market_universe_total": market_data.get("total_count"),
         "method": "Universe hard filters (market cap/turnover/price) + TradingView quantitative pre-screen; not a backtest performance score",
         "snapshot_at": snapshot_at,
         "count": len(selected),
