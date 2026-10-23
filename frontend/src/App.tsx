@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 
 type Tone = 'green' | 'red' | 'amber' | 'cyan' | 'purple' | 'muted';
-const API_BASE = 'https://autonomous-investor-integrated-production.up.railway.app';
+const API_BASE = 'https://autonomous-investor-tradingview-production.up.railway.app';
 type PageKey =
   | 'command' | 'domains' | 'investors' | 'capital' | 'portfolio' | 'risk'
   | 'trading' | 'tvideas' | 'tvmarkets' | 'tvstrategies' | 'factory' | 'research' | 'lab' | 'strategies' | 'performance'
@@ -569,135 +569,254 @@ function scoreTone(score:number):Tone {
   return 'muted';
 }
 
+type LivePineStrategy = {
+  script_id_part:string;
+  script_id:string;
+  name:string;
+  author:string;
+  script_type:string;
+  script_access:number;
+  version:string;
+  likes_count:number;
+  comments_count:number;
+  views_count:number;
+  created_at:string;
+  updated_at:string;
+  chart_url?:string | null;
+  symbol:string;
+  interval:string;
+  is_picked:number | boolean;
+  is_hot:number | boolean;
+  description:string;
+};
+
+type LiveStrategyCandidate = {
+  candidate_id:string;
+  source_kind:string;
+  source_id:string;
+  source_version?:string | null;
+  source_hash?:string | null;
+  name:string;
+  author?:string | null;
+  category:string;
+  domain:string;
+  logic:string;
+  candidate_horizons:string[];
+  status:string;
+  origin_source_immutable:boolean;
+};
+
+type LiveAgentPlan = {
+  agent_id:string;
+  candidate_id:string;
+  source_id:string;
+  origin_source_immutable:boolean;
+  fixed_horizon:string;
+  fixed_horizon_immutable:boolean;
+  country:string;
+  market:string;
+  universe:string;
+  status:string;
+};
+
 function TradingViewStrategies(){
-  const [category,setCategory]=useState('전체');
-  const [selected,setSelected]=useState('TV-021');
-  const [created,setCreated]=useState<string[]>([]);
-  const categories=['전체','추세추종','평균회귀','돌파','모멘텀','변동성','페어 / 차익','크립토'];
-  const filtered=category==='전체'?tvStrategies:tvStrategies.filter(x=>x.category===category);
-  const current=tvStrategies.find(x=>x.id===selected) ?? tvStrategies[0];
-  const matches=tvMatches[current.id] ?? [
-    ['미국','NASDAQ / NYSE','고유동성 종목','1시간 / 4시간','84점'],
-    ['한국','KOSPI / KOSDAQ','거래대금 상위 종목','30분 / 1시간','80점'],
-    ['일본','TSE Prime','대형주','1시간 / 4시간','76점'],
-    ['FX','글로벌','주요 통화쌍','4시간 / 1일','74점'],
+  const topics=[
+    {label:'전체',slug:''},
+    {label:'추세추종',slug:'trend-following'},
+    {label:'평균회귀',slug:'mean-reversion'},
+    {label:'돌파',slug:'breakout'},
+    {label:'모멘텀',slug:'momentum'},
+    {label:'변동성',slug:'volatility'},
+    {label:'스캘핑',slug:'scalping'},
+    {label:'에디터즈 픽',slug:'editors-picks'},
   ];
-  const makeAgents=()=>{
-    const labels=matches.slice(0,3).map((m,i)=>`${current.id}-A${String(i+1).padStart(2,'0')} · ${m[0]} ${m[1]} · ${m[3]}`);
-    setCreated(labels);
+  const [topic,setTopic]=useState('');
+  const [sort,setSort]=useState<'latest_popular'|'recent_extended'>('latest_popular');
+  const [page,setPage]=useState(1);
+  const [scripts,setScripts]=useState<LivePineStrategy[]>([]);
+  const [total,setTotal]=useState<number | null>(null);
+  const [selected,setSelected]=useState('');
+  const [candidate,setCandidate]=useState<LiveStrategyCandidate | null>(null);
+  const [agents,setAgents]=useState<LiveAgentPlan[]>([]);
+  const [loading,setLoading]=useState(true);
+  const [busy,setBusy]=useState(false);
+  const [error,setError]=useState('');
+
+  const editors=topic==='editors-picks';
+  useEffect(()=>{
+    const controller=new AbortController();
+    const params=new URLSearchParams({
+      page:String(page),
+      sort,
+      editors_picks:String(editors),
+    });
+    if(topic && !editors) params.set('topic',topic);
+    setLoading(true);
+    setError('');
+    fetch(API_BASE+'/api/v1/tradingview/scripts/live?'+params.toString(),{signal:controller.signal})
+      .then(async r=>{
+        if(!r.ok) throw new Error(await r.text());
+        return r.json();
+      })
+      .then(data=>{
+        const rows=(data.items||[]) as LivePineStrategy[];
+        setScripts(rows);
+        setTotal(typeof data.total_count==='number'?data.total_count:null);
+        setSelected(prev=>rows.some(x=>x.script_id_part===prev)?prev:(rows[0]?.script_id_part||''));
+      })
+      .catch(e=>{
+        if(e?.name!=='AbortError') setError('TradingView 공개 전략 수집 연결 오류');
+      })
+      .finally(()=>setLoading(false));
+    return ()=>controller.abort();
+  },[topic,sort,page,editors]);
+
+  const current=scripts.find(x=>x.script_id_part===selected) ?? scripts[0] ?? null;
+
+  useEffect(()=>{
+    setCandidate(null);
+    setAgents([]);
+  },[selected]);
+
+  const analyze=async():Promise<LiveStrategyCandidate | null>=>{
+    if(!current) return null;
+    if(candidate && candidate.source_id===current.script_id_part) return candidate;
+    setBusy(true);
+    setError('');
+    try{
+      const r=await fetch(API_BASE+'/api/v1/tradingview/scripts/'+encodeURIComponent(current.script_id_part)+'/candidate?fetch_source=true',{method:'POST'});
+      if(!r.ok) throw new Error(await r.text());
+      const data=await r.json() as LiveStrategyCandidate;
+      setCandidate(data);
+      return data;
+    }catch(e){
+      setError('Pine 전략 원문 분석 또는 후보 생성 오류');
+      return null;
+    }finally{
+      setBusy(false);
+    }
   };
+
+  const makeAgents=async()=>{
+    const c=await analyze();
+    if(!c) return;
+    setBusy(true);
+    setError('');
+    try{
+      const r=await fetch(API_BASE+'/api/v1/tradingview/candidates/'+encodeURIComponent(c.candidate_id)+'/agent-plans?max_markets=3',{method:'POST'});
+      if(!r.ok) throw new Error(await r.text());
+      const data=await r.json();
+      setAgents((data.items||[]) as LiveAgentPlan[]);
+    }catch(e){
+      setError('시장·시간축별 에이전트 생성 계획 오류');
+    }finally{
+      setBusy(false);
+    }
+  };
+
+  const matchRows=agents.map(x=>[
+    x.country,
+    x.market,
+    x.universe,
+    x.fixed_horizon,
+    x.agent_id,
+    x.status,
+  ]);
+
   return <>
-    <SectionHeader title="트레이딩뷰 전략 전체 관리" eyebrow="계속 유입되는 전략을 수집·분류·평가하고 시장별 에이전트로 전환" actions={['신규 전략 등록','자동 분류 실행','추천 다시 계산']} />
+    <SectionHeader title="트레이딩뷰 전략 전체 관리" eyebrow="TradingView Community Scripts의 공개 전략을 실수집해 원천 계보·시장·고정 시간축별 독립 에이전트로 전환" actions={['실시간 전략 수집','원천 분석','에이전트 생성']} />
+
     <div className="metrics five">
-      <Metric label="전체 전략" value="128" sub="등록·수집된 전략" />
-      <Metric label="검증 완료" value="47" sub="재현성 확인" tone="green" />
-      <Metric label="자동 매칭 완료" value="93" sub="국가·시장·종목 적합도" tone="cyan" />
-      <Metric label="생성 에이전트" value="216" sub="전략 × 시장 × 시간축" />
-      <Metric label="실전 운용" value="31" sub="Nautilus 연결" tone="green" />
+      <Metric label="TradingView 전체 결과" value={total===null?'—':total.toLocaleString('ko-KR')} sub="현재 필터 기준" />
+      <Metric label="현재 페이지" value={String(scripts.length)} sub={page+'페이지 · 공개 전략'} tone="green" />
+      <Metric label="원천 유형" value="Pine" sub="Open Source Strategy" tone="cyan" />
+      <Metric label="선택 전략 반응" value={current?current.likes_count.toLocaleString('ko-KR'):'—'} sub="좋아요" />
+      <Metric label="생성 에이전트" value={String(agents.length)} sub="Source × Market × Fixed Horizon" tone={agents.length?'green':'muted'} />
     </div>
 
     <div className="callout">
-      <b>핵심 원칙</b>
-      <span>TradingView 전략 하나를 그대로 한 전략으로 끝내지 않습니다. 같은 원천 전략이라도 국가·시장·종목군·시간축이 다르면 별도 실험과 별도 에이전트 후보로 분리합니다.</span>
+      <b>불변 원칙</b>
+      <span>원천 TradingView Script ID와 각 Agent의 거래·예측 시간축은 생성 후 변경하지 않습니다. 같은 전략 원천이라도 시장·종목군·시간축이 다르면 별도의 독립 Agent ID, 메모리, 성과, 실패이력과 리스크 예산을 가집니다.</span>
     </div>
 
     <div className="subnav strategy-categories">
-      {categories.map(c=><button key={c} className={category===c?'active':''} onClick={()=>setCategory(c)}>{c}</button>)}
+      {topics.map(x=><button key={x.label} className={topic===x.slug?'active':''} onClick={()=>{setTopic(x.slug);setPage(1)}}>{x.label}</button>)}
+      <span className="spacer"/>
+      <button className={sort==='latest_popular'?'active':''} onClick={()=>{setSort('latest_popular');setPage(1)}}>인기 전략</button>
+      <button className={sort==='recent_extended'?'active':''} onClick={()=>{setSort('recent_extended');setPage(1)}}>최신 전략</button>
     </div>
+
+    {error && <div className="panel"><span>{error}</span></div>}
 
     <div className="grid two tv-library-grid">
       <div className="panel">
-        <div className="panel-title"><b>전체 전략 보관함</b><span>{category} · {filtered.length}개 표시 / 총 128개</span></div>
+        <div className="panel-title"><b>TradingView 공개 전략 보관함</b><span>{loading?'실수집 중':scripts.length+'개 표시 · '+page+'페이지'}</span></div>
+        {loading ? <div className="empty-state">TradingView Community Scripts에서 공개 전략을 읽는 중입니다.</div> :
         <div className="tv-list">
-          {filtered.map(x=><button key={x.id} className={selected===x.id?'tv-row selected':'tv-row'} onClick={()=>{setSelected(x.id);setCreated([])}}>
-            <span className="tv-id">{x.id}</span>
-            <span className="tv-name"><b>{x.name}</b><small>{x.logic}</small></span>
-            <span><Badge tone="purple">{x.category}</Badge></span>
-            <span className="tv-domain">{x.domain}</span>
-            <span className="tv-score"><b>{x.score}</b><small>적합도</small></span>
+          {scripts.map(x=><button key={x.script_id_part} className={selected===x.script_id_part?'tv-row selected':'tv-row'} onClick={()=>setSelected(x.script_id_part)}>
+            <span className="tv-id">{x.script_id_part.replace('PUB;','')}</span>
+            <span className="tv-name"><b>{x.name}</b><small>{x.author} · 좋아요 {x.likes_count.toLocaleString('ko-KR')}</small></span>
+            <span><Badge tone={x.is_picked?'green':'purple'}>{x.is_picked?'에디터즈 픽':'공개 전략'}</Badge></span>
+            <span className="tv-domain">{x.symbol || '전 종목'} {x.interval?'· '+x.interval:''}</span>
+            <span className="tv-score"><b>{x.version || '—'}</b><small>버전</small></span>
           </button>)}
+        </div>}
+        <div className="tv-pagination">
+          <button disabled={page<=1} onClick={()=>setPage(p=>Math.max(1,p-1))}>이전</button>
+          <button className="active">{page}</button>
+          <button onClick={()=>setPage(p=>p+1)}>다음</button>
         </div>
       </div>
 
       <div className="panel">
-        <div className="panel-title"><b>{current.id} · {current.name}</b><Badge tone={scoreTone(current.score)}>{`${current.score}점`}</Badge></div>
-        <dl className="kv">
-          <dt>전략 영역</dt><dd>{current.category} → {current.domain}</dd>
-          <dt>핵심 로직</dt><dd>{current.logic}</dd>
-          <dt>권장 시간축</dt><dd>{current.horizons}</dd>
-          <dt>원천</dt><dd>{current.source}</dd>
-          <dt>현재 최고 적합</dt><dd>{current.best}</dd>
-          <dt>연결 에이전트</dt><dd>{current.agents}개</dd>
-          <dt>상태</dt><dd>{current.status}</dd>
-        </dl>
-        <div className="actions left">
-          <button>원문 보기</button>
-          <button>백테스트 열기</button>
-          <button onClick={makeAgents}>추천 조합으로 에이전트 생성</button>
-        </div>
-      </div>
-    </div>
-
-    <div className="grid two wide-left">
-      <div className="panel">
-        <div className="panel-title"><b>자동 시장·종목 적합도 매칭</b><span>전략 구조 + 거래비용 + 변동성 + 유동성 + 시장제도 + 시간축</span></div>
-        <DataTable headers={['국가/자산군','시장','추천 종목군','권장 시간축','적합도']} rows={matches}/>
-      </div>
-      <div className="panel">
-        <div className="panel-title"><b>자동 판단 근거</b><Badge tone="cyan">에이전트 평가</Badge></div>
-        <RiskBar label="신호 재현성" value={94} text="94"/>
-        <RiskBar label="유동성 적합" value={91} text="91"/>
-        <RiskBar label="비용 내성" value={86} text="86"/>
-        <RiskBar label="시장 구조" value={89} text="89"/>
-        <RiskBar label="과최적화 위험" value={28} text="낮음"/>
-        <p className="note">추천 점수는 단순 수익률 순위가 아니라 시장별 슬리피지·수수료·거래빈도·변동성·체결 가능성·홀드아웃 안정성까지 합산해 계산하는 전제로 설계합니다.</p>
+        {current ? <>
+          <div className="panel-title"><b>{current.name}</b><Badge tone="green">Open Source</Badge></div>
+          <dl className="kv">
+            <dt>TradingView 원천 ID</dt><dd>{current.script_id_part}</dd>
+            <dt>작성자</dt><dd>{current.author || '—'}</dd>
+            <dt>버전</dt><dd>{current.version || '—'}</dd>
+            <dt>게시 시간축</dt><dd>{current.interval || '미지정'}</dd>
+            <dt>좋아요 / 댓글 / 조회</dt><dd>{current.likes_count.toLocaleString('ko-KR')} / {current.comments_count.toLocaleString('ko-KR')} / {current.views_count.toLocaleString('ko-KR')}</dd>
+            <dt>자동 분류</dt><dd>{candidate?candidate.category+' → '+candidate.domain:'분석 전'}</dd>
+            <dt>고정 시간축 후보</dt><dd>{candidate?candidate.candidate_horizons.join(' · '):'분석 후 생성'}</dd>
+            <dt>Pine 원문 해시</dt><dd>{candidate?.source_hash?candidate.source_hash.slice(0,20)+'…':'분석 후 저장'}</dd>
+          </dl>
+          <p className="note">{current.description?.slice(0,500) || '설명이 없습니다.'}</p>
+          <div className="actions left">
+            {current.chart_url && <a href={current.chart_url} target="_blank" rel="noreferrer">TradingView 원문 보기</a>}
+            <button disabled={busy} onClick={analyze}>{candidate?'원천 분석 완료':'원천 분석 · 전략 후보 생성'}</button>
+            <button disabled={busy} onClick={makeAgents}>추천 조합으로 독립 에이전트 생성</button>
+          </div>
+        </> : <div className="empty-state">전략을 선택하십시오.</div>}
       </div>
     </div>
 
     <div className="panel">
-      <div className="panel-title"><b>시장별 최적 TradingView 전략 자동 추천</b><span>전체 등록 전략을 매일 재평가하는 화면 구조</span></div>
-      <DataTable headers={['국가/자산군','시장/종목군','자동 추천 전략','추천 시간축','종합 점수','다음 행동']} rows={[
-        ['미국','NASDAQ 대형 기술주','TV-021 · RSI 평균회귀','10분 / 30분','96점','에이전트 3개 생성 후보'],
-        ['한국','KOSDAQ 거래대금 상위','TV-057 · Donchian 돌파','30분 / 1시간','94점','에이전트 4개 생성 후보'],
-        ['미국 선물','CME ES / NQ','TV-044 · Supertrend 추세추종','1시간 / 4시간','95점','선물 전용 에이전트 후보'],
-        ['일본','TSE Prime 대형주','TV-071 · MACD 모멘텀','1시간 / 4시간','88점','일본주식 전용 검증'],
-        ['FX','EURUSD / USDJPY','TV-102 · ADX + EMA 추세필터','4시간 / 1일','89점','통화쌍별 에이전트 분리'],
-        ['원자재','금 / 원유 선물','TV-044 · Supertrend 추세추종','4시간 / 1일','90점','원자재 에이전트 후보'],
-        ['가상자산','BTC / ETH','TV-131 · Crypto Trend Grid','10분 / 1시간','83점','현물/선물 각각 검증'],
-      ]}/>
+      <div className="panel-title"><b>자동 시장·종목군·고정 시간축 매칭</b><span>실제 생성된 각 행은 서로 다른 Agent ID이며 시간축을 변경하지 않습니다.</span></div>
+      {agents.length ?
+        <DataTable headers={['국가/자산군','시장','추천 종목군','고정 시간축','Agent ID','상태']} rows={matchRows}/> :
+        <div className="empty-state">선택한 전략을 분석한 뒤 에이전트 생성을 실행하면 국가·시장·종목군·시간축 조합이 여기에 생성됩니다.</div>}
     </div>
 
     <div className="grid two">
       <div className="panel">
-        <div className="panel-title"><b>관리자 선택 → 에이전트 생성 방식</b><span>한 전략에서 여러 독립 투자 에이전트 생성 가능</span></div>
+        <div className="panel-title"><b>원천 계보</b><span>복제 가능한 근거를 끝까지 보존</span></div>
         <ol className="steps">
-          <li>관리자가 TradingView 전략 선택</li>
-          <li>시스템이 전략 영역 자동 분류</li>
-          <li>국가·시장·종목군 후보 자동 탐색</li>
-          <li>각 후보별 최적 시간축 탐색</li>
-          <li>상위 조합마다 독립 연구 에이전트 생성</li>
-          <li>각 에이전트가 별도 백테스트·워크포워드·홀드아웃 수행</li>
-          <li>통과한 에이전트만 Paper → Shadow → Small Live → Live 승격</li>
+          <li>TradingView 공개 Strategy의 실제 Script ID 저장</li>
+          <li>버전·작성자·게시 시점·원문 URL 저장</li>
+          <li>공개 Pine 원문은 내부에서만 읽고 SHA-256 해시로 계보 고정</li>
+          <li>전략 유형 및 후보 시간축 생성</li>
+          <li>국가·시장·종목 Universe별 독립 Agent 생성</li>
+          <li>각 Agent가 백테스트 → Walk-forward → Holdout을 독립 수행</li>
+          <li>통과 Agent만 Paper → Shadow → Small Live → Live 승격</li>
         </ol>
       </div>
       <div className="panel">
-        <div className="panel-title"><b>생성 예정 에이전트</b><span>{created.length ? current.id+' 기준 생성 계획' : '전략을 선택하고 생성 버튼을 누르십시오'}</span></div>
-        {created.length ? created.map((x,i)=><div className="agent-plan" key={x}><Badge tone="green">{`후보 ${i+1}`}</Badge><b>{x}</b><span>독립 메모리 · 독립 성과 · 독립 실패이력</span></div>) :
-        <div className="empty-state">아직 생성 계획이 없습니다.</div>}
+        <div className="panel-title"><b>현재 선택 전략의 생성 결과</b><span>{candidate?candidate.candidate_id:'아직 후보가 생성되지 않았습니다.'}</span></div>
+        {candidate && <div className="agent-plan"><Badge tone="cyan">{candidate.category}</Badge><b>{candidate.candidate_id} · {candidate.name}</b><span>{candidate.domain} · 후보 시간축 {candidate.candidate_horizons.join(' / ')}</span></div>}
+        {agents.slice(0,12).map((x,i)=><div className="agent-plan" key={x.agent_id}><Badge tone="green">{'Agent '+(i+1)}</Badge><b>{x.agent_id}</b><span>{x.country} · {x.market} · {x.universe} · {x.fixed_horizon}</span></div>)}
+        {!candidate && <div className="empty-state">원천 분석을 실행하면 실제 후보 ID와 고정 시간축 계보가 생성됩니다.</div>}
       </div>
-    </div>
-
-    <div className="panel">
-      <div className="panel-title"><b>전략 영역 자동 분류 현황</b><span>전략 쏠림을 막고 비어 있는 영역을 자동 탐지</span></div>
-      <DataTable headers={['영역','보유 전략','연구 에이전트','실전 에이전트','부족 여부','자동 행동']} rows={[
-        ['추세추종','31','52','12','충분','상위 전략만 추가 검증'],
-        ['평균회귀','26','44','9','충분','시장 다변화'],
-        ['돌파','18','31','5','보통','한국·일본 추가 탐색'],
-        ['변동성','9','16','2','부족','신규 전략 우선 수집'],
-        ['페어 / 차익','7','12','1','부족','전략 자동 추천 강화'],
-        ['FX 매크로','11','20','2','부족','통화쌍별 후보 확장'],
-        ['위기 헤지','4','10','0','매우 부족','최우선 보강'],
-      ]}/>
     </div>
   </>;
 }
