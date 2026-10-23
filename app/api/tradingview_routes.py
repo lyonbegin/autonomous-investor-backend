@@ -28,7 +28,7 @@ router = APIRouter(prefix="/api/v1/tradingview", tags=["tradingview"])
 @router.post("/backfill/{kind}")
 def backfill_source(
     kind: str,
-    pages: int = Query(default=1, ge=1, le=10),
+    pages: int = Query(default=1, ge=1, le=25),
     fetch_details: bool = True,
     fetch_pine: bool = True,
 ) -> dict:
