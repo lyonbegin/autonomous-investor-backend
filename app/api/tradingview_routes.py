@@ -12,6 +12,8 @@ from app.core.tradingview import (
     fetch_script_source,
     get_agent_plan,
     list_agent_plans,
+    list_agent_universe,
+    resolve_agent_universe,
     list_candidates,
     list_market_snapshots,
     list_stored_ideas,
@@ -160,6 +162,28 @@ def candidate_to_agents(candidate_id: str, max_markets: int = Query(default=3, g
         }
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=f"candidate not found: {candidate_id}") from exc
+
+
+@router.post("/agent-plans/{agent_id}/resolve-universe")
+def agent_plan_resolve_universe(
+    agent_id: str,
+    limit: int = Query(default=20, ge=1, le=100),
+) -> dict:
+    try:
+        return resolve_agent_universe(agent_id, limit=limit)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=f"agent plan not found: {agent_id}") from exc
+    except Exception as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"universe resolution failed: {type(exc).__name__}: {exc}",
+        ) from exc
+
+
+@router.get("/agent-plans/{agent_id}/universe")
+def agent_plan_universe(agent_id: str) -> dict:
+    items = list_agent_universe(agent_id)
+    return {"agent_id": agent_id, "count": len(items), "items": items}
 
 
 @router.get("/agent-plans/{agent_id}")
