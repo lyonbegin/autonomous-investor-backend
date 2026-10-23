@@ -1373,7 +1373,7 @@ def backfill_tradingview_source(
                 )
                 items = list(payload.get("items") or [])
                 total_count = int(payload.get("total_count") or 0)
-                page_size = max(1, len(items) or 24)
+                page_size = 24
                 total_pages = max(1, (total_count + page_size - 1) // page_size)
                 if items and (fetch_details or fetch_pine):
                     with ThreadPoolExecutor(max_workers=8) as executor:
