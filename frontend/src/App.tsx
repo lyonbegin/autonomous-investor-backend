@@ -1029,12 +1029,236 @@ function TradingViewStrategies(){
   </>;
 }
 
-function StrategyFactory() { const [tab,setTab]=useState<'hub'|'tv'|'horizon'|'family'>('hub'); return <><SectionHeader title="전략 공장" eyebrow="외부 전략 원천과 내부 AI 발굴 결과를 추적 가능한 전략 계보로 전환" actions={['새 전략 등록','자동 발굴 실행']} /><div className="subnav">{[['hub','전략 원천'],['tv','트레이딩뷰 등록'],['horizon','시간축 탐색'],['family','전략 계열']].map(([k,l])=><button className={tab===k?'active':''} onClick={()=>setTab(k as typeof tab)} key={k}>{l}</button>)}</div>{tab==='hub'&&<SourceHub/>}{tab==='tv'&&<TradingViewConnector/>}{tab==='horizon'&&<HorizonLab/>}{tab==='family'&&<FamilyMatrix/>}</>; }
-function SourceHub(){return <><div className="source-cards"><SourceCard title="TradingView" detail="Public / own Pine + official alert webhook" count="21"/><SourceCard title="GitHub" detail="Licensed strategy repositories" count="18"/><SourceCard title="Papers" detail="Academic strategy descriptions" count="12"/><SourceCard title="Internal AI" detail="RD-Agent · Qlib · pattern mining" count="34"/></div><div className="panel"><DataTable headers={['SOURCE','CHANNEL','STRATEGY','ACCESS','STATUS','HORIZONS']} rows={sources}/></div></>}
-function SourceCard({title,detail,count}:{title:string;detail:string;count:string}){return <div className="panel source-card"><strong>{title}</strong><b>{count}</b><span>{detail}</span></div>}
-function TradingViewConnector(){return <div className="grid two"><div className="panel"><div className="panel-title"><b>TradingView 신규 전략 등록</b><Badge tone="cyan">수동 / 공식</Badge></div><label>TradingView 전략 주소<input placeholder="https://www.tradingview.com/script/..." /></label><label>공개 또는 직접 보유한 Pine 소스<textarea rows={10} placeholder={"//@version=6\nstrategy(...)\n..."} /></label><div className="actions left"><button>TradingView 열기</button><button>원천 검증</button><button>Pine 가져오기</button></div><p className="note">자동 스크래핑 및 보호·초대전용 소스 추출은 사용하지 않습니다. 원천 주소·작성자·URL·내용 해시는 보존합니다.</p></div><div className="panel"><div className="panel-title"><b>TradingView 알림 Webhook</b><Badge tone="green">백엔드 연결 준비</Badge></div><label>Webhook endpoint<input readOnly value="/webhooks/tradingview/{connection_id}" /></label><dl className="kv"><dt>상태</dt><dd>아직 연결되지 않음</dd><dt>용도</dt><dd>TradingView 알림 신호 수신</dd><dt>소스 코드</dt><dd>Webhook으로 소스코드를 가져오지 않음</dd></dl><button>연결 생성</button><hr/><div className="panel-title"><b>Pine → Python 변환 흐름</b></div><ol className="steps"><li>Pine 전략 구조 분석</li><li>진입·청산·위험 규칙 추출</li><li>Python 실행 구조로 변환</li><li>원본 신호 일치도 검증</li><li>시간축 탐색으로 전달</li><li>변경 불가 전략 계보 생성</li></ol></div></div>}
-function HorizonLab(){return <div className="panel"><div className="panel-title"><b>시간축 탐색 · TV-021</b><span>전략 계보 생성 전 검증</span></div><DataTable headers={['HORIZON','EVENTS','COST-ADJ EV','STABILITY','HOLDOUT','DECISION']} rows={[["10m","12,421","+0.18%","PASS","PASS","CANDIDATE"],["30m","8,112","+0.23%","PASS","PASS","CANDIDATE"],["1h","4,219","+0.31%","PASS","PASS","CANDIDATE"],["4h","1,110","+0.15%","REVIEW","REVIEW","REVIEW"],["1d","822","+0.72%","PASS","PASS","CANDIDATE"],["3d","282","-0.11%","WEAK","FAIL","REJECT"]]}/><div className="actions left"><button>CREATE 10m LINEAGE</button><button>CREATE 30m LINEAGE</button><button>CREATE 1h LINEAGE</button><button>CREATE 1d LINEAGE</button></div></div>}
-function FamilyMatrix(){return <div className="panel"><div className="panel-title"><b>원천 전략 × 고정 시간축 전략 계열</b><span>각 칸은 독립 전략 계보</span></div><DataTable headers={['SOURCE','10m','30m','1h','4h','1d','3d','1w']} rows={[["TV-RSI","L-101","L-104","L-105","—","L-108","—","—"],["TV-Supertrend","L-201","—","—","L-205","L-208","—","—"],["GH-Breakout","—","L-301","—","L-305","—","—","—"],["AI-Liquidity","L-401","—","L-403","—","—","—","—"]]}/></div>}
+type RegistrySource = {
+  registry_source_id:string;
+  source_id:string;
+  origin_source_id:string;
+  source_kind:string;
+  source_name:string;
+  source_version?:string | null;
+  source_hash?:string | null;
+  source_url?:string | null;
+  source_status:string;
+  created_at:string;
+  updated_at:string;
+  metadata?:Record<string,unknown>;
+};
+
+function StrategyFactory() {
+  const [tab,setTab]=useState<'hub'|'tv'|'horizon'|'family'>('hub');
+  return <>
+    <SectionHeader title="전략 공장" eyebrow="외부 전략 원천과 내부 AI 발굴 결과를 추적 가능한 전략 계보로 전환" actions={['새 전략 등록','자동 발굴 실행']} />
+    <div className="subnav">
+      {([['hub','전략 원천'],['tv','트레이딩뷰 등록'],['horizon','시간축 탐색'],['family','전략 계열']] as const).map(([k,l])=>
+        <button className={tab===k?'active':''} onClick={()=>setTab(k)} key={k}>{l}</button>
+      )}
+    </div>
+    {tab==='hub'&&<SourceHub/>}
+    {tab==='tv'&&<TradingViewConnector/>}
+    {tab==='horizon'&&<HorizonLab/>}
+    {tab==='family'&&<FamilyMatrix/>}
+  </>;
+}
+
+function SourceHub(){
+  const [items,setItems]=useState<RegistrySource[]>([]);
+  const [loading,setLoading]=useState(true);
+  const [syncing,setSyncing]=useState(false);
+  const [error,setError]=useState('');
+
+  const load=()=>{
+    setLoading(true);
+    setError('');
+    fetch(API_BASE+'/api/v1/strategy-sources?limit=500')
+      .then(async r=>{if(!r.ok) throw new Error(await r.text()); return r.json();})
+      .then(data=>setItems((data.items||[]) as RegistrySource[]))
+      .catch(e=>setError(e instanceof Error?e.message:'Source Registry 조회 오류'))
+      .finally(()=>setLoading(false));
+  };
+  useEffect(()=>{load();},[]);
+
+  const sync=async()=>{
+    setSyncing(true);
+    setError('');
+    try{
+      const r=await fetch(API_BASE+'/api/v1/strategy-sources/sync?limit=5000',{method:'POST'});
+      if(!r.ok) throw new Error(await r.text());
+      load();
+    }catch(e){
+      setError(e instanceof Error?e.message:'Source Registry 동기화 오류');
+    }finally{
+      setSyncing(false);
+    }
+  };
+
+  const count=(kind:string)=>items.filter(x=>x.source_kind===kind).length;
+  const rows=items.slice(0,200).map(x=>[
+    x.registry_source_id,
+    x.source_kind,
+    x.source_name,
+    x.source_version||'—',
+    x.source_hash?x.source_hash.slice(0,12)+'…':'—',
+    x.source_status,
+    x.updated_at,
+  ]);
+
+  return <>
+    <div className="actions left">
+      <button onClick={sync} disabled={syncing}>{syncing?'동기화 중':'TradingView 원천 지금 동기화'}</button>
+      <button onClick={load} disabled={loading}>{loading?'불러오는 중':'Registry 새로고침'}</button>
+    </div>
+    {error && <div className="panel"><span>{error}</span></div>}
+    <div className="source-cards">
+      <SourceCard title="TradingView 아이디어" detail="커뮤니티 아이디어 원본" count={String(count('TradingViewIdea'))}/>
+      <SourceCard title="TradingView Pine" detail="공개 Pine 전략 원천" count={String(count('TradingViewPineStrategy'))}/>
+      <SourceCard title="GitHub" detail="등록된 라이선스 전략 저장소" count={String(count('GitHub'))}/>
+      <SourceCard title="논문 / 내부 AI" detail="Paper + AIResearch" count={String(count('Paper')+count('AIResearch'))}/>
+    </div>
+    <div className="panel">
+      <div className="panel-title"><b>Strategy Source Registry</b><span>{items.length}개 실제 등록 원천 · Origin Source ID 보존</span></div>
+      {rows.length?
+        <DataTable headers={['REGISTRY SOURCE','TYPE','NAME','VERSION','HASH','STATUS','UPDATED']} rows={rows}/>:
+        <div className="empty-state">등록된 전략 원천이 없습니다.</div>}
+    </div>
+  </>;
+}
+
+function SourceCard({title,detail,count}:{title:string;detail:string;count:string}){
+  return <div className="panel source-card"><strong>{title}</strong><b>{count}</b><span>{detail}</span></div>;
+}
+
+function TradingViewConnector(){
+  return <div className="grid two">
+    <div className="panel">
+      <div className="panel-title"><b>TradingView 신규 전략 등록</b><Badge tone="cyan">수동 / 공식</Badge></div>
+      <label>TradingView 전략 주소<input placeholder="https://www.tradingview.com/script/..." /></label>
+      <label>공개 또는 직접 보유한 Pine 소스<textarea rows={10} placeholder={"//@version=6\nstrategy(...)\n..."} /></label>
+      <div className="actions left"><button>TradingView 열기</button><button>원천 검증</button><button>Pine 가져오기</button></div>
+      <p className="note">원천 주소·작성자·버전·내용 해시를 Source Registry에 보존하고 이후 모든 파생 Agent가 동일 Origin Source를 참조하도록 합니다.</p>
+    </div>
+    <div className="panel">
+      <div className="panel-title"><b>TradingView 알림 Webhook</b><Badge tone="green">백엔드 연결 준비</Badge></div>
+      <label>Webhook endpoint<input readOnly value="/webhooks/tradingview/{connection_id}" /></label>
+      <dl className="kv"><dt>상태</dt><dd>아직 연결되지 않음</dd><dt>용도</dt><dd>TradingView 알림 신호 수신</dd><dt>소스 코드</dt><dd>Webhook으로 소스코드를 가져오지 않음</dd></dl>
+      <hr/>
+      <div className="panel-title"><b>Pine → 자율 연구 흐름</b></div>
+      <ol className="steps"><li>원천 검증·해시 저장</li><li>전략 후보 생성</li><li>Source-Aware Market Matching</li><li>Horizon Discovery</li><li>Discovery Gate 통과 조합만 Agent 생성</li><li>Quant Lab 검증으로 전달</li></ol>
+    </div>
+  </div>;
+}
+
+function HorizonLab(){
+  const [candidates,setCandidates]=useState<LiveStrategyCandidate[]>([]);
+  const [selected,setSelected]=useState('');
+  const [discovery,setDiscovery]=useState<LiveHorizonDiscovery[]>([]);
+  const [busy,setBusy]=useState(false);
+  const [message,setMessage]=useState('');
+  const [error,setError]=useState('');
+
+  useEffect(()=>{
+    fetch(API_BASE+'/api/v1/tradingview/candidates?limit=100')
+      .then(async r=>{if(!r.ok) throw new Error(await r.text()); return r.json();})
+      .then(data=>{
+        const rows=(data.items||[]) as LiveStrategyCandidate[];
+        setCandidates(rows);
+        setSelected(prev=>prev||rows[0]?.candidate_id||'');
+      })
+      .catch(e=>setError(e instanceof Error?e.message:'전략 후보 조회 오류'));
+  },[]);
+
+  useEffect(()=>{
+    if(!selected){setDiscovery([]);return;}
+    fetch(API_BASE+'/api/v1/horizon-discovery/'+encodeURIComponent(selected))
+      .then(async r=>{if(!r.ok) throw new Error(await r.text()); return r.json();})
+      .then(data=>setDiscovery((data.items||[]) as LiveHorizonDiscovery[]))
+      .catch(()=>setDiscovery([]));
+  },[selected]);
+
+  const run=async()=>{
+    if(!selected) return;
+    setBusy(true);setError('');setMessage('');
+    try{
+      const r=await fetch(API_BASE+'/api/v1/horizon-discovery/'+encodeURIComponent(selected)+'?max_markets=3',{method:'POST'});
+      if(!r.ok) throw new Error(await r.text());
+      const data=await r.json();
+      setDiscovery((data.items||[]) as LiveHorizonDiscovery[]);
+      setMessage((data.market_match_mode||'')+' · '+(data.run_id||'')+' · '+(data.count||0)+'개 조합 평가');
+    }catch(e){
+      setError(e instanceof Error?e.message:'Horizon Discovery 실행 오류');
+    }finally{setBusy(false);}
+  };
+
+  const create=async()=>{
+    if(!selected) return;
+    setBusy(true);setError('');setMessage('');
+    try{
+      const r=await fetch(API_BASE+'/api/v1/agent-factory/'+encodeURIComponent(selected)+'?min_score=72&max_agents=12',{method:'POST'});
+      if(!r.ok) throw new Error(await r.text());
+      const data=await r.json();
+      setMessage('Discovery Gate 통과 Agent '+String(data.count||0)+'개 생성/확인');
+    }catch(e){
+      setError(e instanceof Error?e.message:'Agent Factory 실행 오류');
+    }finally{setBusy(false);}
+  };
+
+  const rows=discovery.map(x=>[
+    x.country,
+    x.market,
+    x.universe,
+    x.horizon,
+    x.fit_score.toFixed(1),
+    x.market_score.toFixed(1),
+    x.horizon_score.toFixed(1),
+    x.status,
+  ]);
+
+  return <div className="panel">
+    <div className="panel-title"><b>Horizon Discovery</b><span>원본 전략 시장문맥을 카테고리 기본값보다 우선</span></div>
+    <div className="actions left">
+      <select value={selected} onChange={e=>setSelected(e.target.value)}>
+        {candidates.map(x=><option key={x.candidate_id} value={x.candidate_id}>{x.candidate_id} · {x.name}</option>)}
+      </select>
+      <button disabled={busy||!selected} onClick={run}>{busy?'처리 중':'실제 Discovery 실행'}</button>
+      <button disabled={busy||!selected||!discovery.length} onClick={create}>통과 조합 Agent 생성</button>
+    </div>
+    {message && <p className="note">{message}</p>}
+    {error && <p className="note">{error}</p>}
+    {rows.length?
+      <DataTable headers={['국가/자산군','시장','UNIVERSE','HORIZON','사전적합도','MARKET','HORIZON','판정']} rows={rows}/>:
+      <div className="empty-state">선택한 후보의 현재 Discovery 결과가 없습니다. 실제 Discovery를 실행하십시오.</div>}
+    <p className="note">사전 적합도는 백테스트 수익률이 아닙니다. Discovery Gate 이후 Quant Lab에서 Walk-forward와 Holdout을 별도로 통과해야 합니다.</p>
+  </div>;
+}
+
+function FamilyMatrix(){
+  const [agents,setAgents]=useState<LiveAgentPlan[]>([]);
+  const [error,setError]=useState('');
+  useEffect(()=>{
+    fetch(API_BASE+'/api/v1/tradingview/agent-plans?limit=1000')
+      .then(async r=>{if(!r.ok) throw new Error(await r.text()); return r.json();})
+      .then(data=>setAgents((data.items||[]) as LiveAgentPlan[]))
+      .catch(e=>setError(e instanceof Error?e.message:'Agent 계보 조회 오류'));
+  },[]);
+
+  const rows=agents.map(x=>[
+    x.candidate_id,
+    x.agent_id,
+    x.source_id,
+    x.fixed_horizon,
+    x.country,
+    x.market,
+    x.universe,
+    x.status,
+  ]);
+
+  return <div className="panel">
+    <div className="panel-title"><b>원천 전략 × 고정 시간축 Agent 계열</b><span>{agents.length}개 실제 Agent Plan · 퇴역 이력 포함</span></div>
+    {error && <p className="note">{error}</p>}
+    {rows.length?
+      <DataTable headers={['CANDIDATE','AGENT','SOURCE','HORIZON','국가','시장','UNIVERSE','상태']} rows={rows}/>:
+      <div className="empty-state">생성된 Agent 계열이 없습니다.</div>}
+  </div>;
+}
 
 function Research(){return <><SectionHeader title="시장 연구" eyebrow="시장·거시·펀더멘털·뉴스·기회 근거"/><div className="grid three"><MiniStat title="시장" lines={['Regime: Risk-On','Volatility: Moderate','Breadth: Positive','Liquidity: Normal']}/><MiniStat title="거시경제" lines={['Rates: Stable','USD: Firm','Inflation: Cooling','Growth: Mixed']}/><MiniStat title="시장심리" lines={['Bull: 72%','Bear: 28%','News score: +0.34','Uncertainty: 0.19']}/></div><div className="grid two"><div className="panel"><div className="panel-title"><b>기회 후보</b></div><DataTable headers={['ASSET','INVESTOR','THESIS','HORIZON','EXPECTED','CONFIDENCE']} rows={[["NVDA","A-043","Earnings revision + momentum","5d","+4.2%","81%"],["EURUSD","A-071","Rate differential","1d","+1.1%","68%"],["GOLD","A-102","Inflation hedge breakout","4h","+0.9%","66%"]]}/></div><div className="panel"><div className="panel-title"><b>근거 자료</b></div><EventLine time="RSH" tag="AI" text="TradingAgents market/news/fundamental debate"/><EventLine time="FIN" tag="DATA" text="FinRobot valuation and earnings computations"/><EventLine time="MAC" tag="MACRO" text="Macro evidence bundle"/><EventLine time="SRC" tag="SOURCE" text="External strategy provenance linked where applicable"/></div></div></>}
 
