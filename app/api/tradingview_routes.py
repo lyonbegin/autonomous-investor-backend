@@ -6,6 +6,7 @@ from app.core.tradingview import (
     collect_ideas,
     collect_market,
     collect_scripts,
+    complete_missing_script_assets,
     backfill_tradingview_source,
     create_agent_plans,
     create_candidate_from_idea,
@@ -16,6 +17,7 @@ from app.core.tradingview import (
     list_agent_plans,
     list_agent_universe,
     resolve_agent_universe,
+    script_source_completion_status,
     list_candidates,
     list_collector_states,
     list_market_snapshots,
@@ -139,6 +141,24 @@ def scripts_live(
 def scripts_stored(limit: int = Query(default=200, ge=1, le=1000)) -> dict:
     items = list_stored_scripts(limit=limit)
     return {"count": len(items), "items": items}
+
+
+@router.get("/scripts/completion")
+def scripts_completion() -> dict:
+    return script_source_completion_status()
+
+
+@router.post("/scripts/complete-missing")
+def scripts_complete_missing(
+    limit: int = Query(default=500, ge=1, le=2000),
+) -> dict:
+    try:
+        return complete_missing_script_assets(limit=limit)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"TradingView missing script assets backfill failed: {type(exc).__name__}: {exc}",
+        ) from exc
 
 
 @router.get("/scripts/{script_id_part}/full")
