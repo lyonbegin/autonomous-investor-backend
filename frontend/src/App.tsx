@@ -153,6 +153,9 @@ type IdeaCardData = {
   comments:number;
   market:string;
   chartUrl?:string | null;
+  isVideo:boolean;
+  isEducation:boolean;
+  isPicked:boolean;
 };
 
 type LiveIdeaResponseItem = {
@@ -170,6 +173,10 @@ type LiveIdeaResponseItem = {
   likes_count:number;
   views_count:number;
   chart_url?:string | null;
+  is_video:boolean | number;
+  is_education:boolean | number;
+  is_picked:boolean | number;
+  is_hot:boolean | number;
 };
 
 function IdeaCard({idea}:{idea:IdeaCardData}) {
@@ -278,6 +285,9 @@ function TradingViewIdeas(){
             comments:x.comments_count||0,
             market:[x.asset_type,x.interval].filter(Boolean).join(' · '),
             chartUrl:x.chart_url,
+            isVideo:Boolean(x.is_video),
+            isEducation:Boolean(x.is_education),
+            isPicked:Boolean(x.is_picked),
           };
         }));
       })
@@ -287,6 +297,13 @@ function TradingViewIdeas(){
       .finally(()=>setLoading(false));
     return ()=>controller.abort();
   },[topTab,sort]);
+
+  const filteredCards=cards.filter(x=>{
+    if(video && !x.isVideo) return false;
+    if(ideaType==='교육 아이디어' && !x.isEducation) return false;
+    if(ideaType==='트레이딩 아이디어' && x.isEducation) return false;
+    return true;
+  });
 
   return <>
     <TradingViewHeader active="ideas"/>
@@ -307,12 +324,13 @@ function TradingViewIdeas(){
       </div>
       {loading && <div className="panel"><span>TradingView 공개 아이디어를 실시간 수집 중입니다.</span></div>}
       {loadError && <div className="panel"><span>{loadError}</span></div>}
-      {!loading && !loadError && <div className="tv-idea-grid">{cards.map(x=><IdeaCard key={x.id} idea={x}/>)}</div>}
+      {!loading && !loadError && filteredCards.length>0 && <div className="tv-idea-grid">{filteredCards.map(x=><IdeaCard key={x.id} idea={x}/>)}</div>}
+      {!loading && !loadError && filteredCards.length===0 && <div className="panel"><span>현재 페이지에서 선택한 실제 TradingView 필터 조건에 맞는 아이디어가 없습니다.</span></div>}
       <div className="tv-pagination"><button className="active">1</button><button>2</button><button>3</button><span>…</span><button>50</button><button>발행물 더 보기</button></div>
       <div className="panel tv-ai-extension">
         <div className="panel-title"><b>우리 시스템 연결 기능</b><span>TradingView 아이디어 → 구조화 전략 → 시장/종목 매칭 → 고정 시간축 독립 에이전트</span></div>
         <div className="grid three">
-          <MiniStat title="현재 실수집" lines={[`페이지 아이디어 ${cards.length}`,topTab==='editors'?'에디터즈 픽':'포퓰러',sort==='recent'?'최신순':'인기순']}/>
+          <MiniStat title="현재 실수집" lines={[`원본 ${cards.length}건 · 필터 결과 ${filteredCards.length}건`,topTab==='editors'?'에디터즈 픽':'포퓰러',video?'비디오 온리':ideaType]}/>
           <MiniStat title="전략 후보화" lines={['원본 Source ID 영구 보존','자동 전략 유형 분류','후보 시간축 분리']}/>
           <MiniStat title="에이전트 불변식" lines={['Origin Source 불변','Fixed Horizon 불변','시장 Universe별 독립 성과']}/>
         </div>
@@ -422,6 +440,15 @@ type LiveMarketRow = {
   close?:number | string | null;
   change?:number | string | null;
   volume?:number | string | null;
+  'Volatility.D'?:number | string | null;
+  relative_volume_10d_calc?:number | string | null;
+  RSI?:number | string | null;
+  ATR?:number | string | null;
+  ADX?:number | string | null;
+  'Recommend.All'?:number | string | null;
+  market_cap_basic?:number | string | null;
+  market_cap_calc?:number | string | null;
+  sector?:string | null;
   exchange?:string;
   type?:string;
 };
@@ -433,24 +460,53 @@ const liveMarketCode:Partial<Record<MarketTab,string>> = {
   '외환':'forex',
 };
 
+const marketViews:Partial<Record<MarketTab,string[]>> = {
+  '한국 주식':['개요','거래량 상위','변동성 상위','상승주','하락주','실적 캘린더','IPO 캘린더'],
+  '세계 주식':['개요','시총 상위','거래량 상위','변동성 상위','상승주','하락주'],
+  '크립토':['개요','거래량 상위','변동성 상위','상승주','하락주','TVL'],
+  '외환':['개요','거래량 상위','변동성 상위','상승주','하락주','통화지수'],
+};
+
+function scannerSortForView(view:string,tab:MarketTab):{sortBy:string;sortOrder:'asc'|'desc'} {
+  if(view==='변동성 상위') return {sortBy:'Volatility.D',sortOrder:'desc'};
+  if(view==='상승주') return {sortBy:'change',sortOrder:'desc'};
+  if(view==='하락주') return {sortBy:'change',sortOrder:'asc'};
+  if(view==='시총 상위') return {sortBy:tab==='크립토'?'market_cap_calc':'market_cap_basic',sortOrder:'desc'};
+  return {sortBy:'volume',sortOrder:'desc'};
+}
+
 function TradingViewMarkets(){
   const [tab,setTab]=useState<MarketTab>('한국 주식');
+  const [marketView,setMarketView]=useState('개요');
   const [liveRows,setLiveRows]=useState<LiveMarketRow[]>([]);
   const [liveTotal,setLiveTotal]=useState<number | null>(null);
+  const [liveCollectedAt,setLiveCollectedAt]=useState('');
   const [liveError,setLiveError]=useState('');
   const data=marketData[tab];
 
   useEffect(()=>{
+    setMarketView('개요');
+  },[tab]);
+
+  useEffect(()=>{
     const code=liveMarketCode[tab];
-    if(!code){
+    const sort=scannerSortForView(marketView,tab);
+    const supported=marketView!=='실적 캘린더' && marketView!=='IPO 캘린더' && marketView!=='TVL' && marketView!=='통화지수';
+    if(!code || !supported){
       setLiveRows([]);
       setLiveTotal(null);
+      setLiveCollectedAt('');
       setLiveError('');
       return;
     }
     const controller=new AbortController();
+    const params=new URLSearchParams({
+      limit:'50',
+      sort_by:sort.sortBy,
+      sort_order:sort.sortOrder,
+    });
     setLiveError('');
-    fetch(`${API_BASE}/api/v1/tradingview/markets/${code}?limit=20&sort_by=volume&sort_order=desc`,{signal:controller.signal})
+    fetch(API_BASE+'/api/v1/tradingview/markets/'+code+'?'+params.toString(),{signal:controller.signal})
       .then(async r=>{
         if(!r.ok) throw new Error(await r.text());
         return r.json();
@@ -458,57 +514,73 @@ function TradingViewMarkets(){
       .then(res=>{
         setLiveRows((res.items||[]) as LiveMarketRow[]);
         setLiveTotal(typeof res.total_count==='number'?res.total_count:null);
+        setLiveCollectedAt(res.collected_at||'');
       })
       .catch(e=>{
         if(e?.name!=='AbortError') setLiveError('TradingView Scanner 실데이터 연결 오류');
       });
     return ()=>controller.abort();
-  },[tab]);
+  },[tab,marketView]);
 
   const liveTableRows=liveRows.map(x=>[
     x.ticker || x.name || '',
     x.description || '',
     x.close===null || x.close===undefined ? '' : Number(x.close).toLocaleString('ko-KR'),
-    x.change===null || x.change===undefined ? '' : `${Number(x.change).toFixed(2)}%`,
+    x.change===null || x.change===undefined ? '' : Number(x.change).toFixed(2)+'%',
     x.volume===null || x.volume===undefined ? '' : Number(x.volume).toLocaleString('ko-KR'),
+    x['Volatility.D']===null || x['Volatility.D']===undefined ? '' : Number(x['Volatility.D']).toFixed(2)+'%',
+    x.relative_volume_10d_calc===null || x.relative_volume_10d_calc===undefined ? '' : Number(x.relative_volume_10d_calc).toFixed(2),
+    x.RSI===null || x.RSI===undefined ? '' : Number(x.RSI).toFixed(1),
     x.exchange || '',
   ]);
+
+  const views=marketViews[tab]||[];
+  const scannerSupported=Boolean(liveMarketCode[tab]) && !['실적 캘린더','IPO 캘린더','TVL','통화지수'].includes(marketView);
 
   return <>
     <TradingViewHeader active="markets"/>
     <div className="tv-page markets-page">
       <div className="market-hero">
         <div><span>마켓</span><h1>{tab}</h1><p>시장 탐색 데이터가 전략 적합도·Universe 구성·에이전트 생성으로 직접 연결됩니다.</p></div>
-        <div className="market-clock"><b>실시간 시장 탐색</b><span>TradingView Scanner 연동</span></div>
+        <div className="market-clock"><b>실시간 시장 탐색</b><span>TradingView Scanner + 15분 자동 적재</span></div>
       </div>
       <div className="market-tabs">{marketTabs.map(x=><button className={tab===x?'active':''} key={x} onClick={()=>setTab(x)}>{x}</button>)}</div>
       <div className="market-submenu">
-        {tab==='한국 주식' && <><button className="active">개요</button><button>거래량 상위</button><button>변동성 상위</button><button>상승주</button><button>하락주</button><button>실적 캘린더</button><button>IPO 캘린더</button></>}
-        {tab==='세계 주식' && <><button className="active">개요</button><button>국가별</button><button>시총 상위</button><button>거래량 상위</button><button>상승주</button><button>하락주</button></>}
-        {tab==='크립토' && <><button className="active">개요</button><button>코인</button><button>거래소</button><button>DeFi</button><button>TVL</button><button>상승/하락</button></>}
-        {tab==='선물' && <><button className="active">개요</button><button>에너지</button><button>농산물</button><button>금속</button><button>지수</button><button>통화</button></>}
-        {tab==='외환' && <><button className="active">개요</button><button>주요 통화쌍</button><button>마이너</button><button>엑조틱</button><button>통화지수</button></>}
-        {tab==='국채' && <><button className="active">개요</button><button>미국</button><button>유럽</button><button>아시아</button><button>수익률곡선</button></>}
-        {tab==='회사채' && <><button className="active">개요</button><button>등급별</button><button>만기별</button><button>수익률</button></>}
-        {tab==='ETFs' && <><button className="active">개요</button><button>랭킹</button><button>자산군</button><button>섹터</button><button>국가</button></>}
-        {tab==='경제' && <><button className="active">개요</button><button>경제지표</button><button>캘린더</button><button>국가</button></>}
-        {tab==='지수' && <><button className="active">개요</button><button>주요 지수</button><button>지역별</button><button>섹터 지수</button></>}
+        {views.length>0 ? views.map(x=><button key={x} className={marketView===x?'active':''} onClick={()=>setMarketView(x)}>{x}</button>) :
+          <>
+            {tab==='선물' && <><button className="active">개요</button><button>에너지</button><button>농산물</button><button>금속</button><button>지수</button><button>통화</button></>}
+            {tab==='국채' && <><button className="active">개요</button><button>미국</button><button>유럽</button><button>아시아</button><button>수익률곡선</button></>}
+            {tab==='회사채' && <><button className="active">개요</button><button>등급별</button><button>만기별</button><button>수익률</button></>}
+            {tab==='ETFs' && <><button className="active">개요</button><button>랭킹</button><button>자산군</button><button>섹터</button><button>국가</button></>}
+            {tab==='경제' && <><button className="active">개요</button><button>경제지표</button><button>캘린더</button><button>국가</button></>}
+            {tab==='지수' && <><button className="active">개요</button><button>주요 지수</button><button>지역별</button><button>섹터 지수</button></>}
+          </>}
       </div>
 
-      {liveMarketCode[tab] && <div className="panel">
-        <div className="panel-title"><b>TradingView Scanner 실데이터</b><span>{liveTotal===null?'실시간 조회':`전체 ${liveTotal.toLocaleString('ko-KR')}개 중 거래량 상위 20개`}</span></div>
+      {liveMarketCode[tab] && scannerSupported && <div className="panel">
+        <div className="panel-title">
+          <b>TradingView Scanner · {marketView}</b>
+          <span>{liveTotal===null?'실시간 조회':('전체 '+liveTotal.toLocaleString('ko-KR')+'개 · 현재 50개')} {liveCollectedAt?'· DB 스냅샷 저장':''}</span>
+        </div>
         {liveError ? <div className="empty-state">{liveError}</div> :
-          <DataTable headers={['티커','종목','현재가','등락률','거래량','거래소']} rows={liveTableRows}/>}
+          <DataTable headers={['티커','종목','현재가','등락률','거래량','일변동성','상대거래량','RSI','거래소']} rows={liveTableRows}/>}
+      </div>}
+
+      {liveMarketCode[tab] && !scannerSupported && <div className="panel">
+        <div className="panel-title"><b>{marketView}</b><span>TradingView의 해당 전용 데이터 소스 연결 대상</span></div>
+        <div className="empty-state">이 메뉴는 주식/FX Scanner가 아닌 별도 캘린더·랭킹 데이터 소스로 연결합니다. 가짜 숫자는 표시하지 않습니다.</div>
       </div>}
 
       {data.sections.map(x=><MarketSection key={x.title} {...x}/>)}
       <div className="panel market-match-panel">
-        <div className="panel-title"><b>{tab} 자동 전략 매칭</b><span>실수집 시장 데이터의 유동성·변동성·거래시간·비용구조를 전략 후보와 결합</span></div>
-        <DataTable headers={['추천전략','전략유형','추천대상','시간축','적합도','에이전트 후보']} rows={[
-          ['TV-021 RSI 평균회귀','평균회귀',tab==='크립토'?'BTC · ETH':'고유동성 대형주','10분 / 30분','92점','6개'],
-          ['TV-044 Supertrend','추세추종',tab==='선물'?'지수·원자재 선물':'추세형 종목','1시간 / 4시간','89점','8개'],
-          ['TV-057 Donchian 돌파','돌파','모멘텀 상위 종목','30분 / 1시간','87점','4개'],
+        <div className="panel-title"><b>{tab} 전략 매칭 입력 데이터</b><span>현재 실수집 피처를 실제 백테스트·Walk-forward 평가 엔진으로 전달</span></div>
+        <DataTable headers={['입력 피처','용도','현재 상태']} rows={[
+          ['거래량 · 상대거래량','유동성/체결 가능 Universe 선별','실수집·DB 저장'],
+          ['일변동성 · ATR','전략별 변동성 레짐 및 손절/포지션 크기','실수집·DB 저장'],
+          ['RSI · ADX · TradingView Recommendation','평균회귀/추세/모멘텀 사전 레짐 분류','실수집·DB 저장'],
+          ['시장 × 전략 × 고정 시간축','Walk-forward 및 Holdout 적합도 산출','다음 Quant 평가 단계'],
         ]}/>
+        <p className="note">검증되지 않은 92점·89점 같은 예시 적합도는 제거했습니다. 실제 적합도는 백테스트와 Holdout 결과가 생성된 뒤에만 표시합니다.</p>
       </div>
     </div>
   </>;
