@@ -899,11 +899,13 @@ def collect_market(
         row = dict(zip(columns, values))
         row["ticker"] = item.get("s")
         if market_key == "corporate-bonds":
-            row["name"] = row.get("ticker-view") or row.get("isin-displayed") or item.get("s")
-            row["description"] = row.get("ticker-view") or ""
+            ticker_view = row.get("ticker-view") if isinstance(row.get("ticker-view"), dict) else {}
+            row["name"] = ticker_view.get("name") or row.get("isin-displayed") or item.get("s")
+            row["description"] = ticker_view.get("description") or ""
+            row["ticker_view"] = ticker_view
             row["close"] = row.get("close_pct")
             row["change"] = row.get("close_net")
-            row["type"] = row.get("type") or "bond"
+            row["type"] = row.get("type") or ticker_view.get("type") or "bond"
             row["exchange"] = row.get("exchange.tr")
         rows.append(row)
 
