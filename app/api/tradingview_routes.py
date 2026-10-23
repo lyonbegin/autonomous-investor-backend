@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException, Query
+from pydantic import BaseModel, Field
 
 from app.core.tradingview import (
     collect_ideas,
@@ -18,6 +19,8 @@ from app.core.tradingview import (
     list_agent_universe,
     resolve_agent_universe,
     search_stored_scripts,
+    set_agent_status,
+    list_agent_status_history,
     script_source_completion_status,
     list_candidates,
     list_collector_states,
@@ -27,6 +30,12 @@ from app.core.tradingview import (
 )
 
 router = APIRouter(prefix="/api/v1/tradingview", tags=["tradingview"])
+
+class AgentStatusUpdate(BaseModel):
+    status: str = Field(min_length=1)
+    reason: str | None = None
+    metadata: dict = Field(default_factory=dict)
+
 
 @router.post("/backfill/{kind}")
 def backfill_source(
@@ -262,6 +271,30 @@ def candidate_to_agents(candidate_id: str, max_markets: int = Query(default=3, g
         }
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=f"candidate not found: {candidate_id}") from exc
+
+
+@router.post("/agent-plans/{agent_id}/status")
+def agent_plan_status(agent_id: str, body: AgentStatusUpdate) -> dict:
+    try:
+        return set_agent_status(
+            agent_id,
+            body.status,
+            reason=body.reason,
+            metadata=body.metadata,
+        )
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=f"agent plan not found: {agent_id}") from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get("/agent-plans/{agent_id}/status-history")
+def agent_plan_status_history(agent_id: str) -> dict:
+    try:
+        items = list_agent_status_history(agent_id)
+        return {"agent_id": agent_id, "count": len(items), "items": items}
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=f"agent plan not found: {agent_id}") from exc
 
 
 @router.post("/agent-plans/{agent_id}/resolve-universe")
