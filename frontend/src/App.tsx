@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 type Tone = 'green' | 'red' | 'amber' | 'cyan' | 'purple' | 'muted';
+const API_BASE = 'https://autonomous-investor-integrated-production.up.railway.app';
 type PageKey =
   | 'command' | 'domains' | 'investors' | 'capital' | 'portfolio' | 'risk'
   | 'trading' | 'tvideas' | 'tvmarkets' | 'tvstrategies' | 'factory' | 'research' | 'lab' | 'strategies' | 'performance'
@@ -142,20 +143,78 @@ function TradingViewHeader({active}:{active:'ideas'|'markets'}) {
 }
 
 type IdeaCardData = {
-  id:string; user:string; time:string; title:string; text:string; symbol:string; bias:string; comments:number; market:string; score:number;
+  id:string;
+  user:string;
+  time:string;
+  title:string;
+  text:string;
+  symbol:string;
+  bias:string;
+  comments:number;
+  market:string;
+  chartUrl?:string | null;
 };
 
-const ideaCards:IdeaCardData[] = [
-  {id:'IDEA-001',user:'madscoin',time:'22시간 전',title:'비트코인 주요 지지구간과 상승 시나리오',text:'단기 조정 이후 주요 지지선이 유지되는지 확인하고 상단 저항 돌파 시 추세 지속 가능성을 보는 관점입니다.',symbol:'BTCUSDT',bias:'롱',comments:4,market:'크립토',score:91},
-  {id:'IDEA-002',user:'Adrian_NovaTrader',time:'36분 전 업데이트',title:'XAUUSD H1 유동성 재시험과 회복 계획',text:'H1 유동성 구역의 스윕과 재탈환을 진입 확인으로 사용하고 무효화 가격을 명확하게 정의한 시나리오입니다.',symbol:'XAUUSD',bias:'숏',comments:2,market:'금 / 외환',score:94},
-  {id:'IDEA-003',user:'Banpozai',time:'3시간 전',title:'비트코인 저항구간 도달 — 눌림 대기',text:'숏 스퀴즈 성격과 미결제약정 감소를 함께 보면서 추격보다 눌림 확인 이후 진입을 선호하는 분석입니다.',symbol:'BTCUSD',bias:'숏',comments:1,market:'크립토',score:82},
-  {id:'IDEA-004',user:'quant_wave',time:'5시간 전',title:'NASDAQ 추세 구조와 장중 돌파 구간',text:'장초 범위와 전일 고저점을 결합해 돌파와 실패 돌파를 구분하는 장중 전략 아이디어입니다.',symbol:'NQ1!',bias:'롱',comments:5,market:'지수선물',score:88},
-  {id:'IDEA-005',user:'seoul_macro',time:'오늘',title:'원달러와 반도체 수급 동행성 분석',text:'USD/KRW, 외국인 수급, 반도체 업종 상대강도를 결합해 국내 대형주 위험선호 변화를 탐색합니다.',symbol:'USDKRW',bias:'롱',comments:7,market:'한국 / 외환',score:86},
-  {id:'IDEA-006',user:'meanrev_lab',time:'오늘',title:'NVDA VWAP 괴리 평균회귀',text:'고유동성 종목에서 장중 VWAP 괴리가 과도해질 때 거래량 회복과 함께 평균회귀를 검증하는 아이디어입니다.',symbol:'NVDA',bias:'롱',comments:3,market:'미국 주식',score:90},
-];
+type LiveIdeaResponseItem = {
+  idea_id:string;
+  title:string;
+  description:string;
+  author:string;
+  symbol:string;
+  exchange:string;
+  asset_type:string;
+  direction:string;
+  interval:string;
+  created_at:string;
+  comments_count:number;
+  likes_count:number;
+  views_count:number;
+  chart_url?:string | null;
+};
 
 function IdeaCard({idea}:{idea:IdeaCardData}) {
-  const [saved,setSaved]=useState(false);
+  const [candidateId,setCandidateId]=useState<string | null>(null);
+  const [agentCount,setAgentCount]=useState<number | null>(null);
+  const [busy,setBusy]=useState(false);
+  const [status,setStatus]=useState('');
+
+  const saveCandidate=async():Promise<string | null>=>{
+    if(candidateId) return candidateId;
+    setBusy(true);
+    setStatus('전략 후보 생성 중');
+    try{
+      const r=await fetch(`${API_BASE}/api/v1/tradingview/ideas/${encodeURIComponent(idea.id)}/candidate`,{method:'POST'});
+      if(!r.ok) throw new Error(await r.text());
+      const data=await r.json();
+      setCandidateId(data.candidate_id);
+      setStatus(`${data.category} · ${(data.candidate_horizons||[]).join(' / ')}`);
+      return data.candidate_id as string;
+    }catch(e){
+      setStatus('전략 후보 생성 오류');
+      return null;
+    }finally{
+      setBusy(false);
+    }
+  };
+
+  const makeAgents=async()=>{
+    const cid=await saveCandidate();
+    if(!cid) return;
+    setBusy(true);
+    setStatus('고정 시간축 에이전트 계획 생성 중');
+    try{
+      const r=await fetch(`${API_BASE}/api/v1/tradingview/candidates/${encodeURIComponent(cid)}/agent-plans?max_markets=3`,{method:'POST'});
+      if(!r.ok) throw new Error(await r.text());
+      const data=await r.json();
+      setAgentCount(data.count);
+      setStatus(`독립 에이전트 후보 ${data.count}개 생성`);
+    }catch(e){
+      setStatus('에이전트 계획 생성 오류');
+    }finally{
+      setBusy(false);
+    }
+  };
+
   return <article className="tv-idea-card">
     <div className="idea-chart">
       <div className="idea-symbol"><b>{idea.symbol}</b><span>{idea.market}</span></div>
@@ -164,20 +223,22 @@ function IdeaCard({idea}:{idea:IdeaCardData}) {
         <path d="M0 170 L600 170" stroke="currentColor" opacity=".16"/>
         <path d="M0 110 L600 110" stroke="currentColor" opacity=".10"/>
       </svg>
-      <span className={idea.bias==='롱'?'idea-bias long':'idea-bias short'}>{idea.bias}</span>
+      <span className={`idea-bias ${idea.bias==='롱'?'long':idea.bias==='숏'?'short':''}`}>{idea.bias}</span>
     </div>
     <div className="idea-body">
-      <div className="idea-meta"><span><b>{idea.user}</b>의</span><time>{idea.time}</time></div>
+      <div className="idea-meta"><span><b>{idea.user || 'TradingView'}</b>의</span><time>{idea.time}</time></div>
       <h3>{idea.title}</h3>
       <p>{idea.text}</p>
       <div className="idea-bottom">
-        <span>💬 {idea.comments}</span><span>전략화 적합도 <b>{idea.score}점</b></span>
+        <span>💬 {idea.comments}</span><span>TradingView 실수집 <b>LIVE</b></span>
       </div>
       <div className="idea-actions">
-        <button onClick={()=>setSaved(v=>!v)}>{saved?'전략 후보 저장됨':'전략 후보로 저장'}</button>
-        <button>자동 적합도 분석</button>
-        <button>에이전트 생성 후보</button>
+        <button disabled={busy} onClick={saveCandidate}>{candidateId?'전략 후보 저장됨':'전략 후보로 저장'}</button>
+        <button disabled={busy} onClick={saveCandidate}>{candidateId?'자동 분류 완료':'자동 전략 분류'}</button>
+        <button disabled={busy} onClick={makeAgents}>{agentCount!==null?`에이전트 후보 ${agentCount}개`:'에이전트 생성 후보'}</button>
       </div>
+      {status && <p className="note">{status}</p>}
+      {idea.chartUrl && <div className="actions left"><a href={idea.chartUrl} target="_blank" rel="noreferrer">TradingView 원문 보기</a></div>}
     </div>
   </article>;
 }
@@ -187,6 +248,46 @@ function TradingViewIdeas(){
   const [ideaType,setIdeaType]=useState('모든 아이디어');
   const [video,setVideo]=useState(false);
   const [sort,setSort]=useState<'recent'|'popular'>('recent');
+  const [cards,setCards]=useState<IdeaCardData[]>([]);
+  const [loading,setLoading]=useState(true);
+  const [loadError,setLoadError]=useState('');
+
+  useEffect(()=>{
+    const controller=new AbortController();
+    const sortParam=topTab==='editors'?'picked_time':sort==='recent'?'recent':'trending';
+    setLoading(true);
+    setLoadError('');
+    fetch(`${API_BASE}/api/v1/tradingview/ideas/live?sort=${sortParam}&page=1&lang=ko`,{signal:controller.signal})
+      .then(async r=>{
+        if(!r.ok) throw new Error(await r.text());
+        return r.json();
+      })
+      .then(data=>{
+        const rows=(data.items||[]) as LiveIdeaResponseItem[];
+        setCards(rows.map(x=>{
+          const dt=x.created_at ? new Date(x.created_at) : null;
+          const time=dt && !Number.isNaN(dt.getTime()) ? dt.toLocaleString('ko-KR') : (x.created_at||'');
+          return {
+            id:x.idea_id,
+            user:x.author,
+            time,
+            title:x.title,
+            text:x.description,
+            symbol:[x.exchange,x.symbol].filter(Boolean).join(':') || x.symbol,
+            bias:x.direction || '중립',
+            comments:x.comments_count||0,
+            market:[x.asset_type,x.interval].filter(Boolean).join(' · '),
+            chartUrl:x.chart_url,
+          };
+        }));
+      })
+      .catch(e=>{
+        if(e?.name!=='AbortError') setLoadError('TradingView 아이디어 실수집 연결 오류');
+      })
+      .finally(()=>setLoading(false));
+    return ()=>controller.abort();
+  },[topTab,sort]);
+
   return <>
     <TradingViewHeader active="ideas"/>
     <div className="tv-page">
@@ -204,14 +305,16 @@ function TradingViewIdeas(){
         <button className={sort==='recent'?'active':''} onClick={()=>setSort('recent')}>가장 최근</button>
         <button className={sort==='popular'?'active':''} onClick={()=>setSort('popular')}>가장 인기 있는</button>
       </div>
-      <div className="tv-idea-grid">{ideaCards.map(x=><IdeaCard key={x.id} idea={x}/>)}</div>
-      <div className="tv-pagination"><button className="active">1</button><button>2</button><button>3</button><span>…</span><button>999</button><button>발행물 더 보기</button></div>
+      {loading && <div className="panel"><span>TradingView 공개 아이디어를 실시간 수집 중입니다.</span></div>}
+      {loadError && <div className="panel"><span>{loadError}</span></div>}
+      {!loading && !loadError && <div className="tv-idea-grid">{cards.map(x=><IdeaCard key={x.id} idea={x}/>)}</div>}
+      <div className="tv-pagination"><button className="active">1</button><button>2</button><button>3</button><span>…</span><button>50</button><button>발행물 더 보기</button></div>
       <div className="panel tv-ai-extension">
-        <div className="panel-title"><b>우리 시스템 연결 기능</b><span>TradingView 아이디어 → 구조화 전략 → 시장/종목 매칭 → 다중 에이전트</span></div>
+        <div className="panel-title"><b>우리 시스템 연결 기능</b><span>TradingView 아이디어 → 구조화 전략 → 시장/종목 매칭 → 고정 시간축 독립 에이전트</span></div>
         <div className="grid three">
-          <MiniStat title="오늘 새 아이디어" lines={['수집 후보 286','전략화 가능 94','중복 제거 41']}/>
-          <MiniStat title="자동 분류" lines={['추세 31','평균회귀 22','돌파 18','매크로 13']}/>
-          <MiniStat title="에이전트 후보" lines={['신규 37','검증 대기 24','시장 매칭 완료 19']}/>
+          <MiniStat title="현재 실수집" lines={[`페이지 아이디어 ${cards.length}`,topTab==='editors'?'에디터즈 픽':'포퓰러',sort==='recent'?'최신순':'인기순']}/>
+          <MiniStat title="전략 후보화" lines={['원본 Source ID 영구 보존','자동 전략 유형 분류','후보 시간축 분리']}/>
+          <MiniStat title="에이전트 불변식" lines={['Origin Source 불변','Fixed Horizon 불변','시장 Universe별 독립 성과']}/>
         </div>
       </div>
     </div>
@@ -312,32 +415,95 @@ function MarketSection({title,subtitle,items,links}:{title:string;subtitle:strin
   </section>;
 }
 
+type LiveMarketRow = {
+  ticker?:string;
+  name?:string;
+  description?:string;
+  close?:number | string | null;
+  change?:number | string | null;
+  volume?:number | string | null;
+  exchange?:string;
+  type?:string;
+};
+
+const liveMarketCode:Partial<Record<MarketTab,string>> = {
+  '한국 주식':'korea',
+  '세계 주식':'america',
+  '크립토':'crypto',
+  '외환':'forex',
+};
+
 function TradingViewMarkets(){
   const [tab,setTab]=useState<MarketTab>('한국 주식');
+  const [liveRows,setLiveRows]=useState<LiveMarketRow[]>([]);
+  const [liveTotal,setLiveTotal]=useState<number | null>(null);
+  const [liveError,setLiveError]=useState('');
   const data=marketData[tab];
+
+  useEffect(()=>{
+    const code=liveMarketCode[tab];
+    if(!code){
+      setLiveRows([]);
+      setLiveTotal(null);
+      setLiveError('');
+      return;
+    }
+    const controller=new AbortController();
+    setLiveError('');
+    fetch(`${API_BASE}/api/v1/tradingview/markets/${code}?limit=20&sort_by=volume&sort_order=desc`,{signal:controller.signal})
+      .then(async r=>{
+        if(!r.ok) throw new Error(await r.text());
+        return r.json();
+      })
+      .then(res=>{
+        setLiveRows((res.items||[]) as LiveMarketRow[]);
+        setLiveTotal(typeof res.total_count==='number'?res.total_count:null);
+      })
+      .catch(e=>{
+        if(e?.name!=='AbortError') setLiveError('TradingView Scanner 실데이터 연결 오류');
+      });
+    return ()=>controller.abort();
+  },[tab]);
+
+  const liveTableRows=liveRows.map(x=>[
+    x.ticker || x.name || '',
+    x.description || '',
+    x.close===null || x.close===undefined ? '' : Number(x.close).toLocaleString('ko-KR'),
+    x.change===null || x.change===undefined ? '' : `${Number(x.change).toFixed(2)}%`,
+    x.volume===null || x.volume===undefined ? '' : Number(x.volume).toLocaleString('ko-KR'),
+    x.exchange || '',
+  ]);
+
   return <>
     <TradingViewHeader active="markets"/>
     <div className="tv-page markets-page">
       <div className="market-hero">
-        <h1>오늘의 시장 — 시세, 차트 및 이벤트</h1>
-        <p>전 세계 시장을 자산군별로 탐색하고, 각 시장에 적합한 전략과 에이전트 후보까지 연결합니다.</p>
+        <div><span>마켓</span><h1>{tab}</h1><p>시장 탐색 데이터가 전략 적합도·Universe 구성·에이전트 생성으로 직접 연결됩니다.</p></div>
+        <div className="market-clock"><b>실시간 시장 탐색</b><span>TradingView Scanner 연동</span></div>
       </div>
       <div className="market-tabs">{marketTabs.map(x=><button className={tab===x?'active':''} key={x} onClick={()=>setTab(x)}>{x}</button>)}</div>
       <div className="market-submenu">
-        {tab==='한국 주식'&&['개요','거래량 상위','변동성 상위','상승주','하락주','실적 캘린더','IPO 캘린더'].map(x=><button key={x}>{x}</button>)}
-        {tab==='세계 주식'&&['개요','세계 최대 기업','세계 최대 고용주','실적 캘린더','IPO 캘린더'].map(x=><button key={x}>{x}</button>)}
-        {tab==='크립토'&&['개요','전체 가격','TVL 랭킹','승자','패자','커뮤니티 트렌드'].map(x=><button key={x}>{x}</button>)}
-        {tab==='선물'&&['개요','에너지','농산물','금속','지수 선물'].map(x=><button key={x}>{x}</button>)}
-        {tab==='외환'&&['개요','주요 통화쌍','통화 지수'].map(x=><button key={x}>{x}</button>)}
-        {tab==='국채'&&['수익률 곡선','대한민국 채권','주요 10년물'].map(x=><button key={x}>{x}</button>)}
-        {tab==='회사채'&&['개요','최고 수익률','단기','장기','변동금리','고정 금리'].map(x=><button key={x}>{x}</button>)}
-        {tab==='ETFs'&&['개요','가장 많이 거래된','AUM 성장률','최고 수익률','배당 수익률'].map(x=><button key={x}>{x}</button>)}
-        {tab==='경제'&&['한국 경제','경제 지표 히트맵','국가별 경제','글로벌 인플레이션 맵'].map(x=><button key={x}>{x}</button>)}
-        {tab==='지수'&&['주요 지수','한국 지수','전세계 인덱스'].map(x=><button key={x}>{x}</button>)}
+        {tab==='한국 주식' && <><button className="active">개요</button><button>거래량 상위</button><button>변동성 상위</button><button>상승주</button><button>하락주</button><button>실적 캘린더</button><button>IPO 캘린더</button></>}
+        {tab==='세계 주식' && <><button className="active">개요</button><button>국가별</button><button>시총 상위</button><button>거래량 상위</button><button>상승주</button><button>하락주</button></>}
+        {tab==='크립토' && <><button className="active">개요</button><button>코인</button><button>거래소</button><button>DeFi</button><button>TVL</button><button>상승/하락</button></>}
+        {tab==='선물' && <><button className="active">개요</button><button>에너지</button><button>농산물</button><button>금속</button><button>지수</button><button>통화</button></>}
+        {tab==='외환' && <><button className="active">개요</button><button>주요 통화쌍</button><button>마이너</button><button>엑조틱</button><button>통화지수</button></>}
+        {tab==='국채' && <><button className="active">개요</button><button>미국</button><button>유럽</button><button>아시아</button><button>수익률곡선</button></>}
+        {tab==='회사채' && <><button className="active">개요</button><button>등급별</button><button>만기별</button><button>수익률</button></>}
+        {tab==='ETFs' && <><button className="active">개요</button><button>랭킹</button><button>자산군</button><button>섹터</button><button>국가</button></>}
+        {tab==='경제' && <><button className="active">개요</button><button>경제지표</button><button>캘린더</button><button>국가</button></>}
+        {tab==='지수' && <><button className="active">개요</button><button>주요 지수</button><button>지역별</button><button>섹터 지수</button></>}
       </div>
+
+      {liveMarketCode[tab] && <div className="panel">
+        <div className="panel-title"><b>TradingView Scanner 실데이터</b><span>{liveTotal===null?'실시간 조회':`전체 ${liveTotal.toLocaleString('ko-KR')}개 중 거래량 상위 20개`}</span></div>
+        {liveError ? <div className="empty-state">{liveError}</div> :
+          <DataTable headers={['티커','종목','현재가','등락률','거래량','거래소']} rows={liveTableRows}/>}
+      </div>}
+
       {data.sections.map(x=><MarketSection key={x.title} {...x}/>)}
       <div className="panel market-match-panel">
-        <div className="panel-title"><b>{tab} 자동 전략 매칭</b><span>이 시장의 종목군·유동성·변동성·거래시간·비용구조에 맞는 TradingView 전략 후보</span></div>
+        <div className="panel-title"><b>{tab} 자동 전략 매칭</b><span>실수집 시장 데이터의 유동성·변동성·거래시간·비용구조를 전략 후보와 결합</span></div>
         <DataTable headers={['추천전략','전략유형','추천대상','시간축','적합도','에이전트 후보']} rows={[
           ['TV-021 RSI 평균회귀','평균회귀',tab==='크립토'?'BTC · ETH':'고유동성 대형주','10분 / 30분','92점','6개'],
           ['TV-044 Supertrend','추세추종',tab==='선물'?'지수·원자재 선물':'추세형 종목','1시간 / 4시간','89점','8개'],
