@@ -16,4 +16,4 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
   CMD python -c "import os,urllib.request; urllib.request.urlopen('http://127.0.0.1:'+os.environ.get('PORT','8080')+'/health', timeout=5).read()" || exit 1
 
-CMD ["sh", "-c", "uvicorn app.main_tradingview:app --host 0.0.0.0 --port ${PORT:-8080}"]
+CMD ["sh", "-c", "uvicorn app.main_quant_lab:app --host 0.0.0.0 --port ${PORT:-8080}"]
