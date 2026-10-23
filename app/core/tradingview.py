@@ -2518,18 +2518,30 @@ def create_agent_plans(candidate_id: str, max_markets: int = 3) -> list[dict[str
 def _scanner_market_for_agent(plan: dict[str, Any]) -> str | None:
     country = str(plan.get("country") or "").lower()
     market = str(plan.get("market") or "").lower()
+    universe = str(plan.get("universe") or "").lower()
+
+    # Asset class must win over country text. "미국 선물 / CME" is futures,
+    # not the America stock scanner; an ETF basket is ETF, not generic America.
+    if "선물" in country or "선물" in market or "cme" in market or "future" in market:
+        return "futures"
+    if country.strip() == "etf" or "etf" in market or any(x in universe for x in ("qqq", "spy", "smh", "iwm")):
+        return "etf"
+    if "국채" in country or "국채" in market or "treasury" in market:
+        return "bonds"
+    if "회사채" in country or "회사채" in market or "corporate bond" in market:
+        return "corporate-bonds"
     if "한국" in country or "kospi" in market or "kosdaq" in market:
         return "korea"
-    if "미국" in country or "nasdaq" in market or "nyse" in market or "미국" in market:
-        return "america"
     if "일본" in country or "tse" in market:
         return "japan"
     if "베트남" in country or "vn30" in market or "hose" in market or "hnx" in market:
         return "vietnam"
     if "가상자산" in country or "crypto" in country:
         return "crypto"
-    if country == "fx" or "외환" in market or "글로벌" in market and "fx" in country:
+    if country == "fx" or "외환" in market or ("글로벌" in market and "fx" in country):
         return "forex"
+    if "미국" in country or "nasdaq" in market or "nyse" in market or "미국" in market:
+        return "america"
     return None
 
 
