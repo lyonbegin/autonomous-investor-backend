@@ -39,6 +39,9 @@ MARKET_ALIASES: dict[str, str] = {
     "singapore": "singapore",
     "australia": "australia",
     "canada": "canada",
+    "vietnam": "vietnam",
+    "vn": "vietnam",
+    "베트남": "vietnam",
 }
 
 DEFAULT_COLUMNS = [
@@ -1049,6 +1052,8 @@ def _scanner_market_for_agent(plan: dict[str, Any]) -> str | None:
         return "america"
     if "일본" in country or "tse" in market:
         return "japan"
+    if "베트남" in country or "vn30" in market or "hose" in market or "hnx" in market:
+        return "vietnam"
     if "가상자산" in country or "crypto" in country:
         return "crypto"
     if country == "fx" or "외환" in market or "글로벌" in market and "fx" in country:
