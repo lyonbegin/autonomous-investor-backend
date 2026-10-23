@@ -7,6 +7,8 @@ from app.core.corporate_bonds import corporate_bond_backfill, corporate_bond_sta
 
 from app.core.tradingview import (
     collect_ideas,
+    complete_missing_idea_assets,
+    idea_completion_status,
     collect_market,
     compact_market_storage,
     storage_stats,
@@ -94,6 +96,24 @@ def ideas_live(
 def ideas_stored(limit: int = Query(default=100, ge=1, le=500)) -> dict:
     items = list_stored_ideas(limit=limit)
     return {"count": len(items), "items": items}
+
+
+@router.get("/ideas/completion")
+def ideas_completion() -> dict:
+    return idea_completion_status()
+
+
+@router.post("/ideas/complete-missing")
+def ideas_complete_missing(
+    limit: int = Query(default=1000, ge=1, le=5000),
+) -> dict:
+    try:
+        return complete_missing_idea_assets(limit=limit)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"TradingView missing idea assets backfill failed: {type(exc).__name__}: {exc}",
+        ) from exc
 
 
 @router.get("/ideas/{idea_id}/full")
