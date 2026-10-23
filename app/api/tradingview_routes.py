@@ -9,6 +9,7 @@ from app.core.tradingview import (
     collect_ideas,
     collect_market,
     compact_market_storage,
+    storage_stats,
     collect_scripts,
     complete_missing_script_assets,
     backfill_tradingview_source,
@@ -137,6 +138,11 @@ def corporate_bonds_full_backfill(
             status_code=502,
             detail=f"TradingView corporate bond full backfill failed: {type(exc).__name__}: {exc}",
         ) from exc
+
+
+@router.get("/markets/storage/stats")
+def market_storage_stats() -> dict:
+    return storage_stats()
 
 
 @router.post("/markets/storage/compact")
