@@ -1138,9 +1138,20 @@ type CollectorState = {
   updated_at:string;
 };
 
+type ScriptCompletion = {
+  total:number;
+  detail_ready:number;
+  source_attempted:number;
+  source_ready:number;
+  source_protected:number;
+  detail_missing:number;
+  source_unattempted:number;
+};
+
 function SourceHub(){
   const [items,setItems]=useState<RegistrySource[]>([]);
   const [collectors,setCollectors]=useState<CollectorState[]>([]);
+  const [scriptCompletion,setScriptCompletion]=useState<ScriptCompletion | null>(null);
   const [loading,setLoading]=useState(true);
   const [syncing,setSyncing]=useState(false);
   const [error,setError]=useState('');
@@ -1151,10 +1162,12 @@ function SourceHub(){
     Promise.all([
       fetch(API_BASE+'/api/v1/strategy-sources?limit=2000').then(async r=>{if(!r.ok) throw new Error(await r.text());return r.json();}),
       fetch(API_BASE+'/api/v1/tradingview/backfill').then(async r=>{if(!r.ok) throw new Error(await r.text());return r.json();}),
+      fetch(API_BASE+'/api/v1/tradingview/scripts/completion').then(async r=>{if(!r.ok) throw new Error(await r.text());return r.json();}),
     ])
-      .then(([sources,backfill])=>{
+      .then(([sources,backfill,completion])=>{
         setItems((sources.items||[]) as RegistrySource[]);
         setCollectors((backfill.items||[]) as CollectorState[]);
+        setScriptCompletion(completion as ScriptCompletion);
       })
       .catch(e=>setError(e instanceof Error?e.message:'Source Registry / 전체수집 상태 조회 오류'))
       .finally(()=>setLoading(false));
@@ -1202,9 +1215,28 @@ function SourceHub(){
     {error && <div className="panel"><span>{error}</span></div>}
     <div className="source-cards">
       <SourceCard title="TradingView 아이디어" detail="목록 + 전체본문 + 이미지/차트" count={String(count('TradingViewIdea'))}/>
-      <SourceCard title="TradingView Pine" detail="목록 + 전체설명 + 이미지 + 공개 Pine" count={String(count('TradingViewPineStrategy'))}/>
+      <SourceCard
+        title="TradingView Pine"
+        detail={scriptCompletion
+          ? `전체 ${scriptCompletion.total.toLocaleString('ko-KR')} · 상세 ${scriptCompletion.detail_ready.toLocaleString('ko-KR')} · Pine ${scriptCompletion.source_ready.toLocaleString('ko-KR')}`
+          : '목록 + 전체설명 + 이미지 + 공개 Pine'}
+        count={scriptCompletion?String(scriptCompletion.total):String(count('TradingViewPineStrategy'))}
+      />
       <SourceCard title="GitHub" detail="등록된 라이선스 전략 저장소" count={String(count('GitHub'))}/>
       <SourceCard title="논문 / 내부 AI" detail="Paper + AIResearch" count={String(count('Paper')+count('AIResearch'))}/>
+    </div>
+    <div className="panel">
+      <div className="panel-title"><b>TradingView 공개전략 원본 완성도</b><span>목록 · 전체설명 · 이미지 · 공개 Pine 직접 저장</span></div>
+      {scriptCompletion?
+        <DataTable headers={['전체 전략','상세/이미지 저장','Pine 저장','Pine 확인완료','상세 누락','Pine 미확인']} rows={[[
+          scriptCompletion.total.toLocaleString('ko-KR'),
+          scriptCompletion.detail_ready.toLocaleString('ko-KR'),
+          scriptCompletion.source_ready.toLocaleString('ko-KR'),
+          scriptCompletion.source_attempted.toLocaleString('ko-KR'),
+          scriptCompletion.detail_missing.toLocaleString('ko-KR'),
+          scriptCompletion.source_unattempted.toLocaleString('ko-KR'),
+        ]]}/>:
+        <div className="empty-state">완성도 데이터를 불러오는 중입니다.</div>}
     </div>
     <div className="panel">
       <div className="panel-title"><b>TradingView 전체 원본 수집 커서</b><span>페이지를 끝까지 순회한 뒤 다시 처음부터 갱신</span></div>
