@@ -17,6 +17,7 @@ from app.core.tradingview import (
     list_agent_plans,
     list_agent_universe,
     resolve_agent_universe,
+    search_stored_scripts,
     script_source_completion_status,
     list_candidates,
     list_collector_states,
@@ -135,6 +136,15 @@ def scripts_live(
             status_code=502,
             detail=f"TradingView scripts collection failed: {type(exc).__name__}: {exc}",
         ) from exc
+
+
+@router.get("/scripts/search")
+def scripts_search(
+    q: str = Query(min_length=1),
+    limit: int = Query(default=50, ge=1, le=200),
+) -> dict:
+    items = search_stored_scripts(q, limit=limit)
+    return {"query": q, "count": len(items), "items": items}
 
 
 @router.get("/scripts")
