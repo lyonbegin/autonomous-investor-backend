@@ -229,7 +229,7 @@ function TradingViewStrategies(){
       </div>
 
       <div className="panel">
-        <div className="panel-title"><b>{current.id} · {current.name}</b><Badge tone={scoreTone(current.score)}>{current.score}점</Badge></div>
+        <div className="panel-title"><b>{current.id} · {current.name}</b><Badge tone={scoreTone(current.score)}>{`${current.score}점`}</Badge></div>
         <dl className="kv">
           <dt>전략 영역</dt><dd>{current.category} → {current.domain}</dd>
           <dt>핵심 로직</dt><dd>{current.logic}</dd>
@@ -278,7 +278,7 @@ function TradingViewStrategies(){
       </div>
       <div className="panel">
         <div className="panel-title"><b>생성 예정 에이전트</b><span>{created.length ? current.id+' 기준 생성 계획' : '전략을 선택하고 생성 버튼을 누르십시오'}</span></div>
-        {created.length ? created.map((x,i)=><div className="agent-plan" key={x}><Badge tone="green">후보 {i+1}</Badge><b>{x}</b><span>독립 메모리 · 독립 성과 · 독립 실패이력</span></div>) :
+        {created.length ? created.map((x,i)=><div className="agent-plan" key={x}><Badge tone="green">{`후보 ${i+1}`}</Badge><b>{x}</b><span>독립 메모리 · 독립 성과 · 독립 실패이력</span></div>) :
         <div className="empty-state">아직 생성 계획이 없습니다.</div>}
       </div>
     </div>
