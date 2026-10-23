@@ -1019,13 +1019,35 @@ type QuantPipeline = {
   tradingview_ready:boolean;
   toss_ready:boolean;
   pine_executor_ready:boolean;
+  macro_data_ready?:boolean;
   stages:QuantPipelineStage[];
+};
+
+type MacroSnapshot = {
+  ready:boolean;
+  snapshot_id?:string;
+  snapshot_date?:string;
+  collected_at?:string;
+  sources?:string[];
+  data?:{
+    cpi_index?:number | null;
+    cpi_yoy?:number | null;
+    unemployment_rate?:number | null;
+    nonfarm_payroll_thousands?:number | null;
+    nonfarm_payroll_mom_change_thousands?:number | null;
+    treasury_2y?:number | null;
+    treasury_10y?:number | null;
+    treasury_30y?:number | null;
+    yield_curve_10y_2y?:number | null;
+  };
+  source_dates?:Record<string,string>;
 };
 
 function Lab(){
   const [experiments,setExperiments]=useState<QuantExperiment[]>([]);
   const [readiness,setReadiness]=useState<QuantReadiness | null>(null);
   const [pipeline,setPipeline]=useState<QuantPipeline | null>(null);
+  const [macro,setMacro]=useState<MacroSnapshot | null>(null);
   const [loading,setLoading]=useState(true);
   const [error,setError]=useState('');
 
@@ -1045,10 +1067,15 @@ function Lab(){
         if(!r.ok) throw new Error(await r.text());
         return r.json();
       }),
-    ]).then(([exp,ready,pipe])=>{
+      fetch(QUANT_API_BASE+'/api/v1/quant/macro/snapshot').then(async r=>{
+        if(!r.ok) throw new Error(await r.text());
+        return r.json();
+      }),
+    ]).then(([exp,ready,pipe,macroData])=>{
       setExperiments((exp.items||[]) as QuantExperiment[]);
       setReadiness(ready as QuantReadiness);
       setPipeline(pipe as QuantPipeline);
+      setMacro(macroData as MacroSnapshot);
     }).catch(e=>setError(e instanceof Error?e.message:'Quant Lab 연결 오류'))
       .finally(()=>setLoading(false));
   };
@@ -1059,7 +1086,8 @@ function Lab(){
   const blockedData=experiments.filter(x=>x.status==='BLOCKED_DATA_SOURCE').length;
   const blockedEngine=experiments.filter(x=>x.status==='BLOCKED_STRATEGY_ENGINE').length;
   const completed=experiments.filter(x=>x.status==='COMPLETED').length;
-  const selected=experiments[0];
+  const superseded=experiments.filter(x=>x.status==='SUPERSEDED').length;
+  const selected=experiments.find(x=>x.status!=='SUPERSEDED')||experiments[0];
 
   const rows=experiments.map(x=>[
     x.experiment_id,
@@ -1091,6 +1119,7 @@ function Lab(){
       <Metric label="DATA 차단" value={String(blockedData)} tone={blockedData?'amber':'green'} />
       <Metric label="ENGINE 차단" value={String(blockedEngine)} tone={blockedEngine?'amber':'green'} />
       <Metric label="COMPLETED" value={String(completed)} tone={completed?'green':'muted'} />
+      <Metric label="SUPERSEDED" value={String(superseded)} tone={superseded?'amber':'muted'} />
     </div>
 
     <div className="panel">
@@ -1100,6 +1129,27 @@ function Lab(){
         <div className="empty-state">14단계 파이프라인 상태를 읽는 중입니다.</div>}
       <p className="note">{pipeline?.pipeline||'Research Agent → Market Agent → Macro Agent → Hypothesis Engine → Python Experiment Engine → Model Family → Validation → Portfolio → Risk → Paper → Live'}</p>
       {pipeline?.integrated_engine_probe_error && <p className="note">통합 엔진 probe 오류: {pipeline.integrated_engine_probe_error}</p>}
+    </div>
+
+    <div className="panel">
+      <div className="panel-title"><b>Macro Agent · 공식 거시 데이터</b><span>{macro?.ready?'BLS + U.S. Treasury 영구 DB':'첫 수집 대기'}</span></div>
+      {macro?.ready ? <div className="grid three">
+        <MiniStat title="물가·고용" lines={[
+          'CPI YoY '+(macro.data?.cpi_yoy==null?'—':macro.data.cpi_yoy.toFixed(2)+'%'),
+          '실업률 '+(macro.data?.unemployment_rate==null?'—':macro.data.unemployment_rate.toFixed(2)+'%'),
+          '비농업고용 MoM '+(macro.data?.nonfarm_payroll_mom_change_thousands==null?'—':macro.data.nonfarm_payroll_mom_change_thousands.toLocaleString('ko-KR')+'천명')
+        ]}/>
+        <MiniStat title="미 국채 금리" lines={[
+          '2Y '+(macro.data?.treasury_2y==null?'—':macro.data.treasury_2y.toFixed(2)+'%'),
+          '10Y '+(macro.data?.treasury_10y==null?'—':macro.data.treasury_10y.toFixed(2)+'%'),
+          '30Y '+(macro.data?.treasury_30y==null?'—':macro.data.treasury_30y.toFixed(2)+'%')
+        ]}/>
+        <MiniStat title="금리곡선" lines={[
+          '10Y−2Y '+(macro.data?.yield_curve_10y_2y==null?'—':macro.data.yield_curve_10y_2y.toFixed(2)+'%p'),
+          'Snapshot '+(macro.snapshot_date||'—'),
+          (macro.sources||[]).join(' + ')
+        ]}/>
+      </div> : <div className="empty-state">공식 BLS·미 재무부 데이터의 첫 영구 스냅샷을 생성 중입니다.</div>}
     </div>
 
     <div className="panel">
@@ -1118,6 +1168,7 @@ function Lab(){
           <dt>Pine 실행엔진</dt><dd>{readiness?.strategy_execution?.pine_engine_configured?'연결됨':'미연결'}</dd>
           <dt>12개 OSS 프로젝트</dt><dd>{readiness?.quant_engines?.state||'상태 조회 중'}</dd>
           <dt>14단계 Quant Lab</dt><dd>{pipeline?.count===14?'구조 고정 · 실제 상태 연동':'상태 조회 중'}</dd>
+          <dt>Macro 공식 데이터</dt><dd>{pipeline?.macro_data_ready?'BLS + Treasury READY':'첫 스냅샷 대기'}</dd>
         </dl>
         <p className="note">{readiness?.strategy_execution?.policy||'실행기가 준비되기 전에는 성과를 생성하지 않습니다.'}</p>
       </div>
