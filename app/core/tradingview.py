@@ -1053,7 +1053,7 @@ def list_market_universe(
 ) -> dict[str, Any]:
     init_db()
     market_key = MARKET_ALIASES.get(market.lower(), market.lower())
-    safe_limit = min(max(int(limit), 1), 1000)
+    safe_limit = min(max(int(limit), 1), 20000)
     safe_offset = max(int(offset), 0)
     allowed_sorts = {
         "rank": "rank_index",
@@ -2741,12 +2741,20 @@ def resolve_agent_universe(agent_id: str, limit: int = 20) -> dict[str, Any]:
             "변동성": "Volatility.D",
         }.get(category, "volume")
 
-    market_data = collect_market(
+    market_data = list_market_universe(
         scanner_market,
-        limit=max(100, safe_limit),
+        limit=max(1000, min(10000, safe_limit * 250)),
+        offset=0,
         sort_by=sort_by,
         sort_order="desc",
     )
+    if not market_data.get("items"):
+        market_data = collect_market(
+            scanner_market,
+            limit=max(100, safe_limit),
+            sort_by=sort_by,
+            sort_order="desc",
+        )
     scored: list[dict[str, Any]] = []
     for row in market_data.get("items", []):
         ticker = str(row.get("ticker") or "")
@@ -2776,7 +2784,12 @@ def resolve_agent_universe(agent_id: str, limit: int = 20) -> dict[str, Any]:
     scored.sort(key=lambda x: float(x["prescreen_score"]), reverse=True)
     selected = scored[:safe_limit]
     now = utcnow()
-    snapshot_at = str(market_data.get("collected_at") or now)
+    first_market_row = (market_data.get("items") or [{}])[0]
+    snapshot_at = str(
+        market_data.get("collected_at")
+        or first_market_row.get("collected_at")
+        or now
+    )
 
     with _connect() as conn:
         conn.execute("DELETE FROM agent_universe_members WHERE agent_id = ?", (agent_id,))
