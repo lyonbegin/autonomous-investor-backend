@@ -1108,14 +1108,80 @@ function Settings(){return <><SectionHeader title="설정" eyebrow="정책·제�
 function App() {
   const [page, setPage] = useState<PageKey>('command');
   const [collapsed, setCollapsed] = useState(false);
+  const [runtime,setRuntime]=useState({
+    tradingview:false,
+    quant:false,
+    toss:false,
+    pine:false,
+    experiments:0,
+  });
+
+  useEffect(()=>{
+    let cancelled=false;
+    Promise.allSettled([
+      fetch(API_BASE+'/health').then(async r=>r.ok?r.json():Promise.reject(new Error('TradingView health'))),
+      fetch(QUANT_API_BASE+'/api/v1/quant/readiness').then(async r=>r.ok?r.json():Promise.reject(new Error('Quant readiness'))),
+      fetch(QUANT_API_BASE+'/api/v1/quant/experiments?limit=200').then(async r=>r.ok?r.json():Promise.reject(new Error('Quant experiments'))),
+    ]).then(results=>{
+      if(cancelled) return;
+      const tv=results[0].status==='fulfilled';
+      const quantReady=results[1].status==='fulfilled' ? results[1].value : null;
+      const exp=results[2].status==='fulfilled' ? results[2].value : null;
+      setRuntime({
+        tradingview:tv,
+        quant:Boolean(quantReady),
+        toss:Boolean(quantReady?.data_sources?.toss?.configured),
+        pine:Boolean(quantReady?.strategy_execution?.pine_engine_configured),
+        experiments:Number(exp?.count||0),
+      });
+    });
+    return ()=>{cancelled=true;};
+  },[]);
+
   const title = useMemo(() => nav.find(n => n.key === page)?.label ?? '통합 관제', [page]);
   const content = { command:<CommandCenter setPage={setPage}/>, domains:<Domains/>, investors:<Investors/>, capital:<Capital/>, portfolio:<Portfolio/>, risk:<Risk/>, trading:<Trading/>, tvideas:<TradingViewIdeas/>, tvmarkets:<TradingViewMarkets/>, tvstrategies:<TradingViewStrategies/>, factory:<StrategyFactory/>, research:<Research/>, lab:<Lab/>, strategies:<Strategies/>, performance:<Performance/>, memory:<Memory/>, audit:<Audit/>, system:<System/>, settings:<Settings/> }[page];
+  const isLiveDataPage=['tvideas','tvmarkets','tvstrategies','lab'].includes(page);
+  const systemReady=runtime.tradingview && runtime.quant;
+
   return <div className={`app ${collapsed ? 'collapsed' : ''}`}>
-    <header className="topbar"><div className="brand"><button className="collapse" onClick={()=>setCollapsed(v=>!v)}>☰</button><span className="brand-mark">AI</span><div><b>AUTONOMOUS INVESTOR</b><small>{title}</small></div></div><div className="top-metrics"><span>평가자산 <b>₩1.083B</b></span><span>오늘 <b className="txt-green">+₩4.2M</b></span><span>낙폭 <b className="txt-amber">-1.12%</b></span><Badge tone="green">LIVE</Badge><button className="danger">전체정지</button></div></header>
+    <header className="topbar">
+      <div className="brand"><button className="collapse" onClick={()=>setCollapsed(v=>!v)}>☰</button><span className="brand-mark">AI</span><div><b>AUTONOMOUS INVESTOR</b><small>{title}</small></div></div>
+      <div className="top-metrics">
+        <span>TradingView <b className={runtime.tradingview?'txt-green':'txt-amber'}>{runtime.tradingview?'LIVE':'CHECK'}</b></span>
+        <span>Quant Lab <b className={runtime.quant?'txt-green':'txt-amber'}>{runtime.quant?'LIVE':'CHECK'}</b></span>
+        <span>실험 <b>{runtime.experiments}</b></span>
+        <Badge tone={systemReady?'green':'amber'}>{systemReady?'DATA LIVE':'PARTIAL'}</Badge>
+        <button className="danger" disabled>실거래 OFF</button>
+      </div>
+    </header>
     <aside className="sidebar"><div className="nav-label">관리 메뉴</div>{nav.map(n=><button key={n.key} className={page===n.key?'active':''} onClick={()=>setPage(n.key)}><span className="nav-short">{n.short}</span><span>{n.label}</span></button>)}</aside>
-    <main><div className="filterbar"><span>전체 필터</span><button>영역: 전체</button><button>에이전트: 전체</button><button>원천: 전체</button><button>시간축: 전체</button><button>운용단계: 전체</button><i>현재 예시 데이터 · 실제 API 연결 준비 구조</i></div><div className="workspace">{content}</div></main>
-    <aside className="events"><div className="event-head"><b>실시간 이벤트</b><Badge tone="green">WS</Badge></div><EventLine time="11:08" tag="RISK" text="전체 위험 정상"/><EventLine time="11:07" tag="TRADE" text="NVDA 체결 대조 완료"/><EventLine time="11:06" tag="PRED" text="예측 12건 결과 확인 예정"/><EventLine time="11:04" tag="SOURCE" text="신규 전략 원천 4건 대기"/><div className="event-spacer"/><div className="health"><span>NAUTILUS</span><b>● 정상</b><span>BROKER</span><b>● 연결됨</b><span>시장 데이터</span><b>● 실시간</b></div></aside>
-    <footer><span>WS ● 연결됨</span><span>Nautilus ● 정상</span><span>증권사 ● 연결됨</span><span>시장 데이터 ● 실시간</span><span className="spacer"/><span>프론트 v0.2 · Vite / React / TypeScript</span></footer>
+    <main>
+      <div className="filterbar">
+        <span>전체 필터</span><button>영역: 전체</button><button>에이전트: 전체</button><button>원천: 전체</button><button>시간축: 전체</button><button>운용단계: 전체</button>
+        <i>{isLiveDataPage?'TradingView / Quant Lab 실제 API·영구 DB 연결':'이 관리화면은 아직 예시 데이터가 포함되어 있으며 API 전환 대상입니다.'}</i>
+      </div>
+      <div className="workspace">{content}</div>
+    </main>
+    <aside className="events">
+      <div className="event-head"><b>실제 연결 상태</b><Badge tone={systemReady?'green':'amber'}>API</Badge></div>
+      <EventLine time="NOW" tag="SOURCE" text={runtime.tradingview?'TradingView 수집 서비스 정상':'TradingView 수집 서비스 점검 필요'}/>
+      <EventLine time="NOW" tag="LAB" text={runtime.quant?`Quant Experiment Registry ${runtime.experiments}건`:'Quant Lab 서비스 점검 필요'}/>
+      <EventLine time="DATA" tag="TOSS" text={runtime.toss?'토스증권 OHLCV 자격증명 연결됨':'토스증권 OHLCV 자격증명 미설정'}/>
+      <EventLine time="EXEC" tag="PINE" text={runtime.pine?'Pine 실행엔진 연결됨':'Pine 실행엔진 미연결'}/>
+      <div className="event-spacer"/>
+      <div className="health">
+        <span>TRADINGVIEW</span><b>{runtime.tradingview?'● 정상':'● 점검'}</b>
+        <span>QUANT LAB</span><b>{runtime.quant?'● 정상':'● 점검'}</b>
+        <span>실거래</span><b>● OFF</b>
+      </div>
+    </aside>
+    <footer>
+      <span>TradingView {runtime.tradingview?'● LIVE':'● CHECK'}</span>
+      <span>Quant Lab {runtime.quant?'● LIVE':'● CHECK'}</span>
+      <span>Toss Data {runtime.toss?'● READY':'● 미설정'}</span>
+      <span>Pine Engine {runtime.pine?'● READY':'● 미연결'}</span>
+      <span className="spacer"/><span>Vite / React / TypeScript · 실제 데이터 화면 단계적 전환 중</span>
+    </footer>
   </div>;
 }
 
