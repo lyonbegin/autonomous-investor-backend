@@ -1864,6 +1864,71 @@ def fetch_script_source(script_id_part: str, version: str = "last") -> dict[str,
     }
 
 
+def idea_completion_status() -> dict[str, Any]:
+    init_db()
+    with _connect() as conn:
+        row=conn.execute(
+            """
+            SELECT
+              COUNT(*) AS total,
+              SUM(CASE WHEN d.source_id IS NOT NULL THEN 1 ELSE 0 END) AS detail_ready
+            FROM community_ideas i
+            LEFT JOIN source_details d
+              ON d.source_kind='idea' AND d.source_id=i.idea_id
+            """
+        ).fetchone()
+    total=int(row["total"] or 0)
+    ready=int(row["detail_ready"] or 0)
+    return {
+        "total":total,
+        "detail_ready":ready,
+        "detail_missing":max(0,total-ready),
+    }
+
+
+def complete_missing_idea_assets(limit: int = 1000) -> dict[str, Any]:
+    init_db()
+    safe_limit=min(max(int(limit),1),5000)
+    before=idea_completion_status()
+    with _connect() as conn:
+        rows=conn.execute(
+            """
+            SELECT i.idea_id
+            FROM community_ideas i
+            LEFT JOIN source_details d
+              ON d.source_kind='idea' AND d.source_id=i.idea_id
+            WHERE d.source_id IS NULL
+            ORDER BY i.collected_at DESC
+            LIMIT ?
+            """,
+            (safe_limit,),
+        ).fetchall()
+    ids=[str(row["idea_id"]) for row in rows]
+    errors=[]
+    processed=0
+    if ids:
+        def work(source_id: str) -> tuple[bool,str|None]:
+            try:
+                fetch_source_detail("idea",source_id,force=False)
+                return True,None
+            except Exception as exc:
+                return False,f"idea:{source_id}:{type(exc).__name__}:{exc}"
+        with ThreadPoolExecutor(max_workers=16) as executor:
+            for ok,err in executor.map(work,ids):
+                if ok: processed+=1
+                if err: errors.append(err)
+    after=idea_completion_status()
+    return {
+        "selected":len(ids),
+        "details_processed":processed,
+        "error_count":len(errors),
+        "errors":errors[:20],
+        "before":before,
+        "after":after,
+        "at":utcnow(),
+    }
+
+
 def script_source_completion_status() -> dict[str, Any]:
     init_db()
     with _connect() as conn:
