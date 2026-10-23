@@ -1002,9 +1002,30 @@ type QuantReadiness = {
   quant_engines?:{state?:string};
 };
 
+type QuantPipelineStage = {
+  order:number;
+  key:string;
+  name:string;
+  engines:string[];
+  engine_ready:boolean;
+  state:string;
+  blocker?:string | null;
+};
+
+type QuantPipeline = {
+  count:number;
+  pipeline:string;
+  integrated_engine_probe_error?:string | null;
+  tradingview_ready:boolean;
+  toss_ready:boolean;
+  pine_executor_ready:boolean;
+  stages:QuantPipelineStage[];
+};
+
 function Lab(){
   const [experiments,setExperiments]=useState<QuantExperiment[]>([]);
   const [readiness,setReadiness]=useState<QuantReadiness | null>(null);
+  const [pipeline,setPipeline]=useState<QuantPipeline | null>(null);
   const [loading,setLoading]=useState(true);
   const [error,setError]=useState('');
 
@@ -1020,9 +1041,14 @@ function Lab(){
         if(!r.ok) throw new Error(await r.text());
         return r.json();
       }),
-    ]).then(([exp,ready])=>{
+      fetch(QUANT_API_BASE+'/api/v1/quant/pipeline').then(async r=>{
+        if(!r.ok) throw new Error(await r.text());
+        return r.json();
+      }),
+    ]).then(([exp,ready,pipe])=>{
       setExperiments((exp.items||[]) as QuantExperiment[]);
       setReadiness(ready as QuantReadiness);
+      setPipeline(pipe as QuantPipeline);
     }).catch(e=>setError(e instanceof Error?e.message:'Quant Lab 연결 오류'))
       .finally(()=>setLoading(false));
   };
@@ -1046,6 +1072,15 @@ function Lab(){
     x.blocked_reason||'—',
   ]);
 
+  const pipelineRows=(pipeline?.stages||[]).map(x=>[
+    String(x.order).padStart(2,'0'),
+    x.name,
+    x.engines.join(' / '),
+    x.engine_ready?'ENGINE OK':'ENGINE CHECK',
+    x.state,
+    x.blocker||'—',
+  ]);
+
   return <>
     <SectionHeader title="퀀트 연구소" eyebrow="실제 Agent → Universe → Experiment Registry → Walk-forward → Holdout → Nautilus" actions={['실험 목록 새로고침']} />
     <div className="actions left"><button onClick={reload} disabled={loading}>{loading?'불러오는 중':'실제 상태 새로고침'}</button></div>
@@ -1056,6 +1091,15 @@ function Lab(){
       <Metric label="DATA 차단" value={String(blockedData)} tone={blockedData?'amber':'green'} />
       <Metric label="ENGINE 차단" value={String(blockedEngine)} tone={blockedEngine?'amber':'green'} />
       <Metric label="COMPLETED" value={String(completed)} tone={completed?'green':'muted'} />
+    </div>
+
+    <div className="panel">
+      <div className="panel-title"><b>Autonomous Quant Lab · 14단계 실제 상태</b><span>OSS import probe + 데이터 소스 + 실행기 연결 상태</span></div>
+      {pipelineRows.length ?
+        <DataTable headers={['#','단계','연결 엔진','ENGINE','현재 상태','남은 연결']} rows={pipelineRows}/> :
+        <div className="empty-state">14단계 파이프라인 상태를 읽는 중입니다.</div>}
+      <p className="note">{pipeline?.pipeline||'Research Agent → Market Agent → Macro Agent → Hypothesis Engine → Python Experiment Engine → Model Family → Validation → Portfolio → Risk → Paper → Live'}</p>
+      {pipeline?.integrated_engine_probe_error && <p className="note">통합 엔진 probe 오류: {pipeline.integrated_engine_probe_error}</p>}
     </div>
 
     <div className="panel">
@@ -1072,7 +1116,8 @@ function Lab(){
           <dt>Toss OHLCV</dt><dd>{readiness?.data_sources?.toss?.configured?'자격증명 연결됨':'자격증명 미설정'}</dd>
           <dt>공식 기본 봉</dt><dd>{readiness?.data_sources?.toss?.official_intervals?.join(' / ')||'1m / 1d'}</dd>
           <dt>Pine 실행엔진</dt><dd>{readiness?.strategy_execution?.pine_engine_configured?'연결됨':'미연결'}</dd>
-          <dt>12개 퀀트 엔진</dt><dd>{readiness?.quant_engines?.state||'상태 조회 중'}</dd>
+          <dt>12개 OSS 프로젝트</dt><dd>{readiness?.quant_engines?.state||'상태 조회 중'}</dd>
+          <dt>14단계 Quant Lab</dt><dd>{pipeline?.count===14?'구조 고정 · 실제 상태 연동':'상태 조회 중'}</dd>
         </dl>
         <p className="note">{readiness?.strategy_execution?.policy||'실행기가 준비되기 전에는 성과를 생성하지 않습니다.'}</p>
       </div>
