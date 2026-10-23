@@ -128,7 +128,7 @@ MARKET_SCANNER_PROFILES: dict[str, dict[str, Any]] = {
         ],
         "default_sort": "yield_to_worst",
         "allowed_sort": ["yield_to_worst", "current_coupon", "maturity_date", "bond_snp_rating_lt", "name"],
-        "filters": []
+        "filters": [{"left": "typespecs", "operation": "has", "right": "corporate"}]
     },
     "indices": {
         "endpoint": "global",
@@ -1243,15 +1243,27 @@ def backfill_market_universe(
     # 10 corporate-bond rows and ignores offset/range pagination. Do not
     # misreport those 10 rows as a completed 167k+ universe.
     if market_key == "corporate-bonds":
+        # Refresh the public total/preview so the state reflects the corporate-only
+        # filter, but never treat the 10-row anonymous response as a full universe.
+        preview = collect_market(
+            market_key,
+            limit=100,
+            offset=0,
+            sort_by="yield_to_worst",
+            sort_order="desc",
+            persist_snapshot=True,
+        )
+        total_count = int(preview.get("total_count") or total_count)
         with _connect() as conn:
             conn.execute(
                 """
                 UPDATE market_collector_state
-                SET last_error=?,updated_at=?
+                SET cursor_offset=0,total_count=?,last_error=?,updated_at=?
                 WHERE market=?
                 """,
                 (
-                    "TRADINGVIEW_ENTITLEMENT_REQUIRED: anonymous Bond Screener returns only 10 rows; full export is gated",
+                    total_count,
+                    "TRADINGVIEW_ENTITLEMENT_REQUIRED: anonymous corporate Bond Screener returns only 10 rows; full export is gated",
                     utcnow(),
                     market_key,
                 ),
@@ -1261,8 +1273,8 @@ def backfill_market_universe(
             "scan_id": scan_id,
             "processed_chunks": 0,
             "page_size": 10,
-            "items_seen": 0,
-            "next_offset": offset,
+            "items_seen": int(preview.get("count") or 0),
+            "next_offset": 0,
             "total_count": total_count,
             "cycle_completed": False,
             "restricted": True,
