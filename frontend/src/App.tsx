@@ -858,8 +858,12 @@ function TradingViewStrategies(){
       );
       if(!u.ok) throw new Error(await u.text());
       const universe=await u.json();
+      const explicitUniverse=universe.method==='EXPLICIT_SOURCE_UNIVERSE';
       const symbols=((universe.items||[]) as Array<{ticker:string}>)
-        .map(x=>(x.ticker||'').split(':').pop()||'')
+        .map(x=>{
+          const ticker=x.ticker||'';
+          return explicitUniverse ? ticker : (ticker.split(':').pop()||'');
+        })
         .filter(Boolean);
 
       const e=await fetch(
