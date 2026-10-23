@@ -311,6 +311,8 @@ function TradingViewIdeas(){
   const [ideaType,setIdeaType]=useState('모든 아이디어');
   const [video,setVideo]=useState(false);
   const [sort,setSort]=useState<'recent'|'popular'>('recent');
+  const [page,setPage]=useState(1);
+  const [pageCount,setPageCount]=useState(1);
   const [cards,setCards]=useState<IdeaCardData[]>([]);
   const [loading,setLoading]=useState(true);
   const [loadError,setLoadError]=useState('');
@@ -320,13 +322,14 @@ function TradingViewIdeas(){
     const sortParam=topTab==='editors'?'picked_time':sort==='recent'?'recent':'trending';
     setLoading(true);
     setLoadError('');
-    fetch(`${API_BASE}/api/v1/tradingview/ideas/live?sort=${sortParam}&page=1&lang=ko`,{signal:controller.signal})
+    fetch(`${API_BASE}/api/v1/tradingview/ideas/live?sort=${sortParam}&page=${page}&lang=ko`,{signal:controller.signal})
       .then(async r=>{
         if(!r.ok) throw new Error(await r.text());
         return r.json();
       })
       .then(data=>{
         const rows=(data.items||[]) as LiveIdeaResponseItem[];
+        setPageCount(Math.max(1,Number(data.page_count||1)));
         setCards(rows.map(x=>{
           const dt=x.created_at ? new Date(x.created_at) : null;
           const time=dt && !Number.isNaN(dt.getTime()) ? dt.toLocaleString('ko-KR') : (x.created_at||'');
@@ -353,7 +356,7 @@ function TradingViewIdeas(){
       })
       .finally(()=>setLoading(false));
     return ()=>controller.abort();
-  },[topTab,sort]);
+  },[topTab,sort,page]);
 
   const filteredCards=cards.filter(x=>{
     if(video && !x.isVideo) return false;
@@ -367,8 +370,8 @@ function TradingViewIdeas(){
     <div className="tv-page">
       <h1>커뮤니티 아이디어</h1>
       <div className="tv-primary-tabs">
-        <button className={topTab==='popular'?'active':''} onClick={()=>setTopTab('popular')}>포퓰러</button>
-        <button className={topTab==='editors'?'active':''} onClick={()=>setTopTab('editors')}>에디터즈 픽</button>
+        <button className={topTab==='popular'?'active':''} onClick={()=>{setTopTab('popular');setPage(1)}}>포퓰러</button>
+        <button className={topTab==='editors'?'active':''} onClick={()=>{setTopTab('editors');setPage(1)}}>에디터즈 픽</button>
       </div>
       <div className="tv-filterbar">
         <select value={ideaType} onChange={e=>setIdeaType(e.target.value)}>
@@ -376,14 +379,18 @@ function TradingViewIdeas(){
         </select>
         <button className={video?'active':''} onClick={()=>setVideo(v=>!v)}>비디오 온리</button>
         <span className="spacer"/>
-        <button className={sort==='recent'?'active':''} onClick={()=>setSort('recent')}>가장 최근</button>
-        <button className={sort==='popular'?'active':''} onClick={()=>setSort('popular')}>가장 인기 있는</button>
+        <button className={sort==='recent'?'active':''} onClick={()=>{setSort('recent');setPage(1)}}>가장 최근</button>
+        <button className={sort==='popular'?'active':''} onClick={()=>{setSort('popular');setPage(1)}}>가장 인기 있는</button>
       </div>
       {loading && <div className="panel"><span>TradingView 공개 아이디어를 실시간 수집 중입니다.</span></div>}
       {loadError && <div className="panel"><span>{loadError}</span></div>}
       {!loading && !loadError && filteredCards.length>0 && <div className="tv-idea-grid">{filteredCards.map(x=><IdeaCard key={x.id} idea={x}/>)}</div>}
       {!loading && !loadError && filteredCards.length===0 && <div className="panel"><span>현재 페이지에서 선택한 실제 TradingView 필터 조건에 맞는 아이디어가 없습니다.</span></div>}
-      <div className="tv-pagination"><button className="active">1</button><button>2</button><button>3</button><span>…</span><button>50</button><button>발행물 더 보기</button></div>
+      <div className="tv-pagination">
+        <button disabled={page<=1} onClick={()=>setPage(p=>Math.max(1,p-1))}>이전</button>
+        <button className="active">{page} / {pageCount}</button>
+        <button disabled={page>=pageCount} onClick={()=>setPage(p=>Math.min(pageCount,p+1))}>다음</button>
+      </div>
       <div className="panel tv-ai-extension">
         <div className="panel-title"><b>우리 시스템 연결 기능</b><span>TradingView 아이디어 → 구조화 전략 → 시장/종목 매칭 → 고정 시간축 독립 에이전트</span></div>
         <div className="grid three">
