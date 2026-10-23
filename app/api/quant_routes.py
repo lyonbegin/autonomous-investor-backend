@@ -4,6 +4,8 @@ from pydantic import BaseModel, Field
 from fastapi import APIRouter, HTTPException, Query
 
 from app.core.quant_lab import (
+    run_quant_handoff,
+    quant_handoff_status,
     create_experiment,
     get_experiment,
     list_experiment_results,
@@ -27,10 +29,55 @@ class SymbolUpdate(BaseModel):
     symbols: list[str] = Field(min_length=1)
 
 
+class QuantHandoffRun(BaseModel):
+    limit_candidates: int = Field(default=25, ge=1, le=500)
+    max_agents_per_candidate: int = Field(default=12, ge=1, le=100)
+    max_experiments: int = Field(default=10, ge=1, le=100)
+    min_score: float = Field(default=72.0, ge=0.0, le=100.0)
+    run_ready: bool = True
+    max_symbols: int = Field(default=3, ge=1, le=20)
+    commission_bps: float = Field(default=5.0, ge=0.0, le=100.0)
+    slippage_bps: float = Field(default=2.0, ge=0.0, le=100.0)
+
+
 class ExperimentRun(BaseModel):
     max_symbols: int = Field(default=5, ge=1, le=20)
     commission_bps: float = Field(default=5.0, ge=0.0, le=100.0)
     slippage_bps: float = Field(default=2.0, ge=0.0, le=100.0)
+
+
+@router.get("/handoff/status")
+def handoff_status(
+    min_score: float = Query(default=72.0, ge=0.0, le=100.0),
+) -> dict:
+    try:
+        return quant_handoff_status(min_score=min_score)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"quant handoff status failed: {type(exc).__name__}: {exc}",
+        ) from exc
+
+
+@router.post("/handoff/run")
+def handoff_run(body: QuantHandoffRun | None = None) -> dict:
+    params = body or QuantHandoffRun()
+    try:
+        return run_quant_handoff(
+            limit_candidates=params.limit_candidates,
+            max_agents_per_candidate=params.max_agents_per_candidate,
+            max_experiments=params.max_experiments,
+            min_score=params.min_score,
+            run_ready=params.run_ready,
+            max_symbols=params.max_symbols,
+            commission_bps=params.commission_bps,
+            slippage_bps=params.slippage_bps,
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"quant handoff run failed: {type(exc).__name__}: {exc}",
+        ) from exc
 
 
 @router.get("/readiness")
