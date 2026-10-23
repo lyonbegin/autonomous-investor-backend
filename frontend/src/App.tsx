@@ -603,7 +603,7 @@ function TradingViewMarkets(){
       sort_by:sort.sortBy,
       sort_order:sort.sortOrder,
     });
-    const restricted=code==='corporate-bonds';
+    const restricted=code==='corporate-bonds' && corporateBackfill?.status!=='COMPLETE';
     const storedUrl=API_BASE+'/api/v1/tradingview/markets/'+code+'/stored?'+params.toString();
     const liveUrl=API_BASE+'/api/v1/tradingview/markets/'+code+'?'+params.toString();
     setLiveError('');
@@ -642,7 +642,7 @@ function TradingViewMarkets(){
     };
     load();
     return ()=>controller.abort();
-  },[tab,marketView,marketOffset]);
+  },[tab,marketView,marketOffset,corporateBackfill?.status]);
 
   const liveHeaders=tab==='회사채'
     ? ['심볼','채권','ISIN','최악수익률','쿠폰','만기','S&P','Fitch']
@@ -675,7 +675,7 @@ function TradingViewMarkets(){
   const chartSrc=selectedTicker
     ? 'https://s.tradingview.com/widgetembed/?frameElementId=tv-market-chart&symbol='+encodeURIComponent(selectedTicker)+'&interval=D&hidesidetoolbar=0&symboledit=1&saveimage=1&toolbarbg=131722&theme=dark&style=1&timezone=Asia%2FSeoul&withdateranges=1&showpopupbutton=0&locale=kr'
     : '';
-  const restriction=tab==='회사채' && collectorState?.last_error?.includes('TRADINGVIEW_ENTITLEMENT_REQUIRED');
+  const restriction=tab==='회사채' && corporateBackfill?.status!=='COMPLETE';
 
   return <>
     <TradingViewHeader active="markets"/>
@@ -1423,11 +1423,13 @@ function SourceHub(){
           x.market,
           Number(x.total_count||0).toLocaleString('ko-KR'),
           Number(x.stored_count||0).toLocaleString('ko-KR'),
-          x.last_error?.includes('TRADINGVIEW_ENTITLEMENT_REQUIRED')?'TradingView 권한 제한':(x.last_completed_at?'전체수집 완료':'수집 중'),
+          x.market==='corporate-bonds' && corporateBackfill
+            ? (corporateBackfill.status==='COMPLETE'?'전체수집 완료':('전용 분할수집 '+Number(corporateBackfill.progress||0).toFixed(2)+'%'))
+            : (x.last_error?.includes('TRADINGVIEW_ENTITLEMENT_REQUIRED')?'TradingView 권한 제한':(x.last_completed_at?'전체수집 완료':'수집 중')),
           x.last_completed_at||'—',
         ])}/>:
         <div className="empty-state">마켓 전체 Universe 상태를 불러오는 중입니다.</div>}
-      {corporateBackfill && <p className="note">회사채 전용 분할수집: ${Number(corporateBackfill.stored_count||0).toLocaleString('ko-KR')} / ${Number(corporateBackfill.source_total||0).toLocaleString('ko-KR')} · ${Number(corporateBackfill.progress||0).toFixed(2)}% · 작업 ${corporateBackfill.tasks_complete}/${corporateBackfill.tasks_total}</p>}
+      {corporateBackfill && <p className="note">회사채 전용 분할수집: {Number(corporateBackfill.stored_count||0).toLocaleString('ko-KR')} / {Number(corporateBackfill.source_total||0).toLocaleString('ko-KR')} · {Number(corporateBackfill.progress||0).toFixed(2)}% · 작업 {corporateBackfill.tasks_complete}/{corporateBackfill.tasks_total}</p>}
     </div>
     <div className="panel">
       <div className="panel-title"><b>Strategy Source Registry</b><span>{items.length}개 조회 · Origin Source ID 보존</span></div>
