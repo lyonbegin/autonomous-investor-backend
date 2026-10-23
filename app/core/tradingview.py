@@ -4,7 +4,7 @@ import hashlib
 import json
 import os
 import sqlite3
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
 from urllib import parse, request
 
@@ -414,6 +414,17 @@ def collect_ideas(sort: str = "trending", page: int = 1, lang: str = "ko") -> di
     }
 
 
+def prune_market_snapshots(retention_days: int = 30) -> int:
+    init_db()
+    cutoff = (datetime.now(UTC) - timedelta(days=max(1, retention_days))).isoformat()
+    with _connect() as conn:
+        cursor = conn.execute(
+            "DELETE FROM market_snapshots WHERE collected_at < ?",
+            (cutoff,),
+        )
+        return int(cursor.rowcount or 0)
+
+
 def store_market_snapshot(market: str, rows: list[dict[str, Any]], collected_at: str) -> None:
     init_db()
     bucket = collected_at[:16]
@@ -532,6 +543,7 @@ def collect_market(
 
     collected_at = utcnow()
     store_market_snapshot(market_key, rows, collected_at)
+    prune_market_snapshots(retention_days=30)
     return {
         "source": "TradingView scanner",
         "market": market_key,
