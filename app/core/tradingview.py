@@ -10,7 +10,7 @@ from datetime import UTC, datetime, timedelta
 from concurrent.futures import ThreadPoolExecutor
 from html.parser import HTMLParser
 from typing import Any
-from urllib import parse, request
+from urllib import error, parse, request
 
 
 IDEAS_URL = "https://www.tradingview.com/api/v1/ideas/"
@@ -564,10 +564,23 @@ def fetch_source_detail(source_kind: str, source_id: str, *, force: bool = False
         raise ValueError("TradingView source URL is missing")
 
     separator = "&" if "?" in source_url else "?"
-    html_text = _http_text(source_url + separator + "component-data-only=1")
-    parser = _TradingViewDetailParser()
-    parser.feed(html_text)
-    parsed = parser.result()
+    detail_missing = False
+    try:
+        html_text = _http_text(source_url + separator + "component-data-only=1")
+        parser = _TradingViewDetailParser()
+        parser.feed(html_text)
+        parsed = parser.result()
+    except error.HTTPError as exc:
+        if exc.code not in {404, 410}:
+            raise
+        detail_missing = True
+        html_text = ""
+        parsed = {
+            "title": fallback_title,
+            "full_text": fallback_text,
+            "hero_images": [],
+            "content_images": [],
+        }
 
     hero_images = list(parsed["hero_images"])
     content_images = list(parsed["content_images"])
@@ -588,7 +601,12 @@ def fetch_source_detail(source_kind: str, source_id: str, *, force: bool = False
     title = str(parsed.get("title") or fallback_title)
     full_text = str(parsed.get("full_text") or fallback_text)
     now = utcnow()
-    page_hash = hashlib.sha256(html_text.encode("utf-8")).hexdigest()
+    hash_material = html_text if html_text else json.dumps(
+        {"source_url": source_url, "title": title, "full_text": full_text},
+        ensure_ascii=False,
+        sort_keys=True,
+    )
+    page_hash = hashlib.sha256(hash_material.encode("utf-8")).hexdigest()
 
     with _connect() as conn:
         conn.execute(
@@ -625,6 +643,7 @@ def fetch_source_detail(source_kind: str, source_id: str, *, force: bool = False
         "page_hash": page_hash,
         "fetched_at": now,
         "from_cache": False,
+        "detail_missing": detail_missing,
     }
 
 
@@ -1336,7 +1355,7 @@ def backfill_tradingview_source(
                 items = list(payload.get("items") or [])
                 total_pages = max(1, int(payload.get("page_count") or 1))
                 if fetch_details and items:
-                    with ThreadPoolExecutor(max_workers=8) as executor:
+                    with ThreadPoolExecutor(max_workers=16) as executor:
                         results = list(executor.map(
                             lambda item: _backfill_idea_item(item, fetch_details),
                             items,
@@ -1412,7 +1431,7 @@ def backfill_tradingview_source(
         "pine_sources_processed": pine_count,
         "errors": errors[:20],
         "error_count": len(errors),
-        "workers": 8,
+        "workers": 16,
         "updated_at": now,
     }
 
