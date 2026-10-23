@@ -398,6 +398,16 @@ def init_db() -> None:
             except sqlite3.OperationalError:
                 pass
 
+        conn.execute(
+            """
+            INSERT OR IGNORE INTO script_source_attempts (
+                script_id_part,ok,protected,reason,fetched_at
+            )
+            SELECT script_id_part,1,0,NULL,fetched_at
+            FROM script_sources
+            """
+        )
+
 
 def _http_json(url: str, *, method: str = "GET", payload: dict[str, Any] | None = None) -> Any:
     body = None
