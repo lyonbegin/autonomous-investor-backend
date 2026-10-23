@@ -715,6 +715,7 @@ type LivePineStrategy = {
   created_at:string;
   updated_at:string;
   chart_url?:string | null;
+  image_url?:string | null;
   symbol:string;
   interval:string;
   is_picked:number | boolean;
@@ -801,6 +802,9 @@ function TradingViewStrategies(){
   const [total,setTotal]=useState<number | null>(null);
   const [selected,setSelected]=useState('');
   const [candidate,setCandidate]=useState<LiveStrategyCandidate | null>(null);
+  const [scriptDetail,setScriptDetail]=useState<LiveSourceDetail | null>(null);
+  const [pineSource,setPineSource]=useState<LivePineSource | null>(null);
+  const [detailLoading,setDetailLoading]=useState(false);
   const [discovery,setDiscovery]=useState<LiveHorizonDiscovery[]>([]);
   const [agents,setAgents]=useState<LiveAgentPlan[]>([]);
   const [agentResearch,setAgentResearch]=useState<Record<string,AgentResearchState>>({});
@@ -841,10 +845,33 @@ function TradingViewStrategies(){
 
   useEffect(()=>{
     setCandidate(null);
+    setScriptDetail(null);
+    setPineSource(null);
     setDiscovery([]);
     setAgents([]);
     setAgentResearch({});
   },[selected]);
+
+  useEffect(()=>{
+    if(!current?.script_id_part) return;
+    let cancelled=false;
+    setDetailLoading(true);
+    Promise.allSettled([
+      fetch(API_BASE+'/api/v1/tradingview/scripts/'+encodeURIComponent(current.script_id_part)+'/full').then(async r=>{
+        if(!r.ok) throw new Error(await r.text());
+        return r.json();
+      }),
+      fetch(API_BASE+'/api/v1/tradingview/scripts/'+encodeURIComponent(current.script_id_part)+'/source').then(async r=>{
+        if(!r.ok) throw new Error(await r.text());
+        return r.json();
+      }),
+    ]).then(results=>{
+      if(cancelled) return;
+      if(results[0].status==='fulfilled') setScriptDetail(results[0].value as LiveSourceDetail);
+      if(results[1].status==='fulfilled') setPineSource(results[1].value as LivePineSource);
+    }).finally(()=>{if(!cancelled) setDetailLoading(false);});
+    return ()=>{cancelled=true;};
+  },[current?.script_id_part]);
 
   const analyze=async():Promise<LiveStrategyCandidate | null>=>{
     if(!current) return null;
@@ -1008,8 +1035,8 @@ function TradingViewStrategies(){
         </div>}
         <div className="tv-pagination">
           <button disabled={page<=1} onClick={()=>setPage(p=>Math.max(1,p-1))}>이전</button>
-          <button className="active">{page}</button>
-          <button onClick={()=>setPage(p=>p+1)}>다음</button>
+          <button className="active">{page} / {total?Math.max(1,Math.ceil(total/24)):'?'}</button>
+          <button disabled={Boolean(total && page>=Math.ceil(total/24))} onClick={()=>setPage(p=>p+1)}>다음</button>
         </div>
       </div>
 
@@ -1026,9 +1053,27 @@ function TradingViewStrategies(){
             <dt>고정 시간축 후보</dt><dd>{candidate?candidate.candidate_horizons.join(' · '):'분석 후 생성'}</dd>
             <dt>Pine 원문 해시</dt><dd>{candidate?.source_hash?candidate.source_hash.slice(0,20)+'…':'분석 후 저장'}</dd>
           </dl>
-          <p className="note">{current.description?.slice(0,500) || '설명이 없습니다.'}</p>
+          <div className="tv-script-original">
+            {(scriptDetail?.hero_images?.[0] || current.image_url) &&
+              <img className="tv-script-hero" src={scriptDetail?.hero_images?.[0] || current.image_url || ''} alt={current.name} loading="lazy"/>}
+            <div className="tv-script-body">
+              <div className="panel-title"><b>TradingView 원본 전체 설명</b><span>{detailLoading?'수집 중':scriptDetail?.fetched_at?'DB 저장 완료':'목록 원문'}</span></div>
+              <div className="tv-full-text open">
+                {(scriptDetail?.full_text || current.description || '설명이 없습니다.').split('\n').map((line,i)=>line.trim()?<p key={i}>{line}</p>:<br key={i}/>)}
+              </div>
+              {scriptDetail?.content_images?.length ? <div className="tv-inline-images">
+                {scriptDetail.content_images.map((src,i)=><img src={src} alt={current.name+' chart '+(i+1)} loading="lazy" key={src+i}/>)}
+              </div> : null}
+              <small className="source-ref">출처 URL 보존: {current.chart_url || '—'}</small>
+            </div>
+          </div>
+          <div className="tv-pine-source">
+            <div className="panel-title"><b>공개 Pine 원문</b><span>{pineSource?.ok?((pineSource.source_chars||pineSource.source?.length||0).toLocaleString('ko-KR')+'자'):(pineSource?.protected?'보호된 소스':'수집 중')}</span></div>
+            {pineSource?.ok && pineSource.source ?
+              <pre>{pineSource.source}</pre> :
+              <div className="empty-state">{pineSource?.reason || (detailLoading?'Pine 원문을 수집 중입니다.':'공개 Pine 원문이 반환되지 않았습니다.')}</div>}
+          </div>
           <div className="actions left">
-            {current.chart_url && <a href={current.chart_url} target="_blank" rel="noreferrer">TradingView 원문 보기</a>}
             <button disabled={busy} onClick={analyze}>{candidate?'원천 분석 완료':'원천 분석 · 전략 후보 생성'}</button>
             <button disabled={busy} onClick={discoverHorizons}>{discovery.length?'사전 적합도 재분석':'시장·시간축 사전 적합도 분석'}</button>
             <button disabled={busy || !candidate} onClick={makeAgents}>통과 조합만 독립 에이전트 생성</button>
