@@ -3,7 +3,10 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException, Query
 
 from app.core.source_registry import (
+    batch_discover_pending_candidates,
     create_agents_from_discovery,
+    discovery_leaderboard,
+    discovery_queue_status,
     discover_candidate_horizons,
     get_source,
     list_candidate_discovery,
@@ -34,6 +37,28 @@ def strategy_source_detail(registry_source_id: str) -> dict:
     if item is None:
         raise HTTPException(status_code=404, detail=f"strategy source not found: {registry_source_id}")
     return item
+
+
+@router.get("/horizon-discovery/queue-status")
+def horizon_discovery_queue_status() -> dict:
+    return discovery_queue_status()
+
+
+@router.post("/horizon-discovery/batch")
+def horizon_discovery_batch(
+    limit: int = Query(default=100, ge=1, le=1000),
+    max_markets: int = Query(default=3, ge=1, le=10),
+) -> dict:
+    return batch_discover_pending_candidates(limit=limit, max_markets=max_markets)
+
+
+@router.get("/horizon-discovery/leaderboard")
+def horizon_discovery_leaderboard(
+    limit: int = Query(default=100, ge=1, le=1000),
+    min_score: float = Query(default=0.0, ge=0.0, le=100.0),
+) -> dict:
+    items = discovery_leaderboard(limit=limit, min_score=min_score)
+    return {"count": len(items), "items": items}
 
 
 @router.post("/horizon-discovery/{candidate_id}")
