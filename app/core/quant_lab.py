@@ -293,6 +293,9 @@ def update_symbols(experiment_id: str, symbols: list[str]) -> dict[str, Any]:
     plan = {
         "source_id": current["source_id"],
         "fixed_horizon": current["fixed_horizon"],
+        "country": current["country"],
+        "market": current["market"],
+        "universe": current["universe"],
     }
     status, reason = _initial_blocker(plan, symbol_list)
     now = utcnow()
