@@ -266,6 +266,16 @@ def init_db() -> None:
                 PRIMARY KEY (source_kind, source_id)
             );
 
+            CREATE TABLE IF NOT EXISTS collector_state (
+                collector_key TEXT PRIMARY KEY,
+                cursor_page INTEGER NOT NULL,
+                total_pages INTEGER NOT NULL,
+                items_seen INTEGER NOT NULL DEFAULT 0,
+                details_seen INTEGER NOT NULL DEFAULT 0,
+                last_error TEXT,
+                updated_at TEXT NOT NULL
+            );
+
             CREATE TABLE IF NOT EXISTS market_snapshots (
                 snapshot_id TEXT PRIMARY KEY,
                 market TEXT NOT NULL,
@@ -1169,6 +1179,160 @@ def create_candidate_from_script(script_id_part: str, fetch_source: bool = True)
         "status": "후보",
         "origin_source_immutable": True,
         "created_at": now,
+    }
+
+
+def _collector_state(key: str) -> dict[str, Any]:
+    init_db()
+    with _connect() as conn:
+        row = conn.execute(
+            "SELECT * FROM collector_state WHERE collector_key = ?",
+            (key,),
+        ).fetchone()
+        if row is None:
+            now = utcnow()
+            conn.execute(
+                """
+                INSERT INTO collector_state (
+                    collector_key,cursor_page,total_pages,items_seen,details_seen,last_error,updated_at
+                ) VALUES (?,?,?,?,?,?,?)
+                """,
+                (key, 1, 1, 0, 0, None, now),
+            )
+            return {
+                "collector_key": key,
+                "cursor_page": 1,
+                "total_pages": 1,
+                "items_seen": 0,
+                "details_seen": 0,
+                "last_error": None,
+                "updated_at": now,
+            }
+    return dict(row)
+
+
+def list_collector_states() -> list[dict[str, Any]]:
+    init_db()
+    with _connect() as conn:
+        rows = conn.execute(
+            "SELECT * FROM collector_state ORDER BY collector_key"
+        ).fetchall()
+    return [dict(row) for row in rows]
+
+
+def backfill_tradingview_source(
+    kind: str,
+    *,
+    pages: int = 1,
+    fetch_details: bool = True,
+    fetch_pine: bool = True,
+) -> dict[str, Any]:
+    kind_key = kind.strip().lower()
+    if kind_key not in {"ideas", "scripts"}:
+        raise ValueError(f"unsupported backfill kind: {kind}")
+    safe_pages = min(max(int(pages), 1), 10)
+    state_key = f"tradingview:{kind_key}"
+    state = _collector_state(state_key)
+    page = max(1, int(state["cursor_page"]))
+    processed_pages: list[int] = []
+    item_count = 0
+    detail_count = 0
+    pine_count = 0
+    errors: list[str] = []
+    total_pages = max(1, int(state.get("total_pages") or 1))
+
+    for _ in range(safe_pages):
+        current_page = page
+        try:
+            if kind_key == "ideas":
+                payload = collect_ideas(sort="recent", page=current_page, lang="ko")
+                items = list(payload.get("items") or [])
+                total_pages = max(1, int(payload.get("page_count") or 1))
+                for item in items:
+                    source_id = str(item.get("idea_id") or "")
+                    if not source_id:
+                        continue
+                    if fetch_details:
+                        try:
+                            fetch_source_detail("idea", source_id, force=False)
+                            detail_count += 1
+                        except Exception as exc:
+                            errors.append(f"idea:{source_id}:{type(exc).__name__}:{exc}")
+            else:
+                payload = collect_scripts(
+                    page=current_page,
+                    sort="recent_extended",
+                    topic=None,
+                    editors_picks=False,
+                )
+                items = list(payload.get("items") or [])
+                total_count = int(payload.get("total_count") or 0)
+                page_size = max(1, len(items) or 24)
+                total_pages = max(1, (total_count + page_size - 1) // page_size)
+                for item in items:
+                    source_id = str(item.get("script_id_part") or "")
+                    if not source_id:
+                        continue
+                    if fetch_details:
+                        try:
+                            fetch_source_detail("script", source_id, force=False)
+                            detail_count += 1
+                        except Exception as exc:
+                            errors.append(f"script-detail:{source_id}:{type(exc).__name__}:{exc}")
+                    if fetch_pine:
+                        try:
+                            pine = fetch_script_source(source_id, str(item.get("version") or "last"))
+                            if pine.get("ok"):
+                                pine_count += 1
+                        except Exception as exc:
+                            errors.append(f"script-pine:{source_id}:{type(exc).__name__}:{exc}")
+
+            item_count += len(items)
+            processed_pages.append(current_page)
+            page = current_page + 1
+            if page > total_pages:
+                page = 1
+        except Exception as exc:
+            errors.append(f"page:{current_page}:{type(exc).__name__}:{exc}")
+            page = current_page + 1 if current_page < total_pages else 1
+
+    now = utcnow()
+    with _connect() as conn:
+        conn.execute(
+            """
+            INSERT INTO collector_state (
+                collector_key,cursor_page,total_pages,items_seen,details_seen,last_error,updated_at
+            ) VALUES (?,?,?,?,?,?,?)
+            ON CONFLICT(collector_key) DO UPDATE SET
+                cursor_page=excluded.cursor_page,
+                total_pages=excluded.total_pages,
+                items_seen=collector_state.items_seen + excluded.items_seen,
+                details_seen=collector_state.details_seen + excluded.details_seen,
+                last_error=excluded.last_error,
+                updated_at=excluded.updated_at
+            """,
+            (
+                state_key,
+                page,
+                total_pages,
+                item_count,
+                detail_count,
+                errors[-1] if errors else None,
+                now,
+            ),
+        )
+
+    return {
+        "collector": state_key,
+        "processed_pages": processed_pages,
+        "next_page": page,
+        "total_pages": total_pages,
+        "items_processed": item_count,
+        "details_processed": detail_count,
+        "pine_sources_processed": pine_count,
+        "errors": errors[:20],
+        "error_count": len(errors),
+        "updated_at": now,
     }
 
 
