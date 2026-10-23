@@ -3,6 +3,9 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException, Query
 
 from app.core.source_registry import (
+    list_quant_handoff_agents,
+    batch_create_agents_from_discovery,
+    agent_factory_queue_status,
     batch_discover_pending_candidates,
     create_agents_from_discovery,
     discovery_leaderboard,
@@ -102,3 +105,33 @@ def agent_factory(
             status_code=502,
             detail=f"agent factory failed: {type(exc).__name__}: {exc}",
         ) from exc
+
+
+@router.get("/agent-factory/batch/status")
+def agent_factory_batch_status(
+    min_score: float = Query(default=72.0, ge=0.0, le=100.0),
+) -> dict:
+    return agent_factory_queue_status(min_score=min_score)
+
+
+@router.post("/agent-factory/batch")
+def agent_factory_batch(
+    limit_candidates: int = Query(default=100, ge=1, le=1000),
+    min_score: float = Query(default=72.0, ge=0.0, le=100.0),
+    max_agents_per_candidate: int = Query(default=12, ge=1, le=100),
+) -> dict:
+    return batch_create_agents_from_discovery(
+        limit_candidates=limit_candidates,
+        min_score=min_score,
+        max_agents_per_candidate=max_agents_per_candidate,
+    )
+
+
+@router.get("/quant-handoff/agents")
+def quant_handoff_agents(
+    limit: int = Query(default=100, ge=1, le=1000),
+    min_score: float = Query(default=72.0, ge=0.0, le=100.0),
+) -> dict:
+    items = list_quant_handoff_agents(limit=limit, min_score=min_score)
+    return {"count": len(items), "items": items}
+
