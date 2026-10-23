@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 type Tone = 'green' | 'red' | 'amber' | 'cyan' | 'purple' | 'muted';
 const API_BASE = 'https://autonomous-investor-tradingview-production.up.railway.app';
@@ -449,6 +449,7 @@ const marketViews:Partial<Record<MarketTab,string[]>> = {
   '회사채':['개요','변동성 상위','상승주','하락주'],
   'ETFs':['개요','거래량 상위','변동성 상위','상승주','하락주'],
   '지수':['개요','변동성 상위','상승주','하락주'],
+  '경제':['경제 캘린더'],
 };
 
 function scannerSortForView(view:string,tab:MarketTab):{sortBy:string;sortOrder:'asc'|'desc'} {
@@ -457,6 +458,41 @@ function scannerSortForView(view:string,tab:MarketTab):{sortBy:string;sortOrder:
   if(view==='하락주') return {sortBy:'change',sortOrder:'asc'};
   if(view==='시총 상위') return {sortBy:tab==='크립토'?'market_cap_calc':'market_cap_basic',sortOrder:'desc'};
   return {sortBy:'volume',sortOrder:'desc'};
+}
+
+function TradingViewEconomicCalendar(){
+  const host=useRef<HTMLDivElement | null>(null);
+  useEffect(()=>{
+    const node=host.current;
+    if(!node) return;
+    node.innerHTML='';
+    const container=document.createElement('div');
+    container.className='tradingview-widget-container tv-economic-widget';
+    container.style.height='780px';
+    container.style.width='100%';
+    const widget=document.createElement('div');
+    widget.className='tradingview-widget-container__widget';
+    widget.style.height='100%';
+    widget.style.width='100%';
+    const script=document.createElement('script');
+    script.type='text/javascript';
+    script.src='https://s3.tradingview.com/external-embedding/embed-widget-events.js';
+    script.async=true;
+    script.text=JSON.stringify({
+      colorTheme:'dark',
+      isTransparent:true,
+      locale:'kr',
+      countryFilter:'ar,au,br,ca,cn,fr,de,in,id,it,jp,kr,mx,ru,sa,za,tr,gb,us,eu',
+      importanceFilter:'-1,0,1',
+      width:'100%',
+      height:'100%',
+    });
+    container.appendChild(widget);
+    container.appendChild(script);
+    node.appendChild(container);
+    return ()=>{node.innerHTML='';};
+  },[]);
+  return <div ref={host} className="tv-economic-calendar-host"/>;
 }
 
 function TradingViewMarkets(){
@@ -577,9 +613,12 @@ function TradingViewMarkets(){
             <button disabled={!hasMore} onClick={()=>setMarketOffset(v=>v+marketPageSize)}>다음 50개</button>
           </div>
         </div>
-      </> : <div className="panel">
-        <div className="panel-title"><b>{tab}</b><span>TradingView 경제 원본 연결 대상</span></div>
-        <div className="empty-state">가상 데이터는 표시하지 않습니다. 경제 탭은 경제지표·경제 캘린더 전용 원본 수집기로 별도 연결합니다.</div>
+      </> : tab==='경제' ? <div className="panel tv-economic-panel">
+        <div className="panel-title"><b>TradingView 경제 캘린더</b><span>공식 위젯 · 우리 화면 안에서 직접 표시</span></div>
+        <TradingViewEconomicCalendar/>
+      </div> : <div className="panel">
+        <div className="panel-title"><b>{tab}</b><span>TradingView 원본 연결 상태</span></div>
+        <div className="empty-state">가상 데이터는 표시하지 않습니다.</div>
       </div>}
 
       <div className="panel market-match-panel">
