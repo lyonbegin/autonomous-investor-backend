@@ -680,8 +680,8 @@ def pipeline_status() -> dict[str, Any]:
             "name": "Python Experiment Engine",
             "engines": ["RD-Agent(Q)", "vectorbt"],
             "engine_ready": ready("rdagent", "vectorbt"),
-            "state": "CONTROL_READY",
-            "blocker": "Experiment Registry/Universe는 동작; 전략 실행기와 시계열 데이터가 준비돼야 실제 실행 가능",
+            "state": "READY",
+            "blocker": "StrategySpec-v1 지원 Pine은 실제 시계열로 바로 실행; 비지원 Pine은 명시적으로 차단",
         },
         {
             "order": 6,
@@ -725,8 +725,8 @@ def pipeline_status() -> dict[str, Any]:
             "name": "Holdout Validation",
             "engines": ["vectorbt", "Qlib"],
             "engine_ready": ready("vectorbt", "qlib"),
-            "state": "BLOCKED_STRATEGY_ENGINE" if not pine_ready else ("BLOCKED_DATA_SOURCE" if not toss_ready else "READY"),
-            "blocker": "Pine/StrategySpec 실행기 미연결" if not pine_ready else ("실제 OHLCV 자격증명 미설정" if not toss_ready else None),
+            "state": "READY" if public_history_ready else "BLOCKED_DATA_SOURCE",
+            "blocker": None if public_history_ready else "실제 OHLCV 데이터 소스 미연결",
         },
         {
             "order": 11,
@@ -735,7 +735,7 @@ def pipeline_status() -> dict[str, Any]:
             "engines": ["Riskfolio-Lib", "PyPortfolioOpt", "FinRL-Trading"],
             "engine_ready": ready("riskfolio", "pyportfolioopt", "finrl"),
             "state": "ENGINE_READY" if ready("riskfolio", "pyportfolioopt", "finrl") else "ENGINE_BLOCKED",
-            "blocker": "검증 완료 전략의 TargetPortfolio 연결 전" if ready("riskfolio", "pyportfolioopt", "finrl") else "Portfolio 엔진 일부 import 실패",
+            "blocker": "Walk-forward/Holdout 통과 Agent의 TargetPortfolio 자동 생성 연결이 다음 단계" if ready("riskfolio", "pyportfolioopt", "finrl") else "Portfolio 엔진 일부 import 실패",
         },
         {
             "order": 12,
