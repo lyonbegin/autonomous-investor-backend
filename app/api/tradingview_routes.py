@@ -10,6 +10,7 @@ from app.core.tradingview import (
     create_candidate_from_idea,
     create_candidate_from_script,
     fetch_script_source,
+    fetch_source_detail,
     get_agent_plan,
     list_agent_plans,
     list_agent_universe,
@@ -39,6 +40,19 @@ def ideas_live(
 def ideas_stored(limit: int = Query(default=100, ge=1, le=500)) -> dict:
     items = list_stored_ideas(limit=limit)
     return {"count": len(items), "items": items}
+
+
+@router.get("/ideas/{idea_id}/full")
+def idea_full(idea_id: str, force: bool = False) -> dict:
+    try:
+        return fetch_source_detail("idea", idea_id, force=force)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=f"idea not found: {idea_id}") from exc
+    except Exception as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"TradingView idea detail collection failed: {type(exc).__name__}: {exc}",
+        ) from exc
 
 
 @router.post("/ideas/{idea_id}/candidate")
@@ -93,6 +107,30 @@ def scripts_live(
 def scripts_stored(limit: int = Query(default=200, ge=1, le=1000)) -> dict:
     items = list_stored_scripts(limit=limit)
     return {"count": len(items), "items": items}
+
+
+@router.get("/scripts/{script_id_part}/full")
+def script_full(script_id_part: str, force: bool = False) -> dict:
+    try:
+        return fetch_source_detail("script", script_id_part, force=force)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=f"script not found: {script_id_part}") from exc
+    except Exception as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"TradingView script detail collection failed: {type(exc).__name__}: {exc}",
+        ) from exc
+
+
+@router.get("/scripts/{script_id_part}/source")
+def script_source(script_id_part: str, version: str = "last") -> dict:
+    try:
+        return fetch_script_source(script_id_part, version=version)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"TradingView Pine source fetch failed: {type(exc).__name__}: {exc}",
+        ) from exc
 
 
 @router.get("/scripts/{script_id_part}/source-info")
