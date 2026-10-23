@@ -425,6 +425,17 @@ type LiveMarketRow = {
   sector?:string | null;
   exchange?:string;
   type?:string;
+  'ticker-view'?:string | null;
+  'isin-displayed'?:string | null;
+  yield_to_worst?:number | string | null;
+  close_pct?:number | string | null;
+  close_net?:number | string | null;
+  current_coupon?:number | string | null;
+  maturity_date?:number | string | null;
+  'bond_issuer_type.tr'?:string | null;
+  'bond_snp_rating_lt.tr'?:string | null;
+  'bond_fitch_rating_lt.tr'?:string | null;
+  fundamental_currency_code?:string | null;
 };
 
 const liveMarketCode:Partial<Record<MarketTab,string>> = {
@@ -434,7 +445,7 @@ const liveMarketCode:Partial<Record<MarketTab,string>> = {
   '선물':'futures',
   '외환':'forex',
   '국채':'bonds',
-  '회사채':'bonds',
+  '회사채':'corporate-bonds',
   'ETFs':'etf',
   '지수':'indices',
 };
@@ -446,13 +457,18 @@ const marketViews:Partial<Record<MarketTab,string[]>> = {
   '선물':['개요','거래량 상위','변동성 상위','상승주','하락주'],
   '외환':['개요','변동성 상위','상승주','하락주'],
   '국채':['개요','변동성 상위','상승주','하락주'],
-  '회사채':['개요','변동성 상위','상승주','하락주'],
+  '회사채':['개요','최악수익률','쿠폰','만기'],
   'ETFs':['개요','거래량 상위','변동성 상위','상승주','하락주'],
   '지수':['개요','변동성 상위','상승주','하락주'],
   '경제':['경제 캘린더'],
 };
 
 function scannerSortForView(view:string,tab:MarketTab):{sortBy:string;sortOrder:'asc'|'desc'} {
+  if(tab==='회사채'){
+    if(view==='쿠폰') return {sortBy:'current_coupon',sortOrder:'desc'};
+    if(view==='만기') return {sortBy:'maturity_date',sortOrder:'asc'};
+    return {sortBy:'yield_to_worst',sortOrder:'desc'};
+  }
   if(view==='변동성 상위') return {sortBy:'Volatility.D',sortOrder:'desc'};
   if(view==='상승주') return {sortBy:'change',sortOrder:'desc'};
   if(view==='하락주') return {sortBy:'change',sortOrder:'asc'};
@@ -553,17 +569,31 @@ function TradingViewMarkets(){
     return ()=>controller.abort();
   },[tab,marketView,marketOffset]);
 
-  const liveTableRows=liveRows.map(x=>[
-    x.ticker || x.name || '',
-    x.description || '',
-    x.close===null || x.close===undefined ? '' : Number(x.close).toLocaleString('ko-KR'),
-    x.change===null || x.change===undefined ? '' : Number(x.change).toFixed(2)+'%',
-    x.volume===null || x.volume===undefined ? '' : Number(x.volume).toLocaleString('ko-KR'),
-    x['Volatility.D']===null || x['Volatility.D']===undefined ? '' : Number(x['Volatility.D']).toFixed(2)+'%',
-    x.relative_volume_10d_calc===null || x.relative_volume_10d_calc===undefined ? '' : Number(x.relative_volume_10d_calc).toFixed(2),
-    x.RSI===null || x.RSI===undefined ? '' : Number(x.RSI).toFixed(1),
-    x.exchange || '',
-  ]);
+  const liveHeaders=tab==='회사채'
+    ? ['심볼','채권','ISIN','최악수익률','쿠폰','만기','S&P','Fitch']
+    : ['티커','종목','현재가','등락률','거래량','일변동성','상대거래량','RSI','거래소'];
+  const liveTableRows=tab==='회사채'
+    ? liveRows.map(x=>[
+        x.ticker || x.name || '',
+        x['ticker-view'] || x.description || x.name || '',
+        x['isin-displayed'] || '',
+        x.yield_to_worst==null?'':Number(x.yield_to_worst).toFixed(2)+'%',
+        x.current_coupon==null?'':Number(x.current_coupon).toFixed(2)+'%',
+        x.maturity_date==null?'':String(x.maturity_date),
+        x['bond_snp_rating_lt.tr'] || '',
+        x['bond_fitch_rating_lt.tr'] || '',
+      ])
+    : liveRows.map(x=>[
+        x.ticker || x.name || '',
+        x.description || '',
+        x.close===null || x.close===undefined ? '' : Number(x.close).toLocaleString('ko-KR'),
+        x.change===null || x.change===undefined ? '' : Number(x.change).toFixed(2)+'%',
+        x.volume===null || x.volume===undefined ? '' : Number(x.volume).toLocaleString('ko-KR'),
+        x['Volatility.D']===null || x['Volatility.D']===undefined ? '' : Number(x['Volatility.D']).toFixed(2)+'%',
+        x.relative_volume_10d_calc===null || x.relative_volume_10d_calc===undefined ? '' : Number(x.relative_volume_10d_calc).toFixed(2),
+        x.RSI===null || x.RSI===undefined ? '' : Number(x.RSI).toFixed(1),
+        x.exchange || '',
+      ]);
   const views=marketViews[tab]||[];
   const page=Math.floor(marketOffset/marketPageSize)+1;
   const pageCount=liveTotal?Math.max(1,Math.ceil(liveTotal/marketPageSize)):1;
@@ -606,7 +636,7 @@ function TradingViewMarkets(){
             <span>{liveCollectedAt?'DB 스냅샷 '+liveCollectedAt:'실시간 조회'}</span>
           </div>
           {liveError ? <div className="empty-state">{liveError}</div> :
-            <DataTable headers={['티커','종목','현재가','등락률','거래량','일변동성','상대거래량','RSI','거래소']} rows={liveTableRows}/>}
+            <DataTable headers={liveHeaders} rows={liveTableRows}/>}
           <div className="tv-pagination">
             <button disabled={marketOffset<=0} onClick={()=>setMarketOffset(v=>Math.max(0,v-marketPageSize))}>이전 50개</button>
             <button className="active">{page} / {pageCount}</button>
