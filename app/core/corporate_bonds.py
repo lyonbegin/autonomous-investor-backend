@@ -3,8 +3,11 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import threading
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any
+from urllib import error
 
 from app.core.tradingview import (
     MARKET_SCANNER_PROFILES,
@@ -22,6 +25,13 @@ BOND_URL = SCANNER_URL.format(market="bond") + "?label-product=popup-screener-bo
 BOND_COLUMNS = list(MARKET_SCANNER_PROFILES[MARKET]["columns"])
 COLUMN_INDEX = {name: idx for idx, name in enumerate(BOND_COLUMNS)}
 CORPORATE_FILTER = {"left": "typespecs", "operation": "has", "right": "corporate"}
+
+# TradingView throttles anonymous Bond Screener requests aggressively. All bond
+# worker threads share this limiter so concurrency cannot turn into a burst.
+_QUERY_LOCK = threading.Lock()
+_NEXT_QUERY_AT = 0.0
+_QUERY_INTERVAL_SECONDS = 0.25
+_MAX_QUERY_RETRIES = 7
 
 # Four disjoint areas cover the current public corporate-bond universe.
 # Each phase has a numeric primary key so the 10-row anonymous cap can be
@@ -143,6 +153,16 @@ def _normalize_row(item: dict[str, Any]) -> dict[str, Any]:
     return row
 
 
+def _wait_for_query_slot() -> None:
+    global _NEXT_QUERY_AT
+    with _QUERY_LOCK:
+        now = time.monotonic()
+        wait_for = max(0.0, _NEXT_QUERY_AT - now)
+        if wait_for > 0:
+            time.sleep(wait_for)
+        _NEXT_QUERY_AT = time.monotonic() + _QUERY_INTERVAL_SECONDS
+
+
 def _query(
     filters: list[dict[str, Any]],
     *,
@@ -157,11 +177,36 @@ def _query(
         "sort": {"sortBy": sort_by, "sortOrder": sort_order},
         "range": [0, 10],
     }
-    raw = _http_json(BOND_URL, method="POST", payload=payload)
-    return {
-        "total_count": int(raw.get("totalCount") or 0),
-        "items": [_normalize_row(x) for x in (raw.get("data") or []) if isinstance(x, dict)],
-    }
+
+    last_error: Exception | None = None
+    for attempt in range(_MAX_QUERY_RETRIES):
+        _wait_for_query_slot()
+        try:
+            raw = _http_json(BOND_URL, method="POST", payload=payload)
+            return {
+                "total_count": int(raw.get("totalCount") or 0),
+                "items": [_normalize_row(x) for x in (raw.get("data") or []) if isinstance(x, dict)],
+            }
+        except error.HTTPError as exc:
+            last_error = exc
+            if exc.code != 429:
+                raise
+            retry_after = 0.0
+            try:
+                retry_after = float(exc.headers.get("Retry-After") or 0)
+            except (TypeError, ValueError):
+                retry_after = 0.0
+            delay = max(retry_after, min(30.0, 1.25 * (2 ** attempt)))
+            time.sleep(delay)
+        except Exception as exc:
+            last_error = exc
+            if attempt >= _MAX_QUERY_RETRIES - 1:
+                raise
+            time.sleep(min(10.0, 0.75 * (attempt + 1)))
+
+    if last_error is not None:
+        raise last_error
+    raise RuntimeError("TradingView bond query failed without an exception")
 
 
 def _numeric_value(row: dict[str, Any], field: str) -> float | None:
@@ -668,7 +713,7 @@ def corporate_bond_backfill(
 
     results: list[dict[str, Any]] = []
     if tasks:
-        with ThreadPoolExecutor(max_workers=min(16, len(tasks))) as executor:
+        with ThreadPoolExecutor(max_workers=min(4, len(tasks))) as executor:
             futures = [
                 executor.submit(_process_task, dict(task), safe_pages)
                 for task in tasks
@@ -682,7 +727,7 @@ def corporate_bond_backfill(
         "scan_id": scan_id,
         "source_total": int(state.get("source_total") or 0),
         "selected_tasks": len(tasks),
-        "workers": min(16, max(1, len(tasks))),
+        "workers": min(4, max(1, len(tasks))),
         "pages_per_task": safe_pages,
         "tasks_completed_this_run": sum(1 for x in results if x.get("complete")),
         "rows_added_this_run": sum(int(x.get("added") or 0) for x in results),
@@ -728,11 +773,27 @@ def corporate_bond_status() -> dict[str, Any]:
             "SELECT COUNT(*) AS c FROM corporate_bond_scan_rows WHERE scan_id=?",
             (scan_id,),
         ).fetchone()["c"])
+        error_rows = conn.execute(
+            """
+            SELECT last_error,COUNT(*) AS count
+            FROM corporate_bond_scan_tasks
+            WHERE scan_id=? AND status='ERROR'
+            GROUP BY last_error
+            ORDER BY count DESC
+            LIMIT 20
+            """,
+            (scan_id,),
+        ).fetchall()
+        error_summary = [
+            {"error": str(row["last_error"] or ""), "count": int(row["count"] or 0)}
+            for row in error_rows
+        ]
         item.update({
             "stored_count": stored,
             "tasks_total": int(counts["total"] or 0),
             "tasks_complete": int(counts["complete"] or 0),
             "tasks_error": int(counts["errors"] or 0),
+            "error_summary": error_summary,
             "pages_done": int(counts["pages_done"] or 0),
             "progress": round(
                 stored / max(int(item.get("source_total") or 0), 1) * 100,
