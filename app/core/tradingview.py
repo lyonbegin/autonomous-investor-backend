@@ -1445,54 +1445,60 @@ def storage_stats() -> dict[str, Any]:
 
 
 def compact_market_storage() -> dict[str, Any]:
-    """Emergency compaction when the Railway volume is full.
-
-    No source content is discarded: only the duplicate legacy universe table is
-    released. SQLite journaling is disabled for this one maintenance operation
-    so DROP TABLE does not need extra free disk space.
-    """
+    """Release legacy/derivative storage while preserving exact source rows."""
     init_db()
-    conn = sqlite3.connect(DB_PATH, timeout=30, isolation_level=None)
-    conn.row_factory = sqlite3.Row
+    conn=sqlite3.connect(DB_PATH,timeout=60,isolation_level=None)
+    conn.row_factory=sqlite3.Row
     try:
-        before = {
-            "page_count": int(conn.execute("PRAGMA page_count").fetchone()[0]),
-            "freelist_count": int(conn.execute("PRAGMA freelist_count").fetchone()[0]),
-            "page_size": int(conn.execute("PRAGMA page_size").fetchone()[0]),
-            "market_universe_current": int(conn.execute("SELECT COUNT(*) c FROM market_universe_current").fetchone()["c"]),
-            "market_universe_rows": int(conn.execute("SELECT COUNT(*) c FROM market_universe_rows").fetchone()["c"]),
-            "market_snapshots": int(conn.execute("SELECT COUNT(*) c FROM market_snapshots").fetchone()["c"]),
-        }
-        try:
-            conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
-        except Exception:
-            pass
-        conn.execute("PRAGMA journal_mode=OFF")
+        conn.execute("PRAGMA busy_timeout=60000")
+        conn.execute("PRAGMA journal_mode=MEMORY")
+        conn.execute("PRAGMA temp_store=MEMORY")
         conn.execute("PRAGMA synchronous=OFF")
-        conn.execute("DROP TABLE IF EXISTS market_universe_rows")
-        # Snapshot history is derivative of the canonical current universe.
-        # Keep only the latest row per market/ticker, deleting in-place without
-        # building a temporary copy.
+        before={
+            "page_count":int(conn.execute("PRAGMA page_count").fetchone()[0]),
+            "freelist_count":int(conn.execute("PRAGMA freelist_count").fetchone()[0]),
+            "page_size":int(conn.execute("PRAGMA page_size").fetchone()[0]),
+            "market_universe_current":int(conn.execute("SELECT COUNT(*) FROM market_universe_current").fetchone()[0]),
+            "market_universe_rows":int(conn.execute("SELECT COUNT(*) FROM market_universe_rows").fetchone()[0]),
+            "market_snapshots":int(conn.execute("SELECT COUNT(*) FROM market_snapshots").fetchone()[0]),
+        }
+        conn.execute("BEGIN IMMEDIATE")
+        # Exact row storage is canonical. Legacy current rows can be released
+        # only for markets that already have a completed exact scan.
+        conn.execute(
+            """
+            DELETE FROM market_universe_current
+            WHERE market IN (
+              SELECT market FROM market_collector_state
+              WHERE completed_scan_id IS NOT NULL
+            )
+            """
+        )
+        # Snapshot history is derivative; retain latest row per market/ticker.
         conn.execute(
             """
             DELETE FROM market_snapshots
             WHERE rowid NOT IN (
-              SELECT MAX(rowid)
-              FROM market_snapshots
-              GROUP BY market,ticker
+              SELECT MAX(rowid) FROM market_snapshots GROUP BY market,ticker
             )
             """
         )
-        after = {
-            "page_count": int(conn.execute("PRAGMA page_count").fetchone()[0]),
-            "freelist_count": int(conn.execute("PRAGMA freelist_count").fetchone()[0]),
-            "page_size": int(conn.execute("PRAGMA page_size").fetchone()[0]),
-            "market_universe_current": int(conn.execute("SELECT COUNT(*) c FROM market_universe_current").fetchone()["c"]),
-            "market_snapshots": int(conn.execute("SELECT COUNT(*) c FROM market_snapshots").fetchone()["c"]),
+        conn.execute("COMMIT")
+        after={
+            "page_count":int(conn.execute("PRAGMA page_count").fetchone()[0]),
+            "freelist_count":int(conn.execute("PRAGMA freelist_count").fetchone()[0]),
+            "page_size":int(conn.execute("PRAGMA page_size").fetchone()[0]),
+            "market_universe_current":int(conn.execute("SELECT COUNT(*) FROM market_universe_current").fetchone()[0]),
+            "market_universe_rows":int(conn.execute("SELECT COUNT(*) FROM market_universe_rows").fetchone()[0]),
+            "market_snapshots":int(conn.execute("SELECT COUNT(*) FROM market_snapshots").fetchone()[0]),
         }
-        after["free_bytes"] = after["freelist_count"] * after["page_size"]
-        before["free_bytes"] = before["freelist_count"] * before["page_size"]
+        for obj in (before,after):
+            obj["free_bytes"]=obj["freelist_count"]*obj["page_size"]
         return {"before":before,"after":after,"at":utcnow()}
+    except Exception:
+        try: conn.execute("ROLLBACK")
+        except Exception: pass
+        raise
     finally:
         conn.close()
 
