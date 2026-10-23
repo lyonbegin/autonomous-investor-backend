@@ -1177,6 +1177,25 @@ def backfill_market_universe(
     total_count = max(0, int(state["total_count"]))
     last_error: str | None = None
 
+    # If the exact-row storage was introduced after a legacy partial sweep,
+    # restart the current market from zero instead of inheriting an offset
+    # whose earlier rows do not exist in the new table.
+    with _connect() as conn:
+        exact_count = int(conn.execute(
+            "SELECT COUNT(*) AS c FROM market_universe_rows WHERE market=? AND scan_id=?",
+            (market_key,scan_id),
+        ).fetchone()["c"])
+        if exact_count == 0 and offset > 0:
+            offset = 0
+            conn.execute(
+                """
+                UPDATE market_collector_state
+                SET cursor_offset=0,last_error=NULL,updated_at=?
+                WHERE market=?
+                """,
+                (utcnow(),market_key),
+            )
+
     # TradingView's anonymous Bond Screener currently exposes only the first
     # 10 corporate-bond rows and ignores offset/range pagination. Do not
     # misreport those 10 rows as a completed 167k+ universe.
