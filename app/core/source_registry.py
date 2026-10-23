@@ -176,7 +176,7 @@ def sync_tradingview_sources(limit: int = 2000) -> dict[str, Any]:
             ORDER BY collected_at DESC
             LIMIT ?
             """,
-            (DISCOVERY_SCORING_VERSION, safe_limit),
+            (safe_limit,),
         ).fetchall()
         scripts = conn.execute(
             """
@@ -868,7 +868,7 @@ def batch_discover_pending_candidates(
             ORDER BY COALESCE(c.updated_at,c.created_at) DESC, c.candidate_id
             LIMIT ?
             """,
-            (safe_limit,),
+            (DISCOVERY_SCORING_VERSION, safe_limit),
         ).fetchall()
 
     processed = 0
