@@ -610,94 +610,72 @@ def _process_task(task: dict[str, Any], max_pages: int) -> dict[str, Any]:
 
 def _finalize_if_complete(scan_id: str) -> bool:
     init_corporate_bond_db()
-    conn = sqlite3.connect(DB_PATH, timeout=120, isolation_level=None)
-    conn.row_factory = sqlite3.Row
+    conn=sqlite3.connect(DB_PATH,timeout=180,isolation_level=None)
+    conn.row_factory=sqlite3.Row
     try:
-        conn.execute("PRAGMA busy_timeout = 120000")
+        conn.execute("PRAGMA busy_timeout=180000")
         conn.execute("PRAGMA journal_mode=MEMORY")
         conn.execute("PRAGMA temp_store=MEMORY")
         conn.execute("PRAGMA synchronous=OFF")
-
-        remaining = int(conn.execute(
-            """
-            SELECT COUNT(*) AS c
-            FROM corporate_bond_scan_tasks
-            WHERE scan_id=? AND status<>'COMPLETE'
-            """,
+        remaining=int(conn.execute(
+            "SELECT COUNT(*) FROM corporate_bond_scan_tasks WHERE scan_id=? AND status<>'COMPLETE'",
             (scan_id,),
-        ).fetchone()["c"])
+        ).fetchone()[0])
         if remaining:
             return False
-
-        rows = conn.execute(
-            "SELECT ticker,raw_json,collected_at FROM corporate_bond_scan_rows WHERE scan_id=?",
+        rows=conn.execute(
+            "SELECT ticker,raw_json,collected_at FROM corporate_bond_scan_rows WHERE scan_id=? ORDER BY ticker",
             (scan_id,),
         ).fetchall()
         if not rows:
             return False
 
-        completed = utcnow()
+        completed=utcnow()
         conn.execute("BEGIN IMMEDIATE")
+        conn.execute("DELETE FROM market_universe_rows WHERE market=? AND scan_id=?",(MARKET,scan_id))
         conn.executemany(
             """
-            INSERT INTO market_universe_current (
-                market,ticker,name,description,exchange,asset_type,raw_json,
-                scan_id,rank_index,collected_at
+            INSERT INTO market_universe_rows (
+                market,scan_id,rank_index,ticker,name,description,exchange,asset_type,
+                raw_json,collected_at
             ) VALUES (?,?,?,?,?,?,?,?,?,?)
-            ON CONFLICT(market,ticker) DO UPDATE SET
-                name=excluded.name,
-                description=excluded.description,
-                exchange=excluded.exchange,
-                asset_type=excluded.asset_type,
-                raw_json=excluded.raw_json,
-                scan_id=excluded.scan_id,
-                rank_index=excluded.rank_index,
-                collected_at=excluded.collected_at
             """,
             [
                 (
-                    MARKET,
-                    row["ticker"],
-                    (raw := json.loads(str(row["raw_json"]))).get("name"),
-                    raw.get("description"),
-                    raw.get("exchange"),
-                    raw.get("type"),
-                    row["raw_json"],
-                    scan_id,
-                    rank,
-                    row["collected_at"],
+                    MARKET,scan_id,rank,row["ticker"],
+                    (raw:=json.loads(str(row["raw_json"]))).get("name"),
+                    raw.get("description"),raw.get("exchange"),raw.get("type"),
+                    row["raw_json"],row["collected_at"],
                 )
-                for rank, row in enumerate(rows, start=1)
+                for rank,row in enumerate(rows,start=1)
             ],
         )
         conn.execute(
-            "DELETE FROM market_universe_current WHERE market=? AND scan_id<>?",
-            (MARKET, scan_id),
+            "DELETE FROM market_universe_rows WHERE market=? AND scan_id<>?",
+            (MARKET,scan_id),
         )
-        new_scan_id = _market_cycle_id(MARKET)
-        market_state = conn.execute(
-            "SELECT market FROM market_collector_state WHERE market=?",
-            (MARKET,),
-        ).fetchone()
-        if market_state is None:
+        conn.execute("DELETE FROM market_universe_current WHERE market=?",(MARKET,))
+        new_scan_id=_market_cycle_id(MARKET)
+        state=conn.execute("SELECT market FROM market_collector_state WHERE market=?",(MARKET,)).fetchone()
+        if state is None:
             conn.execute(
                 """
                 INSERT INTO market_collector_state (
-                    market,cursor_offset,total_count,scan_id,cycle_started_at,
-                    last_completed_at,last_error,updated_at
-                ) VALUES (?,?,?,?,?,?,?,?)
+                    market,cursor_offset,total_count,scan_id,cycle_started_at,last_completed_at,
+                    last_error,updated_at,completed_scan_id
+                ) VALUES (?,?,?,?,?,?,?,?,?)
                 """,
-                (MARKET,0,len(rows),new_scan_id,completed,completed,None,completed),
+                (MARKET,0,len(rows),new_scan_id,completed,completed,None,completed,scan_id),
             )
         else:
             conn.execute(
                 """
                 UPDATE market_collector_state
-                SET cursor_offset=0,total_count=?,scan_id=?,cycle_started_at=?,
-                    last_completed_at=?,last_error=NULL,updated_at=?
+                SET cursor_offset=0,total_count=?,scan_id=?,completed_scan_id=?,
+                    cycle_started_at=?,last_completed_at=?,last_error=NULL,updated_at=?
                 WHERE market=?
                 """,
-                (len(rows),new_scan_id,completed,completed,completed,MARKET),
+                (len(rows),new_scan_id,scan_id,completed,completed,completed,MARKET),
             )
         conn.execute(
             """
@@ -705,15 +683,13 @@ def _finalize_if_complete(scan_id: str) -> bool:
             SET status='COMPLETE',completed_at=?,last_error=NULL,updated_at=?
             WHERE market=?
             """,
-            (completed, completed, MARKET),
+            (completed,completed,MARKET),
         )
         conn.execute("COMMIT")
         return True
     except Exception:
-        try:
-            conn.execute("ROLLBACK")
-        except Exception:
-            pass
+        try: conn.execute("ROLLBACK")
+        except Exception: pass
         raise
     finally:
         conn.close()
