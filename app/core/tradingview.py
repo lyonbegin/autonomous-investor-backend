@@ -7,6 +7,7 @@ import json
 import os
 import sqlite3
 from datetime import UTC, datetime, timedelta
+from concurrent.futures import ThreadPoolExecutor
 from html.parser import HTMLParser
 from typing import Any
 from urllib import parse, request
@@ -212,7 +213,8 @@ def utcnow() -> str:
 
 def _connect() -> sqlite3.Connection:
     os.makedirs(os.path.dirname(DB_PATH) or ".", exist_ok=True)
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, timeout=30)
+    conn.execute("PRAGMA busy_timeout = 30000")
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -1265,6 +1267,46 @@ def list_collector_states() -> list[dict[str, Any]]:
     return [dict(row) for row in rows]
 
 
+def _backfill_idea_item(item: dict[str, Any], fetch_details: bool) -> tuple[int, int, list[str]]:
+    source_id = str(item.get("idea_id") or "")
+    if not source_id:
+        return 0, 0, []
+    if not fetch_details:
+        return 0, 0, []
+    try:
+        fetch_source_detail("idea", source_id, force=False)
+        return 1, 0, []
+    except Exception as exc:
+        return 0, 0, [f"idea:{source_id}:{type(exc).__name__}:{exc}"]
+
+
+def _backfill_script_item(
+    item: dict[str, Any],
+    fetch_details: bool,
+    fetch_pine: bool,
+) -> tuple[int, int, list[str]]:
+    source_id = str(item.get("script_id_part") or "")
+    if not source_id:
+        return 0, 0, []
+    detail_count = 0
+    pine_count = 0
+    errors: list[str] = []
+    if fetch_details:
+        try:
+            fetch_source_detail("script", source_id, force=False)
+            detail_count = 1
+        except Exception as exc:
+            errors.append(f"script-detail:{source_id}:{type(exc).__name__}:{exc}")
+    if fetch_pine:
+        try:
+            pine = fetch_script_source(source_id, str(item.get("version") or "last"))
+            if pine.get("ok"):
+                pine_count = 1
+        except Exception as exc:
+            errors.append(f"script-pine:{source_id}:{type(exc).__name__}:{exc}")
+    return detail_count, pine_count, errors
+
+
 def backfill_tradingview_source(
     kind: str,
     *,
@@ -1275,7 +1317,7 @@ def backfill_tradingview_source(
     kind_key = kind.strip().lower()
     if kind_key not in {"ideas", "scripts"}:
         raise ValueError(f"unsupported backfill kind: {kind}")
-    safe_pages = min(max(int(pages), 1), 10)
+    safe_pages = min(max(int(pages), 1), 25)
     state_key = f"tradingview:{kind_key}"
     state = _collector_state(state_key)
     page = max(1, int(state["cursor_page"]))
@@ -1293,16 +1335,16 @@ def backfill_tradingview_source(
                 payload = collect_ideas(sort="recent", page=current_page, lang="ko")
                 items = list(payload.get("items") or [])
                 total_pages = max(1, int(payload.get("page_count") or 1))
-                for item in items:
-                    source_id = str(item.get("idea_id") or "")
-                    if not source_id:
-                        continue
-                    if fetch_details:
-                        try:
-                            fetch_source_detail("idea", source_id, force=False)
-                            detail_count += 1
-                        except Exception as exc:
-                            errors.append(f"idea:{source_id}:{type(exc).__name__}:{exc}")
+                if fetch_details and items:
+                    with ThreadPoolExecutor(max_workers=8) as executor:
+                        results = list(executor.map(
+                            lambda item: _backfill_idea_item(item, fetch_details),
+                            items,
+                        ))
+                    for d_count, p_count, item_errors in results:
+                        detail_count += d_count
+                        pine_count += p_count
+                        errors.extend(item_errors)
             else:
                 payload = collect_scripts(
                     page=current_page,
@@ -1314,23 +1356,16 @@ def backfill_tradingview_source(
                 total_count = int(payload.get("total_count") or 0)
                 page_size = max(1, len(items) or 24)
                 total_pages = max(1, (total_count + page_size - 1) // page_size)
-                for item in items:
-                    source_id = str(item.get("script_id_part") or "")
-                    if not source_id:
-                        continue
-                    if fetch_details:
-                        try:
-                            fetch_source_detail("script", source_id, force=False)
-                            detail_count += 1
-                        except Exception as exc:
-                            errors.append(f"script-detail:{source_id}:{type(exc).__name__}:{exc}")
-                    if fetch_pine:
-                        try:
-                            pine = fetch_script_source(source_id, str(item.get("version") or "last"))
-                            if pine.get("ok"):
-                                pine_count += 1
-                        except Exception as exc:
-                            errors.append(f"script-pine:{source_id}:{type(exc).__name__}:{exc}")
+                if items and (fetch_details or fetch_pine):
+                    with ThreadPoolExecutor(max_workers=8) as executor:
+                        results = list(executor.map(
+                            lambda item: _backfill_script_item(item, fetch_details, fetch_pine),
+                            items,
+                        ))
+                    for d_count, p_count, item_errors in results:
+                        detail_count += d_count
+                        pine_count += p_count
+                        errors.extend(item_errors)
 
             item_count += len(items)
             processed_pages.append(current_page)
@@ -1377,6 +1412,7 @@ def backfill_tradingview_source(
         "pine_sources_processed": pine_count,
         "errors": errors[:20],
         "error_count": len(errors),
+        "workers": 8,
         "updated_at": now,
     }
 
