@@ -519,16 +519,26 @@ type LiveMarketRow = {
 
 const liveMarketCode:Partial<Record<MarketTab,string>> = {
   '한국 주식':'korea',
-  '세계 주식':'america',
+  '세계 주식':'global-stocks',
   '크립토':'crypto',
+  '선물':'futures',
   '외환':'forex',
+  '국채':'bonds',
+  '회사채':'bonds',
+  'ETFs':'etf',
+  '지수':'indices',
 };
 
 const marketViews:Partial<Record<MarketTab,string[]>> = {
-  '한국 주식':['개요','거래량 상위','변동성 상위','상승주','하락주','실적 캘린더','IPO 캘린더'],
+  '한국 주식':['개요','거래량 상위','변동성 상위','상승주','하락주'],
   '세계 주식':['개요','시총 상위','거래량 상위','변동성 상위','상승주','하락주'],
-  '크립토':['개요','거래량 상위','변동성 상위','상승주','하락주','TVL'],
-  '외환':['개요','거래량 상위','변동성 상위','상승주','하락주','통화지수'],
+  '크립토':['개요','시총 상위','거래량 상위','변동성 상위','상승주','하락주'],
+  '선물':['개요','거래량 상위','변동성 상위','상승주','하락주'],
+  '외환':['개요','변동성 상위','상승주','하락주'],
+  '국채':['개요','변동성 상위','상승주','하락주'],
+  '회사채':['개요','변동성 상위','상승주','하락주'],
+  'ETFs':['개요','거래량 상위','변동성 상위','상승주','하락주'],
+  '지수':['개요','변동성 상위','상승주','하락주'],
 };
 
 function scannerSortForView(view:string,tab:MarketTab):{sortBy:string;sortOrder:'asc'|'desc'} {
@@ -546,26 +556,34 @@ function TradingViewMarkets(){
   const [liveTotal,setLiveTotal]=useState<number | null>(null);
   const [liveCollectedAt,setLiveCollectedAt]=useState('');
   const [liveError,setLiveError]=useState('');
-  const data=marketData[tab];
+  const [marketOffset,setMarketOffset]=useState(0);
+  const [hasMore,setHasMore]=useState(false);
+  const [selectedTicker,setSelectedTicker]=useState('');
+  const marketPageSize=50;
 
   useEffect(()=>{
     setMarketView('개요');
+    setMarketOffset(0);
+    setSelectedTicker('');
   },[tab]);
+
+  useEffect(()=>{setMarketOffset(0);},[marketView]);
 
   useEffect(()=>{
     const code=liveMarketCode[tab];
-    const sort=scannerSortForView(marketView,tab);
-    const supported=marketView!=='실적 캘린더' && marketView!=='IPO 캘린더' && marketView!=='TVL' && marketView!=='통화지수';
-    if(!code || !supported){
+    if(!code){
       setLiveRows([]);
       setLiveTotal(null);
       setLiveCollectedAt('');
       setLiveError('');
+      setHasMore(false);
       return;
     }
+    const sort=scannerSortForView(marketView,tab);
     const controller=new AbortController();
     const params=new URLSearchParams({
-      limit:'50',
+      limit:String(marketPageSize),
+      offset:String(marketOffset),
       sort_by:sort.sortBy,
       sort_order:sort.sortOrder,
     });
@@ -576,15 +594,18 @@ function TradingViewMarkets(){
         return r.json();
       })
       .then(res=>{
-        setLiveRows((res.items||[]) as LiveMarketRow[]);
+        const rows=(res.items||[]) as LiveMarketRow[];
+        setLiveRows(rows);
         setLiveTotal(typeof res.total_count==='number'?res.total_count:null);
         setLiveCollectedAt(res.collected_at||'');
+        setHasMore(Boolean(res.has_more));
+        setSelectedTicker(prev=>rows.some(x=>x.ticker===prev)?prev:(rows[0]?.ticker||''));
       })
       .catch(e=>{
         if(e?.name!=='AbortError') setLiveError('TradingView Scanner 실데이터 연결 오류');
       });
     return ()=>controller.abort();
-  },[tab,marketView]);
+  },[tab,marketView,marketOffset]);
 
   const liveTableRows=liveRows.map(x=>[
     x.ticker || x.name || '',
@@ -597,57 +618,68 @@ function TradingViewMarkets(){
     x.RSI===null || x.RSI===undefined ? '' : Number(x.RSI).toFixed(1),
     x.exchange || '',
   ]);
-
   const views=marketViews[tab]||[];
-  const scannerSupported=Boolean(liveMarketCode[tab]) && !['실적 캘린더','IPO 캘린더','TVL','통화지수'].includes(marketView);
+  const page=Math.floor(marketOffset/marketPageSize)+1;
+  const pageCount=liveTotal?Math.max(1,Math.ceil(liveTotal/marketPageSize)):1;
+  const chartSrc=selectedTicker
+    ? 'https://s.tradingview.com/widgetembed/?frameElementId=tv-market-chart&symbol='+encodeURIComponent(selectedTicker)+'&interval=D&hidesidetoolbar=0&symboledit=1&saveimage=1&toolbarbg=131722&theme=dark&style=1&timezone=Asia%2FSeoul&withdateranges=1&showpopupbutton=0&locale=kr'
+    : '';
 
   return <>
     <TradingViewHeader active="markets"/>
     <div className="tv-page markets-page">
       <div className="market-hero">
-        <div><span>마켓</span><h1>{tab}</h1><p>시장 탐색 데이터가 전략 적합도·Universe 구성·에이전트 생성으로 직접 연결됩니다.</p></div>
-        <div className="market-clock"><b>실시간 시장 탐색</b><span>TradingView Scanner + 15분 자동 적재</span></div>
+        <div><span>마켓</span><h1>{tab}</h1><p>TradingView Scanner 원본 데이터 전체를 페이지 단위로 조회하고 선택 종목 차트를 이 화면 안에서 직접 표시합니다.</p></div>
+        <div className="market-clock"><b>TradingView 원본</b><span>Scanner 실수집 · DB 스냅샷 · 화면 내 차트</span></div>
       </div>
       <div className="market-tabs">{marketTabs.map(x=><button className={tab===x?'active':''} key={x} onClick={()=>setTab(x)}>{x}</button>)}</div>
       <div className="market-submenu">
-        {views.length>0 ? views.map(x=><button key={x} className={marketView===x?'active':''} onClick={()=>setMarketView(x)}>{x}</button>) :
-          <>
-            {tab==='선물' && <><button className="active">개요</button><button>에너지</button><button>농산물</button><button>금속</button><button>지수</button><button>통화</button></>}
-            {tab==='국채' && <><button className="active">개요</button><button>미국</button><button>유럽</button><button>아시아</button><button>수익률곡선</button></>}
-            {tab==='회사채' && <><button className="active">개요</button><button>등급별</button><button>만기별</button><button>수익률</button></>}
-            {tab==='ETFs' && <><button className="active">개요</button><button>랭킹</button><button>자산군</button><button>섹터</button><button>국가</button></>}
-            {tab==='경제' && <><button className="active">개요</button><button>경제지표</button><button>캘린더</button><button>국가</button></>}
-            {tab==='지수' && <><button className="active">개요</button><button>주요 지수</button><button>지역별</button><button>섹터 지수</button></>}
-          </>}
+        {views.map(x=><button key={x} className={marketView===x?'active':''} onClick={()=>setMarketView(x)}>{x}</button>)}
       </div>
 
-      {liveMarketCode[tab] && scannerSupported && <div className="panel">
-        <div className="panel-title">
-          <b>TradingView Scanner · {marketView}</b>
-          <span>{liveTotal===null?'실시간 조회':('전체 '+liveTotal.toLocaleString('ko-KR')+'개 · 현재 50개')} {liveCollectedAt?'· DB 스냅샷 저장':''}</span>
+      {liveMarketCode[tab] ? <>
+        <div className="grid two tv-market-live-grid">
+          <div className="panel">
+            <div className="panel-title"><b>TradingView Scanner · {marketView}</b><span>{liveTotal===null?'조회 중':('전체 '+liveTotal.toLocaleString('ko-KR')+'개 · '+page+'/'+pageCount+'페이지')}</span></div>
+            <div className="tv-market-symbols">
+              {liveRows.map(x=><button key={x.ticker||x.name} className={selectedTicker===x.ticker?'active':''} onClick={()=>setSelectedTicker(x.ticker||'')}>
+                <b>{x.ticker||x.name}</b><span>{x.description||''}</span><small>{x.change==null?'':Number(x.change).toFixed(2)+'%'}</small>
+              </button>)}
+            </div>
+          </div>
+          <div className="panel tv-market-chart-panel">
+            <div className="panel-title"><b>{selectedTicker||'종목 선택'} 실시간 차트</b><span>TradingView 차트 직접 표시</span></div>
+            {chartSrc?<iframe id="tv-market-chart" className="tv-market-iframe" src={chartSrc} title={selectedTicker+' TradingView chart'} />:
+              <div className="empty-state">차트를 표시할 종목을 선택하십시오.</div>}
+          </div>
         </div>
-        {liveError ? <div className="empty-state">{liveError}</div> :
-          <DataTable headers={['티커','종목','현재가','등락률','거래량','일변동성','상대거래량','RSI','거래소']} rows={liveTableRows}/>}
+
+        <div className="panel">
+          <div className="panel-title">
+            <b>원본 Scanner 전체 데이터</b>
+            <span>{liveCollectedAt?'DB 스냅샷 '+liveCollectedAt:'실시간 조회'}</span>
+          </div>
+          {liveError ? <div className="empty-state">{liveError}</div> :
+            <DataTable headers={['티커','종목','현재가','등락률','거래량','일변동성','상대거래량','RSI','거래소']} rows={liveTableRows}/>}
+          <div className="tv-pagination">
+            <button disabled={marketOffset<=0} onClick={()=>setMarketOffset(v=>Math.max(0,v-marketPageSize))}>이전 50개</button>
+            <button className="active">{page} / {pageCount}</button>
+            <button disabled={!hasMore} onClick={()=>setMarketOffset(v=>v+marketPageSize)}>다음 50개</button>
+          </div>
+        </div>
+      </> : <div className="panel">
+        <div className="panel-title"><b>{tab}</b><span>TradingView 경제 원본 연결 대상</span></div>
+        <div className="empty-state">가상 데이터는 표시하지 않습니다. 경제 탭은 경제지표·경제 캘린더 전용 원본 수집기로 별도 연결합니다.</div>
       </div>}
 
-      {liveMarketCode[tab] && !scannerSupported && <div className="panel">
-        <div className="panel-title"><b>{marketView}</b><span>TradingView의 해당 전용 데이터 소스 연결 대상</span></div>
-        <div className="empty-state">이 메뉴는 주식/FX Scanner가 아닌 별도 캘린더·랭킹 데이터 소스로 연결합니다. 가짜 숫자는 표시하지 않습니다.</div>
-      </div>}
-
-      {!liveMarketCode[tab] && <div className="panel">
-        <div className="panel-title"><b>{tab} 실데이터 연결 상태</b><span>TradingView 원본 메뉴 구조는 유지</span></div>
-        <div className="empty-state">이 자산군의 전용 TradingView 데이터 소스는 아직 백엔드에 연결하지 않았습니다. 예시·가상 시세는 표시하지 않습니다.</div>
-      </div>}
       <div className="panel market-match-panel">
-        <div className="panel-title"><b>{tab} 전략 매칭 입력 데이터</b><span>현재 실수집 피처를 실제 백테스트·Walk-forward 평가 엔진으로 전달</span></div>
+        <div className="panel-title"><b>{tab} 전략 매칭 입력 데이터</b><span>화면에 보이는 동일한 TradingView 실수집 데이터를 Agent 연구 입력으로 사용</span></div>
         <DataTable headers={['입력 피처','용도','현재 상태']} rows={[
-          ['거래량 · 상대거래량','유동성/체결 가능 Universe 선별','실수집·DB 저장'],
-          ['일변동성 · ATR','전략별 변동성 레짐 및 손절/포지션 크기','실수집·DB 저장'],
-          ['RSI · ADX · TradingView Recommendation','평균회귀/추세/모멘텀 사전 레짐 분류','실수집·DB 저장'],
-          ['시장 × 전략 × 고정 시간축','Walk-forward 및 Holdout 적합도 산출','다음 Quant 평가 단계'],
+          ['가격 · 등락률 · 거래량','시장/유동성 Universe','실수집·DB 저장'],
+          ['일변동성 · ATR','변동성 레짐·포지션 크기','실수집·DB 저장'],
+          ['RSI · ADX · Recommendation','평균회귀/추세/모멘텀 레짐','실수집·DB 저장'],
+          ['시장 × 전략 × 고정 시간축','Horizon Discovery → Quant Lab','실연결'],
         ]}/>
-        <p className="note">검증되지 않은 92점·89점 같은 예시 적합도는 제거했습니다. 실제 적합도는 백테스트와 Holdout 결과가 생성된 뒤에만 표시합니다.</p>
       </div>
     </div>
   </>;
