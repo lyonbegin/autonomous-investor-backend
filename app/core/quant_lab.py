@@ -96,9 +96,10 @@ def init_db() -> None:
         )
 
 
-def _json_get(url: str) -> dict[str, Any]:
+def _json_request(url: str, method: str = "GET") -> dict[str, Any]:
     req = request.Request(
         url,
+        method=method,
         headers={
             "Accept": "application/json",
             "User-Agent": "AUTONOMOUS-INVESTOR-QuantLab/1.0",
@@ -115,9 +116,27 @@ def _json_get(url: str) -> dict[str, Any]:
 def fetch_agent_plan(agent_id: str) -> dict[str, Any]:
     from urllib.parse import quote
 
-    return _json_get(
+    return _json_request(
         f"{TRADINGVIEW_SERVICE_URL}/api/v1/tradingview/agent-plans/{quote(agent_id, safe='')}"
     )
+
+
+def resolve_agent_symbols(agent_id: str, limit: int = 20) -> list[str]:
+    from urllib.parse import quote
+
+    payload = _json_request(
+        f"{TRADINGVIEW_SERVICE_URL}/api/v1/tradingview/agent-plans/{quote(agent_id, safe='')}/resolve-universe?limit={min(max(limit,1),100)}",
+        method="POST",
+    )
+    symbols: list[str] = []
+    for item in payload.get("items") or []:
+        ticker = str(item.get("ticker") or "").strip()
+        if not ticker:
+            continue
+        broker_symbol = ticker.split(":", 1)[-1]
+        if broker_symbol and broker_symbol not in symbols:
+            symbols.append(broker_symbol)
+    return symbols
 
 
 def _default_validation_plan() -> dict[str, Any]:
@@ -147,11 +166,29 @@ def _default_validation_plan() -> dict[str, Any]:
     }
 
 
+def _toss_supported_for_plan(plan: dict[str, Any]) -> bool:
+    country = str(plan.get("country") or "").lower()
+    market = str(plan.get("market") or "").lower()
+    if "가상자산" in country or country == "fx":
+        return False
+    if "선물" in country or "cme" in market or "선물" in market:
+        return False
+    return any(
+        token in country or token in market
+        for token in ("한국", "미국", "etf", "kospi", "kosdaq", "nasdaq", "nyse")
+    )
+
+
 def _initial_blocker(plan: dict[str, Any], symbols: list[str]) -> tuple[str, str | None]:
     if not symbols:
         return (
             "BLOCKED_UNIVERSE",
-            "Agent has a market/universe description but no concrete instrument symbols yet.",
+            "TradingView market pre-screen did not resolve concrete instrument symbols for this Agent.",
+        )
+    if not _toss_supported_for_plan(plan):
+        return (
+            "BLOCKED_DATA_SOURCE",
+            "This asset class is outside Toss Securities KR/US stock candle coverage; a matching historical data provider is required.",
         )
     if not credentials_configured():
         return (
@@ -160,14 +197,21 @@ def _initial_blocker(plan: dict[str, Any], symbols: list[str]) -> tuple[str, str
         )
     return (
         "BLOCKED_STRATEGY_ENGINE",
-        "Historical data can be requested, but a sandboxed Pine/StrategySpec executor has not been attached yet.",
+        "Historical data can be requested, but a licensed/sandboxed Pine or StrategySpec executor has not been attached yet.",
     )
 
 
 def create_experiment(agent_id: str, symbols: list[str] | None = None) -> dict[str, Any]:
     init_db()
     plan = fetch_agent_plan(agent_id)
-    symbol_list = sorted({x.strip() for x in (symbols or []) if x and x.strip()})
+    requested_symbols = [x.strip() for x in (symbols or []) if x and x.strip()]
+    if requested_symbols:
+        symbol_list = sorted(set(requested_symbols))
+    else:
+        try:
+            symbol_list = resolve_agent_symbols(agent_id, limit=20)
+        except Exception:
+            symbol_list = []
     identity = "|".join(
         [
             agent_id,
