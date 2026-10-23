@@ -47,6 +47,15 @@ DEFAULT_COLUMNS = [
     "close",
     "change",
     "volume",
+    "Volatility.D",
+    "relative_volume_10d_calc",
+    "RSI",
+    "ATR",
+    "ADX",
+    "Recommend.All",
+    "market_cap_basic",
+    "market_cap_calc",
+    "sector",
     "exchange",
     "type",
 ]
@@ -156,6 +165,10 @@ def init_db() -> None:
                 views_count INTEGER,
                 chart_url TEXT,
                 image_url TEXT,
+                is_video INTEGER DEFAULT 0,
+                is_education INTEGER DEFAULT 0,
+                is_picked INTEGER DEFAULT 0,
+                is_hot INTEGER DEFAULT 0,
                 raw_json TEXT NOT NULL,
                 collected_at TEXT NOT NULL
             );
@@ -206,6 +219,14 @@ def init_db() -> None:
                 volume REAL,
                 exchange TEXT,
                 asset_type TEXT,
+                volatility_d REAL,
+                relative_volume REAL,
+                rsi REAL,
+                atr REAL,
+                adx REAL,
+                recommendation REAL,
+                market_cap REAL,
+                sector TEXT,
                 rank_index INTEGER,
                 collected_at TEXT NOT NULL
             );
@@ -240,6 +261,25 @@ def init_db() -> None:
             );
             """
         )
+        migrations = [
+            ("community_ideas", "is_video", "INTEGER DEFAULT 0"),
+            ("community_ideas", "is_education", "INTEGER DEFAULT 0"),
+            ("community_ideas", "is_picked", "INTEGER DEFAULT 0"),
+            ("community_ideas", "is_hot", "INTEGER DEFAULT 0"),
+            ("market_snapshots", "volatility_d", "REAL"),
+            ("market_snapshots", "relative_volume", "REAL"),
+            ("market_snapshots", "rsi", "REAL"),
+            ("market_snapshots", "atr", "REAL"),
+            ("market_snapshots", "adx", "REAL"),
+            ("market_snapshots", "recommendation", "REAL"),
+            ("market_snapshots", "market_cap", "REAL"),
+            ("market_snapshots", "sector", "TEXT"),
+        ]
+        for table, column, definition in migrations:
+            try:
+                conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")
+            except sqlite3.OperationalError:
+                pass
 
 
 def _http_json(url: str, *, method: str = "GET", payload: dict[str, Any] | None = None) -> Any:
@@ -298,6 +338,10 @@ def normalize_idea(item: dict[str, Any]) -> dict[str, Any]:
         "views_count": int(item.get("views_count") or 0),
         "chart_url": _absolute_url(item.get("chart_url") or item.get("url")),
         "image_url": _absolute_url(image.get("big") or image.get("middle") or item.get("image_url")),
+        "is_video": bool(item.get("is_video")),
+        "is_education": bool(item.get("is_education")),
+        "is_picked": bool(item.get("is_picked")),
+        "is_hot": bool(item.get("is_hot")),
         "raw_json": item,
     }
 
@@ -310,8 +354,9 @@ def store_ideas(items: list[dict[str, Any]]) -> None:
             """
             INSERT INTO community_ideas (
                 idea_id,title,description,author,symbol,exchange,asset_type,direction,interval,
-                created_at,comments_count,likes_count,views_count,chart_url,image_url,raw_json,collected_at
-            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                created_at,comments_count,likes_count,views_count,chart_url,image_url,
+                is_video,is_education,is_picked,is_hot,raw_json,collected_at
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             ON CONFLICT(idea_id) DO UPDATE SET
                 title=excluded.title,
                 description=excluded.description,
@@ -326,6 +371,10 @@ def store_ideas(items: list[dict[str, Any]]) -> None:
                 views_count=excluded.views_count,
                 chart_url=excluded.chart_url,
                 image_url=excluded.image_url,
+                is_video=excluded.is_video,
+                is_education=excluded.is_education,
+                is_picked=excluded.is_picked,
+                is_hot=excluded.is_hot,
                 raw_json=excluded.raw_json,
                 collected_at=excluded.collected_at
             """,
@@ -334,6 +383,7 @@ def store_ideas(items: list[dict[str, Any]]) -> None:
                     x["idea_id"], x["title"], x["description"], x["author"], x["symbol"], x["exchange"],
                     x["asset_type"], x["direction"], x["interval"], x["created_at"], x["comments_count"],
                     x["likes_count"], x["views_count"], x["chart_url"], x["image_url"],
+                    int(x["is_video"]), int(x["is_education"]), int(x["is_picked"]), int(x["is_hot"]),
                     json.dumps(x["raw_json"], ensure_ascii=False), now,
                 )
                 for x in items
@@ -371,8 +421,9 @@ def store_market_snapshot(market: str, rows: list[dict[str, Any]], collected_at:
         conn.executemany(
             """
             INSERT OR IGNORE INTO market_snapshots (
-                snapshot_id,market,ticker,name,description,close,change,volume,exchange,asset_type,rank_index,collected_at
-            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
+                snapshot_id,market,ticker,name,description,close,change,volume,exchange,asset_type,
+                volatility_d,relative_volume,rsi,atr,adx,recommendation,market_cap,sector,rank_index,collected_at
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             """,
             [
                 (
@@ -386,6 +437,14 @@ def store_market_snapshot(market: str, rows: list[dict[str, Any]], collected_at:
                     x.get("volume"),
                     x.get("exchange"),
                     x.get("type"),
+                    x.get("Volatility.D"),
+                    x.get("relative_volume_10d_calc"),
+                    x.get("RSI"),
+                    x.get("ATR"),
+                    x.get("ADX"),
+                    x.get("Recommend.All"),
+                    x.get("market_cap_basic") if x.get("market_cap_basic") is not None else x.get("market_cap_calc"),
+                    x.get("sector"),
                     idx,
                     collected_at,
                 )
@@ -409,7 +468,8 @@ def list_market_snapshots(market: str, limit: int = 100, latest_only: bool = Tru
                 return []
             rows = conn.execute(
                 """
-                SELECT market,ticker,name,description,close,change,volume,exchange,asset_type,rank_index,collected_at
+                SELECT market,ticker,name,description,close,change,volume,exchange,asset_type,
+                       volatility_d,relative_volume,rsi,atr,adx,recommendation,market_cap,sector,rank_index,collected_at
                 FROM market_snapshots
                 WHERE market = ? AND collected_at = ?
                 ORDER BY rank_index ASC
@@ -420,7 +480,8 @@ def list_market_snapshots(market: str, limit: int = 100, latest_only: bool = Tru
         else:
             rows = conn.execute(
                 """
-                SELECT market,ticker,name,description,close,change,volume,exchange,asset_type,rank_index,collected_at
+                SELECT market,ticker,name,description,close,change,volume,exchange,asset_type,
+                       volatility_d,relative_volume,rsi,atr,adx,recommendation,market_cap,sector,rank_index,collected_at
                 FROM market_snapshots
                 WHERE market = ?
                 ORDER BY collected_at DESC, rank_index ASC
@@ -443,7 +504,12 @@ def collect_market(
         raise ValueError(f"unsupported market: {market}")
 
     safe_limit = min(max(limit, 1), 100)
-    if sort_by not in {"volume", "change", "close", "name"}:
+    allowed_sort = {
+        "volume", "change", "close", "name", "Volatility.D",
+        "relative_volume_10d_calc", "RSI", "ATR", "ADX",
+        "market_cap_basic", "market_cap_calc",
+    }
+    if sort_by not in allowed_sort:
         sort_by = "volume"
     if sort_order not in {"asc", "desc"}:
         sort_order = "desc"
@@ -785,7 +851,8 @@ def list_stored_ideas(limit: int = 100) -> list[dict[str, Any]]:
         rows = conn.execute(
             """
             SELECT idea_id,title,description,author,symbol,exchange,asset_type,direction,interval,
-                   created_at,comments_count,likes_count,views_count,chart_url,image_url,collected_at
+                   created_at,comments_count,likes_count,views_count,chart_url,image_url,
+                   is_video,is_education,is_picked,is_hot,collected_at
             FROM community_ideas
             ORDER BY collected_at DESC
             LIMIT ?
