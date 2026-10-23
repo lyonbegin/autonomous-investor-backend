@@ -14,6 +14,7 @@ from app.core.tradingview import (
     collect_market,
     init_db,
     list_market_snapshots,
+    list_market_universe,
     utcnow,
 )
 
@@ -350,13 +351,33 @@ def _market_rows(
         "변동성": "Volatility.D",
         "크립토": "volume",
     }.get(category, "volume")
+
+    # Prefer a completed whole-market TradingView scan. Horizon Discovery should
+    # judge market state from the same universe that Agent Factory will use,
+    # not from a transient top-60 request.
+    try:
+        stored_full = list_market_universe(
+            scanner_market,
+            limit=1000,
+            offset=0,
+            sort_by=sort_by,
+            sort_order="desc",
+        )
+        rows = list(stored_full.get("items") or [])
+        if rows:
+            stamp = str(rows[0].get("collected_at") or utcnow())
+            return rows, stamp
+    except Exception:
+        pass
+
     if use_live:
         try:
-            live = collect_market(scanner_market, limit=60, sort_by=sort_by, sort_order="desc")
+            live = collect_market(scanner_market, limit=100, sort_by=sort_by, sort_order="desc")
             return list(live.get("items") or []), str(live.get("collected_at") or utcnow())
         except Exception:
             pass
-    stored = list_market_snapshots(scanner_market, limit=60, latest_only=True)
+
+    stored = list_market_snapshots(scanner_market, limit=100, latest_only=True)
     return stored, str(stored[0].get("collected_at")) if stored else utcnow()
 
 
