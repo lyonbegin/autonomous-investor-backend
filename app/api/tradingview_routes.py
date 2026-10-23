@@ -5,11 +5,15 @@ from fastapi import APIRouter, HTTPException, Query
 from app.core.tradingview import (
     collect_ideas,
     collect_market,
+    collect_scripts,
     create_agent_plans,
     create_candidate_from_idea,
+    create_candidate_from_script,
+    fetch_script_source,
     list_agent_plans,
     list_candidates,
     list_stored_ideas,
+    list_stored_scripts,
 )
 
 router = APIRouter(prefix="/api/v1/tradingview", tags=["tradingview"])
@@ -55,6 +59,67 @@ def market_live(
     except Exception as exc:
         raise HTTPException(status_code=502, detail=f"TradingView market collection failed: {type(exc).__name__}: {exc}") from exc
 
+
+
+
+@router.get("/scripts/live")
+def scripts_live(
+    page: int = Query(default=1, ge=1),
+    sort: str = Query(default="latest_popular"),
+    topic: str | None = None,
+    editors_picks: bool = False,
+) -> dict:
+    try:
+        return collect_scripts(
+            page=page,
+            sort=sort,
+            topic=topic,
+            editors_picks=editors_picks,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"TradingView scripts collection failed: {type(exc).__name__}: {exc}",
+        ) from exc
+
+
+@router.get("/scripts")
+def scripts_stored(limit: int = Query(default=200, ge=1, le=1000)) -> dict:
+    items = list_stored_scripts(limit=limit)
+    return {"count": len(items), "items": items}
+
+
+@router.get("/scripts/{script_id_part}/source-info")
+def script_source_info(script_id_part: str, version: str = "last") -> dict:
+    try:
+        result = fetch_script_source(script_id_part, version=version)
+        if not result.get("ok"):
+            return result
+        return {
+            key: value
+            for key, value in result.items()
+            if key != "source"
+        }
+    except Exception as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"TradingView Pine source fetch failed: {type(exc).__name__}: {exc}",
+        ) from exc
+
+
+@router.post("/scripts/{script_id_part}/candidate")
+def script_to_candidate(script_id_part: str, fetch_source: bool = True) -> dict:
+    try:
+        return create_candidate_from_script(script_id_part, fetch_source=fetch_source)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=f"script not found: {script_id_part}") from exc
+    except Exception as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"TradingView script candidate conversion failed: {type(exc).__name__}: {exc}",
+        ) from exc
 
 @router.get("/candidates")
 def candidates(limit: int = Query(default=100, ge=1, le=500)) -> dict:
