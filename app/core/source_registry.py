@@ -659,6 +659,7 @@ def discover_candidate_horizons(
     *,
     max_markets: int = 3,
     use_live_market: bool = True,
+    market_cache: dict[tuple[str, str, bool], tuple[list[dict[str, Any]], str]] | None = None,
 ) -> dict[str, Any]:
     init_source_registry_db()
     candidate = _candidate(candidate_id)
@@ -677,7 +678,13 @@ def discover_candidate_horizons(
         rows: list[dict[str, Any]] = []
         snapshot_at = evaluated_at
         if scanner_market:
-            rows, snapshot_at = _market_rows(scanner_market, category, use_live=use_live_market)
+            cache_key = (scanner_market, category, use_live_market)
+            if market_cache is not None and cache_key in market_cache:
+                rows, snapshot_at = market_cache[cache_key]
+            else:
+                rows, snapshot_at = _market_rows(scanner_market, category, use_live=use_live_market)
+                if market_cache is not None:
+                    market_cache[cache_key] = (rows, snapshot_at)
         market_score, market_rationale = _market_fit(category, rows)
         if not rows and match_mode == "SOURCE_SPECIFIC":
             market_score = 50.0
@@ -873,6 +880,7 @@ def batch_discover_pending_candidates(
 
     processed = 0
     combinations = 0
+    market_cache: dict[tuple[str, str, bool], tuple[list[dict[str, Any]], str]] = {}
     pass_combinations = 0
     errors: list[dict[str, str]] = []
     for row in rows:
@@ -882,6 +890,7 @@ def batch_discover_pending_candidates(
                 candidate_id,
                 max_markets=max_markets,
                 use_live_market=False,
+                market_cache=market_cache,
             )
             processed += 1
             combinations += int(result.get("count") or 0)
@@ -904,6 +913,7 @@ def batch_discover_pending_candidates(
         "errors": errors[:30],
         "queue": discovery_queue_status(),
         "market_data_mode": "stored_latest_snapshot",
+        "market_cache_keys": len(market_cache),
         "at": utcnow(),
     }
 
