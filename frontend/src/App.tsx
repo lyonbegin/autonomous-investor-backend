@@ -526,6 +526,21 @@ type LiveMarketCollectorState = {
   stored_count?:number;
 };
 
+type CorporateBondBackfillState = {
+  market:string;
+  scan_id?:string | null;
+  source_total:number;
+  status:string;
+  stored_count:number;
+  tasks_total:number;
+  tasks_complete:number;
+  tasks_error:number;
+  pages_done?:number;
+  progress?:number;
+  completed_at?:string | null;
+  last_error?:string | null;
+};
+
 function TradingViewMarkets(){
   const [tab,setTab]=useState<MarketTab>('한국 주식');
   const [marketView,setMarketView]=useState('개요');
@@ -537,6 +552,7 @@ function TradingViewMarkets(){
   const [hasMore,setHasMore]=useState(false);
   const [selectedTicker,setSelectedTicker]=useState('');
   const [collectorState,setCollectorState]=useState<LiveMarketCollectorState | null>(null);
+  const [corporateBackfill,setCorporateBackfill]=useState<CorporateBondBackfillState | null>(null);
   const [dataMode,setDataMode]=useState<'stored'|'live'|'restricted'>('stored');
   const marketPageSize=50;
 
@@ -558,6 +574,15 @@ function TradingViewMarkets(){
         setCollectorState(rows.find(x=>x.market===code)||null);
       })
       .catch(()=>setCollectorState(null));
+
+    if(code==='corporate-bonds'){
+      fetch(API_BASE+'/api/v1/tradingview/markets/corporate-bonds/full-backfill/state')
+        .then(async r=>{if(!r.ok) throw new Error(await r.text()); return r.json();})
+        .then(data=>setCorporateBackfill(data as CorporateBondBackfillState))
+        .catch(()=>setCorporateBackfill(null));
+    }else{
+      setCorporateBackfill(null);
+    }
   },[tab]);
 
   useEffect(()=>{
@@ -669,8 +694,18 @@ function TradingViewMarkets(){
 
       {liveMarketCode[tab] ? <>
         {restriction && <div className="panel">
-          <div className="panel-title"><b>회사채 전체 원본 접근 상태</b><Badge tone="amber">TradingView 권한 제한</Badge></div>
-          <p className="note">TradingView Bond Screener는 전체 {Number(collectorState?.total_count||liveTotal||0).toLocaleString('ko-KR')}건을 보고하지만 익명 Scanner에는 10건만 반환하고, 전체 CSV Export는 TradingView 유료 권한으로 잠겨 있습니다. 현재 화면은 실제 반환된 10건만 표시하며 전체수집 완료로 위장하지 않습니다.</p>
+          <div className="panel-title"><b>회사채 전체 원본 분할 수집</b><Badge tone={corporateBackfill?.status==='COMPLETE'?'green':'cyan'}>{corporateBackfill?.status==='COMPLETE'?'전체 완료':'키셋 백필 진행 중'}</Badge></div>
+          {corporateBackfill ? <>
+            <DataTable headers={['원본 회사채','현재 저장','진행률','분할작업 완료','오류작업','페이지 처리']} rows={[[
+              Number(corporateBackfill.source_total||0).toLocaleString('ko-KR'),
+              Number(corporateBackfill.stored_count||0).toLocaleString('ko-KR'),
+              Number(corporateBackfill.progress||0).toFixed(2)+'%',
+              Number(corporateBackfill.tasks_complete||0).toLocaleString('ko-KR')+' / '+Number(corporateBackfill.tasks_total||0).toLocaleString('ko-KR'),
+              Number(corporateBackfill.tasks_error||0).toLocaleString('ko-KR'),
+              Number(corporateBackfill.pages_done||0).toLocaleString('ko-KR'),
+            ]]}/>
+            <p className="note">TradingView 익명 Bond Screener의 10행 제한을 숫자구간·키셋 분할로 순회해 원본 채권을 중복 제거하며 저장합니다. 전체 scan 완료 후 이 탭도 저장된 전체 Universe DB로 자동 전환됩니다.</p>
+          </> : <p className="note">회사채 전용 전체수집 상태를 읽는 중입니다.</p>}
         </div>}
 
         <div className="grid two tv-market-live-grid">
@@ -1284,6 +1319,7 @@ function SourceHub(){
   const [collectors,setCollectors]=useState<CollectorState[]>([]);
   const [scriptCompletion,setScriptCompletion]=useState<ScriptCompletion | null>(null);
   const [marketCollectors,setMarketCollectors]=useState<LiveMarketCollectorState[]>([]);
+  const [corporateBackfill,setCorporateBackfill]=useState<CorporateBondBackfillState | null>(null);
   const [loading,setLoading]=useState(true);
   const [syncing,setSyncing]=useState(false);
   const [error,setError]=useState('');
@@ -1296,12 +1332,14 @@ function SourceHub(){
       fetch(API_BASE+'/api/v1/tradingview/backfill').then(async r=>{if(!r.ok) throw new Error(await r.text());return r.json();}),
       fetch(API_BASE+'/api/v1/tradingview/scripts/completion').then(async r=>{if(!r.ok) throw new Error(await r.text());return r.json();}),
       fetch(API_BASE+'/api/v1/tradingview/markets/backfill/state').then(async r=>{if(!r.ok) throw new Error(await r.text());return r.json();}),
+      fetch(API_BASE+'/api/v1/tradingview/markets/corporate-bonds/full-backfill/state').then(async r=>{if(!r.ok) throw new Error(await r.text());return r.json();}),
     ])
-      .then(([sources,backfill,completion,marketState])=>{
+      .then(([sources,backfill,completion,marketState,corporateState])=>{
         setItems((sources.items||[]) as RegistrySource[]);
         setCollectors((backfill.items||[]) as CollectorState[]);
         setScriptCompletion(completion as ScriptCompletion);
         setMarketCollectors((marketState.items||[]) as LiveMarketCollectorState[]);
+        setCorporateBackfill(corporateState as CorporateBondBackfillState);
       })
       .catch(e=>setError(e instanceof Error?e.message:'Source Registry / 전체수집 상태 조회 오류'))
       .finally(()=>setLoading(false));
@@ -1389,6 +1427,7 @@ function SourceHub(){
           x.last_completed_at||'—',
         ])}/>:
         <div className="empty-state">마켓 전체 Universe 상태를 불러오는 중입니다.</div>}
+      {corporateBackfill && <p className="note">회사채 전용 분할수집: ${Number(corporateBackfill.stored_count||0).toLocaleString('ko-KR')} / ${Number(corporateBackfill.source_total||0).toLocaleString('ko-KR')} · ${Number(corporateBackfill.progress||0).toFixed(2)}% · 작업 ${corporateBackfill.tasks_complete}/${corporateBackfill.tasks_total}</p>}
     </div>
     <div className="panel">
       <div className="panel-title"><b>Strategy Source Registry</b><span>{items.length}개 조회 · Origin Source ID 보존</span></div>
@@ -1427,6 +1466,7 @@ type DiscoveryQueueStatus = {
   total_candidates:number;
   discovered_candidates:number;
   remaining:number;
+  scoring_version?:string;
 };
 
 type DiscoveryLeaderboardItem = LiveHorizonDiscovery & {
@@ -1479,7 +1519,7 @@ function HorizonLab(){
   const runBatch=async()=>{
     setBusy(true);setError('');setMessage('');
     try{
-      const r=await fetch(API_BASE+'/api/v1/horizon-discovery/batch?limit=500&max_markets=3',{method:'POST'});
+      const r=await fetch(API_BASE+'/api/v1/horizon-discovery/batch?limit=1000&max_markets=3',{method:'POST'});
       if(!r.ok) throw new Error(await r.text());
       const data=await r.json();
       setMessage('자동 매칭 '+String(data.processed||0)+'개 후보 · '+String(data.discovery_pass_combinations||0)+'개 PASS 조합');
@@ -1528,9 +1568,9 @@ function HorizonLab(){
 
   return <>
     <div className="panel">
-      <div className="panel-title"><b>전체 전략 자동 최적 매칭</b><span>{queue?('Discovery '+queue.discovered_candidates.toLocaleString('ko-KR')+' / '+queue.total_candidates.toLocaleString('ko-KR')+' · 남음 '+queue.remaining.toLocaleString('ko-KR')):'상태 조회 중'}</span></div>
+      <div className="panel-title"><b>전체 전략 자동 최적 매칭</b><span>{queue?((queue.scoring_version||'Discovery')+' · '+queue.discovered_candidates.toLocaleString('ko-KR')+' / '+queue.total_candidates.toLocaleString('ko-KR')+' · 남음 '+queue.remaining.toLocaleString('ko-KR')):'상태 조회 중'}</span></div>
       <div className="actions left">
-        <button disabled={busy} onClick={runBatch}>{busy?'자동 매칭 중':'다음 500개 자동 매칭 실행'}</button>
+        <button disabled={busy} onClick={runBatch}>{busy?'자동 매칭 중':'다음 1,000개 자동 매칭 실행'}</button>
         <button disabled={busy} onClick={loadAuto}>랭킹 새로고침</button>
       </div>
       {rankRows.length?
