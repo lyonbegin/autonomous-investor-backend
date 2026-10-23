@@ -67,11 +67,12 @@ def idea_to_candidate(idea_id: str) -> dict:
 def market_live(
     market: str,
     limit: int = Query(default=20, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
     sort_by: str = Query(default="volume"),
     sort_order: str = Query(default="desc"),
 ) -> dict:
     try:
-        return collect_market(market, limit=limit, sort_by=sort_by, sort_order=sort_order)
+        return collect_market(market, limit=limit, offset=offset, sort_by=sort_by, sort_order=sort_order)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
