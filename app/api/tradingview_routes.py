@@ -8,6 +8,7 @@ from app.core.corporate_bonds import corporate_bond_backfill, corporate_bond_sta
 from app.core.tradingview import (
     collect_ideas,
     collect_market,
+    compact_market_storage,
     collect_scripts,
     complete_missing_script_assets,
     backfill_tradingview_source,
@@ -135,6 +136,17 @@ def corporate_bonds_full_backfill(
         raise HTTPException(
             status_code=502,
             detail=f"TradingView corporate bond full backfill failed: {type(exc).__name__}: {exc}",
+        ) from exc
+
+
+@router.post("/markets/storage/compact")
+def market_storage_compact() -> dict:
+    try:
+        return compact_market_storage()
+    except Exception as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"TradingView market storage compaction failed: {type(exc).__name__}: {exc}",
         ) from exc
 
 
