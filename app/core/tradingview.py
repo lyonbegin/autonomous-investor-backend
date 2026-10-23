@@ -1010,6 +1010,16 @@ def create_agent_plans(candidate_id: str, max_markets: int = 3) -> list[dict[str
     return created
 
 
+def get_agent_plan(agent_id: str) -> dict[str, Any] | None:
+    init_db()
+    with _connect() as conn:
+        row = conn.execute(
+            "SELECT * FROM agent_plans WHERE agent_id = ?",
+            (agent_id,),
+        ).fetchone()
+    return dict(row) if row is not None else None
+
+
 def list_agent_plans(candidate_id: str | None = None, limit: int = 200) -> list[dict[str, Any]]:
     init_db()
     with _connect() as conn:
