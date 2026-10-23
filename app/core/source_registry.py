@@ -637,8 +637,7 @@ def discover_candidate_horizons(
             """
             SELECT p.agent_id,p.fixed_horizon,p.country,p.market,p.universe,p.status
             FROM agent_plans p
-            JOIN agent_discovery_links l ON l.agent_id = p.agent_id
-            WHERE l.candidate_id = ?
+            WHERE p.candidate_id = ?
             """,
             (candidate_id,),
         ).fetchall()
