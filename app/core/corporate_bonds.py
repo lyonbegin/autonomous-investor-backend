@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import sqlite3
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -10,6 +11,7 @@ from typing import Any
 from urllib import error
 
 from app.core.tradingview import (
+    DB_PATH,
     MARKET_SCANNER_PROFILES,
     SCANNER_URL,
     _connect,
@@ -269,11 +271,18 @@ def _store_rows(scan_id: str, rows: list[dict[str, Any]]) -> int:
     if not clean:
         return 0
     now = utcnow()
-    with _connect() as conn:
+    conn = sqlite3.connect(DB_PATH, timeout=60, isolation_level=None)
+    conn.row_factory = sqlite3.Row
+    try:
+        conn.execute("PRAGMA busy_timeout = 60000")
+        conn.execute("PRAGMA journal_mode=MEMORY")
+        conn.execute("PRAGMA temp_store=MEMORY")
+        conn.execute("PRAGMA synchronous=OFF")
         before = int(conn.execute(
             "SELECT COUNT(*) AS c FROM corporate_bond_scan_rows WHERE scan_id=?",
             (scan_id,),
         ).fetchone()["c"])
+        conn.execute("BEGIN IMMEDIATE")
         conn.executemany(
             """
             INSERT INTO corporate_bond_scan_rows (scan_id,ticker,raw_json,collected_at)
@@ -287,11 +296,20 @@ def _store_rows(scan_id: str, rows: list[dict[str, Any]]) -> int:
                 for ticker, row in clean.items()
             ],
         )
+        conn.execute("COMMIT")
         after = int(conn.execute(
             "SELECT COUNT(*) AS c FROM corporate_bond_scan_rows WHERE scan_id=?",
             (scan_id,),
         ).fetchone()["c"])
-    return max(0, after - before)
+        return max(0, after - before)
+    except Exception:
+        try:
+            conn.execute("ROLLBACK")
+        except Exception:
+            pass
+        raise
+    finally:
+        conn.close()
 
 
 def _collect_exclusion_group(
@@ -591,7 +609,15 @@ def _process_task(task: dict[str, Any], max_pages: int) -> dict[str, Any]:
 
 
 def _finalize_if_complete(scan_id: str) -> bool:
-    with _connect() as conn:
+    init_corporate_bond_db()
+    conn = sqlite3.connect(DB_PATH, timeout=120, isolation_level=None)
+    conn.row_factory = sqlite3.Row
+    try:
+        conn.execute("PRAGMA busy_timeout = 120000")
+        conn.execute("PRAGMA journal_mode=MEMORY")
+        conn.execute("PRAGMA temp_store=MEMORY")
+        conn.execute("PRAGMA synchronous=OFF")
+
         remaining = int(conn.execute(
             """
             SELECT COUNT(*) AS c
@@ -602,6 +628,7 @@ def _finalize_if_complete(scan_id: str) -> bool:
         ).fetchone()["c"])
         if remaining:
             return False
+
         rows = conn.execute(
             "SELECT ticker,raw_json,collected_at FROM corporate_bond_scan_rows WHERE scan_id=?",
             (scan_id,),
@@ -609,28 +636,44 @@ def _finalize_if_complete(scan_id: str) -> bool:
         if not rows:
             return False
 
-        conn.execute(
-            "DELETE FROM market_universe_rows WHERE market=? AND scan_id=?",
-            (MARKET, scan_id),
-        )
-        insert_rows: list[tuple[Any, ...]] = []
-        for rank, row in enumerate(rows, start=1):
-            raw = json.loads(str(row["raw_json"]))
-            insert_rows.append((
-                MARKET, scan_id, rank, row["ticker"], raw.get("name"),
-                raw.get("description"), raw.get("exchange"), raw.get("type"),
-                row["raw_json"], row["collected_at"],
-            ))
+        completed = utcnow()
+        conn.execute("BEGIN IMMEDIATE")
         conn.executemany(
             """
-            INSERT INTO market_universe_rows (
-                market,scan_id,rank_index,ticker,name,description,exchange,asset_type,
-                raw_json,collected_at
+            INSERT INTO market_universe_current (
+                market,ticker,name,description,exchange,asset_type,raw_json,
+                scan_id,rank_index,collected_at
             ) VALUES (?,?,?,?,?,?,?,?,?,?)
+            ON CONFLICT(market,ticker) DO UPDATE SET
+                name=excluded.name,
+                description=excluded.description,
+                exchange=excluded.exchange,
+                asset_type=excluded.asset_type,
+                raw_json=excluded.raw_json,
+                scan_id=excluded.scan_id,
+                rank_index=excluded.rank_index,
+                collected_at=excluded.collected_at
             """,
-            insert_rows,
+            [
+                (
+                    MARKET,
+                    row["ticker"],
+                    (raw := json.loads(str(row["raw_json"]))).get("name"),
+                    raw.get("description"),
+                    raw.get("exchange"),
+                    raw.get("type"),
+                    row["raw_json"],
+                    scan_id,
+                    rank,
+                    row["collected_at"],
+                )
+                for rank, row in enumerate(rows, start=1)
+            ],
         )
-        completed = utcnow()
+        conn.execute(
+            "DELETE FROM market_universe_current WHERE market=? AND scan_id<>?",
+            (MARKET, scan_id),
+        )
         new_scan_id = _market_cycle_id(MARKET)
         market_state = conn.execute(
             "SELECT market FROM market_collector_state WHERE market=?",
@@ -664,20 +707,16 @@ def _finalize_if_complete(scan_id: str) -> bool:
             """,
             (completed, completed, MARKET),
         )
-        conn.execute(
-            """
-            DELETE FROM market_universe_rows
-            WHERE market=? AND scan_id NOT IN (
-                SELECT scan_id FROM market_universe_rows
-                WHERE market=?
-                GROUP BY scan_id
-                ORDER BY MAX(collected_at) DESC
-                LIMIT 2
-            )
-            """,
-            (MARKET, MARKET),
-        )
-    return True
+        conn.execute("COMMIT")
+        return True
+    except Exception:
+        try:
+            conn.execute("ROLLBACK")
+        except Exception:
+            pass
+        raise
+    finally:
+        conn.close()
 
 
 def corporate_bond_backfill(
