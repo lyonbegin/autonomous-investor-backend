@@ -436,6 +436,25 @@ def prune_market_snapshots(retention_days: int = 30) -> int:
         return int(cursor.rowcount or 0)
 
 
+def _sqlite_real(value: Any) -> float | None:
+    """Normalize scanner numerics before SQLite binding.
+
+    TradingView can return arbitrary-size JSON integers, especially for crypto
+    volume/cap fields. Python sqlite3 binds an int as SQLite INTEGER before
+    column affinity is applied, so values outside signed int64 can overflow
+    even when the destination column is declared REAL.
+    """
+    if value is None or isinstance(value, bool):
+        return None
+    try:
+        number = float(value)
+    except (TypeError, ValueError, OverflowError):
+        return None
+    if number != number or number in (float("inf"), float("-inf")):
+        return None
+    return number
+
+
 def store_market_snapshot(market: str, rows: list[dict[str, Any]], collected_at: str) -> None:
     init_db()
     bucket = collected_at[:16]
@@ -454,18 +473,18 @@ def store_market_snapshot(market: str, rows: list[dict[str, Any]], collected_at:
                     x.get("ticker") or "",
                     x.get("name"),
                     x.get("description"),
-                    x.get("close"),
-                    x.get("change"),
-                    x.get("volume"),
+                    _sqlite_real(x.get("close")),
+                    _sqlite_real(x.get("change")),
+                    _sqlite_real(x.get("volume")),
                     x.get("exchange"),
                     x.get("type"),
-                    x.get("Volatility.D"),
-                    x.get("relative_volume_10d_calc"),
-                    x.get("RSI"),
-                    x.get("ATR"),
-                    x.get("ADX"),
-                    x.get("Recommend.All"),
-                    x.get("market_cap_basic") if x.get("market_cap_basic") is not None else x.get("market_cap_calc"),
+                    _sqlite_real(x.get("Volatility.D")),
+                    _sqlite_real(x.get("relative_volume_10d_calc")),
+                    _sqlite_real(x.get("RSI")),
+                    _sqlite_real(x.get("ATR")),
+                    _sqlite_real(x.get("ADX")),
+                    _sqlite_real(x.get("Recommend.All")),
+                    _sqlite_real(x.get("market_cap_basic") if x.get("market_cap_basic") is not None else x.get("market_cap_calc")),
                     x.get("sector"),
                     idx,
                     collected_at,
