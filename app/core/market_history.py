@@ -142,8 +142,8 @@ def fetch_binance_history(symbol: str, *, horizon: str, limit: int = 1000) -> di
     ticker = ticker.replace(".P", "").replace("/", "")
     interval_map = {
         "1m": "1m", "3m": "3m", "5m": "5m", "10m": "5m",
-        "15m": "15m", "30m": "30m", "1h": "1h", "2h": "1h",
-        "4h": "4h", "1d": "1d",
+        "15m": "15m", "30m": "30m", "1h": "1h", "2h": "2h",
+        "4h": "4h", "6h": "6h", "8h": "8h", "12h": "12h", "1d": "1d",
     }
     interval = interval_map.get(str(horizon).lower(), "1h")
     url = "https://api.binance.com/api/v3/klines?" + parse.urlencode(
