@@ -73,6 +73,16 @@ def init_source_registry_db() -> None:
             );
             """
         )
+        migrations = [
+            ("horizon_discovery", "run_id", "TEXT"),
+            ("horizon_discovery", "target_score", "REAL NOT NULL DEFAULT 0"),
+            ("horizon_discovery", "is_current", "INTEGER NOT NULL DEFAULT 1"),
+        ]
+        for table, column, definition in migrations:
+            try:
+                conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")
+            except Exception:
+                pass
 
 
 def _registry_id(source_kind: str, source_id: str) -> str:
@@ -166,7 +176,7 @@ def sync_tradingview_sources(limit: int = 2000) -> dict[str, Any]:
         ).fetchall()
         scripts = conn.execute(
             """
-            SELECT s.script_id_part,s.name,s.author,s.version,s.interval,s.chart_url,s.collected_at,
+            SELECT s.script_id_part,s.name,s.author,s.version,s.interval,s.symbol,s.chart_url,s.collected_at,
                    p.source_hash,p.pine_version,p.kind
             FROM community_scripts s
             LEFT JOIN script_sources p ON p.script_id_part = s.script_id_part
@@ -208,6 +218,7 @@ def sync_tradingview_sources(limit: int = 2000) -> dict[str, Any]:
             metadata={
                 "author": item.get("author"),
                 "interval": item.get("interval"),
+                "symbol": item.get("symbol"),
                 "pine_version": item.get("pine_version"),
                 "pine_kind": item.get("kind"),
                 "collected_at": item.get("collected_at"),
@@ -320,8 +331,9 @@ def _median(values: list[float], default: float = 0.0) -> float:
     return float(statistics.median(clean)) if clean else default
 
 
-def _scanner_for_target(target: dict[str, str]) -> str | None:
-    return _scanner_market_for_agent(target)
+def _scanner_for_target(target: dict[str, Any]) -> str | None:
+    explicit = str(target.get("scanner_market") or "").strip().lower()
+    return explicit or _scanner_market_for_agent(target)
 
 
 def _market_rows(scanner_market: str, category: str) -> tuple[list[dict[str, Any]], str]:
@@ -401,6 +413,105 @@ def _source_interval(source: dict[str, Any]) -> str | None:
     return _normalize_interval(str(metadata.get("interval") or ""))
 
 
+def _source_aware_targets(
+    candidate: dict[str, Any],
+    source: dict[str, Any],
+    *,
+    max_markets: int,
+) -> tuple[list[dict[str, Any]], str]:
+    metadata = source.get("metadata") or {}
+    text = " ".join(
+        str(x or "")
+        for x in [
+            candidate.get("name"),
+            candidate.get("logic"),
+            source.get("source_name"),
+            metadata.get("symbol"),
+            metadata.get("exchange"),
+            metadata.get("asset_type"),
+        ]
+    ).lower()
+
+    # Explicit source context outranks generic category templates.  This prevents
+    # a VN30 basis strategy, for example, from being sprayed across KOSPI/NASDAQ
+    # merely because both are classified as mean reversion.
+    if any(token in text for token in ("vn30", "vietnam", "viet nam", "베트남", "hose:", "hnx:")):
+        return ([{
+            "country": "베트남",
+            "market": "VN30 선물 ↔ HOSE VN30",
+            "universe": "HNX:VN301! ↔ HOSE:VN30 베이시스",
+            "scanner_market": "vietnam",
+            "target_score": 100.0,
+            "target_reason": "원본 전략에 VN30/Vietnam/HNX/HOSE 시장 문맥이 명시됨",
+        }], "SOURCE_SPECIFIC")
+
+    if any(token in text for token in ("kospi", "kosdaq", "krx", "한국 주식", "korea stock")):
+        market = "KOSDAQ" if "kosdaq" in text else "KOSPI"
+        return ([{
+            "country": "한국",
+            "market": market,
+            "universe": "원본 전략 명시 한국 시장",
+            "scanner_market": "korea",
+            "target_score": 96.0,
+            "target_reason": "원본 전략에 한국/KRX/KOSPI/KOSDAQ 문맥이 명시됨",
+        }], "SOURCE_SPECIFIC")
+
+    if any(token in text for token in ("nikkei", "topix", "tse", "japan stock", "일본 주식")):
+        return ([{
+            "country": "일본",
+            "market": "TSE",
+            "universe": "원본 전략 명시 일본 시장",
+            "scanner_market": "japan",
+            "target_score": 96.0,
+            "target_reason": "원본 전략에 일본/TSE/Nikkei/TOPIX 문맥이 명시됨",
+        }], "SOURCE_SPECIFIC")
+
+    if any(token in text for token in ("nasdaq", "nyse", "s&p 500", "sp500", "us stocks", "u.s. stocks")):
+        return ([{
+            "country": "미국",
+            "market": "NASDAQ / NYSE",
+            "universe": "원본 전략 명시 미국 시장",
+            "scanner_market": "america",
+            "target_score": 96.0,
+            "target_reason": "원본 전략에 미국/NASDAQ/NYSE/S&P 시장 문맥이 명시됨",
+        }], "SOURCE_SPECIFIC")
+
+    if any(token in text for token in ("bitcoin", "btc", "ethereum", "ethus", "crypto", "cryptocurrency")):
+        return ([{
+            "country": "가상자산",
+            "market": "글로벌 크립토",
+            "universe": "원본 전략 명시 크립토 자산군",
+            "scanner_market": "crypto",
+            "target_score": 94.0,
+            "target_reason": "원본 전략에 BTC/ETH/Crypto 문맥이 명시됨",
+        }], "SOURCE_SPECIFIC")
+
+    fx_tokens = (
+        "eurusd", "usdjpy", "gbpusd", "audusd", "usdchf", "usdcad",
+        "forex", "foreign exchange", "fx pair",
+    )
+    if any(token in text for token in fx_tokens):
+        return ([{
+            "country": "FX",
+            "market": "글로벌 외환",
+            "universe": "원본 전략 명시 FX 통화쌍",
+            "scanner_market": "forex",
+            "target_score": 94.0,
+            "target_reason": "원본 전략에 FX/통화쌍 문맥이 명시됨",
+        }], "SOURCE_SPECIFIC")
+
+    category = str(candidate.get("category") or "아이디어 기반")
+    generic = CATEGORY_MARKETS.get(category, CATEGORY_MARKETS["아이디어 기반"])[:max(1, int(max_markets))]
+    return ([
+        {
+            **target,
+            "target_score": 62.0,
+            "target_reason": "원본에 특정 시장이 없어 전략 카테고리 기본 시장 후보 사용",
+        }
+        for target in generic
+    ], "CATEGORY_FALLBACK")
+
+
 def discover_candidate_horizons(
     candidate_id: str,
     *,
@@ -411,10 +522,11 @@ def discover_candidate_horizons(
     source = _ensure_candidate_source(candidate)
     category = str(candidate["category"])
     horizons = [str(x) for x in candidate["candidate_horizons"]]
-    markets = CATEGORY_MARKETS.get(category, CATEGORY_MARKETS["아이디어 기반"])[:max(1, int(max_markets))]
+    markets, match_mode = _source_aware_targets(candidate, source, max_markets=max_markets)
     source_interval = _source_interval(source)
     source_score = _source_score(source)
     evaluated_at = utcnow()
+    run_id = "HDR-" + hashlib.sha1(f"{candidate_id}|{evaluated_at}".encode()).hexdigest()[:14].upper()
     evaluations: list[dict[str, Any]] = []
 
     for target in markets:
@@ -424,10 +536,20 @@ def discover_candidate_horizons(
         if scanner_market:
             rows, snapshot_at = _market_rows(scanner_market, category)
         market_score, market_rationale = _market_fit(category, rows)
+        if not rows and match_mode == "SOURCE_SPECIFIC":
+            market_score = 50.0
+            market_rationale = "원본 시장은 명확하나 실시간 Scanner 표본이 없어 시장상태 점수는 중립값 50으로 보류"
+        target_score = float(target.get("target_score") or 0.0)
 
         for horizon in horizons:
             horizon_score = _horizon_score(horizon, horizons, source_interval)
-            fit_score = round(market_score * 0.55 + horizon_score * 0.30 + source_score * 0.15, 2)
+            fit_score = round(
+                market_score * 0.45
+                + horizon_score * 0.25
+                + source_score * 0.10
+                + target_score * 0.20,
+                2,
+            )
             if fit_score >= 72:
                 status = "DISCOVERY_PASS"
             elif fit_score >= 58:
@@ -436,20 +558,23 @@ def discover_candidate_horizons(
                 status = "REJECT"
 
             identity = "|".join([
+                run_id,
                 candidate_id,
                 str(source["origin_source_id"]),
                 horizon,
-                target["country"],
-                target["market"],
-                target["universe"],
+                str(target["country"]),
+                str(target["market"]),
+                str(target["universe"]),
             ])
             discovery_id = "HD-" + hashlib.sha1(identity.encode()).hexdigest()[:14].upper()
             rationale = (
-                f"{market_rationale} · horizon {horizon_score:.1f} · source {source_score:.1f} · "
-                f"snapshot {snapshot_at}"
+                f"{target.get('target_reason')} · {market_rationale} · "
+                f"target {target_score:.1f} · horizon {horizon_score:.1f} · "
+                f"source {source_score:.1f} · snapshot {snapshot_at}"
             )
             item = {
                 "discovery_id": discovery_id,
+                "run_id": run_id,
                 "candidate_id": candidate_id,
                 "registry_source_id": source["registry_source_id"],
                 "source_id": source["source_id"],
@@ -463,57 +588,119 @@ def discover_candidate_horizons(
                 "market_score": market_score,
                 "horizon_score": horizon_score,
                 "source_score": source_score,
+                "target_score": target_score,
                 "status": status,
                 "rationale": rationale,
                 "evaluated_at": evaluated_at,
+                "is_current": 1,
             }
             evaluations.append(item)
 
     evaluations.sort(key=lambda x: float(x["fit_score"]), reverse=True)
+    current_keys = {
+        (str(x["horizon"]), str(x["country"]), str(x["market"]), str(x["universe"]))
+        for x in evaluations
+    }
+    score_by_key = {
+        (str(x["horizon"]), str(x["country"]), str(x["market"]), str(x["universe"])): float(x["fit_score"])
+        for x in evaluations
+    }
+
     with _connect() as conn:
-        conn.execute("DELETE FROM horizon_discovery WHERE candidate_id = ?", (candidate_id,))
+        conn.execute(
+            "UPDATE horizon_discovery SET is_current = 0 WHERE candidate_id = ? AND is_current = 1",
+            (candidate_id,),
+        )
         conn.executemany(
             """
             INSERT INTO horizon_discovery (
-                discovery_id,candidate_id,registry_source_id,source_id,origin_source_id,
+                discovery_id,run_id,candidate_id,registry_source_id,source_id,origin_source_id,
                 horizon,country,market,universe,scanner_market,fit_score,market_score,
-                horizon_score,source_score,status,rationale,evaluated_at
-            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                horizon_score,source_score,target_score,status,rationale,evaluated_at,is_current
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             """,
             [
                 (
-                    x["discovery_id"], x["candidate_id"], x["registry_source_id"], x["source_id"],
-                    x["origin_source_id"], x["horizon"], x["country"], x["market"], x["universe"],
-                    x["scanner_market"], x["fit_score"], x["market_score"], x["horizon_score"],
-                    x["source_score"], x["status"], x["rationale"], x["evaluated_at"],
+                    x["discovery_id"], x["run_id"], x["candidate_id"], x["registry_source_id"],
+                    x["source_id"], x["origin_source_id"], x["horizon"], x["country"],
+                    x["market"], x["universe"], x["scanner_market"], x["fit_score"],
+                    x["market_score"], x["horizon_score"], x["source_score"], x["target_score"],
+                    x["status"], x["rationale"], x["evaluated_at"], 1,
                 )
                 for x in evaluations
             ],
         )
 
+        # Keep audit history but retire only pre-research plans whose source/market
+        # premise is no longer present in the current source-aware discovery run.
+        old_agents = conn.execute(
+            """
+            SELECT p.agent_id,p.fixed_horizon,p.country,p.market,p.universe,p.status
+            FROM agent_plans p
+            JOIN agent_discovery_links l ON l.agent_id = p.agent_id
+            WHERE l.candidate_id = ?
+            """,
+            (candidate_id,),
+        ).fetchall()
+        for row in old_agents:
+            if str(row["status"]) != "RESEARCH":
+                continue
+            key = (
+                str(row["fixed_horizon"]),
+                str(row["country"]),
+                str(row["market"]),
+                str(row["universe"]),
+            )
+            if key not in current_keys:
+                conn.execute(
+                    "UPDATE agent_plans SET status = 'RETIRED_SOURCE_CONTEXT' WHERE agent_id = ?",
+                    (row["agent_id"],),
+                )
+            elif score_by_key.get(key, 0.0) < 72.0:
+                conn.execute(
+                    "UPDATE agent_plans SET status = 'RETIRED_DISCOVERY_REJECTED' WHERE agent_id = ?",
+                    (row["agent_id"],),
+                )
+
     return {
         "candidate_id": candidate_id,
+        "run_id": run_id,
         "source": source,
         "category": category,
-        "engine": "Horizon Discovery prescreen v1",
-        "note": "적합도는 백테스트 수익률이 아니라 원본전략·고정기간·현재 시장상태의 사전 적합도입니다.",
+        "market_match_mode": match_mode,
+        "engine": "Horizon Discovery prescreen v2 source-aware",
+        "note": "적합도는 백테스트 수익률이 아니라 원본 전략 시장문맥·고정기간·현재 시장상태의 사전 적합도입니다.",
         "count": len(evaluations),
         "items": evaluations,
         "evaluated_at": evaluated_at,
     }
 
 
-def list_candidate_discovery(candidate_id: str) -> list[dict[str, Any]]:
+def list_candidate_discovery(
+    candidate_id: str,
+    *,
+    current_only: bool = True,
+) -> list[dict[str, Any]]:
     init_source_registry_db()
     with _connect() as conn:
-        rows = conn.execute(
-            """
-            SELECT * FROM horizon_discovery
-            WHERE candidate_id = ?
-            ORDER BY fit_score DESC, market ASC, horizon ASC
-            """,
-            (candidate_id,),
-        ).fetchall()
+        if current_only:
+            rows = conn.execute(
+                """
+                SELECT * FROM horizon_discovery
+                WHERE candidate_id = ? AND is_current = 1
+                ORDER BY fit_score DESC, market ASC, horizon ASC
+                """,
+                (candidate_id,),
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                """
+                SELECT * FROM horizon_discovery
+                WHERE candidate_id = ?
+                ORDER BY evaluated_at DESC, fit_score DESC
+                """,
+                (candidate_id,),
+            ).fetchall()
     return [dict(row) for row in rows]
 
 
