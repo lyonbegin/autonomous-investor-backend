@@ -32,6 +32,7 @@ from app.core.tradingview import (
     list_collector_states,
     list_market_snapshots,
     list_market_universe,
+    reset_market_backfill,
     market_universe_counts,
     market_backfill_state,
     backfill_market_universe,
@@ -166,6 +167,14 @@ def markets_backfill_state() -> dict:
 def markets_backfill_counts() -> dict:
     items = market_universe_counts()
     return {"count": len(items), "items": items}
+
+
+@router.post("/markets/{market}/reset-backfill")
+def market_backfill_reset(market: str) -> dict:
+    try:
+        return reset_market_backfill(market)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @router.post("/markets/{market}/backfill")
