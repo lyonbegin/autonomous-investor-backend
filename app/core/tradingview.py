@@ -1275,39 +1275,56 @@ def backfill_market_universe(
 
 
 def compact_market_storage() -> dict[str, Any]:
-    """Remove duplicate legacy universe storage without deleting the current universe."""
+    """Emergency compaction when the Railway volume is full.
+
+    No source content is discarded: only the duplicate legacy universe table is
+    released. SQLite journaling is disabled for this one maintenance operation
+    so DROP TABLE does not need extra free disk space.
+    """
     init_db()
-    with _connect() as conn:
+    conn = sqlite3.connect(DB_PATH, timeout=30, isolation_level=None)
+    conn.row_factory = sqlite3.Row
+    try:
         before = {
+            "page_count": int(conn.execute("PRAGMA page_count").fetchone()[0]),
+            "freelist_count": int(conn.execute("PRAGMA freelist_count").fetchone()[0]),
+            "page_size": int(conn.execute("PRAGMA page_size").fetchone()[0]),
             "market_universe_current": int(conn.execute("SELECT COUNT(*) c FROM market_universe_current").fetchone()["c"]),
             "market_universe_rows": int(conn.execute("SELECT COUNT(*) c FROM market_universe_rows").fetchone()["c"]),
             "market_snapshots": int(conn.execute("SELECT COUNT(*) c FROM market_snapshots").fetchone()["c"]),
-            "page_count": int(conn.execute("PRAGMA page_count").fetchone()[0]),
-            "freelist_count": int(conn.execute("PRAGMA freelist_count").fetchone()[0]),
-            "page_size": int(conn.execute("PRAGMA page_size").fetchone()[0]),
         }
+        try:
+            conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+        except Exception:
+            pass
+        conn.execute("PRAGMA journal_mode=OFF")
+        conn.execute("PRAGMA synchronous=OFF")
         conn.execute("DROP TABLE IF EXISTS market_universe_rows")
+        # Snapshot history is derivative of the canonical current universe.
+        # Keep only the latest row per market/ticker, deleting in-place without
+        # building a temporary copy.
         conn.execute(
             """
             DELETE FROM market_snapshots
-            WHERE snapshot_id NOT IN (
-              SELECT snapshot_id FROM (
-                SELECT snapshot_id,
-                       ROW_NUMBER() OVER (PARTITION BY market,ticker ORDER BY collected_at DESC) rn
-                FROM market_snapshots
-              ) WHERE rn=1
+            WHERE rowid NOT IN (
+              SELECT MAX(rowid)
+              FROM market_snapshots
+              GROUP BY market,ticker
             )
             """
         )
-        conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
         after = {
-            "market_universe_current": int(conn.execute("SELECT COUNT(*) c FROM market_universe_current").fetchone()["c"]),
-            "market_snapshots": int(conn.execute("SELECT COUNT(*) c FROM market_snapshots").fetchone()["c"]),
             "page_count": int(conn.execute("PRAGMA page_count").fetchone()[0]),
             "freelist_count": int(conn.execute("PRAGMA freelist_count").fetchone()[0]),
             "page_size": int(conn.execute("PRAGMA page_size").fetchone()[0]),
+            "market_universe_current": int(conn.execute("SELECT COUNT(*) c FROM market_universe_current").fetchone()["c"]),
+            "market_snapshots": int(conn.execute("SELECT COUNT(*) c FROM market_snapshots").fetchone()["c"]),
         }
-    return {"before":before,"after":after,"at":utcnow()}
+        after["free_bytes"] = after["freelist_count"] * after["page_size"]
+        before["free_bytes"] = before["freelist_count"] * before["page_size"]
+        return {"before":before,"after":after,"at":utcnow()}
+    finally:
+        conn.close()
 
 
 def collect_market(
