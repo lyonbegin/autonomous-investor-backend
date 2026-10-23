@@ -215,6 +215,13 @@ def _connect() -> sqlite3.Connection:
     os.makedirs(os.path.dirname(DB_PATH) or ".", exist_ok=True)
     conn = sqlite3.connect(DB_PATH, timeout=30)
     conn.execute("PRAGMA busy_timeout = 30000")
+    # The Railway volume can be physically near-full while SQLite still owns
+    # hundreds of MB of reusable freelist pages. File-backed rollback journals
+    # would require extra filesystem space and can fail with SQLITE_FULL before
+    # those freelist pages are reused. Keep transient journal/temp data in RAM.
+    conn.execute("PRAGMA journal_mode=MEMORY")
+    conn.execute("PRAGMA temp_store=MEMORY")
+    conn.execute("PRAGMA synchronous=NORMAL")
     conn.row_factory = sqlite3.Row
     return conn
 
