@@ -50,7 +50,9 @@ MARKET_ALIASES: dict[str, str] = {
     "bonds": "bonds",
     "bond": "bonds",
     "국채": "bonds",
-    "회사채": "bonds",
+    "회사채": "corporate-bonds",
+    "corporate-bonds": "corporate-bonds",
+    "company-bonds": "corporate-bonds",
     "indices": "indices",
     "index": "indices",
     "지수": "indices",
@@ -102,6 +104,31 @@ MARKET_SCANNER_PROFILES: dict[str, dict[str, Any]] = {
     "vietnam": {"endpoint": "vietnam", "filters": []},
     "futures": {"endpoint": "futures", "filters": []},
     "bonds": {"endpoint": "bonds", "filters": []},
+    "corporate-bonds": {
+        "endpoint": "bond",
+        "markets": ["bond"],
+        "columns": [
+            "ticker-view",
+            "exchange.tr",
+            "source-logoid",
+            "isin-displayed",
+            "yield_to_worst",
+            "close_pct",
+            "close_net",
+            "type",
+            "typespecs",
+            "fundamental_currency_code",
+            "current_coupon",
+            "maturity_date",
+            "redemption_type.tr",
+            "bond_issuer_type.tr",
+            "bond_snp_rating_lt.tr",
+            "bond_fitch_rating_lt.tr"
+        ],
+        "default_sort": "yield_to_worst",
+        "allowed_sort": ["yield_to_worst", "current_coupon", "maturity_date", "bond_snp_rating_lt", "name"],
+        "filters": []
+    },
     "indices": {
         "endpoint": "global",
         "filters": [{"left": "type", "operation": "equal", "right": "index"}],
@@ -353,6 +380,7 @@ def init_db() -> None:
             ("market_snapshots", "recommendation", "REAL"),
             ("market_snapshots", "market_cap", "REAL"),
             ("market_snapshots", "sector", "TEXT"),
+            ("market_snapshots", "raw_json", "TEXT"),
         ]
         for table, column, definition in migrations:
             try:
@@ -753,8 +781,8 @@ def store_market_snapshot(market: str, rows: list[dict[str, Any]], collected_at:
             """
             INSERT OR IGNORE INTO market_snapshots (
                 snapshot_id,market,ticker,name,description,close,change,volume,exchange,asset_type,
-                volatility_d,relative_volume,rsi,atr,adx,recommendation,market_cap,sector,rank_index,collected_at
-            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                volatility_d,relative_volume,rsi,atr,adx,recommendation,market_cap,sector,rank_index,collected_at,raw_json
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             """,
             [
                 (
@@ -778,6 +806,7 @@ def store_market_snapshot(market: str, rows: list[dict[str, Any]], collected_at:
                     x.get("sector"),
                     idx,
                     collected_at,
+                    json.dumps(x, ensure_ascii=False),
                 )
                 for idx, x in enumerate(rows, start=1)
                 if x.get("ticker")
@@ -838,21 +867,28 @@ def collect_market(
     safe_limit = min(max(limit, 1), 100)
     safe_offset = max(int(offset), 0)
     profile = MARKET_SCANNER_PROFILES[market_key]
-    allowed_sort = {
+    default_allowed_sort = {
         "volume", "change", "close", "name", "Volatility.D",
         "relative_volume_10d_calc", "RSI", "ATR", "ADX",
         "market_cap_basic", "market_cap_calc",
     }
+    allowed_sort = set(profile.get("allowed_sort") or default_allowed_sort)
     if sort_by not in allowed_sort:
-        sort_by = "volume"
+        sort_by = str(profile.get("default_sort") or "volume")
     if sort_order not in {"asc", "desc"}:
         sort_order = "desc"
+
+    columns = list(profile.get("columns") or DEFAULT_COLUMNS)
+    if "markets" in profile:
+        scanner_markets = list(profile.get("markets") or [])
+    else:
+        scanner_markets = [] if market_key in {"futures", "bonds", "indices", "global-stocks"} else [profile["endpoint"]]
 
     payload = {
         "filter": list(profile.get("filters") or []),
         "options": {"lang": "ko"},
-        "markets": [] if market_key in {"futures", "bonds", "indices", "global-stocks"} else [profile["endpoint"]],
-        "columns": DEFAULT_COLUMNS,
+        "markets": scanner_markets,
+        "columns": columns,
         "sort": {"sortBy": sort_by, "sortOrder": sort_order},
         "range": [safe_offset, safe_offset + safe_limit],
     }
@@ -860,8 +896,15 @@ def collect_market(
     rows: list[dict[str, Any]] = []
     for item in raw.get("data", []):
         values = item.get("d", [])
-        row = dict(zip(DEFAULT_COLUMNS, values))
+        row = dict(zip(columns, values))
         row["ticker"] = item.get("s")
+        if market_key == "corporate-bonds":
+            row["name"] = row.get("ticker-view") or row.get("isin-displayed") or item.get("s")
+            row["description"] = row.get("ticker-view") or ""
+            row["close"] = row.get("close_pct")
+            row["change"] = row.get("close_net")
+            row["type"] = row.get("type") or "bond"
+            row["exchange"] = row.get("exchange.tr")
         rows.append(row)
 
     collected_at = utcnow()
@@ -875,7 +918,7 @@ def collect_market(
         "offset": safe_offset,
         "limit": safe_limit,
         "has_more": safe_offset + len(rows) < int(raw.get("totalCount") or 0),
-        "columns": DEFAULT_COLUMNS,
+        "columns": columns,
         "items": rows,
         "collected_at": collected_at,
     }
