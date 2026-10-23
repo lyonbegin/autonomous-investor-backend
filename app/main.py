@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app import __version__
+from app.api.demo_routes import router as demo_router
 from app.api.routes import router
 
 app = FastAPI(
@@ -17,3 +18,4 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.include_router(router)
+app.include_router(demo_router)
