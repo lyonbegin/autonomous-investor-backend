@@ -403,6 +403,10 @@ def init_db() -> None:
             ("market_snapshots", "market_cap", "REAL"),
             ("market_snapshots", "sector", "TEXT"),
             ("market_snapshots", "raw_json", "TEXT"),
+            ("strategy_candidates", "source_hash", "TEXT"),
+            ("strategy_candidates", "source_version", "TEXT"),
+            ("strategy_candidates", "classification_version", "TEXT"),
+            ("strategy_candidates", "updated_at", "TEXT"),
         ]
         for table, column, definition in migrations:
             try:
@@ -1381,20 +1385,26 @@ def create_candidate_from_script(script_id_part: str, fetch_source: bool = True)
         conn.execute(
             """
             INSERT INTO strategy_candidates (
-                candidate_id,source_kind,source_id,name,category,domain,logic,candidate_horizons,status,created_at
-            ) VALUES (?,?,?,?,?,?,?,?,?,?)
+                candidate_id,source_kind,source_id,name,category,domain,logic,candidate_horizons,status,
+                created_at,source_hash,source_version,classification_version,updated_at
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             ON CONFLICT(candidate_id) DO UPDATE SET
                 name=excluded.name,
                 category=excluded.category,
                 domain=excluded.domain,
                 logic=excluded.logic,
                 candidate_horizons=excluded.candidate_horizons,
-                status=excluded.status
+                status=excluded.status,
+                source_hash=excluded.source_hash,
+                source_version=excluded.source_version,
+                classification_version=excluded.classification_version,
+                updated_at=excluded.updated_at
             """,
             (
                 candidate_id, "TradingViewPineStrategy", script_id_part,
                 script.get("name") or candidate_id, category, CATEGORY_DOMAINS[category],
                 logic, json.dumps(horizons, ensure_ascii=False), "후보", now,
+                source_hash, str(script.get("version") or ""), "category-v2", now,
             ),
         )
 
@@ -1713,6 +1723,79 @@ def create_candidate_from_idea(idea_id: str) -> dict[str, Any]:
         "candidate_horizons": horizons,
         "status": "후보",
         "created_at": now,
+    }
+
+
+def candidate_build_status() -> dict[str, Any]:
+    init_db()
+    with _connect() as conn:
+        row = conn.execute(
+            """
+            SELECT
+                COUNT(*) AS total_scripts,
+                SUM(CASE WHEN c.candidate_id IS NOT NULL THEN 1 ELSE 0 END) AS candidate_count,
+                SUM(
+                    CASE WHEN c.candidate_id IS NOT NULL
+                              AND c.classification_version = 'category-v2'
+                              AND COALESCE(c.source_hash,'') = COALESCE(s.source_hash,'')
+                         THEN 1 ELSE 0 END
+                ) AS current_count
+            FROM community_scripts s0
+            LEFT JOIN script_sources s ON s.script_id_part = s0.script_id_part
+            LEFT JOIN strategy_candidates c
+              ON c.source_kind = 'TradingViewPineStrategy'
+             AND c.source_id = s0.script_id_part
+            """
+        ).fetchone()
+    data = dict(row or {})
+    total = int(data.get("total_scripts") or 0)
+    candidate_count = int(data.get("candidate_count") or 0)
+    current = int(data.get("current_count") or 0)
+    return {
+        "total_scripts": total,
+        "candidate_count": candidate_count,
+        "current_count": current,
+        "remaining": max(0, total - current),
+        "classification_version": "category-v2",
+    }
+
+
+def build_pending_strategy_candidates(limit: int = 500) -> dict[str, Any]:
+    init_db()
+    safe_limit = min(max(int(limit), 1), 2000)
+    with _connect() as conn:
+        rows = conn.execute(
+            """
+            SELECT s0.script_id_part
+            FROM community_scripts s0
+            LEFT JOIN script_sources s ON s.script_id_part = s0.script_id_part
+            LEFT JOIN strategy_candidates c
+              ON c.source_kind = 'TradingViewPineStrategy'
+             AND c.source_id = s0.script_id_part
+            WHERE c.candidate_id IS NULL
+               OR COALESCE(c.classification_version,'') <> 'category-v2'
+               OR COALESCE(c.source_hash,'') <> COALESCE(s.source_hash,'')
+            ORDER BY s0.collected_at DESC, s0.script_id_part
+            LIMIT ?
+            """,
+            (safe_limit,),
+        ).fetchall()
+    built = 0
+    errors: list[dict[str, str]] = []
+    for row in rows:
+        source_id = str(row["script_id_part"])
+        try:
+            create_candidate_from_script(source_id, fetch_source=True)
+            built += 1
+        except Exception as exc:
+            errors.append({"source_id": source_id, "error": f"{type(exc).__name__}: {exc}"})
+    return {
+        "selected": len(rows),
+        "built": built,
+        "error_count": len(errors),
+        "errors": errors[:30],
+        "status": candidate_build_status(),
+        "at": utcnow(),
     }
 
 
