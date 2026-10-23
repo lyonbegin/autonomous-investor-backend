@@ -45,6 +45,17 @@ MARKET_ALIASES: dict[str, str] = {
     "vietnam": "vietnam",
     "vn": "vietnam",
     "베트남": "vietnam",
+    "futures": "futures",
+    "선물": "futures",
+    "bonds": "bonds",
+    "bond": "bonds",
+    "국채": "bonds",
+    "회사채": "bonds",
+    "indices": "indices",
+    "index": "indices",
+    "지수": "indices",
+    "etf": "etf",
+    "etfs": "etf",
 }
 
 DEFAULT_COLUMNS = [
@@ -77,6 +88,24 @@ CATEGORY_RULES: list[tuple[str, tuple[str, ...]]] = [
     ("추세추종", ("supertrend", "trend", "추세", "ema", "moving average", "adx")),
     ("크립토", ("crypto", "bitcoin", "btc", "ethereum", "eth", "grid")),
 ]
+
+MARKET_SCANNER_PROFILES: dict[str, dict[str, Any]] = {
+    "korea": {"endpoint": "korea", "filters": []},
+    "america": {"endpoint": "america", "filters": []},
+    "crypto": {"endpoint": "crypto", "filters": []},
+    "forex": {"endpoint": "forex", "filters": []},
+    "india": {"endpoint": "india", "filters": []},
+    "japan": {"endpoint": "japan", "filters": []},
+    "vietnam": {"endpoint": "vietnam", "filters": []},
+    "futures": {"endpoint": "futures", "filters": []},
+    "bonds": {"endpoint": "bonds", "filters": []},
+    "indices": {"endpoint": "global", "filters": []},
+    "etf": {
+        "endpoint": "america",
+        "filters": [{"left": "type", "operation": "equal", "right": "fund"}],
+    },
+}
+
 
 CATEGORY_HORIZONS: dict[str, list[str]] = {
     "평균회귀": ["10m", "30m", "1h"],
@@ -778,14 +807,17 @@ def collect_market(
     market: str,
     *,
     limit: int = 20,
+    offset: int = 0,
     sort_by: str = "volume",
     sort_order: str = "desc",
 ) -> dict[str, Any]:
     market_key = MARKET_ALIASES.get(market.lower(), market.lower())
-    if market_key not in set(MARKET_ALIASES.values()):
+    if market_key not in MARKET_SCANNER_PROFILES:
         raise ValueError(f"unsupported market: {market}")
 
     safe_limit = min(max(limit, 1), 100)
+    safe_offset = max(int(offset), 0)
+    profile = MARKET_SCANNER_PROFILES[market_key]
     allowed_sort = {
         "volume", "change", "close", "name", "Volatility.D",
         "relative_volume_10d_calc", "RSI", "ATR", "ADX",
@@ -797,14 +829,14 @@ def collect_market(
         sort_order = "desc"
 
     payload = {
-        "filter": [],
+        "filter": list(profile.get("filters") or []),
         "options": {"lang": "ko"},
-        "markets": [market_key],
+        "markets": [] if market_key in {"futures", "bonds", "indices"} else [profile["endpoint"]],
         "columns": DEFAULT_COLUMNS,
         "sort": {"sortBy": sort_by, "sortOrder": sort_order},
-        "range": [0, safe_limit],
+        "range": [safe_offset, safe_offset + safe_limit],
     }
-    raw = _http_json(SCANNER_URL.format(market=market_key), method="POST", payload=payload)
+    raw = _http_json(SCANNER_URL.format(market=profile["endpoint"]), method="POST", payload=payload)
     rows: list[dict[str, Any]] = []
     for item in raw.get("data", []):
         values = item.get("d", [])
@@ -820,6 +852,9 @@ def collect_market(
         "market": market_key,
         "total_count": raw.get("totalCount"),
         "count": len(rows),
+        "offset": safe_offset,
+        "limit": safe_limit,
+        "has_more": safe_offset + len(rows) < int(raw.get("totalCount") or 0),
         "columns": DEFAULT_COLUMNS,
         "items": rows,
         "collected_at": collected_at,
