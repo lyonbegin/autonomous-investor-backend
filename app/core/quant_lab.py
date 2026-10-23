@@ -339,3 +339,176 @@ def readiness() -> dict[str, Any]:
             "state": "native bridges installed; experiment executor orchestration still being built",
         },
     }
+
+
+def _integration_probe_map() -> tuple[dict[str, bool], str | None]:
+    try:
+        payload = _json_request(
+            f"{INTEGRATED_SERVICE_URL}/api/v1/integrations?probe_runtime=true"
+        )
+        rows = payload.get("integrations") or []
+        return (
+            {
+                str(row.get("key")): bool(row.get("installed") and row.get("import_ok"))
+                for row in rows
+            },
+            None,
+        )
+    except Exception as exc:
+        return {}, f"{type(exc).__name__}: {exc}"
+
+
+def pipeline_status() -> dict[str, Any]:
+    engines, probe_error = _integration_probe_map()
+
+    def ready(*keys: str) -> bool:
+        return bool(keys) and all(engines.get(key, False) for key in keys)
+
+    tv_ready = False
+    try:
+        tv_health = _json_request(f"{TRADINGVIEW_SERVICE_URL}/health")
+        tv_ready = tv_health.get("status") == "ok"
+    except Exception:
+        tv_ready = False
+
+    toss_ready = credentials_configured()
+    pine_ready = bool(os.getenv("PINE_ENGINE_URL"))
+
+    stages = [
+        {
+            "order": 1,
+            "key": "research_agent",
+            "name": "Research Agent",
+            "engines": ["TradingAgents", "FinRobot V2"],
+            "engine_ready": ready("tradingagents", "finrobot"),
+            "state": "ENGINE_READY" if ready("tradingagents", "finrobot") else "ENGINE_BLOCKED",
+            "blocker": "Research orchestration/API 실행계층은 아직 연결 전" if ready("tradingagents", "finrobot") else "필수 Research 엔진 import 실패",
+        },
+        {
+            "order": 2,
+            "key": "market_agent",
+            "name": "Market Agent",
+            "engines": ["TradingView Source", "TradingAgents"],
+            "engine_ready": ready("tradingagents"),
+            "state": "DATA_READY" if tv_ready else "BLOCKED_DATA_SOURCE",
+            "blocker": "실시간 TradingView 데이터는 연결됨; Agent 연구 오케스트레이션은 다음 단계" if tv_ready else "TradingView Source 서비스 미연결",
+        },
+        {
+            "order": 3,
+            "key": "macro_agent",
+            "name": "Macro Agent",
+            "engines": ["TradingAgents", "FinRobot V2"],
+            "engine_ready": ready("tradingagents", "finrobot"),
+            "state": "BLOCKED_DATA_SOURCE",
+            "blocker": "실제 거시 데이터 공급원(FRED/공식 경제지표) 미연결",
+        },
+        {
+            "order": 4,
+            "key": "hypothesis_engine",
+            "name": "Hypothesis Engine",
+            "engines": ["RD-Agent(Q)"],
+            "engine_ready": ready("rdagent"),
+            "state": "ENGINE_READY" if ready("rdagent") else "ENGINE_BLOCKED",
+            "blocker": "RD-Agent native engine은 준비됨; TradingView Candidate→RD-Agent loop 연결 전" if ready("rdagent") else "RD-Agent import 실패",
+        },
+        {
+            "order": 5,
+            "key": "python_experiment_engine",
+            "name": "Python Experiment Engine",
+            "engines": ["RD-Agent(Q)", "vectorbt"],
+            "engine_ready": ready("rdagent", "vectorbt"),
+            "state": "CONTROL_READY",
+            "blocker": "Experiment Registry/Universe는 동작; 전략 실행기와 시계열 데이터가 준비돼야 실제 실행 가능",
+        },
+        {
+            "order": 6,
+            "key": "classical_ml",
+            "name": "Classical ML",
+            "engines": ["Qlib"],
+            "engine_ready": ready("qlib"),
+            "state": "ENGINE_READY" if ready("qlib") else "ENGINE_BLOCKED",
+            "blocker": "Qlib 모델 학습 orchestration 미연결" if ready("qlib") else "Qlib import 실패",
+        },
+        {
+            "order": 7,
+            "key": "foundation_model",
+            "name": "Foundation Model",
+            "engines": ["Chronos"],
+            "engine_ready": ready("chronos"),
+            "state": "ENGINE_READY" if ready("chronos") else "ENGINE_BLOCKED",
+            "blocker": "Chronos forecast orchestration 미연결" if ready("chronos") else "Chronos import 실패",
+        },
+        {
+            "order": 8,
+            "key": "reinforcement_learning",
+            "name": "RL",
+            "engines": ["Stable-Baselines3", "Ray RLlib", "FinRL-Trading"],
+            "engine_ready": ready("sb3", "rllib", "finrl"),
+            "state": "ENGINE_READY" if ready("sb3", "rllib", "finrl") else "ENGINE_BLOCKED",
+            "blocker": "RL train/eval orchestration 미연결" if ready("sb3", "rllib", "finrl") else "RL 엔진 일부 import 실패",
+        },
+        {
+            "order": 9,
+            "key": "walk_forward",
+            "name": "Walk-forward Test",
+            "engines": ["vectorbt", "Qlib"],
+            "engine_ready": ready("vectorbt", "qlib"),
+            "state": "BLOCKED_STRATEGY_ENGINE" if not pine_ready else ("BLOCKED_DATA_SOURCE" if not toss_ready else "READY"),
+            "blocker": "Pine/StrategySpec 실행기 미연결" if not pine_ready else ("실제 OHLCV 자격증명 미설정" if not toss_ready else None),
+        },
+        {
+            "order": 10,
+            "key": "holdout_validation",
+            "name": "Holdout Validation",
+            "engines": ["vectorbt", "Qlib"],
+            "engine_ready": ready("vectorbt", "qlib"),
+            "state": "BLOCKED_STRATEGY_ENGINE" if not pine_ready else ("BLOCKED_DATA_SOURCE" if not toss_ready else "READY"),
+            "blocker": "Pine/StrategySpec 실행기 미연결" if not pine_ready else ("실제 OHLCV 자격증명 미설정" if not toss_ready else None),
+        },
+        {
+            "order": 11,
+            "key": "portfolio_engine",
+            "name": "Portfolio Engine",
+            "engines": ["Riskfolio-Lib", "PyPortfolioOpt", "FinRL-Trading"],
+            "engine_ready": ready("riskfolio", "pyportfolioopt", "finrl"),
+            "state": "ENGINE_READY" if ready("riskfolio", "pyportfolioopt", "finrl") else "ENGINE_BLOCKED",
+            "blocker": "검증 완료 전략의 TargetPortfolio 연결 전" if ready("riskfolio", "pyportfolioopt", "finrl") else "Portfolio 엔진 일부 import 실패",
+        },
+        {
+            "order": 12,
+            "key": "risk_gate",
+            "name": "Risk Gate",
+            "engines": ["Riskfolio-Lib", "NautilusTrader"],
+            "engine_ready": ready("riskfolio", "nautilus"),
+            "state": "ENGINE_READY" if ready("riskfolio", "nautilus") else "ENGINE_BLOCKED",
+            "blocker": "실제 Portfolio→RiskDecision→Execution 연결 전" if ready("riskfolio", "nautilus") else "Risk/Execution 엔진 import 실패",
+        },
+        {
+            "order": 13,
+            "key": "paper_trading",
+            "name": "Paper Trading",
+            "engines": ["NautilusTrader"],
+            "engine_ready": ready("nautilus"),
+            "state": "BLOCKED_STRATEGY_ENGINE" if not pine_ready else ("BLOCKED_DATA_SOURCE" if not toss_ready else "READY"),
+            "blocker": "검증 가능한 전략 실행기 미연결" if not pine_ready else ("시세/브로커 데이터 자격증명 미설정" if not toss_ready else None),
+        },
+        {
+            "order": 14,
+            "key": "live_trading",
+            "name": "Live Trading",
+            "engines": ["NautilusTrader"],
+            "engine_ready": ready("nautilus"),
+            "state": "OFF",
+            "blocker": "실거래는 의도적으로 OFF. 백테스트→Walk-forward→Holdout→Paper 통과 후에만 승격",
+        },
+    ]
+
+    return {
+        "count": 14,
+        "pipeline": "Research Agent → Market Agent → Macro Agent → Hypothesis Engine → Python Experiment Engine → Classical ML / Foundation Model / RL → Walk-forward Test → Holdout Validation → Portfolio Engine → Risk Gate → Paper Trading → Live Trading",
+        "integrated_engine_probe_error": probe_error,
+        "tradingview_ready": tv_ready,
+        "toss_ready": toss_ready,
+        "pine_executor_ready": pine_ready,
+        "stages": stages,
+    }
