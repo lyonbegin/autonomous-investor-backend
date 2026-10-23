@@ -259,6 +259,17 @@ def init_db() -> None:
                 status TEXT NOT NULL,
                 created_at TEXT NOT NULL
             );
+
+            CREATE TABLE IF NOT EXISTS agent_universe_members (
+                agent_id TEXT NOT NULL,
+                ticker TEXT NOT NULL,
+                rank_index INTEGER NOT NULL,
+                prescreen_score REAL NOT NULL,
+                rationale TEXT NOT NULL,
+                snapshot_at TEXT NOT NULL,
+                resolved_at TEXT NOT NULL,
+                PRIMARY KEY (agent_id, ticker)
+            );
             """
         )
         migrations = [
@@ -1008,6 +1019,165 @@ def create_agent_plans(candidate_id: str, max_markets: int = 3) -> list[dict[str
                     "status": "RESEARCH",
                 })
     return created
+
+
+def _scanner_market_for_agent(plan: dict[str, Any]) -> str | None:
+    country = str(plan.get("country") or "").lower()
+    market = str(plan.get("market") or "").lower()
+    if "한국" in country or "kospi" in market or "kosdaq" in market:
+        return "korea"
+    if "미국" in country or "nasdaq" in market or "nyse" in market or "미국" in market:
+        return "america"
+    if "일본" in country or "tse" in market:
+        return "japan"
+    if "가상자산" in country or "crypto" in country:
+        return "crypto"
+    if country == "fx" or "외환" in market or "글로벌" in market and "fx" in country:
+        return "forex"
+    return None
+
+
+def _prescreen_score(category: str, row: dict[str, Any]) -> tuple[float, str]:
+    volume = float(row.get("volume") or 0.0)
+    rel = float(row.get("relative_volume_10d_calc") or 0.0)
+    rsi = float(row.get("RSI") or 50.0)
+    volatility = float(row.get("Volatility.D") or 0.0)
+    adx = float(row.get("ADX") or 0.0)
+    change = float(row.get("change") or 0.0)
+    recommendation = float(row.get("Recommend.All") or 0.0)
+    liquidity = min(20.0, max(0.0, (len(str(int(abs(volume)))) - 3) * 2.0)) if volume else 0.0
+
+    if category == "평균회귀":
+        score = abs(rsi - 50.0) * 1.2 + min(rel, 5.0) * 4.0 + liquidity
+        rationale = f"RSI 극단성 {rsi:.1f}, 상대거래량 {rel:.2f}, 유동성 사전선별"
+    elif category in {"돌파", "모멘텀"}:
+        score = max(change, -20.0) * 1.3 + min(rel, 6.0) * 5.0 + min(adx, 60.0) * 0.5 + liquidity
+        rationale = f"등락률 {change:.2f}%, 상대거래량 {rel:.2f}, ADX {adx:.1f}"
+    elif category == "추세추종":
+        score = min(adx, 60.0) * 0.9 + abs(recommendation) * 25.0 + min(rel, 5.0) * 3.0 + liquidity
+        rationale = f"ADX {adx:.1f}, 기술평가 {recommendation:.2f}, 상대거래량 {rel:.2f}"
+    elif category == "변동성":
+        score = min(volatility, 100.0) * 1.2 + min(rel, 5.0) * 4.0 + liquidity
+        rationale = f"일변동성 {volatility:.2f}%, 상대거래량 {rel:.2f}"
+    else:
+        score = min(rel, 5.0) * 4.0 + min(adx, 60.0) * 0.4 + liquidity
+        rationale = f"상대거래량 {rel:.2f}, ADX {adx:.1f}, 유동성 사전선별"
+    return round(score, 4), rationale
+
+
+def resolve_agent_universe(agent_id: str, limit: int = 20) -> dict[str, Any]:
+    init_db()
+    safe_limit = min(max(int(limit), 1), 100)
+    with _connect() as conn:
+        plan_row = conn.execute(
+            "SELECT * FROM agent_plans WHERE agent_id = ?",
+            (agent_id,),
+        ).fetchone()
+        if plan_row is None:
+            raise KeyError(agent_id)
+        plan = dict(plan_row)
+        candidate_row = conn.execute(
+            "SELECT category FROM strategy_candidates WHERE candidate_id = ?",
+            (plan["candidate_id"],),
+        ).fetchone()
+    category = str(candidate_row["category"]) if candidate_row is not None else "아이디어 기반"
+    scanner_market = _scanner_market_for_agent(plan)
+    if scanner_market is None:
+        return {
+            "agent_id": agent_id,
+            "resolved": False,
+            "reason": "No TradingView scanner mapping for this market yet.",
+            "items": [],
+        }
+
+    sort_by = {
+        "평균회귀": "volume",
+        "돌파": "relative_volume_10d_calc",
+        "모멘텀": "relative_volume_10d_calc",
+        "추세추종": "ADX",
+        "변동성": "Volatility.D",
+    }.get(category, "volume")
+
+    market_data = collect_market(
+        scanner_market,
+        limit=max(50, safe_limit),
+        sort_by=sort_by,
+        sort_order="desc",
+    )
+    scored: list[dict[str, Any]] = []
+    for row in market_data.get("items", []):
+        ticker = str(row.get("ticker") or "")
+        if not ticker:
+            continue
+        score, rationale = _prescreen_score(category, row)
+        scored.append(
+            {
+                "ticker": ticker,
+                "name": row.get("description") or row.get("name"),
+                "exchange": row.get("exchange"),
+                "prescreen_score": score,
+                "rationale": rationale,
+                "rsi": row.get("RSI"),
+                "adx": row.get("ADX"),
+                "relative_volume": row.get("relative_volume_10d_calc"),
+                "volatility_d": row.get("Volatility.D"),
+                "change": row.get("change"),
+            }
+        )
+    scored.sort(key=lambda x: float(x["prescreen_score"]), reverse=True)
+    selected = scored[:safe_limit]
+    now = utcnow()
+    snapshot_at = str(market_data.get("collected_at") or now)
+
+    with _connect() as conn:
+        conn.execute("DELETE FROM agent_universe_members WHERE agent_id = ?", (agent_id,))
+        conn.executemany(
+            """
+            INSERT INTO agent_universe_members (
+                agent_id,ticker,rank_index,prescreen_score,rationale,snapshot_at,resolved_at
+            ) VALUES (?,?,?,?,?,?,?)
+            """,
+            [
+                (
+                    agent_id,
+                    x["ticker"],
+                    idx,
+                    x["prescreen_score"],
+                    x["rationale"],
+                    snapshot_at,
+                    now,
+                )
+                for idx, x in enumerate(selected, start=1)
+            ],
+        )
+
+    return {
+        "agent_id": agent_id,
+        "candidate_id": plan["candidate_id"],
+        "category": category,
+        "fixed_horizon": plan["fixed_horizon"],
+        "scanner_market": scanner_market,
+        "resolved": bool(selected),
+        "method": "TradingView Scanner quantitative pre-screen only; not a backtest performance score",
+        "snapshot_at": snapshot_at,
+        "count": len(selected),
+        "items": selected,
+    }
+
+
+def list_agent_universe(agent_id: str) -> list[dict[str, Any]]:
+    init_db()
+    with _connect() as conn:
+        rows = conn.execute(
+            """
+            SELECT ticker,rank_index,prescreen_score,rationale,snapshot_at,resolved_at
+            FROM agent_universe_members
+            WHERE agent_id = ?
+            ORDER BY rank_index ASC
+            """,
+            (agent_id,),
+        ).fetchall()
+    return [dict(row) for row in rows]
 
 
 def get_agent_plan(agent_id: str) -> dict[str, Any] | None:
