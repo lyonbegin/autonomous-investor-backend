@@ -1109,67 +1109,184 @@ def backfill_market_universe(
     market_key = MARKET_ALIASES.get(market.lower(), market.lower())
     if market_key not in MARKET_SCANNER_PROFILES:
         raise ValueError(f"unsupported market: {market}")
-    safe_chunks = min(max(int(chunks), 1), 25)
+    safe_chunks = min(max(int(chunks), 1), 250)
     safe_page_size = min(max(int(page_size), 100), 1000)
     state = _market_state(market_key)
     offset = max(0, int(state["cursor_offset"]))
     scan_id = str(state["scan_id"])
     total_count = max(0, int(state["total_count"]))
-    processed = 0
-    items_seen = 0
-    cycle_completed = False
     last_error: str | None = None
-    now = utcnow()
 
-    for _ in range(safe_chunks):
-        try:
-            payload = collect_market(
-                market_key,
-                limit=safe_page_size,
-                offset=offset,
-                sort_by=str(MARKET_SCANNER_PROFILES[market_key].get("default_sort") or "volume"),
-                sort_order="desc",
-                persist_snapshot=False,
+    # TradingView's anonymous Bond Screener currently exposes only the first
+    # 10 corporate-bond rows and ignores offset/range pagination. Do not
+    # misreport those 10 rows as a completed 167k+ universe.
+    if market_key == "corporate-bonds":
+        with _connect() as conn:
+            conn.execute(
+                """
+                UPDATE market_collector_state
+                SET last_error=?,updated_at=?
+                WHERE market=?
+                """,
+                (
+                    "TRADINGVIEW_ENTITLEMENT_REQUIRED: anonymous Bond Screener returns only 10 rows; full export is gated",
+                    utcnow(),
+                    market_key,
+                ),
             )
-            rows = list(payload.get("items") or [])
-            total_count = int(payload.get("total_count") or 0)
-            page_time = str(payload.get("collected_at") or utcnow())
-            _store_market_universe_page(
-                market_key,
-                rows,
-                scan_id=scan_id,
-                base_rank=offset,
-                collected_at=page_time,
-            )
-            processed += 1
-            items_seen += len(rows)
-            offset += len(rows)
-            if not payload.get("has_more") or not rows or offset >= total_count:
-                cycle_completed = True
-                completed_at = utcnow()
-                with _connect() as conn:
-                    conn.execute(
-                        "DELETE FROM market_universe_current WHERE market = ? AND scan_id <> ?",
-                        (market_key, scan_id),
-                    )
-                    new_scan_id = _market_cycle_id(market_key)
-                    conn.execute(
-                        """
-                        UPDATE market_collector_state
-                        SET cursor_offset=0,total_count=?,scan_id=?,cycle_started_at=?,
-                            last_completed_at=?,last_error=NULL,updated_at=?
-                        WHERE market=?
-                        """,
-                        (
-                            total_count,new_scan_id,completed_at,completed_at,completed_at,market_key,
-                        ),
-                    )
-                break
-        except Exception as exc:
-            last_error = f"{type(exc).__name__}: {exc}"
-            break
+        return {
+            "market": market_key,
+            "scan_id": scan_id,
+            "processed_chunks": 0,
+            "page_size": 10,
+            "items_seen": 0,
+            "next_offset": offset,
+            "total_count": total_count,
+            "cycle_completed": False,
+            "restricted": True,
+            "last_error": "TRADINGVIEW_ENTITLEMENT_REQUIRED",
+            "at": utcnow(),
+        }
 
-    if not cycle_completed:
+    # Bootstrap total count if this market has not been sampled yet.
+    if total_count <= 0:
+        first = collect_market(
+            market_key,
+            limit=safe_page_size,
+            offset=offset,
+            sort_by=str(MARKET_SCANNER_PROFILES[market_key].get("default_sort") or "volume"),
+            sort_order="desc",
+            persist_snapshot=False,
+        )
+        rows = list(first.get("items") or [])
+        total_count = int(first.get("total_count") or 0)
+        _store_market_universe_page(
+            market_key,
+            rows,
+            scan_id=scan_id,
+            base_rank=offset,
+            collected_at=str(first.get("collected_at") or utcnow()),
+        )
+        offset += len(rows)
+        if not first.get("has_more") or offset >= total_count:
+            completed_at = utcnow()
+            with _connect() as conn:
+                conn.execute(
+                    "DELETE FROM market_universe_current WHERE market = ? AND scan_id <> ?",
+                    (market_key, scan_id),
+                )
+                new_scan_id = _market_cycle_id(market_key)
+                conn.execute(
+                    """
+                    UPDATE market_collector_state
+                    SET cursor_offset=0,total_count=?,scan_id=?,cycle_started_at=?,
+                        last_completed_at=?,last_error=NULL,updated_at=?
+                    WHERE market=?
+                    """,
+                    (total_count,new_scan_id,completed_at,completed_at,completed_at,market_key),
+                )
+            return {
+                "market": market_key,
+                "scan_id": scan_id,
+                "processed_chunks": 1,
+                "page_size": safe_page_size,
+                "items_seen": len(rows),
+                "next_offset": 0,
+                "total_count": total_count,
+                "cycle_completed": True,
+                "last_error": None,
+                "at": utcnow(),
+            }
+        safe_chunks -= 1
+        if safe_chunks <= 0:
+            with _connect() as conn:
+                conn.execute(
+                    """
+                    UPDATE market_collector_state
+                    SET cursor_offset=?,total_count=?,last_error=NULL,updated_at=?
+                    WHERE market=?
+                    """,
+                    (offset,total_count,utcnow(),market_key),
+                )
+            return {
+                "market": market_key,
+                "scan_id": scan_id,
+                "processed_chunks": 1,
+                "page_size": safe_page_size,
+                "items_seen": len(rows),
+                "next_offset": offset,
+                "total_count": total_count,
+                "cycle_completed": False,
+                "last_error": None,
+                "at": utcnow(),
+            }
+
+    remaining = max(0, total_count - offset)
+    needed_chunks = (remaining + safe_page_size - 1) // safe_page_size
+    chunk_count = min(safe_chunks, needed_chunks)
+    offsets = [offset + i * safe_page_size for i in range(chunk_count)]
+    sort_by = str(MARKET_SCANNER_PROFILES[market_key].get("default_sort") or "volume")
+
+    def _fetch_market_chunk(chunk_offset: int) -> tuple[int, dict[str, Any]]:
+        payload = collect_market(
+            market_key,
+            limit=safe_page_size,
+            offset=chunk_offset,
+            sort_by=sort_by,
+            sort_order="desc",
+            persist_snapshot=False,
+        )
+        return chunk_offset, payload
+
+    results: list[tuple[int, dict[str, Any]]] = []
+    errors: list[str] = []
+    if offsets:
+        with ThreadPoolExecutor(max_workers=min(16, len(offsets))) as executor:
+            futures = [executor.submit(_fetch_market_chunk, x) for x in offsets]
+            for future in futures:
+                try:
+                    results.append(future.result())
+                except Exception as exc:
+                    errors.append(f"{type(exc).__name__}: {exc}")
+
+    results.sort(key=lambda x: x[0])
+    items_seen = 0
+    max_end = offset
+    for chunk_offset, payload in results:
+        rows = list(payload.get("items") or [])
+        total_count = int(payload.get("total_count") or total_count)
+        _store_market_universe_page(
+            market_key,
+            rows,
+            scan_id=scan_id,
+            base_rank=chunk_offset,
+            collected_at=str(payload.get("collected_at") or utcnow()),
+        )
+        items_seen += len(rows)
+        max_end = max(max_end, chunk_offset + len(rows))
+
+    if errors:
+        last_error = errors[-1]
+
+    cycle_completed = bool(total_count > 0 and max_end >= total_count and not errors)
+    if cycle_completed:
+        completed_at = utcnow()
+        with _connect() as conn:
+            conn.execute(
+                "DELETE FROM market_universe_current WHERE market = ? AND scan_id <> ?",
+                (market_key, scan_id),
+            )
+            new_scan_id = _market_cycle_id(market_key)
+            conn.execute(
+                """
+                UPDATE market_collector_state
+                SET cursor_offset=0,total_count=?,scan_id=?,cycle_started_at=?,
+                    last_completed_at=?,last_error=NULL,updated_at=?
+                WHERE market=?
+                """,
+                (total_count,new_scan_id,completed_at,completed_at,completed_at,market_key),
+            )
+    else:
         with _connect() as conn:
             conn.execute(
                 """
@@ -1177,19 +1294,22 @@ def backfill_market_universe(
                 SET cursor_offset=?,total_count=?,last_error=?,updated_at=?
                 WHERE market=?
                 """,
-                (offset,total_count,last_error,utcnow(),market_key),
+                (max_end,total_count,last_error,utcnow(),market_key),
             )
 
     return {
         "market": market_key,
         "scan_id": scan_id,
-        "processed_chunks": processed,
+        "processed_chunks": len(results),
+        "requested_chunks": chunk_count,
+        "workers": min(16, max(1, len(offsets))),
         "page_size": safe_page_size,
         "items_seen": items_seen,
-        "next_offset": 0 if cycle_completed else offset,
+        "next_offset": 0 if cycle_completed else max_end,
         "total_count": total_count,
         "cycle_completed": cycle_completed,
         "last_error": last_error,
+        "error_count": len(errors),
         "at": utcnow(),
     }
 
