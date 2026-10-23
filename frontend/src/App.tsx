@@ -1280,6 +1280,7 @@ function SourceHub(){
   const [items,setItems]=useState<RegistrySource[]>([]);
   const [collectors,setCollectors]=useState<CollectorState[]>([]);
   const [scriptCompletion,setScriptCompletion]=useState<ScriptCompletion | null>(null);
+  const [marketCollectors,setMarketCollectors]=useState<LiveMarketCollectorState[]>([]);
   const [loading,setLoading]=useState(true);
   const [syncing,setSyncing]=useState(false);
   const [error,setError]=useState('');
@@ -1291,11 +1292,13 @@ function SourceHub(){
       fetch(API_BASE+'/api/v1/strategy-sources?limit=2000').then(async r=>{if(!r.ok) throw new Error(await r.text());return r.json();}),
       fetch(API_BASE+'/api/v1/tradingview/backfill').then(async r=>{if(!r.ok) throw new Error(await r.text());return r.json();}),
       fetch(API_BASE+'/api/v1/tradingview/scripts/completion').then(async r=>{if(!r.ok) throw new Error(await r.text());return r.json();}),
+      fetch(API_BASE+'/api/v1/tradingview/markets/backfill/state').then(async r=>{if(!r.ok) throw new Error(await r.text());return r.json();}),
     ])
-      .then(([sources,backfill,completion])=>{
+      .then(([sources,backfill,completion,marketState])=>{
         setItems((sources.items||[]) as RegistrySource[]);
         setCollectors((backfill.items||[]) as CollectorState[]);
         setScriptCompletion(completion as ScriptCompletion);
+        setMarketCollectors((marketState.items||[]) as LiveMarketCollectorState[]);
       })
       .catch(e=>setError(e instanceof Error?e.message:'Source Registry / 전체수집 상태 조회 오류'))
       .finally(()=>setLoading(false));
@@ -1371,6 +1374,18 @@ function SourceHub(){
       {collectorRows.length?
         <DataTable headers={['수집기','현재 페이지 / 전체','누적 목록','누적 상세','최근 오류','갱신']} rows={collectorRows}/>:
         <div className="empty-state">첫 전체 원본 수집 실행을 준비 중입니다.</div>}
+    </div>
+    <div className="panel">
+      <div className="panel-title"><b>TradingView 마켓 전체 Universe 수집 상태</b><span>원본 행을 scan_id + 원본 순번으로 1:1 보존</span></div>
+      {marketCollectors.length?
+        <DataTable headers={['MARKET','원본 총건수','저장건수','상태','최근 전체완료']} rows={marketCollectors.map(x=>[
+          x.market,
+          Number(x.total_count||0).toLocaleString('ko-KR'),
+          Number(x.stored_count||0).toLocaleString('ko-KR'),
+          x.last_error?.includes('TRADINGVIEW_ENTITLEMENT_REQUIRED')?'TradingView 권한 제한':(x.last_completed_at?'전체수집 완료':'수집 중'),
+          x.last_completed_at||'—',
+        ])}/>:
+        <div className="empty-state">마켓 전체 Universe 상태를 불러오는 중입니다.</div>}
     </div>
     <div className="panel">
       <div className="panel-title"><b>Strategy Source Registry</b><span>{items.length}개 조회 · Origin Source ID 보존</span></div>
