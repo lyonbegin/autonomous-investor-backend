@@ -697,7 +697,7 @@ def run_quant_handoff(
 
     factory = _json_request(
         (
-            f"{TRADINGVIEW_SERVICE_URL}/api/v1/agent-factory/batch"
+            f"{TRADINGVIEW_SERVICE_URL}/api/v1/agent-factory-batch"
             f"?limit_candidates={safe_candidates}"
             f"&min_score={float(min_score):.4f}"
             f"&max_agents_per_candidate={safe_agents_per_candidate}"
