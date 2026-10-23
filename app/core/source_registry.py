@@ -336,7 +336,12 @@ def _scanner_for_target(target: dict[str, Any]) -> str | None:
     return explicit or _scanner_market_for_agent(target)
 
 
-def _market_rows(scanner_market: str, category: str) -> tuple[list[dict[str, Any]], str]:
+def _market_rows(
+    scanner_market: str,
+    category: str,
+    *,
+    use_live: bool = True,
+) -> tuple[list[dict[str, Any]], str]:
     sort_by = {
         "평균회귀": "volume",
         "돌파": "relative_volume_10d_calc",
@@ -345,12 +350,14 @@ def _market_rows(scanner_market: str, category: str) -> tuple[list[dict[str, Any
         "변동성": "Volatility.D",
         "크립토": "volume",
     }.get(category, "volume")
-    try:
-        live = collect_market(scanner_market, limit=60, sort_by=sort_by, sort_order="desc")
-        return list(live.get("items") or []), str(live.get("collected_at") or utcnow())
-    except Exception:
-        stored = list_market_snapshots(scanner_market, limit=60, latest_only=True)
-        return stored, str(stored[0].get("collected_at")) if stored else utcnow()
+    if use_live:
+        try:
+            live = collect_market(scanner_market, limit=60, sort_by=sort_by, sort_order="desc")
+            return list(live.get("items") or []), str(live.get("collected_at") or utcnow())
+        except Exception:
+            pass
+    stored = list_market_snapshots(scanner_market, limit=60, latest_only=True)
+    return stored, str(stored[0].get("collected_at")) if stored else utcnow()
 
 
 def _market_fit(category: str, rows: list[dict[str, Any]]) -> tuple[float, str]:
@@ -522,6 +529,7 @@ def discover_candidate_horizons(
     candidate_id: str,
     *,
     max_markets: int = 3,
+    use_live_market: bool = True,
 ) -> dict[str, Any]:
     init_source_registry_db()
     candidate = _candidate(candidate_id)
@@ -540,7 +548,7 @@ def discover_candidate_horizons(
         rows: list[dict[str, Any]] = []
         snapshot_at = evaluated_at
         if scanner_market:
-            rows, snapshot_at = _market_rows(scanner_market, category)
+            rows, snapshot_at = _market_rows(scanner_market, category, use_live=use_live_market)
         market_score, market_rationale = _market_fit(category, rows)
         if not rows and match_mode == "SOURCE_SPECIFIC":
             market_score = 50.0
@@ -679,6 +687,116 @@ def discover_candidate_horizons(
         "items": evaluations,
         "evaluated_at": evaluated_at,
     }
+
+
+def discovery_queue_status() -> dict[str, Any]:
+    init_source_registry_db()
+    with _connect() as conn:
+        total = int(conn.execute(
+            "SELECT COUNT(*) FROM strategy_candidates WHERE source_kind = 'TradingViewPineStrategy'"
+        ).fetchone()[0])
+        discovered = int(conn.execute(
+            """
+            SELECT COUNT(DISTINCT candidate_id)
+            FROM horizon_discovery
+            WHERE is_current = 1
+            """
+        ).fetchone()[0])
+    return {
+        "total_candidates": total,
+        "discovered_candidates": discovered,
+        "remaining": max(0, total - discovered),
+    }
+
+
+def batch_discover_pending_candidates(
+    *,
+    limit: int = 100,
+    max_markets: int = 3,
+) -> dict[str, Any]:
+    init_source_registry_db()
+    safe_limit = min(max(int(limit), 1), 1000)
+    with _connect() as conn:
+        rows = conn.execute(
+            """
+            SELECT c.candidate_id, c.updated_at, MAX(d.evaluated_at) AS last_discovery
+            FROM strategy_candidates c
+            LEFT JOIN horizon_discovery d
+              ON d.candidate_id = c.candidate_id
+             AND d.is_current = 1
+            WHERE c.source_kind = 'TradingViewPineStrategy'
+            GROUP BY c.candidate_id, c.updated_at
+            HAVING last_discovery IS NULL
+                OR COALESCE(c.updated_at,'') > COALESCE(last_discovery,'')
+            ORDER BY COALESCE(c.updated_at,c.created_at) DESC, c.candidate_id
+            LIMIT ?
+            """,
+            (safe_limit,),
+        ).fetchall()
+
+    processed = 0
+    combinations = 0
+    pass_combinations = 0
+    errors: list[dict[str, str]] = []
+    for row in rows:
+        candidate_id = str(row["candidate_id"])
+        try:
+            result = discover_candidate_horizons(
+                candidate_id,
+                max_markets=max_markets,
+                use_live_market=False,
+            )
+            processed += 1
+            combinations += int(result.get("count") or 0)
+            pass_combinations += sum(
+                1 for item in result.get("items") or []
+                if str(item.get("status")) == "DISCOVERY_PASS"
+            )
+        except Exception as exc:
+            errors.append({
+                "candidate_id": candidate_id,
+                "error": f"{type(exc).__name__}: {exc}",
+            })
+
+    return {
+        "selected": len(rows),
+        "processed": processed,
+        "combinations": combinations,
+        "discovery_pass_combinations": pass_combinations,
+        "error_count": len(errors),
+        "errors": errors[:30],
+        "queue": discovery_queue_status(),
+        "market_data_mode": "stored_latest_snapshot",
+        "at": utcnow(),
+    }
+
+
+def discovery_leaderboard(
+    *,
+    limit: int = 100,
+    min_score: float = 0.0,
+) -> list[dict[str, Any]]:
+    init_source_registry_db()
+    safe_limit = min(max(int(limit), 1), 1000)
+    with _connect() as conn:
+        rows = conn.execute(
+            """
+            SELECT
+                d.discovery_id,d.run_id,d.candidate_id,c.name,c.category,c.domain,
+                d.registry_source_id,d.source_id,d.origin_source_id,
+                d.horizon,d.country,d.market,d.universe,d.scanner_market,
+                d.fit_score,d.market_score,d.horizon_score,d.source_score,d.target_score,
+                d.status,d.rationale,d.evaluated_at
+            FROM horizon_discovery d
+            JOIN strategy_candidates c ON c.candidate_id = d.candidate_id
+            WHERE d.is_current = 1
+              AND d.fit_score >= ?
+            ORDER BY d.fit_score DESC, d.source_score DESC, d.evaluated_at DESC
+            LIMIT ?
+            """,
+            (float(min_score), safe_limit),
+        ).fetchall()
+    return [dict(row) for row in rows]
 
 
 def list_candidate_discovery(
