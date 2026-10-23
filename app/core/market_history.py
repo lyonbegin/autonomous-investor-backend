@@ -32,6 +32,12 @@ def _yahoo_symbol(symbol: str, market: str = "") -> str:
     ticker = ticker.replace(".P", "")
     if exchange in {"NASDAQ", "NYSE", "AMEX", "BATS", "ARCA"}:
         return ticker
+    if exchange in {"BINANCE", "COINBASE", "BITSTAMP", "BITFINEX"}:
+        upper = ticker.upper().replace(".P", "")
+        for quote in ("USDT", "USDC", "BUSD", "USD"):
+            if upper.endswith(quote) and len(upper) > len(quote):
+                return upper[:-len(quote)] + "-USD"
+        return upper
     if exchange in {"KRX", "KOSPI"}:
         return ticker + ".KS"
     if exchange in {"KOSDAQ"}:
@@ -208,7 +214,17 @@ def fetch_history_for_agent(
 ) -> dict[str, Any]:
     exchange, _ = _qualified(symbol)
     if exchange == "BINANCE":
-        payload = fetch_binance_history(symbol, horizon=horizon)
+        try:
+            payload = fetch_binance_history(symbol, horizon=horizon)
+            payload["fallback_used"] = False
+        except Exception as binance_exc:
+            payload = fetch_yahoo_history(symbol, horizon=horizon, market=market)
+            payload["fallback_used"] = True
+            payload["fallback_reason"] = f"Binance unavailable: {type(binance_exc).__name__}: {binance_exc}"
+    elif exchange in {"COINBASE", "BITSTAMP", "BITFINEX"}:
+        payload = fetch_yahoo_history(symbol, horizon=horizon, market=market)
+        payload["fallback_used"] = True
+        payload["fallback_reason"] = f"{exchange} direct historical provider not configured; Yahoo crypto proxy used"
     elif exchange in {"GATE", "BYBIT", "OKX"}:
         raise RuntimeError(f"Historical provider for {exchange} is not connected yet")
     elif any(token in (country + " " + market).lower() for token in ("fx", "외환", "선물", "vn30", "hose", "hnx")):
