@@ -1076,7 +1076,7 @@ def list_market_universe(
 ) -> dict[str, Any]:
     init_db()
     market_key = MARKET_ALIASES.get(market.lower(), market.lower())
-    safe_limit = min(max(int(limit), 1), 20000)
+    safe_limit = min(max(int(limit), 1), 200000)
     safe_offset = max(int(offset), 0)
     allowed_sorts = {
         "rank": "rank_index",
@@ -2766,7 +2766,7 @@ def resolve_agent_universe(agent_id: str, limit: int = 20) -> dict[str, Any]:
 
     market_data = list_market_universe(
         scanner_market,
-        limit=max(1000, min(10000, safe_limit * 250)),
+        limit=200000,
         offset=0,
         sort_by=sort_by,
         sort_order="desc",
