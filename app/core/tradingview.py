@@ -195,6 +195,25 @@ def init_db() -> None:
                 fetched_at TEXT NOT NULL
             );
 
+            CREATE TABLE IF NOT EXISTS market_snapshots (
+                snapshot_id TEXT PRIMARY KEY,
+                market TEXT NOT NULL,
+                ticker TEXT NOT NULL,
+                name TEXT,
+                description TEXT,
+                close REAL,
+                change REAL,
+                volume REAL,
+                exchange TEXT,
+                asset_type TEXT,
+                rank_index INTEGER,
+                collected_at TEXT NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS idx_market_snapshots_market_time
+                ON market_snapshots(market, collected_at DESC);
+            CREATE INDEX IF NOT EXISTS idx_market_snapshots_ticker_time
+                ON market_snapshots(ticker, collected_at DESC);
+
             CREATE TABLE IF NOT EXISTS strategy_candidates (
                 candidate_id TEXT PRIMARY KEY,
                 source_kind TEXT NOT NULL,
@@ -345,6 +364,73 @@ def collect_ideas(sort: str = "trending", page: int = 1, lang: str = "ko") -> di
     }
 
 
+def store_market_snapshot(market: str, rows: list[dict[str, Any]], collected_at: str) -> None:
+    init_db()
+    bucket = collected_at[:16]
+    with _connect() as conn:
+        conn.executemany(
+            """
+            INSERT OR IGNORE INTO market_snapshots (
+                snapshot_id,market,ticker,name,description,close,change,volume,exchange,asset_type,rank_index,collected_at
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
+            """,
+            [
+                (
+                    hashlib.sha1(f"{market}|{x.get('ticker')}|{bucket}".encode()).hexdigest(),
+                    market,
+                    x.get("ticker") or "",
+                    x.get("name"),
+                    x.get("description"),
+                    x.get("close"),
+                    x.get("change"),
+                    x.get("volume"),
+                    x.get("exchange"),
+                    x.get("type"),
+                    idx,
+                    collected_at,
+                )
+                for idx, x in enumerate(rows, start=1)
+                if x.get("ticker")
+            ],
+        )
+
+
+def list_market_snapshots(market: str, limit: int = 100, latest_only: bool = True) -> list[dict[str, Any]]:
+    init_db()
+    market_key = MARKET_ALIASES.get(market.lower(), market.lower())
+    safe_limit = min(max(limit, 1), 1000)
+    with _connect() as conn:
+        if latest_only:
+            latest = conn.execute(
+                "SELECT MAX(collected_at) AS ts FROM market_snapshots WHERE market = ?",
+                (market_key,),
+            ).fetchone()["ts"]
+            if latest is None:
+                return []
+            rows = conn.execute(
+                """
+                SELECT market,ticker,name,description,close,change,volume,exchange,asset_type,rank_index,collected_at
+                FROM market_snapshots
+                WHERE market = ? AND collected_at = ?
+                ORDER BY rank_index ASC
+                LIMIT ?
+                """,
+                (market_key, latest, safe_limit),
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                """
+                SELECT market,ticker,name,description,close,change,volume,exchange,asset_type,rank_index,collected_at
+                FROM market_snapshots
+                WHERE market = ?
+                ORDER BY collected_at DESC, rank_index ASC
+                LIMIT ?
+                """,
+                (market_key, safe_limit),
+            ).fetchall()
+    return [dict(row) for row in rows]
+
+
 def collect_market(
     market: str,
     *,
@@ -378,6 +464,8 @@ def collect_market(
         row["ticker"] = item.get("s")
         rows.append(row)
 
+    collected_at = utcnow()
+    store_market_snapshot(market_key, rows, collected_at)
     return {
         "source": "TradingView scanner",
         "market": market_key,
@@ -385,7 +473,7 @@ def collect_market(
         "count": len(rows),
         "columns": DEFAULT_COLUMNS,
         "items": rows,
-        "collected_at": utcnow(),
+        "collected_at": collected_at,
     }
 
 
