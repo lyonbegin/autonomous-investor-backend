@@ -436,6 +436,9 @@ type LiveMarketRow = {
   'bond_snp_rating_lt.tr'?:string | null;
   'bond_fitch_rating_lt.tr'?:string | null;
   fundamental_currency_code?:string | null;
+  scan_id?:string;
+  rank_index?:number;
+  collected_at?:string;
 };
 
 const liveMarketCode:Partial<Record<MarketTab,string>> = {
