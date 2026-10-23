@@ -154,6 +154,7 @@ type IdeaCardData = {
   comments:number;
   market:string;
   chartUrl?:string | null;
+  imageUrl?:string | null;
   isVideo:boolean;
   isEducation:boolean;
   isPicked:boolean;
@@ -174,10 +175,39 @@ type LiveIdeaResponseItem = {
   likes_count:number;
   views_count:number;
   chart_url?:string | null;
+  image_url?:string | null;
   is_video:boolean | number;
   is_education:boolean | number;
   is_picked:boolean | number;
   is_hot:boolean | number;
+};
+
+type LiveSourceDetail = {
+  source_kind:string;
+  source_id:string;
+  source_url:string;
+  title:string;
+  full_text:string;
+  hero_images:string[];
+  content_images:string[];
+  page_hash:string;
+  fetched_at:string;
+  from_cache:boolean;
+};
+
+type LivePineSource = {
+  ok:boolean;
+  protected?:boolean;
+  reason?:string;
+  script_id_part:string;
+  version?:string;
+  script_name?:string;
+  kind?:string;
+  pine_version?:number | null;
+  source_hash?:string;
+  source?:string;
+  source_chars?:number;
+  fetched_at?:string;
 };
 
 function IdeaCard({idea}:{idea:IdeaCardData}) {
@@ -185,6 +215,24 @@ function IdeaCard({idea}:{idea:IdeaCardData}) {
   const [agentCount,setAgentCount]=useState<number | null>(null);
   const [busy,setBusy]=useState(false);
   const [status,setStatus]=useState('');
+  const [detail,setDetail]=useState<LiveSourceDetail | null>(null);
+  const [detailOpen,setDetailOpen]=useState(false);
+  const [detailLoading,setDetailLoading]=useState(false);
+
+  const loadDetail=async()=>{
+    setDetailOpen(v=>!v);
+    if(detail || detailLoading) return;
+    setDetailLoading(true);
+    try{
+      const r=await fetch(`${API_BASE}/api/v1/tradingview/ideas/${encodeURIComponent(idea.id)}/full`);
+      if(!r.ok) throw new Error(await r.text());
+      setDetail(await r.json() as LiveSourceDetail);
+    }catch(e){
+      setStatus('TradingView 전체 본문 수집 오류');
+    }finally{
+      setDetailLoading(false);
+    }
+  };
 
   const saveCandidate=async():Promise<string | null>=>{
     if(candidateId) return candidateId;
@@ -209,44 +257,51 @@ function IdeaCard({idea}:{idea:IdeaCardData}) {
     const cid=await saveCandidate();
     if(!cid) return;
     setBusy(true);
-    setStatus('고정 시간축 에이전트 계획 생성 중');
+    setStatus('시장·시간축 Discovery 실행 중');
     try{
-      const r=await fetch(`${API_BASE}/api/v1/tradingview/candidates/${encodeURIComponent(cid)}/agent-plans?max_markets=3`,{method:'POST'});
+      const d=await fetch(`${API_BASE}/api/v1/horizon-discovery/${encodeURIComponent(cid)}?max_markets=3`,{method:'POST'});
+      if(!d.ok) throw new Error(await d.text());
+      const discovery=await d.json();
+      const r=await fetch(`${API_BASE}/api/v1/agent-factory/${encodeURIComponent(cid)}?min_score=72&max_agents=12`,{method:'POST'});
       if(!r.ok) throw new Error(await r.text());
       const data=await r.json();
       setAgentCount(data.count);
-      setStatus(`독립 에이전트 후보 ${data.count}개 생성`);
+      setStatus(`Discovery ${discovery.count||0}개 평가 · 통과 Agent ${data.count}개`);
     }catch(e){
-      setStatus('에이전트 계획 생성 오류');
+      setStatus('Discovery / Agent Factory 오류');
     }finally{
       setBusy(false);
     }
   };
 
+  const visibleText=detail?.full_text || idea.text;
+  const hero=detail?.hero_images?.[0] || idea.imageUrl;
+
   return <article className="tv-idea-card">
     <div className="idea-chart">
+      {hero ? <img className="idea-chart-image" src={hero} alt={idea.title} loading="lazy"/> : null}
       <div className="idea-symbol"><b>{idea.symbol}</b><span>{idea.market}</span></div>
-      <svg viewBox="0 0 600 210" preserveAspectRatio="none">
-        <path d="M0 165 C45 150 60 180 95 142 S145 118 178 131 S225 95 255 107 S305 75 350 92 S402 55 438 70 S500 35 600 48" fill="none" stroke="currentColor" strokeWidth="3"/>
-        <path d="M0 170 L600 170" stroke="currentColor" opacity=".16"/>
-        <path d="M0 110 L600 110" stroke="currentColor" opacity=".10"/>
-      </svg>
       <span className={`idea-bias ${idea.bias==='롱'?'long':idea.bias==='숏'?'short':''}`}>{idea.bias}</span>
     </div>
     <div className="idea-body">
       <div className="idea-meta"><span><b>{idea.user || 'TradingView'}</b>의</span><time>{idea.time}</time></div>
       <h3>{idea.title}</h3>
-      <p>{idea.text}</p>
+      <div className={detailOpen?'tv-full-text open':'tv-full-text'}>
+        {visibleText.split('\n').map((line,i)=>line.trim()?<p key={i}>{line}</p>:<br key={i}/>)}
+      </div>
+      {detailOpen && detail?.content_images?.length ? <div className="tv-inline-images">
+        {detail.content_images.map((src,i)=><img src={src} alt={`${idea.title} chart ${i+1}`} loading="lazy" key={src+i}/>)}
+      </div> : null}
       <div className="idea-bottom">
-        <span>💬 {idea.comments}</span><span>TradingView 실수집 <b>LIVE</b></span>
+        <span>💬 {idea.comments}</span><span>TradingView 원본 수집 <b>LIVE</b></span>
       </div>
       <div className="idea-actions">
+        <button onClick={loadDetail} disabled={detailLoading}>{detailLoading?'전체 원본 수집 중':detailOpen?'전체내용 접기':'이미지·본문·차트 전체 보기'}</button>
         <button disabled={busy} onClick={saveCandidate}>{candidateId?'전략 후보 저장됨':'전략 후보로 저장'}</button>
-        <button disabled={busy} onClick={saveCandidate}>{candidateId?'자동 분류 완료':'자동 전략 분류'}</button>
-        <button disabled={busy} onClick={makeAgents}>{agentCount!==null?`에이전트 후보 ${agentCount}개`:'에이전트 생성 후보'}</button>
+        <button disabled={busy} onClick={makeAgents}>{agentCount!==null?`통과 Agent ${agentCount}개`:'Discovery 후 Agent 생성'}</button>
       </div>
       {status && <p className="note">{status}</p>}
-      {idea.chartUrl && <div className="actions left"><a href={idea.chartUrl} target="_blank" rel="noreferrer">TradingView 원문 보기</a></div>}
+      {idea.chartUrl && <small className="source-ref">출처 URL 보존: {idea.chartUrl}</small>}
     </div>
   </article>;
 }
@@ -286,6 +341,7 @@ function TradingViewIdeas(){
             comments:x.comments_count||0,
             market:[x.asset_type,x.interval].filter(Boolean).join(' · '),
             chartUrl:x.chart_url,
+            imageUrl:x.image_url,
             isVideo:Boolean(x.is_video),
             isEducation:Boolean(x.is_education),
             isPicked:Boolean(x.is_picked),
