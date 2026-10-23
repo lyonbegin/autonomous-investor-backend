@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import hashlib
+import html as html_lib
+import re
 import json
 import os
 import sqlite3
 from datetime import UTC, datetime, timedelta
+from html.parser import HTMLParser
 from typing import Any
 from urllib import parse, request
 
@@ -211,6 +214,19 @@ def init_db() -> None:
                 fetched_at TEXT NOT NULL
             );
 
+            CREATE TABLE IF NOT EXISTS source_details (
+                source_kind TEXT NOT NULL,
+                source_id TEXT NOT NULL,
+                source_url TEXT NOT NULL,
+                title TEXT,
+                full_text TEXT NOT NULL,
+                hero_images_json TEXT NOT NULL,
+                content_images_json TEXT NOT NULL,
+                page_hash TEXT NOT NULL,
+                fetched_at TEXT NOT NULL,
+                PRIMARY KEY (source_kind, source_id)
+            );
+
             CREATE TABLE IF NOT EXISTS market_snapshots (
                 snapshot_id TEXT PRIMARY KEY,
                 market TEXT NOT NULL,
@@ -309,6 +325,228 @@ def _http_json(url: str, *, method: str = "GET", payload: dict[str, Any] | None 
     req = request.Request(url, data=body, headers=headers, method=method)
     with request.urlopen(req, timeout=20) as response:
         return json.loads(response.read().decode("utf-8"))
+
+
+def _http_text(url: str) -> str:
+    headers = {
+        "User-Agent": USER_AGENT,
+        "Accept": "text/html,application/xhtml+xml",
+        "Referer": "https://www.tradingview.com/",
+        "Accept-Language": "ko-KR,ko;q=0.9,en;q=0.8",
+    }
+    req = request.Request(url, headers=headers, method="GET")
+    with request.urlopen(req, timeout=25) as response:
+        return response.read().decode("utf-8", errors="replace")
+
+
+class _TradingViewDetailParser(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.in_main = False
+        self.main_depth = 0
+        self.in_description = False
+        self.description_depth = 0
+        self.in_h1 = False
+        self.title_parts: list[str] = []
+        self.text_parts: list[str] = []
+        self.hero_images: list[str] = []
+        self.content_images: list[str] = []
+
+    @staticmethod
+    def _attr(attrs: list[tuple[str, str | None]], name: str) -> str:
+        for key, value in attrs:
+            if key == name and value:
+                return value
+        return ""
+
+    @staticmethod
+    def _is_content_image(url: str) -> bool:
+        if not url:
+            return False
+        return (
+            "s3.tradingview.com/" in url
+            or "/x/" in url
+        ) and "userpics/" not in url and "s3-symbol-logo." not in url
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        cls = self._attr(attrs, "class")
+        element_id = self._attr(attrs, "id")
+        if tag == "main" and (element_id == "tv-content" or "tv-content" in cls):
+            self.in_main = True
+            self.main_depth = 1
+        elif self.in_main and tag == "main":
+            self.main_depth += 1
+
+        if self.in_main and tag == "h1":
+            self.in_h1 = True
+
+        if self.in_main and tag == "div":
+            if self.in_description:
+                self.description_depth += 1
+            elif any(part.startswith("description-") for part in cls.split()):
+                self.in_description = True
+                self.description_depth = 1
+
+        if self.in_description and tag == "br":
+            self.text_parts.append("\n")
+
+        if tag == "img":
+            src = self._attr(attrs, "src")
+            if self._is_content_image(src):
+                if self.in_description:
+                    if src not in self.content_images:
+                        self.content_images.append(src)
+                elif self.in_main and src not in self.hero_images:
+                    self.hero_images.append(src)
+
+        if self.in_description and tag == "a":
+            href = self._attr(attrs, "href")
+            if self._is_content_image(href) and href not in self.content_images:
+                self.content_images.append(href)
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag == "h1":
+            self.in_h1 = False
+        if self.in_description and tag == "div":
+            self.description_depth -= 1
+            if self.description_depth <= 0:
+                self.in_description = False
+                self.description_depth = 0
+        if self.in_main and tag == "main":
+            self.main_depth -= 1
+            if self.main_depth <= 0:
+                self.in_main = False
+                self.main_depth = 0
+
+    def handle_data(self, data: str) -> None:
+        value = data.strip()
+        if not value:
+            return
+        if self.in_h1:
+            self.title_parts.append(value)
+        if self.in_description:
+            if self.text_parts and not self.text_parts[-1].endswith("\n"):
+                self.text_parts.append(" ")
+            self.text_parts.append(value)
+
+    def result(self) -> dict[str, Any]:
+        text = "".join(self.text_parts)
+        text = re.sub(r"[ \t]+\n", "\n", text)
+        text = re.sub(r"\n{3,}", "\n\n", text).strip()
+        return {
+            "title": " ".join(self.title_parts).strip(),
+            "full_text": text,
+            "hero_images": self.hero_images,
+            "content_images": self.content_images,
+        }
+
+
+def _detail_source(source_kind: str, source_id: str) -> tuple[str, str, str]:
+    init_db()
+    with _connect() as conn:
+        if source_kind == "idea":
+            row = conn.execute(
+                "SELECT title,description,chart_url,image_url FROM community_ideas WHERE idea_id = ?",
+                (source_id,),
+            ).fetchone()
+        elif source_kind == "script":
+            row = conn.execute(
+                "SELECT name AS title,description,chart_url,image_url FROM community_scripts WHERE script_id_part = ?",
+                (source_id,),
+            ).fetchone()
+        else:
+            raise ValueError(f"unsupported source kind: {source_kind}")
+    if row is None:
+        raise KeyError(source_id)
+    item = dict(row)
+    return (
+        str(item.get("title") or ""),
+        str(item.get("description") or ""),
+        str(item.get("chart_url") or ""),
+    )
+
+
+def fetch_source_detail(source_kind: str, source_id: str, *, force: bool = False) -> dict[str, Any]:
+    init_db()
+    with _connect() as conn:
+        cached = conn.execute(
+            "SELECT * FROM source_details WHERE source_kind = ? AND source_id = ?",
+            (source_kind, source_id),
+        ).fetchone()
+        if cached is not None and not force:
+            item = dict(cached)
+            item["hero_images"] = json.loads(item.pop("hero_images_json") or "[]")
+            item["content_images"] = json.loads(item.pop("content_images_json") or "[]")
+            item["from_cache"] = True
+            return item
+
+    fallback_title, fallback_text, source_url = _detail_source(source_kind, source_id)
+    if not source_url:
+        raise ValueError("TradingView source URL is missing")
+
+    separator = "&" if "?" in source_url else "?"
+    html_text = _http_text(source_url + separator + "component-data-only=1")
+    parser = _TradingViewDetailParser()
+    parser.feed(html_text)
+    parsed = parser.result()
+
+    hero_images = list(parsed["hero_images"])
+    content_images = list(parsed["content_images"])
+    with _connect() as conn:
+        if source_kind == "idea":
+            row = conn.execute(
+                "SELECT image_url FROM community_ideas WHERE idea_id = ?",
+                (source_id,),
+            ).fetchone()
+        else:
+            row = conn.execute(
+                "SELECT image_url FROM community_scripts WHERE script_id_part = ?",
+                (source_id,),
+            ).fetchone()
+    if row is not None and row["image_url"] and row["image_url"] not in hero_images:
+        hero_images.insert(0, str(row["image_url"]))
+
+    title = str(parsed.get("title") or fallback_title)
+    full_text = str(parsed.get("full_text") or fallback_text)
+    now = utcnow()
+    page_hash = hashlib.sha256(html_text.encode("utf-8")).hexdigest()
+
+    with _connect() as conn:
+        conn.execute(
+            """
+            INSERT INTO source_details (
+                source_kind,source_id,source_url,title,full_text,
+                hero_images_json,content_images_json,page_hash,fetched_at
+            ) VALUES (?,?,?,?,?,?,?,?,?)
+            ON CONFLICT(source_kind,source_id) DO UPDATE SET
+                source_url=excluded.source_url,
+                title=excluded.title,
+                full_text=excluded.full_text,
+                hero_images_json=excluded.hero_images_json,
+                content_images_json=excluded.content_images_json,
+                page_hash=excluded.page_hash,
+                fetched_at=excluded.fetched_at
+            """,
+            (
+                source_kind, source_id, source_url, title, full_text,
+                json.dumps(hero_images, ensure_ascii=False),
+                json.dumps(content_images, ensure_ascii=False),
+                page_hash, now,
+            ),
+        )
+
+    return {
+        "source_kind": source_kind,
+        "source_id": source_id,
+        "source_url": source_url,
+        "title": title,
+        "full_text": full_text,
+        "hero_images": hero_images,
+        "content_images": content_images,
+        "page_hash": page_hash,
+        "fetched_at": now,
+        "from_cache": False,
+    }
 
 
 def _absolute_url(value: Any) -> str | None:
