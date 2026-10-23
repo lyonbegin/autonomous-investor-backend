@@ -7,6 +7,7 @@ from app.core.quant_lab import (
     create_experiment,
     get_experiment,
     list_experiments,
+    pipeline_status,
     readiness,
     update_symbols,
 )
@@ -26,6 +27,11 @@ class SymbolUpdate(BaseModel):
 @router.get("/readiness")
 def quant_readiness() -> dict:
     return readiness()
+
+
+@router.get("/pipeline")
+def quant_pipeline() -> dict:
+    return pipeline_status()
 
 
 @router.post("/experiments/from-agent/{agent_id}")
