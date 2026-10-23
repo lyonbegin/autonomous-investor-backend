@@ -46,3 +46,166 @@
 .market-card-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.market-card{border:1px solid #26313d;border-radius:8px;background:#11171f;padding:10px;min-height:126px}.market-card>div:first-child{display:flex;flex-direction:column;gap:2px}.market-card b{color:#e7edf5;font-size:10px}.market-card small{color:#6b7b90;font-size:8px}.mini-market-chart{width:100%;height:48px;margin:7px 0}.mini-market-chart.positive{color:#4bdc9f}.mini-market-chart.negative{color:#ff6f85}.market-card>span{font-size:10px;font-weight:700}.market-card-actions{display:flex;gap:5px;margin-top:7px}.market-card-actions button{flex:1;background:#151d27;border:1px solid #263341;color:#8492a5;border-radius:4px;padding:4px;font-size:7px}
 .market-match-panel{margin-top:12px}
 @media(max-width:1500px){.tv-idea-grid{grid-template-columns:1fr}.market-card-grid{grid-template-columns:repeat(2,1fr)}}
+
+
+/* TradingView 원본 직접 렌더링 */
+.idea-chart-image{
+  width:100%;
+  height:100%;
+  object-fit:contain;
+  display:block;
+  background:#070b10;
+}
+.idea-chart:has(.idea-chart-image)::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  background:linear-gradient(180deg,rgba(4,8,12,.42) 0%,rgba(4,8,12,0) 34%,rgba(4,8,12,.08) 100%);
+}
+.idea-chart .idea-symbol,.idea-chart .idea-bias{z-index:3}
+.tv-full-text{
+  max-height:124px;
+  overflow:hidden;
+  position:relative;
+  color:#a8b4c3;
+  line-height:1.7;
+  white-space:normal;
+}
+.tv-full-text:not(.open)::after{
+  content:"";
+  position:absolute;
+  left:0;right:0;bottom:0;
+  height:42px;
+  background:linear-gradient(180deg,rgba(16,22,30,0),#10161e);
+}
+.tv-full-text.open{max-height:none;overflow:visible}
+.tv-full-text p{
+  margin:0 0 8px!important;
+  min-height:0!important;
+  white-space:pre-wrap;
+  word-break:break-word;
+  color:#a8b4c3!important;
+  font-size:10px!important;
+  line-height:1.72!important;
+}
+.tv-inline-images{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:10px;
+  margin:12px 0;
+}
+.tv-inline-images img{
+  display:block;
+  width:100%;
+  max-height:620px;
+  object-fit:contain;
+  background:#080d13;
+  border:1px solid #283543;
+  border-radius:8px;
+}
+.source-ref{
+  display:block;
+  margin-top:10px;
+  color:#5f7085;
+  font-size:8px;
+  line-height:1.5;
+  word-break:break-all;
+}
+.tv-script-original{
+  display:grid;
+  grid-template-columns:minmax(260px,.85fr) minmax(0,1.15fr);
+  gap:12px;
+  margin:12px 0;
+}
+.tv-script-hero{
+  width:100%;
+  max-height:560px;
+  object-fit:contain;
+  background:#070c12;
+  border:1px solid #263342;
+  border-radius:8px;
+}
+.tv-script-body{
+  min-width:0;
+  max-height:620px;
+  overflow:auto;
+  padding-right:6px;
+}
+.tv-pine-source{margin:12px 0}
+.tv-pine-source pre{
+  max-height:560px;
+  overflow:auto;
+  margin:0;
+  padding:14px;
+  border:1px solid #283543;
+  border-radius:8px;
+  background:#070c12;
+  color:#c8d4e2;
+  font:9px/1.55 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  white-space:pre;
+  tab-size:2;
+}
+.tv-market-live-grid{
+  grid-template-columns:minmax(320px,.7fr) minmax(0,1.3fr)!important;
+  margin:10px 0 12px;
+}
+.tv-market-symbols{
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+  max-height:610px;
+  overflow:auto;
+}
+.tv-market-symbols button{
+  display:grid;
+  grid-template-columns:minmax(110px,.7fr) minmax(180px,1.3fr) 60px;
+  align-items:center;
+  gap:8px;
+  width:100%;
+  text-align:left;
+  padding:8px 9px;
+  border:1px solid #1e2b38;
+  border-radius:6px;
+  background:#0b1118;
+  color:#94a3b6;
+}
+.tv-market-symbols button:hover{border-color:#36506a;background:#101a24}
+.tv-market-symbols button.active{
+  border-color:#3c77ff;
+  background:#12203b;
+  box-shadow:inset 3px 0 #4b7fff;
+}
+.tv-market-symbols b{
+  color:#e2eaf4;
+  font-size:9px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.tv-market-symbols span{
+  color:#73849a;
+  font-size:8px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.tv-market-symbols small{
+  text-align:right;
+  color:#aab7c7;
+  font-size:8px;
+}
+.tv-market-chart-panel{min-width:0}
+.tv-market-iframe{
+  display:block;
+  width:100%;
+  height:610px;
+  border:1px solid #273443;
+  border-radius:8px;
+  background:#070c12;
+}
+@media(max-width:1500px){
+  .tv-script-original{grid-template-columns:1fr}
+  .tv-market-live-grid{grid-template-columns:1fr!important}
+  .tv-market-iframe{height:520px}
+}
