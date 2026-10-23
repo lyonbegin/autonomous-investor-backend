@@ -54,6 +54,9 @@ MARKET_ALIASES: dict[str, str] = {
     "indices": "indices",
     "index": "indices",
     "지수": "indices",
+    "global-stocks": "global-stocks",
+    "world-stocks": "global-stocks",
+    "세계주식": "global-stocks",
     "etf": "etf",
     "etfs": "etf",
 }
@@ -99,7 +102,14 @@ MARKET_SCANNER_PROFILES: dict[str, dict[str, Any]] = {
     "vietnam": {"endpoint": "vietnam", "filters": []},
     "futures": {"endpoint": "futures", "filters": []},
     "bonds": {"endpoint": "bonds", "filters": []},
-    "indices": {"endpoint": "global", "filters": []},
+    "indices": {
+        "endpoint": "global",
+        "filters": [{"left": "type", "operation": "equal", "right": "index"}],
+    },
+    "global-stocks": {
+        "endpoint": "global",
+        "filters": [{"left": "type", "operation": "equal", "right": "stock"}],
+    },
     "etf": {
         "endpoint": "america",
         "filters": [{"left": "type", "operation": "equal", "right": "fund"}],
@@ -831,7 +841,7 @@ def collect_market(
     payload = {
         "filter": list(profile.get("filters") or []),
         "options": {"lang": "ko"},
-        "markets": [] if market_key in {"futures", "bonds", "indices"} else [profile["endpoint"]],
+        "markets": [] if market_key in {"futures", "bonds", "indices", "global-stocks"} else [profile["endpoint"]],
         "columns": DEFAULT_COLUMNS,
         "sort": {"sortBy": sort_by, "sortOrder": sort_order},
         "range": [safe_offset, safe_offset + safe_limit],
