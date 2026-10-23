@@ -628,6 +628,194 @@ def run_experiment(
     return result
 
 
+def _latest_experiment_for_agent(agent_id: str) -> dict[str, Any] | None:
+    init_db()
+    with _connect() as conn:
+        row = conn.execute(
+            """
+            SELECT experiment_id
+            FROM experiments
+            WHERE agent_id = ?
+            ORDER BY created_at DESC
+            LIMIT 1
+            """,
+            (agent_id,),
+        ).fetchone()
+    if row is None:
+        return None
+    return get_experiment(str(row["experiment_id"]))
+
+
+def quant_handoff_status(min_score: float = 72.0) -> dict[str, Any]:
+    init_db()
+    factory = _json_request(
+        f"{TRADINGVIEW_SERVICE_URL}/api/v1/agent-factory/batch/status?min_score={float(min_score):.4f}"
+    )
+    upstream = _json_request(
+        f"{TRADINGVIEW_SERVICE_URL}/api/v1/quant-handoff/agents?limit=1000&min_score={float(min_score):.4f}"
+    )
+    with _connect() as conn:
+        status_rows = conn.execute(
+            """
+            SELECT status, COUNT(*) AS count
+            FROM experiments
+            GROUP BY status
+            ORDER BY status
+            """
+        ).fetchall()
+        distinct_agents = int(conn.execute(
+            "SELECT COUNT(DISTINCT agent_id) FROM experiments"
+        ).fetchone()[0])
+    return {
+        "min_score": float(min_score),
+        "factory": factory,
+        "research_agents_available": int(upstream.get("count") or 0),
+        "experiments_distinct_agents": distinct_agents,
+        "experiment_status_counts": {
+            str(row["status"]): int(row["count"]) for row in status_rows
+        },
+        "at": utcnow(),
+    }
+
+
+def run_quant_handoff(
+    *,
+    limit_candidates: int = 25,
+    max_agents_per_candidate: int = 12,
+    max_experiments: int = 10,
+    min_score: float = 72.0,
+    run_ready: bool = True,
+    max_symbols: int = 3,
+    commission_bps: float = 5.0,
+    slippage_bps: float = 2.0,
+) -> dict[str, Any]:
+    init_db()
+    safe_candidates = min(max(int(limit_candidates), 1), 500)
+    safe_agents_per_candidate = min(max(int(max_agents_per_candidate), 1), 100)
+    safe_experiments = min(max(int(max_experiments), 1), 100)
+    safe_symbols = min(max(int(max_symbols), 1), 20)
+
+    factory = _json_request(
+        (
+            f"{TRADINGVIEW_SERVICE_URL}/api/v1/agent-factory/batch"
+            f"?limit_candidates={safe_candidates}"
+            f"&min_score={float(min_score):.4f}"
+            f"&max_agents_per_candidate={safe_agents_per_candidate}"
+        ),
+        method="POST",
+    )
+    queue = _json_request(
+        (
+            f"{TRADINGVIEW_SERVICE_URL}/api/v1/quant-handoff/agents"
+            f"?limit=1000&min_score={float(min_score):.4f}"
+        )
+    )
+
+    processed = 0
+    created = 0
+    reused = 0
+    executed = 0
+    ready = 0
+    completed = 0
+    failed = 0
+    blocked = 0
+    skipped_terminal = 0
+    items: list[dict[str, Any]] = []
+    errors: list[dict[str, str]] = []
+
+    for agent in queue.get("items") or []:
+        if processed >= safe_experiments:
+            break
+        agent_id = str(agent.get("agent_id") or "")
+        if not agent_id:
+            continue
+        try:
+            experiment = _latest_experiment_for_agent(agent_id)
+            if experiment is None:
+                experiment = create_experiment(agent_id)
+                created += 1
+            else:
+                reused += 1
+
+            status_before = str(experiment.get("status") or "")
+            result = experiment
+            action = "REGISTERED" if status_before else "UNKNOWN"
+
+            if status_before == "READY":
+                ready += 1
+                if run_ready:
+                    result = run_experiment(
+                        str(experiment["experiment_id"]),
+                        max_symbols=safe_symbols,
+                        commission_bps=commission_bps,
+                        slippage_bps=slippage_bps,
+                    )
+                    executed += 1
+                    action = "EXECUTED"
+                else:
+                    action = "READY"
+            elif status_before in {
+                "BLOCKED_UNIVERSE",
+                "BLOCKED_DATA_SOURCE",
+                "BLOCKED_STRATEGY_ENGINE",
+            }:
+                blocked += 1
+                action = status_before
+            elif status_before in {"COMPLETED", "FAILED", "SUPERSEDED"}:
+                skipped_terminal += 1
+                action = f"EXISTING_{status_before}"
+            elif status_before == "RUNNING":
+                action = "EXISTING_RUNNING"
+
+            status_after = str(result.get("status") or status_before)
+            if status_after == "COMPLETED":
+                completed += 1
+            elif status_after == "FAILED":
+                failed += 1
+
+            items.append({
+                "agent_id": agent_id,
+                "candidate_id": agent.get("candidate_id"),
+                "fit_score": agent.get("fit_score"),
+                "fixed_horizon": agent.get("fixed_horizon"),
+                "country": agent.get("country"),
+                "market": agent.get("market"),
+                "universe": agent.get("universe"),
+                "experiment_id": result.get("experiment_id"),
+                "action": action,
+                "status_before": status_before,
+                "status_after": status_after,
+                "promotion": (result.get("validation_summary") or {}).get("promotion"),
+                "blocked_reason": result.get("blocked_reason"),
+            })
+            processed += 1
+        except Exception as exc:
+            errors.append({
+                "agent_id": agent_id,
+                "error": f"{type(exc).__name__}: {exc}",
+            })
+            processed += 1
+
+    return {
+        "factory": factory,
+        "upstream_research_agents": int(queue.get("count") or 0),
+        "processed": processed,
+        "created_experiments": created,
+        "reused_experiments": reused,
+        "ready_seen": ready,
+        "executed": executed,
+        "completed": completed,
+        "failed": failed,
+        "blocked": blocked,
+        "skipped_terminal": skipped_terminal,
+        "error_count": len(errors),
+        "errors": errors[:30],
+        "items": items,
+        "status": quant_handoff_status(min_score=min_score),
+        "at": utcnow(),
+    }
+
+
 def readiness() -> dict[str, Any]:
     toss_ready = credentials_configured()
     return {
