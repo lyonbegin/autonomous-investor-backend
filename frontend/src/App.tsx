@@ -1349,13 +1349,38 @@ function TradingViewConnector(){
   </div>;
 }
 
+type DiscoveryQueueStatus = {
+  total_candidates:number;
+  discovered_candidates:number;
+  remaining:number;
+};
+
+type DiscoveryLeaderboardItem = LiveHorizonDiscovery & {
+  name:string;
+  category:string;
+  domain:string;
+  target_score?:number;
+};
+
 function HorizonLab(){
   const [candidates,setCandidates]=useState<LiveStrategyCandidate[]>([]);
   const [selected,setSelected]=useState('');
   const [discovery,setDiscovery]=useState<LiveHorizonDiscovery[]>([]);
+  const [leaderboard,setLeaderboard]=useState<DiscoveryLeaderboardItem[]>([]);
+  const [queue,setQueue]=useState<DiscoveryQueueStatus | null>(null);
   const [busy,setBusy]=useState(false);
   const [message,setMessage]=useState('');
   const [error,setError]=useState('');
+
+  const loadAuto=()=>{
+    Promise.all([
+      fetch(API_BASE+'/api/v1/horizon-discovery/leaderboard?limit=100&min_score=72').then(async r=>{if(!r.ok) throw new Error(await r.text());return r.json();}),
+      fetch(API_BASE+'/api/v1/horizon-discovery/queue-status').then(async r=>{if(!r.ok) throw new Error(await r.text());return r.json();}),
+    ]).then(([rank,status])=>{
+      setLeaderboard((rank.items||[]) as DiscoveryLeaderboardItem[]);
+      setQueue(status as DiscoveryQueueStatus);
+    }).catch(()=>{});
+  };
 
   useEffect(()=>{
     fetch(API_BASE+'/api/v1/tradingview/candidates?limit=100')
@@ -1366,6 +1391,7 @@ function HorizonLab(){
         setSelected(prev=>prev||rows[0]?.candidate_id||'');
       })
       .catch(e=>setError(e instanceof Error?e.message:'전략 후보 조회 오류'));
+    loadAuto();
   },[]);
 
   useEffect(()=>{
@@ -1376,6 +1402,19 @@ function HorizonLab(){
       .catch(()=>setDiscovery([]));
   },[selected]);
 
+  const runBatch=async()=>{
+    setBusy(true);setError('');setMessage('');
+    try{
+      const r=await fetch(API_BASE+'/api/v1/horizon-discovery/batch?limit=500&max_markets=3',{method:'POST'});
+      if(!r.ok) throw new Error(await r.text());
+      const data=await r.json();
+      setMessage('자동 매칭 '+String(data.processed||0)+'개 후보 · '+String(data.discovery_pass_combinations||0)+'개 PASS 조합');
+      loadAuto();
+    }catch(e){
+      setError(e instanceof Error?e.message:'자동 Discovery 배치 오류');
+    }finally{setBusy(false);}
+  };
+
   const run=async()=>{
     if(!selected) return;
     setBusy(true);setError('');setMessage('');
@@ -1385,6 +1424,7 @@ function HorizonLab(){
       const data=await r.json();
       setDiscovery((data.items||[]) as LiveHorizonDiscovery[]);
       setMessage((data.market_match_mode||'')+' · '+(data.run_id||'')+' · '+(data.count||0)+'개 조합 평가');
+      loadAuto();
     }catch(e){
       setError(e instanceof Error?e.message:'Horizon Discovery 실행 오류');
     }finally{setBusy(false);}
@@ -1404,32 +1444,43 @@ function HorizonLab(){
   };
 
   const rows=discovery.map(x=>[
-    x.country,
-    x.market,
-    x.universe,
-    x.horizon,
-    x.fit_score.toFixed(1),
-    x.market_score.toFixed(1),
-    x.horizon_score.toFixed(1),
-    x.status,
+    x.country,x.market,x.universe,x.horizon,x.fit_score.toFixed(1),
+    x.market_score.toFixed(1),x.horizon_score.toFixed(1),x.status,
+  ]);
+  const rankRows=leaderboard.map(x=>[
+    x.candidate_id,x.name,x.category,x.country,x.market,x.universe,x.horizon,
+    x.fit_score.toFixed(1),x.status,
   ]);
 
-  return <div className="panel">
-    <div className="panel-title"><b>Horizon Discovery</b><span>원본 전략 시장문맥을 카테고리 기본값보다 우선</span></div>
-    <div className="actions left">
-      <select value={selected} onChange={e=>setSelected(e.target.value)}>
-        {candidates.map(x=><option key={x.candidate_id} value={x.candidate_id}>{x.candidate_id} · {x.name}</option>)}
-      </select>
-      <button disabled={busy||!selected} onClick={run}>{busy?'처리 중':'실제 Discovery 실행'}</button>
-      <button disabled={busy||!selected||!discovery.length} onClick={create}>통과 조합 Agent 생성</button>
+  return <>
+    <div className="panel">
+      <div className="panel-title"><b>전체 전략 자동 최적 매칭</b><span>{queue?('Discovery '+queue.discovered_candidates.toLocaleString('ko-KR')+' / '+queue.total_candidates.toLocaleString('ko-KR')+' · 남음 '+queue.remaining.toLocaleString('ko-KR')):'상태 조회 중'}</span></div>
+      <div className="actions left">
+        <button disabled={busy} onClick={runBatch}>{busy?'자동 매칭 중':'다음 500개 자동 매칭 실행'}</button>
+        <button disabled={busy} onClick={loadAuto}>랭킹 새로고침</button>
+      </div>
+      {rankRows.length?
+        <DataTable headers={['CANDIDATE','전략','유형','국가/자산군','시장','UNIVERSE','HORIZON','적합도','판정']} rows={rankRows}/>:
+        <div className="empty-state">자동 Discovery 결과를 생성 중입니다.</div>}
     </div>
-    {message && <p className="note">{message}</p>}
-    {error && <p className="note">{error}</p>}
-    {rows.length?
-      <DataTable headers={['국가/자산군','시장','UNIVERSE','HORIZON','사전적합도','MARKET','HORIZON','판정']} rows={rows}/>:
-      <div className="empty-state">선택한 후보의 현재 Discovery 결과가 없습니다. 실제 Discovery를 실행하십시오.</div>}
-    <p className="note">사전 적합도는 백테스트 수익률이 아닙니다. Discovery Gate 이후 Quant Lab에서 Walk-forward와 Holdout을 별도로 통과해야 합니다.</p>
-  </div>;
+
+    <div className="panel">
+      <div className="panel-title"><b>개별 Horizon Discovery</b><span>원본 전략 시장문맥을 카테고리 기본값보다 우선</span></div>
+      <div className="actions left">
+        <select value={selected} onChange={e=>setSelected(e.target.value)}>
+          {candidates.map(x=><option key={x.candidate_id} value={x.candidate_id}>{x.candidate_id} · {x.name}</option>)}
+        </select>
+        <button disabled={busy||!selected} onClick={run}>{busy?'처리 중':'실제 Discovery 실행'}</button>
+        <button disabled={busy||!selected||!discovery.length} onClick={create}>통과 조합 Agent 생성</button>
+      </div>
+      {message && <p className="note">{message}</p>}
+      {error && <p className="note">{error}</p>}
+      {rows.length?
+        <DataTable headers={['국가/자산군','시장','UNIVERSE','HORIZON','사전적합도','MARKET','HORIZON','판정']} rows={rows}/>:
+        <div className="empty-state">선택한 후보의 현재 Discovery 결과가 없습니다. 실제 Discovery를 실행하십시오.</div>}
+      <p className="note">사전 적합도는 백테스트 수익률이 아닙니다. Discovery Gate 이후 Quant Lab에서 실제 시계열 Walk-forward와 Holdout을 통과해야 합니다.</p>
+    </div>
+  </>;
 }
 
 function FamilyMatrix(){
