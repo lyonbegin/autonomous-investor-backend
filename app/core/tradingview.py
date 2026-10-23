@@ -1186,6 +1186,36 @@ def _store_market_universe_page(
     finally:
         conn.close()
 
+def reset_market_backfill(market: str) -> dict[str, Any]:
+    init_db()
+    market_key = MARKET_ALIASES.get(market.lower(), market.lower())
+    if market_key not in MARKET_SCANNER_PROFILES:
+        raise ValueError(f"unsupported market: {market}")
+    now = utcnow()
+    scan_id = _market_cycle_id(market_key)
+    conn = sqlite3.connect(DB_PATH, timeout=30, isolation_level=None)
+    try:
+        conn.execute("PRAGMA journal_mode=MEMORY")
+        conn.execute("PRAGMA synchronous=OFF")
+        conn.execute(
+            """
+            INSERT INTO market_collector_state (
+                market,cursor_offset,total_count,scan_id,cycle_started_at,last_completed_at,last_error,updated_at
+            ) VALUES (?,?,?,?,?,?,?,?)
+            ON CONFLICT(market) DO UPDATE SET
+                cursor_offset=0,
+                scan_id=excluded.scan_id,
+                cycle_started_at=excluded.cycle_started_at,
+                last_error=NULL,
+                updated_at=excluded.updated_at
+            """,
+            (market_key,0,0,scan_id,now,None,None,now),
+        )
+    finally:
+        conn.close()
+    return {"market":market_key,"scan_id":scan_id,"cursor_offset":0,"at":now}
+
+
 
 def backfill_market_universe(
     market: str,
@@ -1229,7 +1259,7 @@ def backfill_market_universe(
             "restricted": True,"last_error": "TRADINGVIEW_ENTITLEMENT_REQUIRED","at": utcnow(),
         }
 
-    sort_by = str(MARKET_SCANNER_PROFILES[market_key].get("default_sort") or "volume")
+    sort_by = "name"
 
     if total_count <= 0:
         first = collect_market(
@@ -1275,8 +1305,14 @@ def backfill_market_universe(
 
     cycle_completed=bool(total_count>0 and max_end>=total_count and not errors)
     now=utcnow()
-    with _connect() as conn:
-        if cycle_completed:
+    if cycle_completed:
+        conn = sqlite3.connect(DB_PATH, timeout=60, isolation_level=None)
+        try:
+            conn.execute("PRAGMA busy_timeout = 60000")
+            conn.execute("PRAGMA journal_mode=MEMORY")
+            conn.execute("PRAGMA temp_store=MEMORY")
+            conn.execute("PRAGMA synchronous=OFF")
+            conn.execute("BEGIN IMMEDIATE")
             conn.execute(
                 "DELETE FROM market_universe_current WHERE market=? AND scan_id<>?",
                 (market_key,scan_id),
@@ -1291,7 +1327,21 @@ def backfill_market_universe(
                 """,
                 (total_count,new_scan_id,now,now,now,market_key),
             )
-        else:
+            conn.execute("COMMIT")
+        except Exception:
+            try:
+                conn.execute("ROLLBACK")
+            except Exception:
+                pass
+            raise
+        finally:
+            conn.close()
+    else:
+        conn = sqlite3.connect(DB_PATH, timeout=30, isolation_level=None)
+        try:
+            conn.execute("PRAGMA busy_timeout = 30000")
+            conn.execute("PRAGMA journal_mode=MEMORY")
+            conn.execute("PRAGMA synchronous=OFF")
             conn.execute(
                 """
                 UPDATE market_collector_state
@@ -1300,6 +1350,8 @@ def backfill_market_universe(
                 """,
                 (max_end,total_count,errors[-1] if errors else None,now,market_key),
             )
+        finally:
+            conn.close()
 
     return {
         "market":market_key,"scan_id":scan_id,"processed_chunks":len(results),
