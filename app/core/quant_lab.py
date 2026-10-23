@@ -111,14 +111,23 @@ def init_db() -> None:
                 pass
 
 
-def _json_request(url: str, method: str = "GET") -> dict[str, Any]:
+def _json_request(
+    url: str,
+    method: str = "GET",
+    payload: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    body = json.dumps(payload, ensure_ascii=False).encode("utf-8") if payload is not None else None
+    headers = {
+        "Accept": "application/json",
+        "User-Agent": "AUTONOMOUS-INVESTOR-QuantLab/1.0",
+    }
+    if body is not None:
+        headers["Content-Type"] = "application/json"
     req = request.Request(
         url,
+        data=body,
         method=method,
-        headers={
-            "Accept": "application/json",
-            "User-Agent": "AUTONOMOUS-INVESTOR-QuantLab/1.0",
-        },
+        headers=headers,
     )
     try:
         with request.urlopen(req, timeout=20) as response:
@@ -387,6 +396,39 @@ def update_symbols(experiment_id: str, symbols: list[str]) -> dict[str, Any]:
     return get_experiment(experiment_id)
 
 
+def _notify_agent_validation_status(
+    agent_id: str,
+    *,
+    promoted: bool,
+    experiment_id: str,
+    summary: dict[str, Any],
+) -> dict[str, Any]:
+    from urllib.parse import quote
+
+    status = "PAPER_CANDIDATE" if promoted else "REJECTED_VALIDATION"
+    reason = (
+        "Walk-forward + holdout validation passed"
+        if promoted
+        else "Walk-forward/holdout validation gate rejected this Agent"
+    )
+    return _json_request(
+        f"{TRADINGVIEW_SERVICE_URL}/api/v1/tradingview/agent-plans/{quote(agent_id, safe='')}/status",
+        method="POST",
+        payload={
+            "status": status,
+            "reason": reason,
+            "metadata": {
+                "experiment_id": experiment_id,
+                "pass_ratio": summary.get("pass_ratio"),
+                "avg_holdout_return": summary.get("avg_holdout_return"),
+                "passed_symbols": summary.get("passed_symbols"),
+                "symbols_completed": summary.get("symbols_completed"),
+                "promotion": summary.get("promotion"),
+            },
+        },
+    )
+
+
 def _result_id(experiment_id: str, stage: str) -> str:
     return "RES-" + hashlib.sha1(f"{experiment_id}|{stage}|{utcnow()}".encode()).hexdigest()[:16].upper()
 
@@ -567,8 +609,22 @@ def run_experiment(
                 completed_at,
             ),
         )
+    notification_error = None
+    agent_state = None
+    try:
+        agent_state = _notify_agent_validation_status(
+            str(experiment["agent_id"]),
+            promoted=promoted,
+            experiment_id=experiment_id,
+            summary=summary,
+        )
+    except Exception as exc:
+        notification_error = f"{type(exc).__name__}: {exc}"
+
     result = get_experiment(experiment_id)
     result["results"] = list_experiment_results(experiment_id)
+    result["agent_state"] = agent_state
+    result["agent_status_notification_error"] = notification_error
     return result
 
 
