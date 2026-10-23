@@ -10,6 +10,7 @@ from app.core.tradingview import (
     create_candidate_from_idea,
     create_candidate_from_script,
     fetch_script_source,
+    get_agent_plan,
     list_agent_plans,
     list_candidates,
     list_market_snapshots,
@@ -159,6 +160,14 @@ def candidate_to_agents(candidate_id: str, max_markets: int = Query(default=3, g
         }
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=f"candidate not found: {candidate_id}") from exc
+
+
+@router.get("/agent-plans/{agent_id}")
+def agent_plan_detail(agent_id: str) -> dict:
+    item = get_agent_plan(agent_id)
+    if item is None:
+        raise HTTPException(status_code=404, detail=f"agent plan not found: {agent_id}")
+    return item
 
 
 @router.get("/agent-plans")
