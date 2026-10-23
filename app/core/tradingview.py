@@ -1762,11 +1762,11 @@ def candidate_build_status() -> dict[str, Any]:
 
 def build_pending_strategy_candidates(limit: int = 500) -> dict[str, Any]:
     init_db()
-    safe_limit = min(max(int(limit), 1), 2000)
+    safe_limit = min(max(int(limit), 1), 5000)
     with _connect() as conn:
         rows = conn.execute(
             """
-            SELECT s0.script_id_part
+            SELECT s0.*, s.source AS pine_source, s.source_hash AS pine_source_hash
             FROM community_scripts s0
             LEFT JOIN script_sources s ON s.script_id_part = s0.script_id_part
             LEFT JOIN strategy_candidates c
@@ -1780,21 +1780,89 @@ def build_pending_strategy_candidates(limit: int = 500) -> dict[str, Any]:
             """,
             (safe_limit,),
         ).fetchall()
-    built = 0
+
+    now = utcnow()
+    payloads: list[tuple[Any, ...]] = []
     errors: list[dict[str, str]] = []
-    for row in rows:
-        source_id = str(row["script_id_part"])
+    for raw in rows:
         try:
-            create_candidate_from_script(source_id, fetch_source=True)
-            built += 1
+            script = dict(raw)
+            source_id = str(script["script_id_part"])
+            source_text = str(script.get("pine_source") or "")
+            source_hash = str(script.get("pine_source_hash") or "")
+            classification_text = " ".join([
+                str(script.get("name") or ""),
+                str(script.get("description") or ""),
+                source_text[:20000],
+            ])
+            category = _category_for(classification_text)
+            horizons = list(CATEGORY_HORIZONS[category])
+            source_interval = _normalize_interval(str(script.get("interval") or ""))
+            if source_interval and source_interval not in horizons:
+                horizons.insert(0, source_interval)
+
+            candidate_id = "TVS-" + hashlib.sha1(source_id.encode()).hexdigest()[:10].upper()
+            logic = str(script.get("description") or script.get("name") or "").strip()
+            if len(logic) > 800:
+                logic = logic[:800]
+            if source_hash:
+                logic = f"{logic}\n[Pine source hash: {source_hash[:16]}]".strip()
+
+            payloads.append(
+                (
+                    candidate_id,
+                    "TradingViewPineStrategy",
+                    source_id,
+                    script.get("name") or candidate_id,
+                    category,
+                    CATEGORY_DOMAINS[category],
+                    logic,
+                    json.dumps(horizons, ensure_ascii=False),
+                    "후보",
+                    now,
+                    source_hash or None,
+                    str(script.get("version") or ""),
+                    "category-v2",
+                    now,
+                )
+            )
         except Exception as exc:
-            errors.append({"source_id": source_id, "error": f"{type(exc).__name__}: {exc}"})
+            errors.append({
+                "source_id": str(raw["script_id_part"]),
+                "error": f"{type(exc).__name__}: {exc}",
+            })
+
+    if payloads:
+        with _connect() as conn:
+            conn.executemany(
+                """
+                INSERT INTO strategy_candidates (
+                    candidate_id,source_kind,source_id,name,category,domain,logic,candidate_horizons,status,
+                    created_at,source_hash,source_version,classification_version,updated_at
+                ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                ON CONFLICT(candidate_id) DO UPDATE SET
+                    name=excluded.name,
+                    category=excluded.category,
+                    domain=excluded.domain,
+                    logic=excluded.logic,
+                    candidate_horizons=excluded.candidate_horizons,
+                    status=excluded.status,
+                    source_hash=excluded.source_hash,
+                    source_version=excluded.source_version,
+                    classification_version=excluded.classification_version,
+                    updated_at=excluded.updated_at
+                """,
+                payloads,
+            )
+
     return {
         "selected": len(rows),
-        "built": built,
+        "built": len(payloads),
         "error_count": len(errors),
         "errors": errors[:30],
         "status": candidate_build_status(),
+        "classification_version": "category-v2",
+        "batch_mode": "bulk-read + memory-classify + executemany",
         "at": utcnow(),
     }
 
