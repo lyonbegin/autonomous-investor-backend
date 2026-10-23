@@ -6,6 +6,7 @@ import math
 import sqlite3
 import threading
 import time
+from datetime import UTC, datetime, timedelta
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any
 from urllib import error
@@ -706,12 +707,23 @@ def corporate_bond_backfill(
     safe_tasks = min(max(int(max_tasks), 1), 128)
     safe_pages = min(max(int(pages_per_task), 1), 500)
 
+    stale_before=(datetime.now(UTC)-timedelta(minutes=2)).isoformat()
     with _connect() as conn:
+        # Recover interrupted workers, but never let overlapping cron/manual
+        # invocations process the same live task.
+        conn.execute(
+            """
+            UPDATE corporate_bond_scan_tasks
+            SET status='PENDING',last_error='STALE_WORKER_RECOVERED',updated_at=?
+            WHERE scan_id=? AND status='RUNNING' AND updated_at<?
+            """,
+            (utcnow(),scan_id,stale_before),
+        )
         tasks = conn.execute(
             """
             SELECT * FROM corporate_bond_scan_tasks
-            WHERE scan_id=? AND status IN ('PENDING','RUNNING','ERROR')
-            ORDER BY CASE status WHEN 'ERROR' THEN 0 WHEN 'RUNNING' THEN 1 ELSE 2 END,
+            WHERE scan_id=? AND status IN ('PENDING','ERROR')
+            ORDER BY CASE status WHEN 'ERROR' THEN 0 ELSE 1 END,
                      estimated_count DESC, task_id ASC
             LIMIT ?
             """,
@@ -728,7 +740,7 @@ def corporate_bond_backfill(
 
     results: list[dict[str, Any]] = []
     if tasks:
-        with ThreadPoolExecutor(max_workers=min(4, len(tasks))) as executor:
+        with ThreadPoolExecutor(max_workers=min(8, len(tasks))) as executor:
             futures = [
                 executor.submit(_process_task, dict(task), safe_pages)
                 for task in tasks
@@ -742,7 +754,7 @@ def corporate_bond_backfill(
         "scan_id": scan_id,
         "source_total": int(state.get("source_total") or 0),
         "selected_tasks": len(tasks),
-        "workers": min(4, max(1, len(tasks))),
+        "workers": min(8, max(1, len(tasks))),
         "pages_per_task": safe_pages,
         "tasks_completed_this_run": sum(1 for x in results if x.get("complete")),
         "rows_added_this_run": sum(int(x.get("added") or 0) for x in results),
