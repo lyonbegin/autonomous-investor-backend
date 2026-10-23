@@ -6,6 +6,7 @@ from app.core.tradingview import (
     collect_ideas,
     collect_market,
     collect_scripts,
+    backfill_tradingview_source,
     create_agent_plans,
     create_candidate_from_idea,
     create_candidate_from_script,
@@ -16,12 +17,42 @@ from app.core.tradingview import (
     list_agent_universe,
     resolve_agent_universe,
     list_candidates,
+    list_collector_states,
     list_market_snapshots,
     list_stored_ideas,
     list_stored_scripts,
 )
 
 router = APIRouter(prefix="/api/v1/tradingview", tags=["tradingview"])
+
+@router.post("/backfill/{kind}")
+def backfill_source(
+    kind: str,
+    pages: int = Query(default=1, ge=1, le=10),
+    fetch_details: bool = True,
+    fetch_pine: bool = True,
+) -> dict:
+    try:
+        return backfill_tradingview_source(
+            kind,
+            pages=pages,
+            fetch_details=fetch_details,
+            fetch_pine=fetch_pine,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"TradingView backfill failed: {type(exc).__name__}: {exc}",
+        ) from exc
+
+
+@router.get("/backfill")
+def backfill_status() -> dict:
+    items = list_collector_states()
+    return {"count": len(items), "items": items}
+
 
 
 @router.get("/ideas/live")
