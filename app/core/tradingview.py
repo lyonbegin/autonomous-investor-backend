@@ -282,6 +282,14 @@ def init_db() -> None:
                 fetched_at TEXT NOT NULL
             );
 
+            CREATE TABLE IF NOT EXISTS script_source_attempts (
+                script_id_part TEXT PRIMARY KEY,
+                ok INTEGER NOT NULL DEFAULT 0,
+                protected INTEGER NOT NULL DEFAULT 0,
+                reason TEXT,
+                fetched_at TEXT NOT NULL
+            );
+
             CREATE TABLE IF NOT EXISTS source_details (
                 source_kind TEXT NOT NULL,
                 source_id TEXT NOT NULL,
@@ -1100,6 +1108,18 @@ def fetch_script_source(script_id_part: str, version: str = "last") -> dict[str,
         ).fetchone()
         if cached is not None and version in {"last", str(cached["version"])}:
             row = dict(cached)
+            conn.execute(
+                """
+                INSERT INTO script_source_attempts (script_id_part,ok,protected,reason,fetched_at)
+                VALUES (?,?,?,?,?)
+                ON CONFLICT(script_id_part) DO UPDATE SET
+                    ok=excluded.ok,
+                    protected=excluded.protected,
+                    reason=excluded.reason,
+                    fetched_at=excluded.fetched_at
+                """,
+                (script_id_part, 1, 0, None, row.get("fetched_at") or utcnow()),
+            )
             row["ok"] = True
             row["from_cache"] = True
             return row
@@ -1110,11 +1130,27 @@ def fetch_script_source(script_id_part: str, version: str = "last") -> dict[str,
     raw = _http_json(url)
     source = raw.get("source")
     if not isinstance(source, str):
+        reason = raw.get("reason") or "No Pine source returned"
+        now = utcnow()
+        with _connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO script_source_attempts (script_id_part,ok,protected,reason,fetched_at)
+                VALUES (?,?,?,?,?)
+                ON CONFLICT(script_id_part) DO UPDATE SET
+                    ok=excluded.ok,
+                    protected=excluded.protected,
+                    reason=excluded.reason,
+                    fetched_at=excluded.fetched_at
+                """,
+                (script_id_part, 0, 1, reason, now),
+            )
         return {
             "ok": False,
             "protected": True,
             "script_id_part": script_id_part,
-            "reason": raw.get("reason") or "No Pine source returned",
+            "reason": reason,
+            "fetched_at": now,
         }
 
     pine_version = None
@@ -1153,6 +1189,20 @@ def fetch_script_source(script_id_part: str, version: str = "last") -> dict[str,
                 source_hash, source, now,
             ),
         )
+    with _connect() as conn:
+        conn.execute(
+            """
+            INSERT INTO script_source_attempts (script_id_part,ok,protected,reason,fetched_at)
+            VALUES (?,?,?,?,?)
+            ON CONFLICT(script_id_part) DO UPDATE SET
+                ok=excluded.ok,
+                protected=excluded.protected,
+                reason=excluded.reason,
+                fetched_at=excluded.fetched_at
+            """,
+            (script_id_part, 1, 0, None, now),
+        )
+
     return {
         "ok": True,
         "from_cache": False,
@@ -1165,6 +1215,80 @@ def fetch_script_source(script_id_part: str, version: str = "last") -> dict[str,
         "source": source,
         "source_chars": len(source),
         "fetched_at": now,
+    }
+
+
+def script_source_completion_status() -> dict[str, Any]:
+    init_db()
+    with _connect() as conn:
+        row = conn.execute(
+            """
+            SELECT
+                COUNT(*) AS total,
+                SUM(CASE WHEN d.source_id IS NOT NULL THEN 1 ELSE 0 END) AS detail_ready,
+                SUM(CASE WHEN a.script_id_part IS NOT NULL THEN 1 ELSE 0 END) AS source_attempted,
+                SUM(CASE WHEN s.script_id_part IS NOT NULL THEN 1 ELSE 0 END) AS source_ready,
+                SUM(CASE WHEN a.protected = 1 THEN 1 ELSE 0 END) AS source_protected
+            FROM community_scripts c
+            LEFT JOIN source_details d
+              ON d.source_kind = 'script' AND d.source_id = c.script_id_part
+            LEFT JOIN script_source_attempts a
+              ON a.script_id_part = c.script_id_part
+            LEFT JOIN script_sources s
+              ON s.script_id_part = c.script_id_part
+            """
+        ).fetchone()
+    data = dict(row or {})
+    for key in ("total","detail_ready","source_attempted","source_ready","source_protected"):
+        data[key] = int(data.get(key) or 0)
+    data["detail_missing"] = max(0, data["total"] - data["detail_ready"])
+    data["source_unattempted"] = max(0, data["total"] - data["source_attempted"])
+    return data
+
+
+def complete_missing_script_assets(limit: int = 500) -> dict[str, Any]:
+    init_db()
+    safe_limit = min(max(int(limit), 1), 2000)
+    before = script_source_completion_status()
+    with _connect() as conn:
+        rows = conn.execute(
+            """
+            SELECT c.*
+            FROM community_scripts c
+            LEFT JOIN source_details d
+              ON d.source_kind = 'script' AND d.source_id = c.script_id_part
+            LEFT JOIN script_source_attempts a
+              ON a.script_id_part = c.script_id_part
+            WHERE d.source_id IS NULL OR a.script_id_part IS NULL
+            ORDER BY c.collected_at DESC
+            LIMIT ?
+            """,
+            (safe_limit,),
+        ).fetchall()
+    items = [dict(row) for row in rows]
+    detail_count = 0
+    pine_count = 0
+    errors: list[str] = []
+    if items:
+        with ThreadPoolExecutor(max_workers=16) as executor:
+            results = list(executor.map(
+                lambda item: _backfill_script_item(item, True, True),
+                items,
+            ))
+        for d_count, p_count, item_errors in results:
+            detail_count += d_count
+            pine_count += p_count
+            errors.extend(item_errors)
+    after = script_source_completion_status()
+    return {
+        "selected": len(items),
+        "details_processed": detail_count,
+        "pine_sources_processed": pine_count,
+        "error_count": len(errors),
+        "errors": errors[:20],
+        "before": before,
+        "after": after,
+        "at": utcnow(),
     }
 
 
