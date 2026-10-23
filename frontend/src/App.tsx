@@ -1464,6 +1464,20 @@ function FamilyMatrix(){
 
 function Research(){return <><SectionHeader title="시장 연구" eyebrow="시장·거시·펀더멘털·뉴스·기회 근거"/><div className="grid three"><MiniStat title="시장" lines={['Regime: Risk-On','Volatility: Moderate','Breadth: Positive','Liquidity: Normal']}/><MiniStat title="거시경제" lines={['Rates: Stable','USD: Firm','Inflation: Cooling','Growth: Mixed']}/><MiniStat title="시장심리" lines={['Bull: 72%','Bear: 28%','News score: +0.34','Uncertainty: 0.19']}/></div><div className="grid two"><div className="panel"><div className="panel-title"><b>기회 후보</b></div><DataTable headers={['ASSET','INVESTOR','THESIS','HORIZON','EXPECTED','CONFIDENCE']} rows={[["NVDA","A-043","Earnings revision + momentum","5d","+4.2%","81%"],["EURUSD","A-071","Rate differential","1d","+1.1%","68%"],["GOLD","A-102","Inflation hedge breakout","4h","+0.9%","66%"]]}/></div><div className="panel"><div className="panel-title"><b>근거 자료</b></div><EventLine time="RSH" tag="AI" text="TradingAgents market/news/fundamental debate"/><EventLine time="FIN" tag="DATA" text="FinRobot valuation and earnings computations"/><EventLine time="MAC" tag="MACRO" text="Macro evidence bundle"/><EventLine time="SRC" tag="SOURCE" text="External strategy provenance linked where applicable"/></div></div></>}
 
+type QuantValidationItem = {
+  symbol:string;
+  provider?:string;
+  provider_symbol?:string;
+  base_interval?:string;
+  effective_interval?:string;
+  bar_count?:number;
+  validation?:{
+    walk_forward?:{passed?:boolean;positive_folds?:number;traded_folds?:number;folds?:Array<{fold:number;metrics?:Record<string,number>} >};
+    holdout?:{passed?:boolean;metrics?:{trade_count?:number;win_rate?:number;net_return?:number;max_drawdown?:number;profit_factor?:number;trade_sharpe?:number}};
+    passed?:boolean;
+  };
+};
+
 type QuantExperiment = {
   experiment_id:string;
   agent_id:string;
@@ -1485,12 +1499,26 @@ type QuantExperiment = {
   status:string;
   blocked_reason?:string | null;
   created_at:string;
+  completed_at?:string | null;
   symbols:string[];
+  strategy_spec?:Record<string,unknown> | null;
+  validation_summary?:{
+    symbols_requested?:string[];
+    symbols_completed?:number;
+    symbols_failed?:number;
+    passed_symbols?:number;
+    pass_ratio?:number;
+    avg_holdout_return?:number;
+    promotion?:string;
+    items?:QuantValidationItem[];
+    failures?:Array<{symbol:string;error:string}>;
+  } | null;
 };
 
 type QuantReadiness = {
   data_sources?:{toss?:{configured?:boolean;official_intervals?:string[];role?:string}};
-  strategy_execution?:{pine_engine_configured?:boolean;policy?:string};
+  strategy_execution?:{pine_engine_configured?:boolean;strategy_spec_v1?:boolean;policy?:string};
+  public_history?:{yahoo_finance_chart?:boolean;binance_public_klines?:boolean;coverage?:string};
   quant_engines?:{state?:string};
 };
 
@@ -1578,6 +1606,8 @@ function Lab(){
   const blockedData=experiments.filter(x=>x.status==='BLOCKED_DATA_SOURCE').length;
   const blockedEngine=experiments.filter(x=>x.status==='BLOCKED_STRATEGY_ENGINE').length;
   const completed=experiments.filter(x=>x.status==='COMPLETED').length;
+  const rejected=experiments.filter(x=>x.status==='FAILED').length;
+  const paperCandidates=experiments.filter(x=>x.validation_summary?.promotion==='PAPER_CANDIDATE').length;
   const superseded=experiments.filter(x=>x.status==='SUPERSEDED').length;
   const selected=experiments.find(x=>x.status!=='SUPERSEDED')||experiments[0];
 
@@ -1587,9 +1617,10 @@ function Lab(){
     x.candidate_id,
     x.fixed_horizon,
     x.symbols.length+'종목',
-    x.base_interval,
+    x.strategy_engine,
     x.status,
-    x.blocked_reason||'—',
+    x.validation_summary?.promotion||x.blocked_reason||'—',
+    x.validation_summary?.avg_holdout_return==null?'—':(x.validation_summary.avg_holdout_return*100).toFixed(2)+'%',
   ]);
 
   const pipelineRows=(pipeline?.stages||[]).map(x=>[
@@ -1610,7 +1641,9 @@ function Lab(){
       <Metric label="UNIVERSE 차단" value={String(blockedUniverse)} tone={blockedUniverse?'amber':'green'} />
       <Metric label="DATA 차단" value={String(blockedData)} tone={blockedData?'amber':'green'} />
       <Metric label="ENGINE 차단" value={String(blockedEngine)} tone={blockedEngine?'amber':'green'} />
-      <Metric label="COMPLETED" value={String(completed)} tone={completed?'green':'muted'} />
+      <Metric label="PAPER 후보" value={String(paperCandidates)} tone={paperCandidates?'green':'muted'} />
+      <Metric label="검증 탈락" value={String(rejected)} tone={rejected?'red':'muted'} />
+      <Metric label="완료" value={String(completed+rejected)} tone={(completed+rejected)?'cyan':'muted'} />
       <Metric label="SUPERSEDED" value={String(superseded)} tone={superseded?'amber':'muted'} />
     </div>
 
@@ -1646,7 +1679,7 @@ function Lab(){
 
     <div className="panel">
       <div className="panel-title"><b>Experiment Registry</b><span>예시 성과값 없이 실제 DB 상태만 표시</span></div>
-      {rows.length ? <DataTable headers={['EXPERIMENT','AGENT','CANDIDATE','HORIZON','UNIVERSE','BASE DATA','STATUS','BLOCKER']} rows={rows}/> :
+      {rows.length ? <DataTable headers={['EXPERIMENT','AGENT','CANDIDATE','HORIZON','UNIVERSE','ENGINE','STATUS','PROMOTION / BLOCKER','HOLDOUT 평균']} rows={rows}/> :
         <div className="empty-state">아직 등록된 Quant Experiment가 없습니다. TradingView 전략평가에서 Agent를 생성한 뒤 Quant 실험 등록을 실행하십시오.</div>}
     </div>
 
@@ -1656,8 +1689,8 @@ function Lab(){
         <dl className="kv">
           <dt>TradingView Source</dt><dd>연결됨</dd>
           <dt>Toss OHLCV</dt><dd>{readiness?.data_sources?.toss?.configured?'자격증명 연결됨':'자격증명 미설정'}</dd>
-          <dt>공식 기본 봉</dt><dd>{readiness?.data_sources?.toss?.official_intervals?.join(' / ')||'1m / 1d'}</dd>
-          <dt>Pine 실행엔진</dt><dd>{readiness?.strategy_execution?.pine_engine_configured?'연결됨':'미연결'}</dd>
+          <dt>공개 히스토리</dt><dd>{readiness?.public_history?.yahoo_finance_chart?'Yahoo READY':'CHECK'} · {readiness?.public_history?.binance_public_klines?'Binance READY':'CHECK'}</dd>
+          <dt>StrategySpec-v1</dt><dd>{readiness?.strategy_execution?.strategy_spec_v1?'실행 가능':'CHECK'}</dd>
           <dt>12개 OSS 프로젝트</dt><dd>{readiness?.quant_engines?.state||'상태 조회 중'}</dd>
           <dt>14단계 Quant Lab</dt><dd>{pipeline?.count===14?'구조 고정 · 실제 상태 연동':'상태 조회 중'}</dd>
           <dt>Macro 공식 데이터</dt><dd>{pipeline?.macro_data_ready?'BLS + Treasury READY':'첫 스냅샷 대기'}</dd>
@@ -1668,12 +1701,19 @@ function Lab(){
         <div className="panel-title"><b>Validation Chain</b><span>{selected?selected.experiment_id:'등록 실험 없음'}</span></div>
         {selected ? <ol className="steps">
           <li>Universe Resolver <Badge tone={selected.symbols.length?'green':'amber'}>{selected.symbols.length?'READY':'BLOCKED'}</Badge></li>
-          <li>{selected.data_source} <Badge tone={selected.status==='BLOCKED_DATA_SOURCE'?'amber':'green'}>{selected.status==='BLOCKED_DATA_SOURCE'?'BLOCKED':'READY'}</Badge></li>
-          <li>{selected.validation_plan.screen?.engine||'vectorbt'} quick screen <Badge tone="muted">PENDING</Badge></li>
-          <li>Walk-forward · {selected.validation_plan.walk_forward?.folds||5} folds <Badge tone="muted">PENDING</Badge></li>
-          <li>Holdout · {Math.round((selected.validation_plan.holdout?.fraction||0.2)*100)}% untouched <Badge tone="muted">PENDING</Badge></li>
-          <li>{selected.validation_plan.final_runtime?.engine||'NautilusTrader'} realistic backtest <Badge tone="muted">PENDING</Badge></li>
+          <li>{selected.strategy_engine} <Badge tone={selected.strategy_engine==='StrategySpec-v1'?'green':'amber'}>{selected.strategy_engine}</Badge></li>
+          <li>실제 OHLCV · {selected.data_source} <Badge tone={selected.status==='BLOCKED_DATA_SOURCE'?'amber':'green'}>{selected.status==='BLOCKED_DATA_SOURCE'?'BLOCKED':'READY'}</Badge></li>
+          <li>Walk-forward · {selected.validation_plan.walk_forward?.folds||5} folds <Badge tone={selected.validation_summary?.items?.[0]?.validation?.walk_forward?.passed?'green':selected.validation_summary?'red':'muted'}>{selected.validation_summary?(selected.validation_summary.items?.[0]?.validation?.walk_forward?.passed?'PASS':'FAIL'):'PENDING'}</Badge></li>
+          <li>Holdout · {Math.round((selected.validation_plan.holdout?.fraction||0.2)*100)}% untouched <Badge tone={selected.validation_summary?.items?.[0]?.validation?.holdout?.passed?'green':selected.validation_summary?'red':'muted'}>{selected.validation_summary?(selected.validation_summary.items?.[0]?.validation?.holdout?.passed?'PASS':'FAIL'):'PENDING'}</Badge></li>
+          <li>최종 판정 <Badge tone={selected.validation_summary?.promotion==='PAPER_CANDIDATE'?'green':selected.validation_summary?'red':'muted'}>{selected.validation_summary?.promotion||'PENDING'}</Badge></li>
         </ol> : <div className="empty-state">Experiment를 등록하면 실제 검증 체인이 표시됩니다.</div>}
+        {selected?.validation_summary && <div className="validation-summary">
+          <p className="note">통과 종목 {selected.validation_summary.passed_symbols||0}/{selected.validation_summary.symbols_completed||0} · Holdout 평균 {((selected.validation_summary.avg_holdout_return||0)*100).toFixed(2)}%</p>
+          {(selected.validation_summary.items||[]).slice(0,5).map(item=><div className="row-line" key={item.symbol}>
+            <span>{item.symbol} · {item.provider_symbol||''} · {item.bar_count||0} bars</span>
+            <b>{item.validation?.walk_forward?.passed?'WF PASS':'WF FAIL'} / {item.validation?.holdout?.passed?'HOLDOUT PASS':'HOLDOUT FAIL'}</b>
+          </div>)}
+        </div>}
       </div>
     </div>
   </>;
@@ -1695,7 +1735,8 @@ function System(){
     ['TradingView Collector','LIVE'],
     ['Horizon Discovery','LIVE'],
     ['Agent Factory','LIVE'],
-    ['Pine Importer','PARTIAL'],
+    ['TradingView Full Source','LIVE'],
+    ['StrategySpec-v1 Validation','LIVE'],
     ['예측 원장','PLANNED'],
     ['Capital Allocator','PLANNED'],
     ['Population Controller','PLANNED'],
@@ -1733,7 +1774,7 @@ function App() {
         tradingview:tv,
         quant:Boolean(quantReady),
         toss:Boolean(quantReady?.data_sources?.toss?.configured),
-        pine:Boolean(quantReady?.strategy_execution?.pine_engine_configured),
+        pine:Boolean(quantReady?.strategy_execution?.strategy_spec_v1 || quantReady?.strategy_execution?.pine_engine_configured),
         experiments:Number(exp?.count||0),
       });
     });
