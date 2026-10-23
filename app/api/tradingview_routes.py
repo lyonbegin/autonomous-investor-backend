@@ -146,9 +146,17 @@ def market_stored_universe(
     market: str,
     limit: int = Query(default=100, ge=1, le=1000),
     offset: int = Query(default=0, ge=0),
+    sort_by: str = Query(default="volume"),
+    sort_order: str = Query(default="desc"),
 ) -> dict:
     try:
-        return list_market_universe(market, limit=limit, offset=offset)
+        return list_market_universe(
+            market,
+            limit=limit,
+            offset=offset,
+            sort_by=sort_by,
+            sort_order=sort_order,
+        )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
