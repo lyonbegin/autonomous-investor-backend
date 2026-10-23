@@ -682,16 +682,39 @@ type LiveStrategyCandidate = {
   origin_source_immutable:boolean;
 };
 
+type LiveHorizonDiscovery = {
+  discovery_id:string;
+  candidate_id:string;
+  registry_source_id:string;
+  source_id:string;
+  origin_source_id:string;
+  horizon:string;
+  country:string;
+  market:string;
+  universe:string;
+  scanner_market?:string | null;
+  fit_score:number;
+  market_score:number;
+  horizon_score:number;
+  source_score:number;
+  status:string;
+  rationale:string;
+  evaluated_at:string;
+};
+
 type LiveAgentPlan = {
   agent_id:string;
   candidate_id:string;
   source_id:string;
+  registry_source_id?:string;
+  origin_source_id?:string;
   origin_source_immutable:boolean;
   fixed_horizon:string;
   fixed_horizon_immutable:boolean;
   country:string;
   market:string;
   universe:string;
+  discovery_fit_score?:number;
   status:string;
 };
 
@@ -722,6 +745,7 @@ function TradingViewStrategies(){
   const [total,setTotal]=useState<number | null>(null);
   const [selected,setSelected]=useState('');
   const [candidate,setCandidate]=useState<LiveStrategyCandidate | null>(null);
+  const [discovery,setDiscovery]=useState<LiveHorizonDiscovery[]>([]);
   const [agents,setAgents]=useState<LiveAgentPlan[]>([]);
   const [agentResearch,setAgentResearch]=useState<Record<string,AgentResearchState>>({});
   const [loading,setLoading]=useState(true);
@@ -761,6 +785,7 @@ function TradingViewStrategies(){
 
   useEffect(()=>{
     setCandidate(null);
+    setDiscovery([]);
     setAgents([]);
     setAgentResearch({});
   },[selected]);
@@ -784,18 +809,41 @@ function TradingViewStrategies(){
     }
   };
 
-  const makeAgents=async()=>{
+  const discoverHorizons=async():Promise<LiveHorizonDiscovery[]>=>{
     const c=await analyze();
-    if(!c) return;
+    if(!c) return [];
     setBusy(true);
     setError('');
     try{
-      const r=await fetch(API_BASE+'/api/v1/tradingview/candidates/'+encodeURIComponent(c.candidate_id)+'/agent-plans?max_markets=3',{method:'POST'});
+      const r=await fetch(API_BASE+'/api/v1/horizon-discovery/'+encodeURIComponent(c.candidate_id)+'?max_markets=3',{method:'POST'});
+      if(!r.ok) throw new Error(await r.text());
+      const data=await r.json();
+      const rows=(data.items||[]) as LiveHorizonDiscovery[];
+      setDiscovery(rows);
+      return rows;
+    }catch(e){
+      setError('시장·시간축 사전 적합도 분석 오류');
+      return [];
+    }finally{
+      setBusy(false);
+    }
+  };
+
+  const makeAgents=async()=>{
+    const c=await analyze();
+    if(!c) return;
+    let rows=discovery;
+    if(!rows.length) rows=await discoverHorizons();
+    if(!rows.length) return;
+    setBusy(true);
+    setError('');
+    try{
+      const r=await fetch(API_BASE+'/api/v1/agent-factory/'+encodeURIComponent(c.candidate_id)+'?min_score=72&max_agents=12',{method:'POST'});
       if(!r.ok) throw new Error(await r.text());
       const data=await r.json();
       setAgents((data.items||[]) as LiveAgentPlan[]);
     }catch(e){
-      setError('시장·시간축별 에이전트 생성 계획 오류');
+      setError('Discovery 통과 조합의 에이전트 생성 오류');
     }finally{
       setBusy(false);
     }
@@ -841,11 +889,21 @@ function TradingViewStrategies(){
     }
   };
 
+  const discoveryRows=discovery.map(x=>[
+    x.country,
+    x.market,
+    x.universe,
+    x.horizon,
+    x.fit_score.toFixed(1)+'점',
+    x.status,
+  ]);
+
   const matchRows=agents.map(x=>[
     x.country,
     x.market,
     x.universe,
     x.fixed_horizon,
+    x.discovery_fit_score==null?'—':x.discovery_fit_score.toFixed(1)+'점',
     x.agent_id,
     x.status,
   ]);
@@ -912,17 +970,25 @@ function TradingViewStrategies(){
           <div className="actions left">
             {current.chart_url && <a href={current.chart_url} target="_blank" rel="noreferrer">TradingView 원문 보기</a>}
             <button disabled={busy} onClick={analyze}>{candidate?'원천 분석 완료':'원천 분석 · 전략 후보 생성'}</button>
-            <button disabled={busy} onClick={makeAgents}>추천 조합으로 독립 에이전트 생성</button>
+            <button disabled={busy} onClick={discoverHorizons}>{discovery.length?'사전 적합도 재분석':'시장·시간축 사전 적합도 분석'}</button>
+            <button disabled={busy || !candidate} onClick={makeAgents}>통과 조합만 독립 에이전트 생성</button>
           </div>
         </> : <div className="empty-state">전략을 선택하십시오.</div>}
       </div>
     </div>
 
     <div className="panel">
-      <div className="panel-title"><b>자동 시장·종목군·고정 시간축 매칭</b><span>실제 생성된 각 행은 서로 다른 Agent ID이며 시간축을 변경하지 않습니다.</span></div>
+      <div className="panel-title"><b>Horizon Discovery · 시장×종목군×고정 시간축 사전 적합도</b><span>현재 시장 피처 + 원천 품질 + 시간축 구조를 평가하며, 아직 백테스트 성과점수는 아닙니다.</span></div>
+      {discovery.length ?
+        <DataTable headers={['국가/자산군','시장','추천 종목군','고정 시간축','사전 적합도','판정']} rows={discoveryRows}/> :
+        <div className="empty-state">원천 분석 후 ‘시장·시간축 사전 적합도 분석’을 실행하면 실제 TradingView 시장 스냅샷을 사용한 Discovery 결과가 표시됩니다.</div>}
+    </div>
+
+    <div className="panel">
+      <div className="panel-title"><b>Discovery 통과 조합 → 독립 Agent</b><span>72점 이상 DISCOVERY_PASS 조합만 생성하며 Origin Source와 Fixed Horizon은 변경하지 않습니다.</span></div>
       {agents.length ?
-        <DataTable headers={['국가/자산군','시장','추천 종목군','고정 시간축','Agent ID','상태']} rows={matchRows}/> :
-        <div className="empty-state">선택한 전략을 분석한 뒤 에이전트 생성을 실행하면 국가·시장·종목군·시간축 조합이 여기에 생성됩니다.</div>}
+        <DataTable headers={['국가/자산군','시장','추천 종목군','고정 시간축','사전 적합도','Agent ID','상태']} rows={matchRows}/> :
+        <div className="empty-state">Discovery를 통과한 조합에 대해서만 Agent Factory를 실행합니다.</div>}
     </div>
 
     <div className="grid two">
