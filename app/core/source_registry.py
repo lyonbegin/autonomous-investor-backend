@@ -697,9 +697,11 @@ def discovery_queue_status() -> dict[str, Any]:
         ).fetchone()[0])
         discovered = int(conn.execute(
             """
-            SELECT COUNT(DISTINCT candidate_id)
-            FROM horizon_discovery
-            WHERE is_current = 1
+            SELECT COUNT(DISTINCT d.candidate_id)
+            FROM horizon_discovery d
+            JOIN strategy_candidates c ON c.candidate_id = d.candidate_id
+            WHERE d.is_current = 1
+              AND c.source_kind = 'TradingViewPineStrategy'
             """
         ).fetchone()[0])
     return {
