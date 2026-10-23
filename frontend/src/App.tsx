@@ -571,7 +571,10 @@ function TradingViewMarkets(){
         <div className="empty-state">이 메뉴는 주식/FX Scanner가 아닌 별도 캘린더·랭킹 데이터 소스로 연결합니다. 가짜 숫자는 표시하지 않습니다.</div>
       </div>}
 
-      {data.sections.map(x=><MarketSection key={x.title} {...x}/>)}
+      {!liveMarketCode[tab] && <div className="panel">
+        <div className="panel-title"><b>{tab} 실데이터 연결 상태</b><span>TradingView 원본 메뉴 구조는 유지</span></div>
+        <div className="empty-state">이 자산군의 전용 TradingView 데이터 소스는 아직 백엔드에 연결하지 않았습니다. 예시·가상 시세는 표시하지 않습니다.</div>
+      </div>}
       <div className="panel market-match-panel">
         <div className="panel-title"><b>{tab} 전략 매칭 입력 데이터</b><span>현재 실수집 피처를 실제 백테스트·Walk-forward 평가 엔진으로 전달</span></div>
         <DataTable headers={['입력 피처','용도','현재 상태']} rows={[
