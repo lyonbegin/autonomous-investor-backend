@@ -27,6 +27,10 @@ from app.core.tradingview import (
     list_candidates,
     list_collector_states,
     list_market_snapshots,
+    list_market_universe,
+    market_universe_counts,
+    market_backfill_state,
+    backfill_market_universe,
     list_stored_ideas,
     list_stored_scripts,
 )
@@ -106,6 +110,47 @@ def idea_to_candidate(idea_id: str) -> dict:
         return create_candidate_from_idea(idea_id)
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=f"idea not found: {idea_id}") from exc
+
+
+@router.get("/markets/backfill/state")
+def markets_backfill_state() -> dict:
+    items = market_backfill_state()
+    return {"count": len(items), "items": items}
+
+
+@router.get("/markets/backfill/counts")
+def markets_backfill_counts() -> dict:
+    items = market_universe_counts()
+    return {"count": len(items), "items": items}
+
+
+@router.post("/markets/{market}/backfill")
+def market_backfill(
+    market: str,
+    chunks: int = Query(default=5, ge=1, le=25),
+    page_size: int = Query(default=1000, ge=100, le=1000),
+) -> dict:
+    try:
+        return backfill_market_universe(market, chunks=chunks, page_size=page_size)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"TradingView market universe backfill failed: {type(exc).__name__}: {exc}",
+        ) from exc
+
+
+@router.get("/markets/{market}/stored")
+def market_stored_universe(
+    market: str,
+    limit: int = Query(default=100, ge=1, le=1000),
+    offset: int = Query(default=0, ge=0),
+) -> dict:
+    try:
+        return list_market_universe(market, limit=limit, offset=offset)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @router.get("/markets/{market}")
