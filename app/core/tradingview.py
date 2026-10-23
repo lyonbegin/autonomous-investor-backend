@@ -1625,8 +1625,17 @@ def list_stored_ideas(limit: int = 100) -> list[dict[str, Any]]:
 
 def _category_for(text: str) -> str:
     haystack = text.lower()
+
+    def matches(keyword: str) -> bool:
+        word = keyword.lower()
+        # Short indicator/ticker tokens must be lexical tokens.  Plain substring
+        # matching made "rsi" match the "rsi" inside "version".
+        if re.fullmatch(r"[a-z0-9]+", word):
+            return re.search(rf"(?<![a-z0-9]){re.escape(word)}(?![a-z0-9])", haystack) is not None
+        return word in haystack
+
     for category, words in CATEGORY_RULES:
-        if any(word in haystack for word in words):
+        if any(matches(word) for word in words):
             return category
     return "아이디어 기반"
 
