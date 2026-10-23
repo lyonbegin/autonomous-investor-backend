@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react';
 type Tone = 'green' | 'red' | 'amber' | 'cyan' | 'purple' | 'muted';
 type PageKey =
   | 'command' | 'domains' | 'investors' | 'capital' | 'portfolio' | 'risk'
-  | 'trading' | 'tvstrategies' | 'factory' | 'research' | 'lab' | 'strategies' | 'performance'
+  | 'trading' | 'tvideas' | 'tvmarkets' | 'tvstrategies' | 'factory' | 'research' | 'lab' | 'strategies' | 'performance'
   | 'memory' | 'audit' | 'system' | 'settings';
 
 const nav: { key: PageKey; label: string; short: string }[] = [
@@ -14,7 +14,9 @@ const nav: { key: PageKey; label: string; short: string }[] = [
   { key: 'portfolio', label: '포트폴리오', short: '포트' },
   { key: 'risk', label: '위험 관리', short: '위험' },
   { key: 'trading', label: '실전 매매', short: '매매' },
-  { key: 'tvstrategies', label: '트레이딩뷰 전략', short: 'TV' },
+  { key: 'tvideas', label: 'TradingView 아이디어', short: 'TV-I' },
+  { key: 'tvmarkets', label: 'TradingView 마켓', short: 'TV-M' },
+  { key: 'tvstrategies', label: 'TradingView 전략평가', short: 'TV-S' },
   { key: 'factory', label: '전략 공장', short: '전략' },
   { key: 'research', label: '시장 연구', short: '연구' },
   { key: 'lab', label: '퀀트 연구소', short: '퀀트' },
@@ -122,6 +124,229 @@ function Risk() { return <><SectionHeader title="전체 위험" eyebrow="위험 
 function Trading() { return <><SectionHeader title="Nautilus 실전 매매" eyebrow="주문·체결의 최종 기준" actions={['LIVE ●','미체결 주문 취소','전체정지']} /><div className="grid two wide-left"><div className="panel chart-panel"><div className="panel-title"><b>NVDA · 143.21</b><span>Live Market</span></div><Sparkline /></div><div className="panel"><div className="panel-title"><b>계좌</b><Badge tone="green">BROKER 대조완료</Badge></div><dl className="kv"><dt>평가자산</dt><dd>₩1.083B</dd><dt>Cash</dt><dd>₩108M</dd><dt>Margin</dt><dd>₩71M</dd><dt>Buying power</dt><dd>₩240M</dd></dl></div></div><div className="panel"><div className="panel-title"><b>주문 / 체결</b><span>Agent + Strategy + Prediction lineage retained</span></div><DataTable headers={['ID','INVESTOR','LINEAGE','TICKET','ASSET','SIDE','QTY','STATE']} rows={[["1882","A-043","L-101","P-8821","NVDA","BUY","100","FILLED"],["1883","A-017","L-208","P-8824","NVDA","SELL","40","FILLED"],["1884","A-102","L-445","P-8830","ES","BUY","3","OPEN"]]}/></div><VirtualLedger /></>; }
 function VirtualLedger(){return <div className="panel"><div className="panel-title"><b>가상 에이전트 원장 · NVDA</b><Badge tone="green">대조완료</Badge></div><DataTable headers={['ATTRIBUTION','VIRTUAL POSITION','NET PNL','BROKER NET']} rows={[["A-043 / L-101","+100","+₩842K",""],["A-017 / L-208","-40","-₩112K",""],["A-055 / L-318","+20","+₩93K",""],["TOTAL","+80","+₩823K","+80 ✓"]]}/></div>}
 
+
+
+function TradingViewHeader({active}:{active:'ideas'|'markets'}) {
+  return <div className="tv-global-head">
+    <div className="tv-brand">TradingView</div>
+    <button className="tv-search">⌕ 찾기</button>
+    <div className="tv-global-nav">
+      <button>프로덕트</button>
+      <button className={active==='ideas'?'active':''}>커뮤니티</button>
+      <button className={active==='markets'?'active':''}>마켓</button>
+      <button>브로커</button>
+      <button>더보기 ▾</button>
+    </div>
+    <div className="tv-global-actions"><button>KO</button><button className="tv-start">지금 시작</button></div>
+  </div>;
+}
+
+type IdeaCardData = {
+  id:string; user:string; time:string; title:string; text:string; symbol:string; bias:string; comments:number; market:string; score:number;
+};
+
+const ideaCards:IdeaCardData[] = [
+  {id:'IDEA-001',user:'madscoin',time:'22시간 전',title:'비트코인 주요 지지구간과 상승 시나리오',text:'단기 조정 이후 주요 지지선이 유지되는지 확인하고 상단 저항 돌파 시 추세 지속 가능성을 보는 관점입니다.',symbol:'BTCUSDT',bias:'롱',comments:4,market:'크립토',score:91},
+  {id:'IDEA-002',user:'Adrian_NovaTrader',time:'36분 전 업데이트',title:'XAUUSD H1 유동성 재시험과 회복 계획',text:'H1 유동성 구역의 스윕과 재탈환을 진입 확인으로 사용하고 무효화 가격을 명확하게 정의한 시나리오입니다.',symbol:'XAUUSD',bias:'숏',comments:2,market:'금 / 외환',score:94},
+  {id:'IDEA-003',user:'Banpozai',time:'3시간 전',title:'비트코인 저항구간 도달 — 눌림 대기',text:'숏 스퀴즈 성격과 미결제약정 감소를 함께 보면서 추격보다 눌림 확인 이후 진입을 선호하는 분석입니다.',symbol:'BTCUSD',bias:'숏',comments:1,market:'크립토',score:82},
+  {id:'IDEA-004',user:'quant_wave',time:'5시간 전',title:'NASDAQ 추세 구조와 장중 돌파 구간',text:'장초 범위와 전일 고저점을 결합해 돌파와 실패 돌파를 구분하는 장중 전략 아이디어입니다.',symbol:'NQ1!',bias:'롱',comments:5,market:'지수선물',score:88},
+  {id:'IDEA-005',user:'seoul_macro',time:'오늘',title:'원달러와 반도체 수급 동행성 분석',text:'USD/KRW, 외국인 수급, 반도체 업종 상대강도를 결합해 국내 대형주 위험선호 변화를 탐색합니다.',symbol:'USDKRW',bias:'롱',comments:7,market:'한국 / 외환',score:86},
+  {id:'IDEA-006',user:'meanrev_lab',time:'오늘',title:'NVDA VWAP 괴리 평균회귀',text:'고유동성 종목에서 장중 VWAP 괴리가 과도해질 때 거래량 회복과 함께 평균회귀를 검증하는 아이디어입니다.',symbol:'NVDA',bias:'롱',comments:3,market:'미국 주식',score:90},
+];
+
+function IdeaCard({idea}:{idea:IdeaCardData}) {
+  const [saved,setSaved]=useState(false);
+  return <article className="tv-idea-card">
+    <div className="idea-chart">
+      <div className="idea-symbol"><b>{idea.symbol}</b><span>{idea.market}</span></div>
+      <svg viewBox="0 0 600 210" preserveAspectRatio="none">
+        <path d="M0 165 C45 150 60 180 95 142 S145 118 178 131 S225 95 255 107 S305 75 350 92 S402 55 438 70 S500 35 600 48" fill="none" stroke="currentColor" strokeWidth="3"/>
+        <path d="M0 170 L600 170" stroke="currentColor" opacity=".16"/>
+        <path d="M0 110 L600 110" stroke="currentColor" opacity=".10"/>
+      </svg>
+      <span className={idea.bias==='롱'?'idea-bias long':'idea-bias short'}>{idea.bias}</span>
+    </div>
+    <div className="idea-body">
+      <div className="idea-meta"><span><b>{idea.user}</b>의</span><time>{idea.time}</time></div>
+      <h3>{idea.title}</h3>
+      <p>{idea.text}</p>
+      <div className="idea-bottom">
+        <span>💬 {idea.comments}</span><span>전략화 적합도 <b>{idea.score}점</b></span>
+      </div>
+      <div className="idea-actions">
+        <button onClick={()=>setSaved(v=>!v)}>{saved?'전략 후보 저장됨':'전략 후보로 저장'}</button>
+        <button>자동 적합도 분석</button>
+        <button>에이전트 생성 후보</button>
+      </div>
+    </div>
+  </article>;
+}
+
+function TradingViewIdeas(){
+  const [topTab,setTopTab]=useState<'popular'|'editors'>('popular');
+  const [ideaType,setIdeaType]=useState('모든 아이디어');
+  const [video,setVideo]=useState(false);
+  const [sort,setSort]=useState<'recent'|'popular'>('recent');
+  return <>
+    <TradingViewHeader active="ideas"/>
+    <div className="tv-page">
+      <h1>커뮤니티 아이디어</h1>
+      <div className="tv-primary-tabs">
+        <button className={topTab==='popular'?'active':''} onClick={()=>setTopTab('popular')}>포퓰러</button>
+        <button className={topTab==='editors'?'active':''} onClick={()=>setTopTab('editors')}>에디터즈 픽</button>
+      </div>
+      <div className="tv-filterbar">
+        <select value={ideaType} onChange={e=>setIdeaType(e.target.value)}>
+          <option>모든 아이디어</option><option>트레이딩 아이디어</option><option>교육 아이디어</option>
+        </select>
+        <button className={video?'active':''} onClick={()=>setVideo(v=>!v)}>비디오 온리</button>
+        <span className="spacer"/>
+        <button className={sort==='recent'?'active':''} onClick={()=>setSort('recent')}>가장 최근</button>
+        <button className={sort==='popular'?'active':''} onClick={()=>setSort('popular')}>가장 인기 있는</button>
+      </div>
+      <div className="tv-idea-grid">{ideaCards.map(x=><IdeaCard key={x.id} idea={x}/>)}</div>
+      <div className="tv-pagination"><button className="active">1</button><button>2</button><button>3</button><span>…</span><button>999</button><button>발행물 더 보기</button></div>
+      <div className="panel tv-ai-extension">
+        <div className="panel-title"><b>우리 시스템 연결 기능</b><span>TradingView 아이디어 → 구조화 전략 → 시장/종목 매칭 → 다중 에이전트</span></div>
+        <div className="grid three">
+          <MiniStat title="오늘 새 아이디어" lines={['수집 후보 286','전략화 가능 94','중복 제거 41']}/>
+          <MiniStat title="자동 분류" lines={['추세 31','평균회귀 22','돌파 18','매크로 13']}/>
+          <MiniStat title="에이전트 후보" lines={['신규 37','검증 대기 24','시장 매칭 완료 19']}/>
+        </div>
+      </div>
+    </div>
+  </>;
+}
+
+type MarketTab='한국 주식'|'세계 주식'|'크립토'|'선물'|'외환'|'국채'|'회사채'|'ETFs'|'경제'|'지수';
+
+const marketTabs:MarketTab[]=['한국 주식','세계 주식','크립토','선물','외환','국채','회사채','ETFs','경제','지수'];
+
+const marketData:Record<MarketTab,{sections:{title:string;subtitle:string;items:[string,string,string][];links?:string[]}[]}> = {
+  '한국 주식':{sections:[
+    {title:'지수',subtitle:'한국 주요 지수',items:[['KOSPI','4,021.18','+0.62%'],['KOSPI 200','538.42','+0.48%'],['KOSDAQ','891.25','-0.17%']]},
+    {title:'한국 주식',subtitle:'대표 종목',items:[['삼성전자','005930','+1.12%'],['SK하이닉스','000660','+2.06%'],['현대자동차','005380','-0.31%']]},
+    {title:'커뮤니티 트렌드',subtitle:'커뮤니티에서 많이 보는 심볼',items:[['KB금융','105560','+0.42%'],['한국전력','015760','+1.71%'],['POSCO홀딩스','005490','-0.52%']]},
+    {title:'거래량이 가장 많은 주식',subtitle:'활발한 종목',items:[['빅텍','065450','+9.5%'],['세아메카닉스','396300','+6.2%'],['폴라리스에이아이','039980','+4.8%']],links:['가장 활발하게 거래되는 모든 종목 보기']},
+    {title:'가장 변동성이 높은 주식',subtitle:'당일 변동성',items:[['컨텍','451760','+18.2%'],['에스제이켐','217910','-14.4%'],['판도라티비','202960','+12.1%']]},
+    {title:'상승주 / 하락주',subtitle:'일일 등락 상하위',items:[['상승주','전체 보기','+'],['하락주','전체 보기','-']]},
+    {title:'실적 캘린더',subtitle:'실제 / 예상 EPS',items:[['현대자동차','오늘','예상 8,192 KRW'],['우리금융지주','오늘','예상 1,307 KRW']]},
+    {title:'IPO 캘린더',subtitle:'예정 상장 일정',items:[['신규 상장','일정','공모가']]},
+  ]},
+  '세계 주식':{sections:[
+    {title:'세계 주식',subtitle:'글로벌 대표 기업',items:[['Microsoft','MSFT','+0.8%'],['TSMC','TSM','+1.4%'],['LVMH','MC','-0.3%']]},
+    {title:'세계 최대 기업',subtitle:'시가총액 기준',items:[['NVIDIA','NVDA','5.11T USD'],['Apple','AAPL','5.08T USD'],['Alphabet','GOOG','3.95T USD']]},
+    {title:'세계 최대 고용주',subtitle:'직원 수 기준',items:[['Walmart','WMT','2.1M'],['Amazon','AMZN','1.6M'],['BYD','002594','869.6K']]},
+    {title:'실적 캘린더',subtitle:'글로벌 실적 일정',items:[['대형주 실적','오늘','예정']]},
+    {title:'IPO 캘린더',subtitle:'글로벌 신규 상장',items:[['IPO 일정','이번주','예정']]},
+  ]},
+  '크립토':{sections:[
+    {title:'크립토',subtitle:'주요 암호화폐',items:[['Bitcoin','BTCUSD','+2.1%'],['Ethereum','ETHUSD','+1.4%'],['XRP','XRPUSD','-0.6%']]},
+    {title:'커뮤니티 트렌드',subtitle:'인기 심볼',items:[['ETHUSD','Ethereum','인기'],['SOLUSD','Solana','인기'],['BTCUSDT','Bitcoin / Tether','인기']]},
+    {title:'암호화폐 시가총액 랭킹',subtitle:'시가총액',items:[['Bitcoin','BTC','1.63T'],['Ethereum','ETH','291.4B'],['Tether','USDT','182.5B']]},
+    {title:'TVL 랭킹',subtitle:'잠긴 가치 기준',items:[['Aave','AAVE','30.93B'],['Lido DAO','LDO','23.69B'],['Uniswap','UNI','4.13B']]},
+    {title:'크립토 승자 / 패자',subtitle:'일일 등락 상하위',items:[['상승','MemeCore','+15.93%'],['하락','Pons','-12.4%']]},
+  ]},
+  '선물':{sections:[
+    {title:'선물 및 원자재',subtitle:'대표 선물',items:[['금','GC','+0.8%'],['원유','CL','-1.2%'],['S&P 500','ES','+0.3%']]},
+    {title:'에너지 선물',subtitle:'원유·가스',items:[['경질 원유','CL','-1.2%'],['천연가스','NG','+2.0%'],['브렌트','BRN','-0.9%']]},
+    {title:'농산물 선물',subtitle:'농산물',items:[['커피','KC','+1.1%'],['대두','ZS','-0.4%'],['옥수수','ZC','+0.2%']]},
+    {title:'금속 선물',subtitle:'귀금속·산업금속',items:[['금','GC','+0.8%'],['은','SI','+1.3%'],['구리','HG','+0.5%']]},
+    {title:'지수 선물',subtitle:'주가지수 선물',items:[['KOSPI200','101','+0.4%'],['NASDAQ 100','NQ','+0.6%'],['S&P 500','ES','+0.3%']]},
+  ]},
+  '외환':{sections:[
+    {title:'외환 및 통화',subtitle:'원화 환율',items:[['USD/KRW','USDKRW','-0.31%'],['EUR/KRW','EURKRW','+0.12%'],['JPY/KRW','JPYKRW','-0.08%']]},
+    {title:'주요 통화쌍',subtitle:'글로벌 FX',items:[['EUR/USD','EURUSD','+0.21%'],['USD/JPY','USDJPY','-0.34%'],['GBP/USD','GBPUSD','+0.18%']]},
+    {title:'통화 지수',subtitle:'통화 강도 지수',items:[['미국 달러 지수','DXY','-0.22%'],['유로 지수','EXY','+0.19%'],['엔 지수','JXY','+0.33%']]},
+  ]},
+  '국채':{sections:[
+    {title:'수익률 곡선',subtitle:'국가별 만기 구조',items:[['대한민국','KR','3Y / 10Y'],['미국','US','2Y / 10Y'],['일본','JP','2Y / 10Y']]},
+    {title:'대한민국 채권',subtitle:'국고채 수익률',items:[['KR01Y','1년','2.81%'],['KR03Y','3년','3.02%'],['KR10Y','10년','3.31%']]},
+    {title:'주요 10년물 채권',subtitle:'글로벌 벤치마크',items:[['미국','US10Y','4.21%'],['독일','DE10Y','2.76%'],['일본','JP10Y','1.54%']]},
+  ]},
+  '회사채':{sections:[
+    {title:'회사채',subtitle:'기업 채권',items:[['회사채 A','2031-10','5.4%'],['회사채 B','2034-03','4.9%'],['회사채 C','2030-06','6.1%']]},
+    {title:'최고 수익률',subtitle:'수익률 상위',items:[['고수익 1','단기','8.2%'],['고수익 2','장기','7.7%']]},
+    {title:'만기 / 금리 유형',subtitle:'세부 분류',items:[['단기','Short-Term','보기'],['장기','Long-Term','보기'],['변동금리','Floating','보기'],['고정 금리','Fixed','보기']]},
+  ]},
+  'ETFs':{sections:[
+    {title:'ETFs',subtitle:'대표 ETF',items:[['SPDR S&P 500','SPY','+0.4%'],['Invesco QQQ','QQQ','+0.7%'],['iShares Bitcoin','IBIT','+2.1%']]},
+    {title:'가장 많이 거래된',subtitle:'거래대금/거래량',items:[['SOXL','반도체 3x','활발'],['IWM','Russell 2000','활발'],['SOXX','반도체','활발']]},
+    {title:'가장 높은 AUM 성장률',subtitle:'자산 유입 성장',items:[['RINK','ETF','높음'],['DACU','ETF','높음']]},
+    {title:'최고 수익률',subtitle:'성과 상위',items:[['반도체 ETF','테마','+'],['레버리지 ETF','테마','+']]},
+    {title:'가장 높은 배당 수익률',subtitle:'배당률 상위',items:[['YieldMax','MSTR','고배당'],['YieldMax','COIN','고배당']]},
+  ]},
+  '경제':{sections:[
+    {title:'한국 경제',subtitle:'주요 경제지표',items:[['GDP','대한민국','2.4%'],['기준금리','대한민국','2.50%'],['물가상승률','대한민국','2.1%'],['실업률','대한민국','3.0%']]},
+    {title:'경제 지표 히트맵',subtitle:'국가 × 지표',items:[['미국','GDP / 금리 / 물가','보기'],['중국','GDP / 금리 / 물가','보기'],['대한민국','GDP / 금리 / 물가','보기']]},
+    {title:'글로벌 인플레이션 맵',subtitle:'국가별 물가 비교',items:[['글로벌','Inflation','지도 보기']]},
+  ]},
+  '지수':{sections:[
+    {title:'주요 지수',subtitle:'전세계 주요 지수',items:[['KOSPI','KOSPI','+0.62%'],['S&P 500','SPX','+0.41%'],['NASDAQ 100','NDX','+0.66%'],['Nikkei 225','NI225','-0.20%']]},
+    {title:'한국 지수',subtitle:'한국 시장',items:[['KOSPI 50','KOSPI50','+0.4%'],['KOSPI 200','KOSPI200','+0.5%'],['KOSDAQ 150','KQ150','-0.1%']]},
+    {title:'전세계 인덱스',subtitle:'지역별',items:[['DAX','독일','+0.2%'],['FTSE 100','영국','-0.1%'],['HSI','홍콩','+0.8%']]},
+  ]},
+};
+
+function MiniMarketChart({positive=true}:{positive?:boolean}) {
+  return <svg viewBox="0 0 180 52" className={positive?'mini-market-chart positive':'mini-market-chart negative'}>
+    <path d="M1 40 C20 37 27 23 43 29 S68 40 82 25 S108 13 122 20 S151 9 179 12" fill="none" stroke="currentColor" strokeWidth="2"/>
+  </svg>;
+}
+
+function MarketCard({item}:{item:[string,string,string]}) {
+  const positive=!String(item[2]).startsWith('-');
+  return <div className="market-card">
+    <div><b>{item[0]}</b><small>{item[1]}</small></div>
+    <MiniMarketChart positive={positive}/>
+    <span className={positive?'txt-green':'txt-red'}>{item[2]}</span>
+    <div className="market-card-actions"><button>차트</button><button>아이디어</button><button>전략추천</button></div>
+  </div>;
+}
+
+function MarketSection({title,subtitle,items,links}:{title:string;subtitle:string;items:[string,string,string][];links?:string[]}) {
+  return <section className="tv-market-section">
+    <div className="market-section-head"><div><h2>{title}</h2><p>{subtitle}</p></div><button>모두 보기 →</button></div>
+    <div className="market-card-grid">{items.map((x,i)=><MarketCard item={x} key={title+i}/>)}</div>
+    {links?.map(x=><button className="market-more" key={x}>{x} →</button>)}
+  </section>;
+}
+
+function TradingViewMarkets(){
+  const [tab,setTab]=useState<MarketTab>('한국 주식');
+  const data=marketData[tab];
+  return <>
+    <TradingViewHeader active="markets"/>
+    <div className="tv-page markets-page">
+      <div className="market-hero">
+        <h1>오늘의 시장 — 시세, 차트 및 이벤트</h1>
+        <p>전 세계 시장을 자산군별로 탐색하고, 각 시장에 적합한 전략과 에이전트 후보까지 연결합니다.</p>
+      </div>
+      <div className="market-tabs">{marketTabs.map(x=><button className={tab===x?'active':''} key={x} onClick={()=>setTab(x)}>{x}</button>)}</div>
+      <div className="market-submenu">
+        {tab==='한국 주식'&&['개요','거래량 상위','변동성 상위','상승주','하락주','실적 캘린더','IPO 캘린더'].map(x=><button key={x}>{x}</button>)}
+        {tab==='세계 주식'&&['개요','세계 최대 기업','세계 최대 고용주','실적 캘린더','IPO 캘린더'].map(x=><button key={x}>{x}</button>)}
+        {tab==='크립토'&&['개요','전체 가격','TVL 랭킹','승자','패자','커뮤니티 트렌드'].map(x=><button key={x}>{x}</button>)}
+        {tab==='선물'&&['개요','에너지','농산물','금속','지수 선물'].map(x=><button key={x}>{x}</button>)}
+        {tab==='외환'&&['개요','주요 통화쌍','통화 지수'].map(x=><button key={x}>{x}</button>)}
+        {tab==='국채'&&['수익률 곡선','대한민국 채권','주요 10년물'].map(x=><button key={x}>{x}</button>)}
+        {tab==='회사채'&&['개요','최고 수익률','단기','장기','변동금리','고정 금리'].map(x=><button key={x}>{x}</button>)}
+        {tab==='ETFs'&&['개요','가장 많이 거래된','AUM 성장률','최고 수익률','배당 수익률'].map(x=><button key={x}>{x}</button>)}
+        {tab==='경제'&&['한국 경제','경제 지표 히트맵','국가별 경제','글로벌 인플레이션 맵'].map(x=><button key={x}>{x}</button>)}
+        {tab==='지수'&&['주요 지수','한국 지수','전세계 인덱스'].map(x=><button key={x}>{x}</button>)}
+      </div>
+      {data.sections.map(x=><MarketSection key={x.title} {...x}/>)}
+      <div className="panel market-match-panel">
+        <div className="panel-title"><b>{tab} 자동 전략 매칭</b><span>이 시장의 종목군·유동성·변동성·거래시간·비용구조에 맞는 TradingView 전략 후보</span></div>
+        <DataTable headers={['추천전략','전략유형','추천대상','시간축','적합도','에이전트 후보']} rows={[
+          ['TV-021 RSI 평균회귀','평균회귀',tab==='크립토'?'BTC · ETH':'고유동성 대형주','10분 / 30분','92점','6개'],
+          ['TV-044 Supertrend','추세추종',tab==='선물'?'지수·원자재 선물':'추세형 종목','1시간 / 4시간','89점','8개'],
+          ['TV-057 Donchian 돌파','돌파','모멘텀 상위 종목','30분 / 1시간','87점','4개'],
+        ]}/>
+      </div>
+    </div>
+  </>;
+}
 
 type TvStrategy = {
   id: string;
@@ -340,7 +565,7 @@ function App() {
   const [page, setPage] = useState<PageKey>('command');
   const [collapsed, setCollapsed] = useState(false);
   const title = useMemo(() => nav.find(n => n.key === page)?.label ?? '통합 관제', [page]);
-  const content = { command:<CommandCenter setPage={setPage}/>, domains:<Domains/>, investors:<Investors/>, capital:<Capital/>, portfolio:<Portfolio/>, risk:<Risk/>, trading:<Trading/>, tvstrategies:<TradingViewStrategies/>, factory:<StrategyFactory/>, research:<Research/>, lab:<Lab/>, strategies:<Strategies/>, performance:<Performance/>, memory:<Memory/>, audit:<Audit/>, system:<System/>, settings:<Settings/> }[page];
+  const content = { command:<CommandCenter setPage={setPage}/>, domains:<Domains/>, investors:<Investors/>, capital:<Capital/>, portfolio:<Portfolio/>, risk:<Risk/>, trading:<Trading/>, tvideas:<TradingViewIdeas/>, tvmarkets:<TradingViewMarkets/>, tvstrategies:<TradingViewStrategies/>, factory:<StrategyFactory/>, research:<Research/>, lab:<Lab/>, strategies:<Strategies/>, performance:<Performance/>, memory:<Memory/>, audit:<Audit/>, system:<System/>, settings:<Settings/> }[page];
   return <div className={`app ${collapsed ? 'collapsed' : ''}`}>
     <header className="topbar"><div className="brand"><button className="collapse" onClick={()=>setCollapsed(v=>!v)}>☰</button><span className="brand-mark">AI</span><div><b>AUTONOMOUS INVESTOR</b><small>{title}</small></div></div><div className="top-metrics"><span>평가자산 <b>₩1.083B</b></span><span>오늘 <b className="txt-green">+₩4.2M</b></span><span>낙폭 <b className="txt-amber">-1.12%</b></span><Badge tone="green">LIVE</Badge><button className="danger">전체정지</button></div></header>
     <aside className="sidebar"><div className="nav-label">관리 메뉴</div>{nav.map(n=><button key={n.key} className={page===n.key?'active':''} onClick={()=>setPage(n.key)}><span className="nav-short">{n.short}</span><span>{n.label}</span></button>)}</aside>
