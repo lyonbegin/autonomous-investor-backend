@@ -995,20 +995,28 @@ def market_backfill_state() -> list[dict[str, Any]]:
                    (
                      SELECT COUNT(*)
                      FROM market_universe_rows u
-                     WHERE u.market = s.market AND u.scan_id = s.scan_id
+                     WHERE u.market=s.market AND u.scan_id=s.scan_id
                    ) AS current_scan_count,
-                   (
-                     SELECT COUNT(*)
-                     FROM market_universe_rows u
-                     WHERE u.market = s.market
-                       AND u.scan_id = (
-                         SELECT scan_id
-                         FROM market_universe_rows x
-                         WHERE x.market = s.market
-                         ORDER BY x.collected_at DESC
-                         LIMIT 1
-                       )
-                   ) AS stored_count
+                   CASE
+                     WHEN s.last_completed_at IS NOT NULL THEN COALESCE((
+                       SELECT COUNT(*)
+                       FROM market_universe_rows u
+                       WHERE u.market=s.market
+                         AND u.scan_id=(
+                           SELECT x.scan_id
+                           FROM market_universe_rows x
+                           WHERE x.market=s.market AND x.scan_id<>s.scan_id
+                           GROUP BY x.scan_id
+                           ORDER BY MAX(x.collected_at) DESC
+                           LIMIT 1
+                         )
+                     ),0)
+                     ELSE (
+                       SELECT COUNT(*)
+                       FROM market_universe_rows u
+                       WHERE u.market=s.market AND u.scan_id=s.scan_id
+                     )
+                   END AS stored_count
             FROM market_collector_state s
             ORDER BY s.market
             """
@@ -1019,28 +1027,43 @@ def market_backfill_state() -> list[dict[str, Any]]:
 def market_universe_counts() -> list[dict[str, Any]]:
     init_db()
     with _connect() as conn:
-        rows = conn.execute(
-            """
-            WITH scan_stats AS (
-              SELECT market,scan_id,COUNT(*) AS count,MAX(collected_at) AS collected_at
-              FROM market_universe_rows
-              GROUP BY market,scan_id
-            ),
-            ranked AS (
-              SELECT market,scan_id,count,collected_at,
-                     ROW_NUMBER() OVER (
-                       PARTITION BY market
-                       ORDER BY collected_at DESC
-                     ) AS rn
-              FROM scan_stats
-            )
-            SELECT market,scan_id,collected_at,count
-            FROM ranked
-            WHERE rn=1
-            ORDER BY market
-            """
+        states = conn.execute(
+            "SELECT market,scan_id,last_completed_at FROM market_collector_state ORDER BY market"
         ).fetchall()
-    return [dict(row) for row in rows]
+        out: list[dict[str, Any]] = []
+        for state in states:
+            market = str(state["market"])
+            current_scan = str(state["scan_id"])
+            if state["last_completed_at"] is not None:
+                row = conn.execute(
+                    """
+                    SELECT scan_id,COUNT(*) AS count,MAX(collected_at) AS collected_at
+                    FROM market_universe_rows
+                    WHERE market=? AND scan_id<>?
+                    GROUP BY scan_id
+                    ORDER BY MAX(collected_at) DESC
+                    LIMIT 1
+                    """,
+                    (market,current_scan),
+                ).fetchone()
+            else:
+                row = conn.execute(
+                    """
+                    SELECT scan_id,COUNT(*) AS count,MAX(collected_at) AS collected_at
+                    FROM market_universe_rows
+                    WHERE market=? AND scan_id=?
+                    GROUP BY scan_id
+                    """,
+                    (market,current_scan),
+                ).fetchone()
+            if row is not None:
+                out.append({
+                    "market": market,
+                    "scan_id": row["scan_id"],
+                    "collected_at": row["collected_at"],
+                    "count": int(row["count"] or 0),
+                })
+    return out
 
 
 def list_market_universe(
