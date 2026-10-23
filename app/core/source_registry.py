@@ -976,6 +976,183 @@ def list_candidate_discovery(
     return [dict(row) for row in rows]
 
 
+def agent_factory_queue_status(
+    *,
+    min_score: float = 72.0,
+) -> dict[str, Any]:
+    init_source_registry_db()
+    with _connect() as conn:
+        pass_combinations = int(conn.execute(
+            """
+            SELECT COUNT(*)
+            FROM horizon_discovery d
+            JOIN strategy_candidates c ON c.candidate_id = d.candidate_id
+            WHERE d.is_current = 1
+              AND COALESCE(d.scoring_version,'') = ?
+              AND d.status = 'DISCOVERY_PASS'
+              AND d.fit_score >= ?
+              AND c.source_kind = 'TradingViewPineStrategy'
+            """,
+            (DISCOVERY_SCORING_VERSION, float(min_score)),
+        ).fetchone()[0])
+        pass_candidates = int(conn.execute(
+            """
+            SELECT COUNT(DISTINCT d.candidate_id)
+            FROM horizon_discovery d
+            JOIN strategy_candidates c ON c.candidate_id = d.candidate_id
+            WHERE d.is_current = 1
+              AND COALESCE(d.scoring_version,'') = ?
+              AND d.status = 'DISCOVERY_PASS'
+              AND d.fit_score >= ?
+              AND c.source_kind = 'TradingViewPineStrategy'
+            """,
+            (DISCOVERY_SCORING_VERSION, float(min_score)),
+        ).fetchone()[0])
+        current_agentized = int(conn.execute(
+            """
+            SELECT COUNT(DISTINCT d.candidate_id)
+            FROM horizon_discovery d
+            JOIN strategy_candidates c ON c.candidate_id = d.candidate_id
+            JOIN agent_discovery_links l ON l.discovery_id = d.discovery_id
+            JOIN agent_plans p ON p.agent_id = l.agent_id
+            WHERE d.is_current = 1
+              AND COALESCE(d.scoring_version,'') = ?
+              AND d.status = 'DISCOVERY_PASS'
+              AND d.fit_score >= ?
+              AND c.source_kind = 'TradingViewPineStrategy'
+              AND p.status NOT LIKE 'RETIRED%'
+            """,
+            (DISCOVERY_SCORING_VERSION, float(min_score)),
+        ).fetchone()[0])
+        research_agents = int(conn.execute(
+            """
+            SELECT COUNT(*)
+            FROM agent_plans p
+            JOIN agent_discovery_links l ON l.agent_id = p.agent_id
+            JOIN horizon_discovery d ON d.discovery_id = l.discovery_id
+            WHERE p.status = 'RESEARCH'
+              AND d.is_current = 1
+              AND COALESCE(d.scoring_version,'') = ?
+              AND d.status = 'DISCOVERY_PASS'
+              AND d.fit_score >= ?
+            """,
+            (DISCOVERY_SCORING_VERSION, float(min_score)),
+        ).fetchone()[0])
+    return {
+        "scoring_version": DISCOVERY_SCORING_VERSION,
+        "min_score": float(min_score),
+        "pass_candidates": pass_candidates,
+        "pass_combinations": pass_combinations,
+        "agentized_candidates": current_agentized,
+        "remaining_candidates": max(0, pass_candidates - current_agentized),
+        "research_agents": research_agents,
+    }
+
+
+def batch_create_agents_from_discovery(
+    *,
+    limit_candidates: int = 100,
+    min_score: float = 72.0,
+    max_agents_per_candidate: int = 12,
+) -> dict[str, Any]:
+    init_source_registry_db()
+    safe_limit = min(max(int(limit_candidates), 1), 1000)
+    safe_max_agents = min(max(int(max_agents_per_candidate), 1), 100)
+    with _connect() as conn:
+        rows = conn.execute(
+            """
+            SELECT d.candidate_id, MAX(d.fit_score) AS best_score
+            FROM horizon_discovery d
+            JOIN strategy_candidates c ON c.candidate_id = d.candidate_id
+            WHERE d.is_current = 1
+              AND COALESCE(d.scoring_version,'') = ?
+              AND d.status = 'DISCOVERY_PASS'
+              AND d.fit_score >= ?
+              AND c.source_kind = 'TradingViewPineStrategy'
+              AND NOT EXISTS (
+                  SELECT 1
+                  FROM agent_discovery_links l
+                  JOIN agent_plans p ON p.agent_id = l.agent_id
+                  JOIN horizon_discovery linked ON linked.discovery_id = l.discovery_id
+                  WHERE linked.candidate_id = d.candidate_id
+                    AND linked.is_current = 1
+                    AND COALESCE(linked.scoring_version,'') = ?
+                    AND p.status NOT LIKE 'RETIRED%'
+              )
+            GROUP BY d.candidate_id
+            ORDER BY best_score DESC, d.candidate_id
+            LIMIT ?
+            """,
+            (
+                DISCOVERY_SCORING_VERSION,
+                float(min_score),
+                DISCOVERY_SCORING_VERSION,
+                safe_limit,
+            ),
+        ).fetchall()
+
+    processed_candidates = 0
+    agents: list[dict[str, Any]] = []
+    errors: list[dict[str, str]] = []
+    for row in rows:
+        candidate_id = str(row["candidate_id"])
+        try:
+            result = create_agents_from_discovery(
+                candidate_id,
+                min_score=min_score,
+                max_agents=safe_max_agents,
+            )
+            processed_candidates += 1
+            agents.extend(result.get("items") or [])
+        except Exception as exc:
+            errors.append({
+                "candidate_id": candidate_id,
+                "error": f"{type(exc).__name__}: {exc}",
+            })
+    return {
+        "selected_candidates": len(rows),
+        "processed_candidates": processed_candidates,
+        "agents_created_or_confirmed": len(agents),
+        "items": agents,
+        "error_count": len(errors),
+        "errors": errors[:30],
+        "queue": agent_factory_queue_status(min_score=min_score),
+        "at": utcnow(),
+    }
+
+
+def list_quant_handoff_agents(
+    *,
+    limit: int = 100,
+    min_score: float = 72.0,
+) -> list[dict[str, Any]]:
+    init_source_registry_db()
+    safe_limit = min(max(int(limit), 1), 1000)
+    with _connect() as conn:
+        rows = conn.execute(
+            """
+            SELECT
+                p.agent_id,p.candidate_id,p.source_id,p.fixed_horizon,
+                p.country,p.market,p.universe,p.status,p.created_at,
+                l.discovery_id,l.registry_source_id,l.origin_source_id,l.fit_score,
+                d.market_score,d.horizon_score,d.source_score,d.target_score,
+                d.scoring_version,d.rationale,d.evaluated_at
+            FROM agent_plans p
+            JOIN agent_discovery_links l ON l.agent_id = p.agent_id
+            JOIN horizon_discovery d ON d.discovery_id = l.discovery_id
+            WHERE p.status = 'RESEARCH'
+              AND d.is_current = 1
+              AND COALESCE(d.scoring_version,'') = ?
+              AND d.status = 'DISCOVERY_PASS'
+              AND d.fit_score >= ?
+            ORDER BY l.fit_score DESC, p.created_at ASC
+            LIMIT ?
+            """,
+            (DISCOVERY_SCORING_VERSION, float(min_score), safe_limit),
+        ).fetchall()
+    return [dict(row) for row in rows]
+
+
 def create_agents_from_discovery(
     candidate_id: str,
     *,
