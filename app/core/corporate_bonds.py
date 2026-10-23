@@ -32,7 +32,7 @@ CORPORATE_FILTER = {"left": "typespecs", "operation": "has", "right": "corporate
 # worker threads share this limiter so concurrency cannot turn into a burst.
 _QUERY_LOCK = threading.Lock()
 _NEXT_QUERY_AT = 0.0
-_QUERY_INTERVAL_SECONDS = 0.55
+_QUERY_INTERVAL_SECONDS = 0.08
 _MAX_QUERY_RETRIES = 12
 
 # Four disjoint areas cover the current public corporate-bond universe.
