@@ -12,6 +12,7 @@ from app.core.tradingview import (
     fetch_script_source,
     list_agent_plans,
     list_candidates,
+    list_market_snapshots,
     list_stored_ideas,
     list_stored_scripts,
 )
@@ -120,6 +121,25 @@ def script_to_candidate(script_id_part: str, fetch_source: bool = True) -> dict:
             status_code=502,
             detail=f"TradingView script candidate conversion failed: {type(exc).__name__}: {exc}",
         ) from exc
+
+
+
+@router.get("/markets/{market}/stored")
+def market_stored(
+    market: str,
+    limit: int = Query(default=100, ge=1, le=1000),
+    latest_only: bool = True,
+) -> dict:
+    try:
+        items = list_market_snapshots(market, limit=limit, latest_only=latest_only)
+        return {
+            "market": market,
+            "count": len(items),
+            "latest_only": latest_only,
+            "items": items,
+        }
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 @router.get("/candidates")
 def candidates(limit: int = Query(default=100, ge=1, le=500)) -> dict:
