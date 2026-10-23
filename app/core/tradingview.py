@@ -1273,6 +1273,58 @@ def backfill_market_universe(
         "error_count":len(errors),"at":utcnow(),
     }
 
+def storage_stats() -> dict[str, Any]:
+    init_db()
+    files: list[dict[str, Any]] = []
+    data_dir = os.path.dirname(DB_PATH) or "."
+    try:
+        for name in sorted(os.listdir(data_dir)):
+            p = os.path.join(data_dir,name)
+            try:
+                st = os.stat(p)
+                files.append({
+                    "name": name,
+                    "size_bytes": int(st.st_size),
+                    "size_mb": round(st.st_size / 1024 / 1024, 3),
+                    "is_file": os.path.isfile(p),
+                })
+            except Exception as exc:
+                files.append({"name":name,"error":str(exc)})
+    except Exception as exc:
+        files.append({"name":"<listdir>","error":str(exc)})
+    with _connect() as conn:
+        page_count=int(conn.execute("PRAGMA page_count").fetchone()[0])
+        freelist_count=int(conn.execute("PRAGMA freelist_count").fetchone()[0])
+        page_size=int(conn.execute("PRAGMA page_size").fetchone()[0])
+        table_rows={}
+        for table in [
+            "community_ideas","community_scripts","script_sources","source_details",
+            "market_snapshots","market_universe_current"
+        ]:
+            try:
+                table_rows[table]=int(conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0])
+            except Exception:
+                table_rows[table]=None
+        try:
+            legacy_rows=int(conn.execute("SELECT COUNT(*) FROM market_universe_rows").fetchone()[0])
+        except Exception:
+            legacy_rows=None
+        table_rows["market_universe_rows"]=legacy_rows
+    return {
+        "db_path":DB_PATH,
+        "files":files,
+        "sqlite":{
+            "page_count":page_count,
+            "freelist_count":freelist_count,
+            "page_size":page_size,
+            "db_bytes":page_count*page_size,
+            "free_bytes":freelist_count*page_size,
+        },
+        "table_rows":table_rows,
+        "at":utcnow(),
+    }
+
+
 
 def compact_market_storage() -> dict[str, Any]:
     """Emergency compaction when the Railway volume is full.
