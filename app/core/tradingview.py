@@ -375,6 +375,18 @@ def init_db() -> None:
                 resolved_at TEXT NOT NULL,
                 PRIMARY KEY (agent_id, ticker)
             );
+
+            CREATE TABLE IF NOT EXISTS agent_status_history (
+                event_id TEXT PRIMARY KEY,
+                agent_id TEXT NOT NULL,
+                from_status TEXT,
+                to_status TEXT NOT NULL,
+                reason TEXT,
+                metadata_json TEXT NOT NULL,
+                changed_at TEXT NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS idx_agent_status_history_agent
+                ON agent_status_history(agent_id, changed_at DESC);
             """
         )
         migrations = [
@@ -2113,6 +2125,95 @@ def get_agent_plan(agent_id: str) -> dict[str, Any] | None:
             (agent_id,),
         ).fetchone()
     return dict(row) if row is not None else None
+
+
+def set_agent_status(
+    agent_id: str,
+    status: str,
+    *,
+    reason: str | None = None,
+    metadata: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    init_db()
+    allowed = {
+        "RESEARCH",
+        "PAPER_CANDIDATE",
+        "PAPER",
+        "LIVE_CANDIDATE",
+        "LIVE",
+        "REJECTED_VALIDATION",
+        "RETIRED_SOURCE_CONTEXT",
+        "RETIRED_DISCOVERY_REJECTED",
+    }
+    target = str(status or "").strip().upper()
+    if target not in allowed:
+        raise ValueError(f"unsupported agent status: {status}")
+    now = utcnow()
+    with _connect() as conn:
+        row = conn.execute(
+            "SELECT * FROM agent_plans WHERE agent_id = ?",
+            (agent_id,),
+        ).fetchone()
+        if row is None:
+            raise KeyError(agent_id)
+        current = dict(row)
+        from_status = str(current.get("status") or "")
+        if from_status != target:
+            conn.execute(
+                "UPDATE agent_plans SET status = ? WHERE agent_id = ?",
+                (target, agent_id),
+            )
+            event_id = "ASE-" + hashlib.sha1(
+                f"{agent_id}|{from_status}|{target}|{now}".encode()
+            ).hexdigest()[:16].upper()
+            conn.execute(
+                """
+                INSERT INTO agent_status_history (
+                    event_id,agent_id,from_status,to_status,reason,metadata_json,changed_at
+                ) VALUES (?,?,?,?,?,?,?)
+                """,
+                (
+                    event_id,
+                    agent_id,
+                    from_status,
+                    target,
+                    reason,
+                    json.dumps(metadata or {}, ensure_ascii=False),
+                    now,
+                ),
+            )
+        row = conn.execute(
+            "SELECT * FROM agent_plans WHERE agent_id = ?",
+            (agent_id,),
+        ).fetchone()
+    item = dict(row)
+    item["status_changed_at"] = now if from_status != target else None
+    return item
+
+
+def list_agent_status_history(agent_id: str) -> list[dict[str, Any]]:
+    init_db()
+    with _connect() as conn:
+        exists = conn.execute(
+            "SELECT 1 FROM agent_plans WHERE agent_id = ?",
+            (agent_id,),
+        ).fetchone()
+        if exists is None:
+            raise KeyError(agent_id)
+        rows = conn.execute(
+            """
+            SELECT * FROM agent_status_history
+            WHERE agent_id = ?
+            ORDER BY changed_at DESC
+            """,
+            (agent_id,),
+        ).fetchall()
+    out: list[dict[str, Any]] = []
+    for row in rows:
+        item = dict(row)
+        item["metadata"] = json.loads(item.pop("metadata_json") or "{}")
+        out.append(item)
+    return out
 
 
 def list_agent_plans(candidate_id: str | None = None, limit: int = 200) -> list[dict[str, Any]]:
