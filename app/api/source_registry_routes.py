@@ -114,7 +114,7 @@ def agent_factory_batch_status(
     return agent_factory_queue_status(min_score=min_score)
 
 
-@router.post("/agent-factory/batch")
+@router.post("/agent-factory-batch")
 def agent_factory_batch(
     limit_candidates: int = Query(default=100, ge=1, le=1000),
     min_score: float = Query(default=72.0, ge=0.0, le=100.0),
