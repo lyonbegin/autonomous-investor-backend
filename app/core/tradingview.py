@@ -1037,33 +1037,109 @@ def _scanner_market_for_agent(plan: dict[str, Any]) -> str | None:
     return None
 
 
+def _numeric(row: dict[str, Any], key: str, default: float = 0.0) -> float:
+    try:
+        value = row.get(key)
+        return float(value) if value is not None else default
+    except (TypeError, ValueError):
+        return default
+
+
+def _market_cap(row: dict[str, Any]) -> float:
+    basic = _numeric(row, "market_cap_basic")
+    return basic if basic > 0 else _numeric(row, "market_cap_calc")
+
+
+def _turnover(row: dict[str, Any]) -> float:
+    return max(0.0, _numeric(row, "close")) * max(0.0, _numeric(row, "volume"))
+
+
+def _universe_filter(plan: dict[str, Any], row: dict[str, Any]) -> tuple[bool, str]:
+    universe = str(plan.get("universe") or "")
+    market = str(plan.get("market") or "").lower()
+    country = str(plan.get("country") or "").lower()
+    ticker = str(row.get("ticker") or "")
+    close = _numeric(row, "close")
+    volume = _numeric(row, "volume")
+    market_cap = _market_cap(row)
+    turnover = _turnover(row)
+    asset_type = str(row.get("type") or "").lower()
+
+    # Exact ETF baskets declared by the Agent plan must stay exact.
+    if "qqq" in universe.lower() or "spy" in universe.lower() or "smh" in universe.lower():
+        allowed = {"QQQ", "SPY", "SMH"}
+        symbol = ticker.split(":")[-1].upper()
+        return (symbol in allowed, "고정 ETF 바스켓 QQQ/SPY/SMH")
+
+    # U.S. high-liquidity large-cap universe: remove penny stocks and micro/small caps first.
+    if ("미국" in country or "nasdaq" in market or "nyse" in market) and "대형주" in universe:
+        if close < 5.0:
+            return False, "미국 대형주 가격 하한 미달"
+        if market_cap < 10_000_000_000:
+            return False, "미국 대형주 시가총액 100억달러 하한 미달"
+        if turnover < 50_000_000:
+            return False, "미국 일 거래대금 5천만달러 하한 미달"
+        return True, "미국 고유동성 대형주 조건 통과"
+
+    # Korea large-cap/turnover universe.
+    if ("한국" in country or "kospi" in market or "kosdaq" in market) and "대형주" in universe:
+        if close < 1_000:
+            return False, "한국 대형주 가격 하한 미달"
+        if market_cap < 1_000_000_000_000:
+            return False, "한국 대형주 시가총액 1조원 하한 미달"
+        if turnover < 5_000_000_000:
+            return False, "한국 일 거래대금 50억원 하한 미달"
+        return True, "한국 거래대금 상위 대형주 조건 통과"
+
+    # Explicit turnover/momentum universes should reject illiquid shells/penny-like names.
+    if "거래대금" in universe or "모멘텀" in universe:
+        if "한국" in country or "kospi" in market or "kosdaq" in market:
+            if close < 1_000 or turnover < 3_000_000_000:
+                return False, "한국 거래대금/가격 사전조건 미달"
+        elif "미국" in country or "nasdaq" in market or "nyse" in market:
+            if close < 3.0 or turnover < 25_000_000:
+                return False, "미국 거래대금/가격 사전조건 미달"
+
+    # Common minimums prevent zero-liquidity rows from becoming candidates.
+    if close <= 0 or volume <= 0:
+        return False, "가격 또는 거래량 없음"
+    if asset_type and asset_type not in {"stock", "fund", "dr", "crypto", "forex"}:
+        return False, f"지원하지 않는 자산유형 {asset_type}"
+    return True, "기본 유동성 조건 통과"
+
+
 def _prescreen_score(category: str, row: dict[str, Any]) -> tuple[float, str]:
-    volume = float(row.get("volume") or 0.0)
-    rel = float(row.get("relative_volume_10d_calc") or 0.0)
-    rsi = float(row.get("RSI") or 50.0)
-    volatility = float(row.get("Volatility.D") or 0.0)
-    adx = float(row.get("ADX") or 0.0)
-    change = float(row.get("change") or 0.0)
-    recommendation = float(row.get("Recommend.All") or 0.0)
-    liquidity = min(20.0, max(0.0, (len(str(int(abs(volume)))) - 3) * 2.0)) if volume else 0.0
+    rel = _numeric(row, "relative_volume_10d_calc")
+    rsi = _numeric(row, "RSI", 50.0)
+    volatility = _numeric(row, "Volatility.D")
+    adx = _numeric(row, "ADX")
+    change = _numeric(row, "change")
+    recommendation = _numeric(row, "Recommend.All")
+    turnover = _turnover(row)
+    market_cap = _market_cap(row)
+
+    # Liquidity contributes only after the hard universe filter. Log-scaled turnover
+    # prevents penny stocks with huge share volume from dominating the rank.
+    import math
+    liquidity = min(25.0, max(0.0, math.log10(max(turnover, 1.0)) - 5.0) * 4.0)
+    cap_quality = min(12.0, max(0.0, math.log10(max(market_cap, 1.0)) - 8.0) * 2.0)
 
     if category == "평균회귀":
-        score = abs(rsi - 50.0) * 1.2 + min(rel, 5.0) * 4.0 + liquidity
-        rationale = f"RSI 극단성 {rsi:.1f}, 상대거래량 {rel:.2f}, 유동성 사전선별"
+        score = abs(rsi - 50.0) * 1.15 + min(rel, 5.0) * 3.0 + liquidity + cap_quality
+        rationale = f"RSI {rsi:.1f}, 상대거래량 {rel:.2f}, 거래대금 {turnover:,.0f}"
     elif category in {"돌파", "모멘텀"}:
-        score = max(change, -20.0) * 1.3 + min(rel, 6.0) * 5.0 + min(adx, 60.0) * 0.5 + liquidity
-        rationale = f"등락률 {change:.2f}%, 상대거래량 {rel:.2f}, ADX {adx:.1f}"
+        score = max(min(change, 25.0), -25.0) * 1.1 + min(rel, 6.0) * 4.5 + min(adx, 60.0) * 0.45 + liquidity
+        rationale = f"등락률 {change:.2f}%, 상대거래량 {rel:.2f}, ADX {adx:.1f}, 거래대금 {turnover:,.0f}"
     elif category == "추세추종":
-        score = min(adx, 60.0) * 0.9 + abs(recommendation) * 25.0 + min(rel, 5.0) * 3.0 + liquidity
-        rationale = f"ADX {adx:.1f}, 기술평가 {recommendation:.2f}, 상대거래량 {rel:.2f}"
+        score = min(adx, 60.0) * 0.85 + abs(recommendation) * 22.0 + min(rel, 5.0) * 2.5 + liquidity
+        rationale = f"ADX {adx:.1f}, 기술평가 {recommendation:.2f}, 상대거래량 {rel:.2f}, 거래대금 {turnover:,.0f}"
     elif category == "변동성":
-        score = min(volatility, 100.0) * 1.2 + min(rel, 5.0) * 4.0 + liquidity
-        rationale = f"일변동성 {volatility:.2f}%, 상대거래량 {rel:.2f}"
+        score = min(volatility, 100.0) * 1.0 + min(rel, 5.0) * 3.0 + liquidity + cap_quality
+        rationale = f"일변동성 {volatility:.2f}%, 상대거래량 {rel:.2f}, 거래대금 {turnover:,.0f}"
     else:
-        score = min(rel, 5.0) * 4.0 + min(adx, 60.0) * 0.4 + liquidity
-        rationale = f"상대거래량 {rel:.2f}, ADX {adx:.1f}, 유동성 사전선별"
+        score = min(rel, 5.0) * 3.0 + min(adx, 60.0) * 0.35 + liquidity + cap_quality
+        rationale = f"상대거래량 {rel:.2f}, ADX {adx:.1f}, 거래대금 {turnover:,.0f}"
     return round(score, 4), rationale
-
 
 def resolve_agent_universe(agent_id: str, limit: int = 20) -> dict[str, Any]:
     init_db()
@@ -1090,17 +1166,21 @@ def resolve_agent_universe(agent_id: str, limit: int = 20) -> dict[str, Any]:
             "items": [],
         }
 
-    sort_by = {
-        "평균회귀": "volume",
-        "돌파": "relative_volume_10d_calc",
-        "모멘텀": "relative_volume_10d_calc",
-        "추세추종": "ADX",
-        "변동성": "Volatility.D",
-    }.get(category, "volume")
+    universe_label = str(plan.get("universe") or "")
+    if "대형주" in universe_label:
+        sort_by = "market_cap_basic"
+    else:
+        sort_by = {
+            "평균회귀": "volume",
+            "돌파": "relative_volume_10d_calc",
+            "모멘텀": "relative_volume_10d_calc",
+            "추세추종": "ADX",
+            "변동성": "Volatility.D",
+        }.get(category, "volume")
 
     market_data = collect_market(
         scanner_market,
-        limit=max(50, safe_limit),
+        limit=max(100, safe_limit),
         sort_by=sort_by,
         sort_order="desc",
     )
@@ -1109,7 +1189,11 @@ def resolve_agent_universe(agent_id: str, limit: int = 20) -> dict[str, Any]:
         ticker = str(row.get("ticker") or "")
         if not ticker:
             continue
+        allowed, universe_reason = _universe_filter(plan, row)
+        if not allowed:
+            continue
         score, rationale = _prescreen_score(category, row)
+        rationale = universe_reason + " · " + rationale
         scored.append(
             {
                 "ticker": ticker,
@@ -1122,6 +1206,8 @@ def resolve_agent_universe(agent_id: str, limit: int = 20) -> dict[str, Any]:
                 "relative_volume": row.get("relative_volume_10d_calc"),
                 "volatility_d": row.get("Volatility.D"),
                 "change": row.get("change"),
+                "market_cap": _market_cap(row),
+                "turnover": _turnover(row),
             }
         )
     scored.sort(key=lambda x: float(x["prescreen_score"]), reverse=True)
@@ -1158,7 +1244,7 @@ def resolve_agent_universe(agent_id: str, limit: int = 20) -> dict[str, Any]:
         "fixed_horizon": plan["fixed_horizon"],
         "scanner_market": scanner_market,
         "resolved": bool(selected),
-        "method": "TradingView Scanner quantitative pre-screen only; not a backtest performance score",
+        "method": "Universe hard filters (market cap/turnover/price) + TradingView quantitative pre-screen; not a backtest performance score",
         "snapshot_at": snapshot_at,
         "count": len(selected),
         "items": selected,
