@@ -127,7 +127,7 @@ def markets_backfill_counts() -> dict:
 @router.post("/markets/{market}/backfill")
 def market_backfill(
     market: str,
-    chunks: int = Query(default=5, ge=1, le=25),
+    chunks: int = Query(default=5, ge=1, le=250),
     page_size: int = Query(default=1000, ge=100, le=1000),
 ) -> dict:
     try:
