@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 
 type Tone = 'green' | 'red' | 'amber' | 'cyan' | 'purple' | 'muted';
 const API_BASE = 'https://autonomous-investor-tradingview-production.up.railway.app';
+const QUANT_API_BASE = 'https://autonomous-investor-quant-lab-production.up.railway.app';
 type PageKey =
   | 'command' | 'domains' | 'investors' | 'capital' | 'portfolio' | 'risk'
   | 'trading' | 'tvideas' | 'tvmarkets' | 'tvstrategies' | 'factory' | 'research' | 'lab' | 'strategies' | 'performance'
@@ -694,6 +695,15 @@ type LiveAgentPlan = {
   status:string;
 };
 
+type AgentResearchState = {
+  loading:boolean;
+  universeCount?:number;
+  symbols?:string[];
+  experimentId?:string;
+  status?:string;
+  reason?:string | null;
+};
+
 function TradingViewStrategies(){
   const topics=[
     {label:'전체',slug:''},
@@ -713,6 +723,7 @@ function TradingViewStrategies(){
   const [selected,setSelected]=useState('');
   const [candidate,setCandidate]=useState<LiveStrategyCandidate | null>(null);
   const [agents,setAgents]=useState<LiveAgentPlan[]>([]);
+  const [agentResearch,setAgentResearch]=useState<Record<string,AgentResearchState>>({});
   const [loading,setLoading]=useState(true);
   const [busy,setBusy]=useState(false);
   const [error,setError]=useState('');
@@ -751,6 +762,7 @@ function TradingViewStrategies(){
   useEffect(()=>{
     setCandidate(null);
     setAgents([]);
+    setAgentResearch({});
   },[selected]);
 
   const analyze=async():Promise<LiveStrategyCandidate | null>=>{
@@ -786,6 +798,46 @@ function TradingViewStrategies(){
       setError('시장·시간축별 에이전트 생성 계획 오류');
     }finally{
       setBusy(false);
+    }
+  };
+
+  const prepareResearch=async(agent:LiveAgentPlan)=>{
+    setAgentResearch(prev=>({...prev,[agent.agent_id]:{loading:true,status:'UNIVERSE_RESOLVING'}}));
+    try{
+      const u=await fetch(
+        API_BASE+'/api/v1/tradingview/agent-plans/'+encodeURIComponent(agent.agent_id)+'/resolve-universe?limit=20',
+        {method:'POST'}
+      );
+      if(!u.ok) throw new Error(await u.text());
+      const universe=await u.json();
+      const symbols=((universe.items||[]) as Array<{ticker:string}>)
+        .map(x=>(x.ticker||'').split(':').pop()||'')
+        .filter(Boolean);
+
+      const e=await fetch(
+        QUANT_API_BASE+'/api/v1/quant/experiments/from-agent/'+encodeURIComponent(agent.agent_id),
+        {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({symbols})
+        }
+      );
+      if(!e.ok) throw new Error(await e.text());
+      const experiment=await e.json();
+      setAgentResearch(prev=>({...prev,[agent.agent_id]:{
+        loading:false,
+        universeCount:universe.count||symbols.length,
+        symbols,
+        experimentId:experiment.experiment_id,
+        status:experiment.status,
+        reason:experiment.blocked_reason,
+      }}));
+    }catch(err){
+      setAgentResearch(prev=>({...prev,[agent.agent_id]:{
+        loading:false,
+        status:'ERROR',
+        reason:err instanceof Error?err.message:'연구 준비 오류',
+      }}));
     }
   };
 
@@ -889,7 +941,22 @@ function TradingViewStrategies(){
       <div className="panel">
         <div className="panel-title"><b>현재 선택 전략의 생성 결과</b><span>{candidate?candidate.candidate_id:'아직 후보가 생성되지 않았습니다.'}</span></div>
         {candidate && <div className="agent-plan"><Badge tone="cyan">{candidate.category}</Badge><b>{candidate.candidate_id} · {candidate.name}</b><span>{candidate.domain} · 후보 시간축 {candidate.candidate_horizons.join(' / ')}</span></div>}
-        {agents.slice(0,12).map((x,i)=><div className="agent-plan" key={x.agent_id}><Badge tone="green">{'Agent '+(i+1)}</Badge><b>{x.agent_id}</b><span>{x.country} · {x.market} · {x.universe} · {x.fixed_horizon}</span></div>)}
+        {agents.slice(0,12).map((x,i)=>{
+          const research=agentResearch[x.agent_id];
+          return <div className="agent-plan" key={x.agent_id}>
+            <Badge tone="green">{'Agent '+(i+1)}</Badge>
+            <b>{x.agent_id}</b>
+            <span>{x.country} · {x.market} · {x.universe} · {x.fixed_horizon}</span>
+            <div className="actions left">
+              <button disabled={Boolean(research?.loading)} onClick={()=>prepareResearch(x)}>
+                {research?.loading?'Universe 분석 중':research?.experimentId?'Quant 실험 등록됨':'Universe 선정 · Quant 실험 등록'}
+              </button>
+            </div>
+            {research?.experimentId && <small>{research.experimentId} · {research.status} · Universe {research.universeCount||0}종목</small>}
+            {research?.symbols?.length ? <small>{research.symbols.slice(0,8).join(' · ')}{research.symbols.length>8?' …':''}</small> : null}
+            {research?.reason && <small>{research.reason}</small>}
+          </div>;
+        })}
         {!candidate && <div className="empty-state">원천 분석을 실행하면 실제 후보 ID와 고정 시간축 계보가 생성됩니다.</div>}
       </div>
     </div>
@@ -905,7 +972,124 @@ function FamilyMatrix(){return <div className="panel"><div className="panel-titl
 
 function Research(){return <><SectionHeader title="시장 연구" eyebrow="시장·거시·펀더멘털·뉴스·기회 근거"/><div className="grid three"><MiniStat title="시장" lines={['Regime: Risk-On','Volatility: Moderate','Breadth: Positive','Liquidity: Normal']}/><MiniStat title="거시경제" lines={['Rates: Stable','USD: Firm','Inflation: Cooling','Growth: Mixed']}/><MiniStat title="시장심리" lines={['Bull: 72%','Bear: 28%','News score: +0.34','Uncertainty: 0.19']}/></div><div className="grid two"><div className="panel"><div className="panel-title"><b>기회 후보</b></div><DataTable headers={['ASSET','INVESTOR','THESIS','HORIZON','EXPECTED','CONFIDENCE']} rows={[["NVDA","A-043","Earnings revision + momentum","5d","+4.2%","81%"],["EURUSD","A-071","Rate differential","1d","+1.1%","68%"],["GOLD","A-102","Inflation hedge breakout","4h","+0.9%","66%"]]}/></div><div className="panel"><div className="panel-title"><b>근거 자료</b></div><EventLine time="RSH" tag="AI" text="TradingAgents market/news/fundamental debate"/><EventLine time="FIN" tag="DATA" text="FinRobot valuation and earnings computations"/><EventLine time="MAC" tag="MACRO" text="Macro evidence bundle"/><EventLine time="SRC" tag="SOURCE" text="External strategy provenance linked where applicable"/></div></div></>}
 
-function Lab(){return <><SectionHeader title="퀀트 연구소" eyebrow="가설 → 실험 → 모델 → 검증" actions={['새 가설','대기 실험 실행']} /><div className="metrics four"><Metric label="RUNNING" value="8"/><Metric label="QUEUED" value="21"/><Metric label="PASSED" value="284" tone="green"/><Metric label="FAILED" value="193" tone="red"/></div><div className="panel"><DataTable headers={['EXPERIMENT','INVESTOR','LINEAGE','ENGINE','STATUS','PROGRESS','RESULT']} rows={[["EXP-1203","A-043","L-101","RLlib","RUNNING","71%","—"],["EXP-1204","A-071","L-502","Qlib","VALIDATING","92%","—"],["EXP-1199","A-102","L-445","Chronos","PASSED","100%","Sharpe 1.81"],["EXP-1190","A-055","L-318","vectorbt","FAILED","100%","Cost removes alpha"]]}/></div><div className="grid two"><div className="panel"><div className="panel-title"><b>Model Consensus · NVDA</b></div><DataTable headers={['ENGINE','OUTPUT','CONFIDENCE']} rows={[["Qlib","Score +0.82","82%"],["Chronos","Forecast +3.2%","74%"],["SB3","LONG","69%"],["RLlib","LONG","71%"]]}/></div><div className="panel"><div className="panel-title"><b>Validation Chain</b></div><ol className="steps"><li>vectorbt quick screen <Badge tone="green">PASS</Badge></li><li>Leakage / multiple-test check <Badge tone="green">PASS</Badge></li><li>Walk-forward <Badge tone="green">PASS</Badge></li><li>Holdout <Badge tone="green">PASS</Badge></li><li>Nautilus realistic backtest <Badge tone="cyan">RUNNING</Badge></li></ol></div></div></>}
+type QuantExperiment = {
+  experiment_id:string;
+  agent_id:string;
+  candidate_id:string;
+  source_id:string;
+  fixed_horizon:string;
+  country:string;
+  market:string;
+  universe:string;
+  data_source:string;
+  base_interval:string;
+  strategy_engine:string;
+  validation_plan:{
+    screen?:{engine?:string;purpose?:string};
+    walk_forward?:{enabled?:boolean;folds?:number;anchored?:boolean};
+    holdout?:{enabled?:boolean;fraction?:number;untouched_until_final?:boolean};
+    final_runtime?:{engine?:string;modes?:string[]};
+  };
+  status:string;
+  blocked_reason?:string | null;
+  created_at:string;
+  symbols:string[];
+};
+
+type QuantReadiness = {
+  data_sources?:{toss?:{configured?:boolean;official_intervals?:string[];role?:string}};
+  strategy_execution?:{pine_engine_configured?:boolean;policy?:string};
+  quant_engines?:{state?:string};
+};
+
+function Lab(){
+  const [experiments,setExperiments]=useState<QuantExperiment[]>([]);
+  const [readiness,setReadiness]=useState<QuantReadiness | null>(null);
+  const [loading,setLoading]=useState(true);
+  const [error,setError]=useState('');
+
+  const reload=()=>{
+    setLoading(true);
+    setError('');
+    Promise.all([
+      fetch(QUANT_API_BASE+'/api/v1/quant/experiments?limit=200').then(async r=>{
+        if(!r.ok) throw new Error(await r.text());
+        return r.json();
+      }),
+      fetch(QUANT_API_BASE+'/api/v1/quant/readiness').then(async r=>{
+        if(!r.ok) throw new Error(await r.text());
+        return r.json();
+      }),
+    ]).then(([exp,ready])=>{
+      setExperiments((exp.items||[]) as QuantExperiment[]);
+      setReadiness(ready as QuantReadiness);
+    }).catch(e=>setError(e instanceof Error?e.message:'Quant Lab 연결 오류'))
+      .finally(()=>setLoading(false));
+  };
+
+  useEffect(()=>{ reload(); },[]);
+
+  const blockedUniverse=experiments.filter(x=>x.status==='BLOCKED_UNIVERSE').length;
+  const blockedData=experiments.filter(x=>x.status==='BLOCKED_DATA_SOURCE').length;
+  const blockedEngine=experiments.filter(x=>x.status==='BLOCKED_STRATEGY_ENGINE').length;
+  const completed=experiments.filter(x=>x.status==='COMPLETED').length;
+  const selected=experiments[0];
+
+  const rows=experiments.map(x=>[
+    x.experiment_id,
+    x.agent_id,
+    x.candidate_id,
+    x.fixed_horizon,
+    x.symbols.length+'종목',
+    x.base_interval,
+    x.status,
+    x.blocked_reason||'—',
+  ]);
+
+  return <>
+    <SectionHeader title="퀀트 연구소" eyebrow="실제 Agent → Universe → Experiment Registry → Walk-forward → Holdout → Nautilus" actions={['실험 목록 새로고침']} />
+    <div className="actions left"><button onClick={reload} disabled={loading}>{loading?'불러오는 중':'실제 상태 새로고침'}</button></div>
+    {error && <div className="panel"><span>{error}</span></div>}
+    <div className="metrics five">
+      <Metric label="REGISTERED" value={String(experiments.length)} />
+      <Metric label="UNIVERSE 차단" value={String(blockedUniverse)} tone={blockedUniverse?'amber':'green'} />
+      <Metric label="DATA 차단" value={String(blockedData)} tone={blockedData?'amber':'green'} />
+      <Metric label="ENGINE 차단" value={String(blockedEngine)} tone={blockedEngine?'amber':'green'} />
+      <Metric label="COMPLETED" value={String(completed)} tone={completed?'green':'muted'} />
+    </div>
+
+    <div className="panel">
+      <div className="panel-title"><b>Experiment Registry</b><span>예시 성과값 없이 실제 DB 상태만 표시</span></div>
+      {rows.length ? <DataTable headers={['EXPERIMENT','AGENT','CANDIDATE','HORIZON','UNIVERSE','BASE DATA','STATUS','BLOCKER']} rows={rows}/> :
+        <div className="empty-state">아직 등록된 Quant Experiment가 없습니다. TradingView 전략평가에서 Agent를 생성한 뒤 Quant 실험 등록을 실행하십시오.</div>}
+    </div>
+
+    <div className="grid two">
+      <div className="panel">
+        <div className="panel-title"><b>실행 준비 상태</b><span>실제 서버 환경</span></div>
+        <dl className="kv">
+          <dt>TradingView Source</dt><dd>연결됨</dd>
+          <dt>Toss OHLCV</dt><dd>{readiness?.data_sources?.toss?.configured?'자격증명 연결됨':'자격증명 미설정'}</dd>
+          <dt>공식 기본 봉</dt><dd>{readiness?.data_sources?.toss?.official_intervals?.join(' / ')||'1m / 1d'}</dd>
+          <dt>Pine 실행엔진</dt><dd>{readiness?.strategy_execution?.pine_engine_configured?'연결됨':'미연결'}</dd>
+          <dt>12개 퀀트 엔진</dt><dd>{readiness?.quant_engines?.state||'상태 조회 중'}</dd>
+        </dl>
+        <p className="note">{readiness?.strategy_execution?.policy||'실행기가 준비되기 전에는 성과를 생성하지 않습니다.'}</p>
+      </div>
+      <div className="panel">
+        <div className="panel-title"><b>Validation Chain</b><span>{selected?selected.experiment_id:'등록 실험 없음'}</span></div>
+        {selected ? <ol className="steps">
+          <li>Universe Resolver <Badge tone={selected.symbols.length?'green':'amber'}>{selected.symbols.length?'READY':'BLOCKED'}</Badge></li>
+          <li>{selected.data_source} <Badge tone={selected.status==='BLOCKED_DATA_SOURCE'?'amber':'green'}>{selected.status==='BLOCKED_DATA_SOURCE'?'BLOCKED':'READY'}</Badge></li>
+          <li>{selected.validation_plan.screen?.engine||'vectorbt'} quick screen <Badge tone="muted">PENDING</Badge></li>
+          <li>Walk-forward · {selected.validation_plan.walk_forward?.folds||5} folds <Badge tone="muted">PENDING</Badge></li>
+          <li>Holdout · {Math.round((selected.validation_plan.holdout?.fraction||0.2)*100)}% untouched <Badge tone="muted">PENDING</Badge></li>
+          <li>{selected.validation_plan.final_runtime?.engine||'NautilusTrader'} realistic backtest <Badge tone="muted">PENDING</Badge></li>
+        </ol> : <div className="empty-state">Experiment를 등록하면 실제 검증 체인이 표시됩니다.</div>}
+      </div>
+    </div>
+  </>;
+}
 
 function Strategies(){return <><SectionHeader title="운용 전략 등록부" eyebrow="고정 시간축 전략 계보는 버전 단위로 진화" actions={['백테스트','모의운용','승격 단계']} /><div className="panel"><DataTable headers={['LINEAGE','SOURCE','HORIZON','VERSION','INVESTOR','CAPITAL','NET PNL','STATE']} rows={strategies}/></div><div className="grid two"><div className="panel"><div className="panel-title"><b>챔피언 / 도전자 · L-101</b><span>Horizon 10m LOCKED</span></div><div className="compare"><div><Badge tone="green">CHAMPION v1.4</Badge><p>현재 실전 버전</p><b>Net EV +0.18%</b><span>MDD -4.2%</span></div><div><Badge tone="purple">CHALLENGER v1.5</Badge><p>변동성 필터 추가</p><b>Net EV +0.23%</b><span>MDD -3.5%</span></div></div><div className="actions left"><button>RETEST</button><button>PROMOTE v1.5</button><button>REJECT</button></div></div><div className="panel"><div className="panel-title"><b>승격 단계</b></div><ol className="steps"><li>시장 연구 ✓</li><li>Experiment ✓</li><li>Walk-forward ✓</li><li>Holdout ✓</li><li>Nautilus Backtest ✓</li><li>Paper ✓</li><li>Shadow ●</li><li>Small Live ○</li><li>Live ○</li></ol></div></div></>}
 
