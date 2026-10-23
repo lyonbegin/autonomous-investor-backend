@@ -155,9 +155,25 @@ def main() -> None:
     ]
     assert failures == [], failures
 
+    from app.api.demo_routes import DEMOS
+
+    demo_failures = []
+    for demo_key, demo_fn in DEMOS.items():
+        try:
+            demo_result = demo_fn()
+        except Exception as exc:
+            demo_failures.append(f"{demo_key}: {type(exc).__name__}: {exc}")
+            continue
+        if not demo_result.get("ok"):
+            demo_failures.append(f"{demo_key}: {demo_result}")
+        else:
+            print(f"NATIVE_DEMO_OK {demo_key} {demo_result.get('native_call')}")
+    assert not demo_failures, demo_failures
+
     print("FASTAPI_TWELVE_PROBES_OK")
     print("ALL_TWELVE_NATIVE_IMPORTS_OK")
     print("ALL_BRIDGES_OK")
+    print("ALL_TWELVE_NATIVE_DEMOS_OK")
     print("nautilus_trader", nautilus_trader.__version__)
     print("ray", ray.__version__)
     print("vectorbt", vectorbt.__version__)
