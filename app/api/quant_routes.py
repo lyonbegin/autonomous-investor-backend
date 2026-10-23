@@ -12,6 +12,7 @@ from app.core.quant_lab import (
     update_symbols,
 )
 from app.core.toss_market import TossApiError, TossConfigError, fetch_history, get_candles
+from app.core.macro_data import latest_macro_snapshot, macro_series, refresh_macro
 
 router = APIRouter(prefix="/api/v1/quant", tags=["quant-lab"])
 
@@ -27,6 +28,30 @@ class SymbolUpdate(BaseModel):
 @router.get("/readiness")
 def quant_readiness() -> dict:
     return readiness()
+
+
+@router.post("/macro/refresh")
+def macro_refresh() -> dict:
+    try:
+        return refresh_macro()
+    except Exception as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"macro refresh failed: {type(exc).__name__}: {exc}",
+        ) from exc
+
+
+@router.get("/macro/snapshot")
+def macro_snapshot() -> dict:
+    return latest_macro_snapshot()
+
+
+@router.get("/macro/series/{series_id}")
+def macro_series_data(
+    series_id: str,
+    limit: int = Query(default=120, ge=1, le=5000),
+) -> dict:
+    return macro_series(series_id, limit=limit)
 
 
 @router.get("/pipeline")
