@@ -10,6 +10,7 @@ from urllib import request
 from urllib.error import HTTPError
 
 from app.core.toss_market import base_interval_for_horizon, credentials_configured
+from app.core.macro_data import macro_ready
 
 DB_PATH = os.getenv("QUANT_DB_PATH", "/tmp/quant_lab.sqlite3")
 TRADINGVIEW_SERVICE_URL = os.getenv(
@@ -397,6 +398,7 @@ def pipeline_status() -> dict[str, Any]:
 
     toss_ready = credentials_configured()
     pine_ready = bool(os.getenv("PINE_ENGINE_URL"))
+    macro_data_ready = macro_ready()
 
     stages = [
         {
@@ -421,10 +423,10 @@ def pipeline_status() -> dict[str, Any]:
             "order": 3,
             "key": "macro_agent",
             "name": "Macro Agent",
-            "engines": ["TradingAgents", "FinRobot V2"],
+            "engines": ["TradingAgents", "FinRobot V2", "BLS", "U.S. Treasury"],
             "engine_ready": ready("tradingagents", "finrobot"),
-            "state": "BLOCKED_DATA_SOURCE",
-            "blocker": "실제 거시 데이터 공급원(FRED/공식 경제지표) 미연결",
+            "state": "DATA_READY" if macro_data_ready else "BLOCKED_DATA_SOURCE",
+            "blocker": "BLS·미 재무부 공식 거시 데이터 영구 저장 완료; Agent reasoning 연결 전" if macro_data_ready else "공식 거시 데이터 스냅샷 미수집",
         },
         {
             "order": 4,
@@ -534,5 +536,6 @@ def pipeline_status() -> dict[str, Any]:
         "tradingview_ready": tv_ready,
         "toss_ready": toss_ready,
         "pine_executor_ready": pine_ready,
+        "macro_data_ready": macro_data_ready,
         "stages": stages,
     }
