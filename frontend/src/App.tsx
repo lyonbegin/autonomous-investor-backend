@@ -1128,8 +1128,19 @@ function StrategyFactory() {
   </>;
 }
 
+type CollectorState = {
+  collector_key:string;
+  cursor_page:number;
+  total_pages:number;
+  items_seen:number;
+  details_seen:number;
+  last_error?:string | null;
+  updated_at:string;
+};
+
 function SourceHub(){
   const [items,setItems]=useState<RegistrySource[]>([]);
+  const [collectors,setCollectors]=useState<CollectorState[]>([]);
   const [loading,setLoading]=useState(true);
   const [syncing,setSyncing]=useState(false);
   const [error,setError]=useState('');
@@ -1137,10 +1148,15 @@ function SourceHub(){
   const load=()=>{
     setLoading(true);
     setError('');
-    fetch(API_BASE+'/api/v1/strategy-sources?limit=500')
-      .then(async r=>{if(!r.ok) throw new Error(await r.text()); return r.json();})
-      .then(data=>setItems((data.items||[]) as RegistrySource[]))
-      .catch(e=>setError(e instanceof Error?e.message:'Source Registry 조회 오류'))
+    Promise.all([
+      fetch(API_BASE+'/api/v1/strategy-sources?limit=2000').then(async r=>{if(!r.ok) throw new Error(await r.text());return r.json();}),
+      fetch(API_BASE+'/api/v1/tradingview/backfill').then(async r=>{if(!r.ok) throw new Error(await r.text());return r.json();}),
+    ])
+      .then(([sources,backfill])=>{
+        setItems((sources.items||[]) as RegistrySource[]);
+        setCollectors((backfill.items||[]) as CollectorState[]);
+      })
+      .catch(e=>setError(e instanceof Error?e.message:'Source Registry / 전체수집 상태 조회 오류'))
       .finally(()=>setLoading(false));
   };
   useEffect(()=>{load();},[]);
@@ -1149,7 +1165,7 @@ function SourceHub(){
     setSyncing(true);
     setError('');
     try{
-      const r=await fetch(API_BASE+'/api/v1/strategy-sources/sync?limit=5000',{method:'POST'});
+      const r=await fetch(API_BASE+'/api/v1/strategy-sources/sync?limit=10000',{method:'POST'});
       if(!r.ok) throw new Error(await r.text());
       load();
     }catch(e){
@@ -1160,7 +1176,7 @@ function SourceHub(){
   };
 
   const count=(kind:string)=>items.filter(x=>x.source_kind===kind).length;
-  const rows=items.slice(0,200).map(x=>[
+  const rows=items.slice(0,500).map(x=>[
     x.registry_source_id,
     x.source_kind,
     x.source_name,
@@ -1169,21 +1185,35 @@ function SourceHub(){
     x.source_status,
     x.updated_at,
   ]);
+  const collectorRows=collectors.map(x=>[
+    x.collector_key,
+    String(x.cursor_page)+' / '+String(x.total_pages),
+    x.items_seen.toLocaleString('ko-KR'),
+    x.details_seen.toLocaleString('ko-KR'),
+    x.last_error||'정상',
+    x.updated_at,
+  ]);
 
   return <>
     <div className="actions left">
-      <button onClick={sync} disabled={syncing}>{syncing?'동기화 중':'TradingView 원천 지금 동기화'}</button>
-      <button onClick={load} disabled={loading}>{loading?'불러오는 중':'Registry 새로고침'}</button>
+      <button onClick={sync} disabled={syncing}>{syncing?'동기화 중':'TradingView 원천 Registry 동기화'}</button>
+      <button onClick={load} disabled={loading}>{loading?'불러오는 중':'전체수집 상태 새로고침'}</button>
     </div>
     {error && <div className="panel"><span>{error}</span></div>}
     <div className="source-cards">
-      <SourceCard title="TradingView 아이디어" detail="커뮤니티 아이디어 원본" count={String(count('TradingViewIdea'))}/>
-      <SourceCard title="TradingView Pine" detail="공개 Pine 전략 원천" count={String(count('TradingViewPineStrategy'))}/>
+      <SourceCard title="TradingView 아이디어" detail="목록 + 전체본문 + 이미지/차트" count={String(count('TradingViewIdea'))}/>
+      <SourceCard title="TradingView Pine" detail="목록 + 전체설명 + 이미지 + 공개 Pine" count={String(count('TradingViewPineStrategy'))}/>
       <SourceCard title="GitHub" detail="등록된 라이선스 전략 저장소" count={String(count('GitHub'))}/>
       <SourceCard title="논문 / 내부 AI" detail="Paper + AIResearch" count={String(count('Paper')+count('AIResearch'))}/>
     </div>
     <div className="panel">
-      <div className="panel-title"><b>Strategy Source Registry</b><span>{items.length}개 실제 등록 원천 · Origin Source ID 보존</span></div>
+      <div className="panel-title"><b>TradingView 전체 원본 수집 커서</b><span>페이지를 끝까지 순회한 뒤 다시 처음부터 갱신</span></div>
+      {collectorRows.length?
+        <DataTable headers={['수집기','현재 페이지 / 전체','누적 목록','누적 상세','최근 오류','갱신']} rows={collectorRows}/>:
+        <div className="empty-state">첫 전체 원본 수집 실행을 준비 중입니다.</div>}
+    </div>
+    <div className="panel">
+      <div className="panel-title"><b>Strategy Source Registry</b><span>{items.length}개 조회 · Origin Source ID 보존</span></div>
       {rows.length?
         <DataTable headers={['REGISTRY SOURCE','TYPE','NAME','VERSION','HASH','STATUS','UPDATED']} rows={rows}/>:
         <div className="empty-state">등록된 전략 원천이 없습니다.</div>}
