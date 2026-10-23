@@ -356,6 +356,22 @@ def init_db() -> None:
             CREATE INDEX IF NOT EXISTS idx_market_universe_market_rank
                 ON market_universe_current(market, rank_index);
 
+            CREATE TABLE IF NOT EXISTS market_universe_rows (
+                market TEXT NOT NULL,
+                scan_id TEXT NOT NULL,
+                rank_index INTEGER NOT NULL,
+                ticker TEXT,
+                name TEXT,
+                description TEXT,
+                exchange TEXT,
+                asset_type TEXT,
+                raw_json TEXT NOT NULL,
+                collected_at TEXT NOT NULL,
+                PRIMARY KEY (market, scan_id, rank_index)
+            );
+            CREATE INDEX IF NOT EXISTS idx_market_universe_rows_market_rank
+                ON market_universe_rows(market, scan_id, rank_index);
+
             CREATE TABLE IF NOT EXISTS market_collector_state (
                 market TEXT PRIMARY KEY,
                 cursor_offset INTEGER NOT NULL DEFAULT 0,
@@ -976,7 +992,23 @@ def market_backfill_state() -> list[dict[str, Any]]:
         rows = conn.execute(
             """
             SELECT s.*,
-                   (SELECT COUNT(*) FROM market_universe_current u WHERE u.market = s.market) AS stored_count
+                   (
+                     SELECT COUNT(*)
+                     FROM market_universe_rows u
+                     WHERE u.market = s.market AND u.scan_id = s.scan_id
+                   ) AS current_scan_count,
+                   (
+                     SELECT COUNT(*)
+                     FROM market_universe_rows u
+                     WHERE u.market = s.market
+                       AND u.scan_id = (
+                         SELECT scan_id
+                         FROM market_universe_rows x
+                         WHERE x.market = s.market
+                         ORDER BY x.collected_at DESC
+                         LIMIT 1
+                       )
+                   ) AS stored_count
             FROM market_collector_state s
             ORDER BY s.market
             """
@@ -989,11 +1021,17 @@ def market_universe_counts() -> list[dict[str, Any]]:
     with _connect() as conn:
         rows = conn.execute(
             """
-            SELECT market, COUNT(*) AS count, MAX(collected_at) AS collected_at,
-                   MAX(scan_id) AS scan_id
-            FROM market_universe_current
-            GROUP BY market
-            ORDER BY market
+            WITH latest AS (
+              SELECT market, scan_id, MAX(collected_at) AS collected_at
+              FROM market_universe_rows
+              GROUP BY market
+            )
+            SELECT l.market,l.scan_id,l.collected_at,COUNT(r.rank_index) AS count
+            FROM latest l
+            JOIN market_universe_rows r
+              ON r.market=l.market AND r.scan_id=l.scan_id
+            GROUP BY l.market,l.scan_id,l.collected_at
+            ORDER BY l.market
             """
         ).fetchall()
     return [dict(row) for row in rows]
@@ -1010,20 +1048,43 @@ def list_market_universe(
     safe_limit = min(max(int(limit), 1), 1000)
     safe_offset = max(int(offset), 0)
     with _connect() as conn:
-        total = int(conn.execute(
-            "SELECT COUNT(*) AS c FROM market_universe_current WHERE market = ?",
+        state = conn.execute(
+            "SELECT scan_id,last_completed_at FROM market_collector_state WHERE market=?",
             (market_key,),
+        ).fetchone()
+        current_scan = str(state["scan_id"]) if state is not None else ""
+        completed = str(state["last_completed_at"] or "") if state is not None else ""
+        # During a new cycle, serve the most recently complete scan until the new
+        # one reaches the end. If no complete scan exists, serve the in-progress one.
+        if completed:
+            row = conn.execute(
+                """
+                SELECT scan_id
+                FROM market_universe_rows
+                WHERE market=? AND scan_id<>?
+                GROUP BY scan_id
+                ORDER BY MAX(collected_at) DESC
+                LIMIT 1
+                """,
+                (market_key,current_scan),
+            ).fetchone()
+            serve_scan = str(row["scan_id"]) if row is not None else current_scan
+        else:
+            serve_scan = current_scan
+        total = int(conn.execute(
+            "SELECT COUNT(*) AS c FROM market_universe_rows WHERE market=? AND scan_id=?",
+            (market_key,serve_scan),
         ).fetchone()["c"])
         rows = conn.execute(
             """
             SELECT market,ticker,name,description,exchange,asset_type,raw_json,
                    scan_id,rank_index,collected_at
-            FROM market_universe_current
-            WHERE market = ?
+            FROM market_universe_rows
+            WHERE market=? AND scan_id=?
             ORDER BY rank_index ASC
             LIMIT ? OFFSET ?
             """,
-            (market_key, safe_limit, safe_offset),
+            (market_key,serve_scan,safe_limit,safe_offset),
         ).fetchall()
     items: list[dict[str, Any]] = []
     for row in rows:
@@ -1046,6 +1107,7 @@ def list_market_universe(
         items.append(raw)
     return {
         "market": market_key,
+        "scan_id": serve_scan,
         "total_count": total,
         "offset": safe_offset,
         "limit": safe_limit,
@@ -1067,35 +1129,33 @@ def _store_market_universe_page(
     with _connect() as conn:
         conn.executemany(
             """
-            INSERT INTO market_universe_current (
-                market,ticker,name,description,exchange,asset_type,raw_json,
-                scan_id,rank_index,collected_at
+            INSERT INTO market_universe_rows (
+                market,scan_id,rank_index,ticker,name,description,exchange,asset_type,
+                raw_json,collected_at
             ) VALUES (?,?,?,?,?,?,?,?,?,?)
-            ON CONFLICT(market,ticker) DO UPDATE SET
+            ON CONFLICT(market,scan_id,rank_index) DO UPDATE SET
+                ticker=excluded.ticker,
                 name=excluded.name,
                 description=excluded.description,
                 exchange=excluded.exchange,
                 asset_type=excluded.asset_type,
                 raw_json=excluded.raw_json,
-                scan_id=excluded.scan_id,
-                rank_index=excluded.rank_index,
                 collected_at=excluded.collected_at
             """,
             [
                 (
                     market,
+                    scan_id,
+                    base_rank + idx,
                     str(x.get("ticker") or ""),
                     x.get("name"),
                     x.get("description"),
                     x.get("exchange"),
                     x.get("type"),
                     json.dumps(x, ensure_ascii=False),
-                    scan_id,
-                    base_rank + idx,
                     collected_at,
                 )
                 for idx, x in enumerate(rows, start=1)
-                if x.get("ticker")
             ],
         )
 
@@ -1172,8 +1232,17 @@ def backfill_market_universe(
             completed_at = utcnow()
             with _connect() as conn:
                 conn.execute(
-                    "DELETE FROM market_universe_current WHERE market = ? AND scan_id <> ?",
-                    (market_key, scan_id),
+                    """
+                    DELETE FROM market_universe_rows
+                    WHERE market=? AND scan_id NOT IN (
+                      SELECT scan_id FROM market_universe_rows
+                      WHERE market=?
+                      GROUP BY scan_id
+                      ORDER BY MAX(collected_at) DESC
+                      LIMIT 2
+                    )
+                    """,
+                    (market_key,market_key),
                 )
                 new_scan_id = _market_cycle_id(market_key)
                 conn.execute(
@@ -1273,8 +1342,17 @@ def backfill_market_universe(
         completed_at = utcnow()
         with _connect() as conn:
             conn.execute(
-                "DELETE FROM market_universe_current WHERE market = ? AND scan_id <> ?",
-                (market_key, scan_id),
+                """
+                DELETE FROM market_universe_rows
+                WHERE market=? AND scan_id NOT IN (
+                  SELECT scan_id FROM market_universe_rows
+                  WHERE market=?
+                  GROUP BY scan_id
+                  ORDER BY MAX(collected_at) DESC
+                  LIMIT 2
+                )
+                """,
+                (market_key,market_key),
             )
             new_scan_id = _market_cycle_id(market_key)
             conn.execute(
