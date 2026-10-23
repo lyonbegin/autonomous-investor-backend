@@ -6,8 +6,10 @@ from fastapi import APIRouter, HTTPException, Query
 from app.core.quant_lab import (
     create_experiment,
     get_experiment,
+    list_experiment_results,
     list_experiments,
     pipeline_status,
+    run_experiment,
     readiness,
     update_symbols,
 )
@@ -23,6 +25,12 @@ class ExperimentCreate(BaseModel):
 
 class SymbolUpdate(BaseModel):
     symbols: list[str] = Field(min_length=1)
+
+
+class ExperimentRun(BaseModel):
+    max_symbols: int = Field(default=5, ge=1, le=20)
+    commission_bps: float = Field(default=5.0, ge=0.0, le=100.0)
+    slippage_bps: float = Field(default=2.0, ge=0.0, le=100.0)
 
 
 @router.get("/readiness")
@@ -79,6 +87,35 @@ def experiments(limit: int = Query(default=200, ge=1, le=1000)) -> dict:
 def experiment_detail(experiment_id: str) -> dict:
     try:
         return get_experiment(experiment_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=f"experiment not found: {experiment_id}") from exc
+
+
+@router.post("/experiments/{experiment_id}/run")
+def experiment_run(experiment_id: str, body: ExperimentRun | None = None) -> dict:
+    params = body or ExperimentRun()
+    try:
+        return run_experiment(
+            experiment_id,
+            max_symbols=params.max_symbols,
+            commission_bps=params.commission_bps,
+            slippage_bps=params.slippage_bps,
+        )
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=f"experiment not found: {experiment_id}") from exc
+    except Exception as exc:
+        raise HTTPException(
+            status_code=409,
+            detail=f"experiment execution failed: {type(exc).__name__}: {exc}",
+        ) from exc
+
+
+@router.get("/experiments/{experiment_id}/results")
+def experiment_results(experiment_id: str) -> dict:
+    try:
+        get_experiment(experiment_id)
+        items = list_experiment_results(experiment_id)
+        return {"experiment_id": experiment_id, "count": len(items), "items": items}
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=f"experiment not found: {experiment_id}") from exc
 
