@@ -511,6 +511,18 @@ function TradingViewEconomicCalendar(){
   return <div ref={host} className="tv-economic-calendar-host"/>;
 }
 
+type LiveMarketCollectorState = {
+  market:string;
+  cursor_offset:number;
+  total_count:number;
+  scan_id:string;
+  cycle_started_at:string;
+  last_completed_at?:string | null;
+  last_error?:string | null;
+  current_scan_count?:number;
+  stored_count?:number;
+};
+
 function TradingViewMarkets(){
   const [tab,setTab]=useState<MarketTab>('한국 주식');
   const [marketView,setMarketView]=useState('개요');
@@ -521,6 +533,8 @@ function TradingViewMarkets(){
   const [marketOffset,setMarketOffset]=useState(0);
   const [hasMore,setHasMore]=useState(false);
   const [selectedTicker,setSelectedTicker]=useState('');
+  const [collectorState,setCollectorState]=useState<LiveMarketCollectorState | null>(null);
+  const [dataMode,setDataMode]=useState<'stored'|'live'|'restricted'>('stored');
   const marketPageSize=50;
 
   useEffect(()=>{
@@ -530,6 +544,18 @@ function TradingViewMarkets(){
   },[tab]);
 
   useEffect(()=>{setMarketOffset(0);},[marketView]);
+
+  useEffect(()=>{
+    const code=liveMarketCode[tab];
+    if(!code){setCollectorState(null);return;}
+    fetch(API_BASE+'/api/v1/tradingview/markets/backfill/state')
+      .then(async r=>{if(!r.ok) throw new Error(await r.text()); return r.json();})
+      .then(data=>{
+        const rows=(data.items||[]) as LiveMarketCollectorState[];
+        setCollectorState(rows.find(x=>x.market===code)||null);
+      })
+      .catch(()=>setCollectorState(null));
+  },[tab]);
 
   useEffect(()=>{
     const code=liveMarketCode[tab];
@@ -549,23 +575,44 @@ function TradingViewMarkets(){
       sort_by:sort.sortBy,
       sort_order:sort.sortOrder,
     });
+    const restricted=code==='corporate-bonds';
+    const storedUrl=API_BASE+'/api/v1/tradingview/markets/'+code+'/stored?'+params.toString();
+    const liveUrl=API_BASE+'/api/v1/tradingview/markets/'+code+'?'+params.toString();
     setLiveError('');
-    fetch(API_BASE+'/api/v1/tradingview/markets/'+code+'?'+params.toString(),{signal:controller.signal})
-      .then(async r=>{
-        if(!r.ok) throw new Error(await r.text());
-        return r.json();
-      })
-      .then(res=>{
-        const rows=(res.items||[]) as LiveMarketRow[];
+
+    const load=async()=>{
+      try{
+        if(!restricted){
+          const sr=await fetch(storedUrl,{signal:controller.signal});
+          if(!sr.ok) throw new Error(await sr.text());
+          const stored=await sr.json();
+          if(Number(stored.total_count||0)>0){
+            const rows=(stored.items||[]) as LiveMarketRow[];
+            setLiveRows(rows);
+            setLiveTotal(Number(stored.total_count||0));
+            setLiveCollectedAt(rows[0]?.collected_at||'');
+            setHasMore(Boolean(stored.has_more));
+            setDataMode('stored');
+            setSelectedTicker(prev=>rows.some(x=>x.ticker===prev)?prev:(rows[0]?.ticker||''));
+            return;
+          }
+        }
+
+        const lr=await fetch(liveUrl,{signal:controller.signal});
+        if(!lr.ok) throw new Error(await lr.text());
+        const live=await lr.json();
+        const rows=(live.items||[]) as LiveMarketRow[];
         setLiveRows(rows);
-        setLiveTotal(typeof res.total_count==='number'?res.total_count:null);
-        setLiveCollectedAt(res.collected_at||'');
-        setHasMore(Boolean(res.has_more));
+        setLiveTotal(typeof live.total_count==='number'?live.total_count:null);
+        setLiveCollectedAt(live.collected_at||'');
+        setHasMore(restricted?false:Boolean(live.has_more));
+        setDataMode(restricted?'restricted':'live');
         setSelectedTicker(prev=>rows.some(x=>x.ticker===prev)?prev:(rows[0]?.ticker||''));
-      })
-      .catch(e=>{
-        if(e?.name!=='AbortError') setLiveError('TradingView Scanner 실데이터 연결 오류');
-      });
+      }catch(e:any){
+        if(e?.name!=='AbortError') setLiveError('TradingView 원본 데이터 조회 오류');
+      }
+    };
+    load();
     return ()=>controller.abort();
   },[tab,marketView,marketOffset]);
 
@@ -575,7 +622,7 @@ function TradingViewMarkets(){
   const liveTableRows=tab==='회사채'
     ? liveRows.map(x=>[
         x.ticker || x.name || '',
-        x['ticker-view'] || x.description || x.name || '',
+        x.description || x.name || '',
         x['isin-displayed'] || '',
         x.yield_to_worst==null?'':Number(x.yield_to_worst).toFixed(2)+'%',
         x.current_coupon==null?'':Number(x.current_coupon).toFixed(2)+'%',
@@ -600,13 +647,17 @@ function TradingViewMarkets(){
   const chartSrc=selectedTicker
     ? 'https://s.tradingview.com/widgetembed/?frameElementId=tv-market-chart&symbol='+encodeURIComponent(selectedTicker)+'&interval=D&hidesidetoolbar=0&symboledit=1&saveimage=1&toolbarbg=131722&theme=dark&style=1&timezone=Asia%2FSeoul&withdateranges=1&showpopupbutton=0&locale=kr'
     : '';
+  const restriction=tab==='회사채' && collectorState?.last_error?.includes('TRADINGVIEW_ENTITLEMENT_REQUIRED');
 
   return <>
     <TradingViewHeader active="markets"/>
     <div className="tv-page markets-page">
       <div className="market-hero">
-        <div><span>마켓</span><h1>{tab}</h1><p>TradingView Scanner 원본 데이터 전체를 페이지 단위로 조회하고 선택 종목 차트를 이 화면 안에서 직접 표시합니다.</p></div>
-        <div className="market-clock"><b>TradingView 원본</b><span>Scanner 실수집 · DB 스냅샷 · 화면 내 차트</span></div>
+        <div><span>마켓</span><h1>{tab}</h1><p>TradingView Scanner 원본을 전체 Universe로 저장하고, 그 전체 DB를 메뉴별로 정렬·페이지 조회합니다.</p></div>
+        <div className="market-clock">
+          <b>{dataMode==='stored'?'전체 DB 원본':dataMode==='restricted'?'TradingView 제한 원본':'실시간 Scanner'}</b>
+          <span>{collectorState?.stored_count!=null?collectorState.stored_count.toLocaleString('ko-KR')+'행 저장':'Scanner 실수집'} · 화면 내 차트</span>
+        </div>
       </div>
       <div className="market-tabs">{marketTabs.map(x=><button className={tab===x?'active':''} key={x} onClick={()=>setTab(x)}>{x}</button>)}</div>
       <div className="market-submenu">
@@ -614,11 +665,16 @@ function TradingViewMarkets(){
       </div>
 
       {liveMarketCode[tab] ? <>
+        {restriction && <div className="panel">
+          <div className="panel-title"><b>회사채 전체 원본 접근 상태</b><Badge tone="amber">TradingView 권한 제한</Badge></div>
+          <p className="note">TradingView Bond Screener는 전체 {Number(collectorState?.total_count||liveTotal||0).toLocaleString('ko-KR')}건을 보고하지만 익명 Scanner에는 10건만 반환하고, 전체 CSV Export는 TradingView 유료 권한으로 잠겨 있습니다. 현재 화면은 실제 반환된 10건만 표시하며 전체수집 완료로 위장하지 않습니다.</p>
+        </div>}
+
         <div className="grid two tv-market-live-grid">
           <div className="panel">
-            <div className="panel-title"><b>TradingView Scanner · {marketView}</b><span>{liveTotal===null?'조회 중':('전체 '+liveTotal.toLocaleString('ko-KR')+'개 · '+page+'/'+pageCount+'페이지')}</span></div>
+            <div className="panel-title"><b>TradingView {dataMode==='stored'?'전체 Universe':'Scanner'} · {marketView}</b><span>{liveTotal===null?'조회 중':('전체 '+liveTotal.toLocaleString('ko-KR')+'개 · '+page+'/'+pageCount+'페이지')}</span></div>
             <div className="tv-market-symbols">
-              {liveRows.map(x=><button key={x.ticker||x.name} className={selectedTicker===x.ticker?'active':''} onClick={()=>setSelectedTicker(x.ticker||'')}>
+              {liveRows.map((x,i)=><button key={(x.ticker||x.name||'row')+'-'+i} className={selectedTicker===x.ticker?'active':''} onClick={()=>setSelectedTicker(x.ticker||'')}>
                 <b>{x.ticker||x.name}</b><span>{x.description||''}</span><small>{x.change==null?'':Number(x.change).toFixed(2)+'%'}</small>
               </button>)}
             </div>
@@ -632,15 +688,15 @@ function TradingViewMarkets(){
 
         <div className="panel">
           <div className="panel-title">
-            <b>원본 Scanner 전체 데이터</b>
-            <span>{liveCollectedAt?'DB 스냅샷 '+liveCollectedAt:'실시간 조회'}</span>
+            <b>원본 전체 데이터</b>
+            <span>{liveCollectedAt?'스캔 '+liveCollectedAt:(collectorState?.last_completed_at?'전체 스캔 완료 '+collectorState.last_completed_at:'실시간 조회')}</span>
           </div>
           {liveError ? <div className="empty-state">{liveError}</div> :
             <DataTable headers={liveHeaders} rows={liveTableRows}/>}
           <div className="tv-pagination">
-            <button disabled={marketOffset<=0} onClick={()=>setMarketOffset(v=>Math.max(0,v-marketPageSize))}>이전 50개</button>
+            <button disabled={marketOffset<=0 || restriction} onClick={()=>setMarketOffset(v=>Math.max(0,v-marketPageSize))}>이전 50개</button>
             <button className="active">{page} / {pageCount}</button>
-            <button disabled={!hasMore} onClick={()=>setMarketOffset(v=>v+marketPageSize)}>다음 50개</button>
+            <button disabled={!hasMore || restriction} onClick={()=>setMarketOffset(v=>v+marketPageSize)}>다음 50개</button>
           </div>
         </div>
       </> : tab==='경제' ? <div className="panel tv-economic-panel">
@@ -652,11 +708,11 @@ function TradingViewMarkets(){
       </div>}
 
       <div className="panel market-match-panel">
-        <div className="panel-title"><b>{tab} 전략 매칭 입력 데이터</b><span>화면에 보이는 동일한 TradingView 실수집 데이터를 Agent 연구 입력으로 사용</span></div>
+        <div className="panel-title"><b>{tab} 전략 매칭 입력 데이터</b><span>화면과 Agent가 동일한 전체 TradingView Universe DB 사용</span></div>
         <DataTable headers={['입력 피처','용도','현재 상태']} rows={[
-          ['가격 · 등락률 · 거래량','시장/유동성 Universe','실수집·DB 저장'],
-          ['일변동성 · ATR','변동성 레짐·포지션 크기','실수집·DB 저장'],
-          ['RSI · ADX · Recommendation','평균회귀/추세/모멘텀 레짐','실수집·DB 저장'],
+          ['가격 · 등락률 · 거래량','시장/유동성 Universe',dataMode==='stored'?'전체 Universe DB':'TradingView 원본 실수집'],
+          ['일변동성 · ATR','변동성 레짐·포지션 크기',dataMode==='stored'?'전체 Universe DB':'TradingView 원본 실수집'],
+          ['RSI · ADX · Recommendation','평균회귀/추세/모멘텀 레짐',dataMode==='stored'?'전체 Universe DB':'TradingView 원본 실수집'],
           ['시장 × 전략 × 고정 시간축','Horizon Discovery → Quant Lab','실연결'],
         ]}/>
       </div>
