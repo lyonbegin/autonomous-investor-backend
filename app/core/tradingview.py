@@ -874,7 +874,42 @@ def _sqlite_real(value: Any) -> float | None:
 def store_market_snapshot(market: str, rows: list[dict[str, Any]], collected_at: str) -> None:
     init_db()
     bucket = collected_at[:16]
-    with _connect() as conn:
+    values = [
+        (
+            hashlib.sha1(f"{market}|{x.get('ticker')}|{bucket}".encode()).hexdigest(),
+            market,
+            x.get("ticker") or "",
+            x.get("name"),
+            x.get("description"),
+            _sqlite_real(x.get("close")),
+            _sqlite_real(x.get("change")),
+            _sqlite_real(x.get("volume")),
+            x.get("exchange"),
+            x.get("type"),
+            _sqlite_real(x.get("Volatility.D")),
+            _sqlite_real(x.get("relative_volume_10d_calc")),
+            _sqlite_real(x.get("RSI")),
+            _sqlite_real(x.get("ATR")),
+            _sqlite_real(x.get("ADX")),
+            _sqlite_real(x.get("Recommend.All")),
+            _sqlite_real(x.get("market_cap_basic") if x.get("market_cap_basic") is not None else x.get("market_cap_calc")),
+            x.get("sector"),
+            idx,
+            collected_at,
+            json.dumps(x, ensure_ascii=False),
+        )
+        for idx, x in enumerate(rows, start=1)
+        if x.get("ticker")
+    ]
+    if not values:
+        return
+    conn = sqlite3.connect(DB_PATH, timeout=30, isolation_level=None)
+    try:
+        conn.execute("PRAGMA busy_timeout = 30000")
+        conn.execute("PRAGMA journal_mode=MEMORY")
+        conn.execute("PRAGMA temp_store=MEMORY")
+        conn.execute("PRAGMA synchronous=OFF")
+        conn.execute("BEGIN IMMEDIATE")
         conn.executemany(
             """
             INSERT OR IGNORE INTO market_snapshots (
@@ -882,34 +917,17 @@ def store_market_snapshot(market: str, rows: list[dict[str, Any]], collected_at:
                 volatility_d,relative_volume,rsi,atr,adx,recommendation,market_cap,sector,rank_index,collected_at,raw_json
             ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             """,
-            [
-                (
-                    hashlib.sha1(f"{market}|{x.get('ticker')}|{bucket}".encode()).hexdigest(),
-                    market,
-                    x.get("ticker") or "",
-                    x.get("name"),
-                    x.get("description"),
-                    _sqlite_real(x.get("close")),
-                    _sqlite_real(x.get("change")),
-                    _sqlite_real(x.get("volume")),
-                    x.get("exchange"),
-                    x.get("type"),
-                    _sqlite_real(x.get("Volatility.D")),
-                    _sqlite_real(x.get("relative_volume_10d_calc")),
-                    _sqlite_real(x.get("RSI")),
-                    _sqlite_real(x.get("ATR")),
-                    _sqlite_real(x.get("ADX")),
-                    _sqlite_real(x.get("Recommend.All")),
-                    _sqlite_real(x.get("market_cap_basic") if x.get("market_cap_basic") is not None else x.get("market_cap_calc")),
-                    x.get("sector"),
-                    idx,
-                    collected_at,
-                    json.dumps(x, ensure_ascii=False),
-                )
-                for idx, x in enumerate(rows, start=1)
-                if x.get("ticker")
-            ],
+            values,
         )
+        conn.execute("COMMIT")
+    except Exception:
+        try:
+            conn.execute("ROLLBACK")
+        except Exception:
+            pass
+        raise
+    finally:
+        conn.close()
 
 
 def list_market_snapshots(market: str, limit: int = 100, latest_only: bool = True) -> list[dict[str, Any]]:
@@ -1114,7 +1132,32 @@ def _store_market_universe_page(
     collected_at: str,
 ) -> None:
     init_db()
-    with _connect() as conn:
+    values = [
+        (
+            market,
+            str(x.get("ticker") or ""),
+            x.get("name"),
+            x.get("description"),
+            x.get("exchange"),
+            x.get("type"),
+            json.dumps(x, ensure_ascii=False),
+            scan_id,
+            base_rank + idx,
+            collected_at,
+        )
+        for idx, x in enumerate(rows, start=1)
+        if x.get("ticker")
+    ]
+    if not values:
+        return
+
+    conn = sqlite3.connect(DB_PATH, timeout=60, isolation_level=None)
+    try:
+        conn.execute("PRAGMA busy_timeout = 60000")
+        conn.execute("PRAGMA journal_mode=MEMORY")
+        conn.execute("PRAGMA temp_store=MEMORY")
+        conn.execute("PRAGMA synchronous=OFF")
+        conn.execute("BEGIN IMMEDIATE")
         conn.executemany(
             """
             INSERT INTO market_universe_current (
@@ -1131,23 +1174,17 @@ def _store_market_universe_page(
                 rank_index=excluded.rank_index,
                 collected_at=excluded.collected_at
             """,
-            [
-                (
-                    market,
-                    str(x.get("ticker") or ""),
-                    x.get("name"),
-                    x.get("description"),
-                    x.get("exchange"),
-                    x.get("type"),
-                    json.dumps(x, ensure_ascii=False),
-                    scan_id,
-                    base_rank + idx,
-                    collected_at,
-                )
-                for idx, x in enumerate(rows, start=1)
-                if x.get("ticker")
-            ],
+            values,
         )
+        conn.execute("COMMIT")
+    except Exception:
+        try:
+            conn.execute("ROLLBACK")
+        except Exception:
+            pass
+        raise
+    finally:
+        conn.close()
 
 
 def backfill_market_universe(
