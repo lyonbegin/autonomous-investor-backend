@@ -2560,6 +2560,18 @@ def _universe_filter(plan: dict[str, Any], row: dict[str, Any]) -> tuple[bool, s
     market_cap = _market_cap(row)
     turnover = _turnover(row)
     asset_type = str(row.get("type") or "").lower()
+    exchange = str(row.get("exchange") or (ticker.split(":", 1)[0] if ":" in ticker else "")).upper()
+
+    # A plan explicitly bound to NASDAQ/NYSE must not leak into OTC/other U.S.
+    # venues merely because the broader America scanner contains them.
+    if "nasdaq" in market or "nyse" in market:
+        allowed_exchanges: set[str] = set()
+        if "nasdaq" in market:
+            allowed_exchanges.add("NASDAQ")
+        if "nyse" in market:
+            allowed_exchanges.update({"NYSE", "NYSEARCA", "NYSEAMERICAN"})
+        if exchange and exchange not in allowed_exchanges:
+            return False, f"계획 시장 거래소 제외: {exchange}"
 
     # Exact ETF baskets declared by the Agent plan must stay exact.
     if "qqq" in universe.lower() or "spy" in universe.lower() or "smh" in universe.lower():
