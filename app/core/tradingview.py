@@ -1048,11 +1048,33 @@ def list_market_universe(
     *,
     limit: int = 100,
     offset: int = 0,
+    sort_by: str = "volume",
+    sort_order: str = "desc",
 ) -> dict[str, Any]:
     init_db()
     market_key = MARKET_ALIASES.get(market.lower(), market.lower())
     safe_limit = min(max(int(limit), 1), 1000)
     safe_offset = max(int(offset), 0)
+    allowed_sorts = {
+        "rank": "rank_index",
+        "name": "name",
+        "volume": "CAST(json_extract(raw_json, '$.volume') AS REAL)",
+        "change": "CAST(json_extract(raw_json, '$.change') AS REAL)",
+        "close": "CAST(json_extract(raw_json, '$.close') AS REAL)",
+        "Volatility.D": "CAST(json_extract(raw_json, '$.\"Volatility.D\"') AS REAL)",
+        "relative_volume_10d_calc": "CAST(json_extract(raw_json, '$.relative_volume_10d_calc') AS REAL)",
+        "RSI": "CAST(json_extract(raw_json, '$.RSI') AS REAL)",
+        "ATR": "CAST(json_extract(raw_json, '$.ATR') AS REAL)",
+        "ADX": "CAST(json_extract(raw_json, '$.ADX') AS REAL)",
+        "market_cap_basic": "CAST(json_extract(raw_json, '$.market_cap_basic') AS REAL)",
+        "market_cap_calc": "CAST(json_extract(raw_json, '$.market_cap_calc') AS REAL)",
+        "yield_to_worst": "CAST(json_extract(raw_json, '$.yield_to_worst') AS REAL)",
+        "current_coupon": "CAST(json_extract(raw_json, '$.current_coupon') AS REAL)",
+        "maturity_date": "CAST(json_extract(raw_json, '$.maturity_date') AS REAL)",
+    }
+    order_expr = allowed_sorts.get(sort_by, "rank_index")
+    direction = "ASC" if str(sort_order).lower() == "asc" else "DESC"
+
     with _connect() as conn:
         state = conn.execute(
             "SELECT scan_id,last_completed_at FROM market_collector_state WHERE market=?",
@@ -1060,8 +1082,6 @@ def list_market_universe(
         ).fetchone()
         current_scan = str(state["scan_id"]) if state is not None else ""
         completed = str(state["last_completed_at"] or "") if state is not None else ""
-        # During a new cycle, serve the most recently complete scan until the new
-        # one reaches the end. If no complete scan exists, serve the in-progress one.
         if completed:
             row = conn.execute(
                 """
@@ -1074,24 +1094,39 @@ def list_market_universe(
                 """,
                 (market_key,current_scan),
             ).fetchone()
+            if row is None:
+                row = conn.execute(
+                    """
+                    SELECT scan_id
+                    FROM market_universe_rows
+                    WHERE market=?
+                    GROUP BY scan_id
+                    ORDER BY MAX(collected_at) DESC
+                    LIMIT 1
+                    """,
+                    (market_key,),
+                ).fetchone()
             serve_scan = str(row["scan_id"]) if row is not None else current_scan
         else:
             serve_scan = current_scan
+
         total = int(conn.execute(
             "SELECT COUNT(*) AS c FROM market_universe_rows WHERE market=? AND scan_id=?",
             (market_key,serve_scan),
         ).fetchone()["c"])
-        rows = conn.execute(
-            """
+        sql = f"""
             SELECT market,ticker,name,description,exchange,asset_type,raw_json,
                    scan_id,rank_index,collected_at
             FROM market_universe_rows
             WHERE market=? AND scan_id=?
-            ORDER BY rank_index ASC
+            ORDER BY ({order_expr}) {direction} NULLS LAST, rank_index ASC
             LIMIT ? OFFSET ?
-            """,
+        """
+        rows = conn.execute(
+            sql,
             (market_key,serve_scan,safe_limit,safe_offset),
         ).fetchall()
+
     items: list[dict[str, Any]] = []
     for row in rows:
         item = dict(row)
@@ -1114,6 +1149,8 @@ def list_market_universe(
     return {
         "market": market_key,
         "scan_id": serve_scan,
+        "sort_by": sort_by,
+        "sort_order": direction.lower(),
         "total_count": total,
         "offset": safe_offset,
         "limit": safe_limit,
