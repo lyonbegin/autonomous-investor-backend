@@ -1346,6 +1346,7 @@ def backfill_tradingview_source(
     pine_count = 0
     errors: list[str] = []
     total_pages = max(1, int(state.get("total_pages") or 1))
+    cycle_completed = False
 
     for _ in range(safe_pages):
         current_page = page
@@ -1364,6 +1365,14 @@ def backfill_tradingview_source(
                         detail_count += d_count
                         pine_count += p_count
                         errors.extend(item_errors)
+
+                item_count += len(items)
+                processed_pages.append(current_page)
+                if current_page >= total_pages:
+                    page = 1
+                    cycle_completed = True
+                    break
+                page = current_page + 1
             else:
                 payload = collect_scripts(
                     page=current_page,
@@ -1372,11 +1381,9 @@ def backfill_tradingview_source(
                     editors_picks=False,
                 )
                 items = list(payload.get("items") or [])
-                total_count = int(payload.get("total_count") or 0)
-                page_size = 24
-                total_pages = max(1, (total_count + page_size - 1) // page_size)
+                has_more = bool(payload.get("has_more"))
                 if items and (fetch_details or fetch_pine):
-                    with ThreadPoolExecutor(max_workers=8) as executor:
+                    with ThreadPoolExecutor(max_workers=16) as executor:
                         results = list(executor.map(
                             lambda item: _backfill_script_item(item, fetch_details, fetch_pine),
                             items,
@@ -1386,14 +1393,19 @@ def backfill_tradingview_source(
                         pine_count += p_count
                         errors.extend(item_errors)
 
-            item_count += len(items)
-            processed_pages.append(current_page)
-            page = current_page + 1
-            if page > total_pages:
-                page = 1
+                item_count += len(items)
+                processed_pages.append(current_page)
+                if has_more:
+                    total_pages = max(total_pages, current_page + 1)
+                    page = current_page + 1
+                else:
+                    total_pages = current_page
+                    page = 1
+                    cycle_completed = True
+                    break
         except Exception as exc:
             errors.append(f"page:{current_page}:{type(exc).__name__}:{exc}")
-            page = current_page + 1 if current_page < total_pages else 1
+            page = current_page + 1
 
     now = utcnow()
     with _connect() as conn:
@@ -1426,6 +1438,7 @@ def backfill_tradingview_source(
         "processed_pages": processed_pages,
         "next_page": page,
         "total_pages": total_pages,
+        "cycle_completed": cycle_completed,
         "items_processed": item_count,
         "details_processed": detail_count,
         "pine_sources_processed": pine_count,
