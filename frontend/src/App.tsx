@@ -744,6 +744,12 @@ type AgentResearchState = {
   symbols?:string[];
   experimentId?:string;
   status?:string;
+  agentStatus?:string;
+  promotion?:string;
+  passRatio?:number;
+  avgHoldoutReturn?:number;
+  walkForwardPassed?:boolean;
+  holdoutPassed?:boolean;
   reason?:string | null;
 };
 
@@ -895,8 +901,8 @@ function TradingViewStrategies(){
     }
   };
 
-  const prepareResearch=async(agent:LiveAgentPlan)=>{
-    setAgentResearch(prev=>({...prev,[agent.agent_id]:{loading:true,status:'UNIVERSE_RESOLVING'}}));
+  const prepareResearch=async(agent:LiveAgentPlan):Promise<QuantExperiment | null>=>{
+    setAgentResearch(prev=>({...prev,[agent.agent_id]:{...prev[agent.agent_id],loading:true,status:'UNIVERSE_RESOLVING'}}));
     try{
       const u=await fetch(
         API_BASE+'/api/v1/tradingview/agent-plans/'+encodeURIComponent(agent.agent_id)+'/resolve-universe?limit=20',
@@ -921,8 +927,9 @@ function TradingViewStrategies(){
         }
       );
       if(!e.ok) throw new Error(await e.text());
-      const experiment=await e.json();
+      const experiment=await e.json() as QuantExperiment;
       setAgentResearch(prev=>({...prev,[agent.agent_id]:{
+        ...prev[agent.agent_id],
         loading:false,
         universeCount:universe.count||symbols.length,
         symbols,
@@ -930,11 +937,66 @@ function TradingViewStrategies(){
         status:experiment.status,
         reason:experiment.blocked_reason,
       }}));
+      return experiment;
     }catch(err){
       setAgentResearch(prev=>({...prev,[agent.agent_id]:{
+        ...prev[agent.agent_id],
         loading:false,
         status:'ERROR',
         reason:err instanceof Error?err.message:'연구 준비 오류',
+      }}));
+      return null;
+    }
+  };
+
+  const runValidation=async(agent:LiveAgentPlan)=>{
+    let experimentId=agentResearch[agent.agent_id]?.experimentId;
+    if(!experimentId){
+      const experiment=await prepareResearch(agent);
+      experimentId=experiment?.experiment_id;
+    }
+    if(!experimentId) return;
+
+    setAgentResearch(prev=>({...prev,[agent.agent_id]:{
+      ...prev[agent.agent_id],
+      loading:true,
+      status:'RUNNING',
+      reason:null,
+    }}));
+    try{
+      const r=await fetch(
+        QUANT_API_BASE+'/api/v1/quant/experiments/'+encodeURIComponent(experimentId)+'/run',
+        {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({max_symbols:5,commission_bps:5,slippage_bps:2})
+        }
+      );
+      if(!r.ok) throw new Error(await r.text());
+      const result=await r.json() as QuantExperiment & {
+        agent_state?:{status?:string};
+        agent_status_notification_error?:string | null;
+      };
+      const first=result.validation_summary?.items?.[0];
+      setAgentResearch(prev=>({...prev,[agent.agent_id]:{
+        ...prev[agent.agent_id],
+        loading:false,
+        experimentId,
+        status:result.status,
+        agentStatus:result.agent_state?.status,
+        promotion:result.validation_summary?.promotion,
+        passRatio:result.validation_summary?.pass_ratio,
+        avgHoldoutReturn:result.validation_summary?.avg_holdout_return,
+        walkForwardPassed:first?.validation?.walk_forward?.passed,
+        holdoutPassed:first?.validation?.holdout?.passed,
+        reason:result.agent_status_notification_error||null,
+      }}));
+    }catch(err){
+      setAgentResearch(prev=>({...prev,[agent.agent_id]:{
+        ...prev[agent.agent_id],
+        loading:false,
+        status:'ERROR',
+        reason:err instanceof Error?err.message:'실제 검증 실행 오류',
       }}));
     }
   };
@@ -1083,11 +1145,21 @@ function TradingViewStrategies(){
             <span>{x.country} · {x.market} · {x.universe} · {x.fixed_horizon}</span>
             <div className="actions left">
               <button disabled={Boolean(research?.loading)} onClick={()=>prepareResearch(x)}>
-                {research?.loading?'Universe 분석 중':research?.experimentId?'Quant 실험 등록됨':'Universe 선정 · Quant 실험 등록'}
+                {research?.loading?'처리 중':research?.experimentId?'Quant 실험 재등록':'Universe 선정 · Quant 실험 등록'}
+              </button>
+              <button
+                disabled={Boolean(research?.loading) || (Boolean(research?.status) && !['READY','FAILED','COMPLETED'].includes(String(research?.status)))}
+                onClick={()=>runValidation(x)}
+              >
+                {research?.loading?'검증 실행 중':'실제 Walk-forward · Holdout 실행'}
               </button>
             </div>
-            {research?.experimentId && <small>{research.experimentId} · {research.status} · Universe {research.universeCount||0}종목</small>}
+            {research?.experimentId && <small>{research.experimentId} · Experiment {research.status} · Agent {research.agentStatus||x.status} · Universe {research.universeCount||0}종목</small>}
             {research?.symbols?.length ? <small>{research.symbols.slice(0,8).join(' · ')}{research.symbols.length>8?' …':''}</small> : null}
+            {research?.promotion && <small>
+              {research.promotion} · Walk-forward {research.walkForwardPassed?'PASS':'FAIL'} · Holdout {research.holdoutPassed?'PASS':'FAIL'} ·
+              통과비율 {((research.passRatio||0)*100).toFixed(0)}% · Holdout 평균 {((research.avgHoldoutReturn||0)*100).toFixed(2)}%
+            </small>}
             {research?.reason && <small>{research.reason}</small>}
           </div>;
         })}
