@@ -9,6 +9,8 @@ from app.core.tradingview import (
     collect_scripts,
     complete_missing_script_assets,
     backfill_tradingview_source,
+    build_pending_strategy_candidates,
+    candidate_build_status,
     create_agent_plans,
     create_candidate_from_idea,
     create_candidate_from_script,
@@ -252,6 +254,24 @@ def market_stored(
         }
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+@router.get("/candidates/build-status")
+def candidates_build_status() -> dict:
+    return candidate_build_status()
+
+
+@router.post("/candidates/build")
+def candidates_build(
+    limit: int = Query(default=500, ge=1, le=2000),
+) -> dict:
+    try:
+        return build_pending_strategy_candidates(limit=limit)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"TradingView candidate batch build failed: {type(exc).__name__}: {exc}",
+        ) from exc
+
 
 @router.get("/candidates")
 def candidates(limit: int = Query(default=100, ge=1, le=500)) -> dict:
