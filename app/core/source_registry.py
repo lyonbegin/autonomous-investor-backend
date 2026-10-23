@@ -476,14 +476,20 @@ def _source_aware_targets(
             "target_reason": "원본 전략에 미국/NASDAQ/NYSE/S&P 시장 문맥이 명시됨",
         }], "SOURCE_SPECIFIC")
 
-    if any(token in text for token in ("bitcoin", "btc", "ethereum", "ethus", "crypto", "cryptocurrency")):
+    crypto_tokens = (
+        "bitcoin", "btc", "ethereum", "ethus", "crypto", "cryptocurrency",
+        "binance:", "coinbase:", "bitstamp:", "bitfinex:", "bybit:", "okx:", "gate:",
+    )
+    if any(token in text for token in crypto_tokens):
+        explicit_symbol = str(metadata.get("symbol") or "").strip()
+        universe = explicit_symbol if ":" in explicit_symbol else "원본 전략 명시 크립토 자산군"
         return ([{
             "country": "가상자산",
             "market": "글로벌 크립토",
-            "universe": "원본 전략 명시 크립토 자산군",
+            "universe": universe,
             "scanner_market": "crypto",
-            "target_score": 94.0,
-            "target_reason": "원본 전략에 BTC/ETH/Crypto 문맥이 명시됨",
+            "target_score": 98.0 if explicit_symbol else 94.0,
+            "target_reason": "원본 전략에 크립토 거래소/심볼 문맥이 명시됨",
         }], "SOURCE_SPECIFIC")
 
     fx_tokens = (
