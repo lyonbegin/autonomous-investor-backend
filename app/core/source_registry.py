@@ -6,6 +6,8 @@ import math
 import statistics
 from typing import Any
 
+DISCOVERY_SCORING_VERSION = "market-fit-v3"
+
 from app.core.tradingview import (
     CATEGORY_MARKETS,
     _connect,
@@ -78,6 +80,7 @@ def init_source_registry_db() -> None:
             ("horizon_discovery", "run_id", "TEXT"),
             ("horizon_discovery", "target_score", "REAL NOT NULL DEFAULT 0"),
             ("horizon_discovery", "is_current", "INTEGER NOT NULL DEFAULT 1"),
+            ("horizon_discovery", "scoring_version", "TEXT"),
         ]
         for table, column, definition in migrations:
             try:
@@ -173,7 +176,7 @@ def sync_tradingview_sources(limit: int = 2000) -> dict[str, Any]:
             ORDER BY collected_at DESC
             LIMIT ?
             """,
-            (safe_limit,),
+            (DISCOVERY_SCORING_VERSION, safe_limit),
         ).fetchall()
         scripts = conn.execute(
             """
@@ -381,36 +384,141 @@ def _market_rows(
     return stored, str(stored[0].get("collected_at")) if stored else utcnow()
 
 
+def _feature_values(
+    rows: list[dict[str, Any]],
+    *keys: str,
+    min_value: float | None = None,
+    max_value: float | None = None,
+    reject_zero_dominant: bool = False,
+) -> list[float]:
+    values: list[float] = []
+    for row in rows:
+        value: float | None = None
+        for key in keys:
+            if key not in row or row.get(key) is None:
+                continue
+            try:
+                candidate = float(row.get(key))
+            except (TypeError, ValueError, OverflowError):
+                continue
+            if not math.isfinite(candidate):
+                continue
+            if min_value is not None and candidate < min_value:
+                continue
+            if max_value is not None and candidate > max_value:
+                continue
+            value = candidate
+            break
+        if value is not None:
+            values.append(value)
+
+    if reject_zero_dominant and values:
+        zero_ratio = sum(1 for x in values if abs(x) < 1e-12) / len(values)
+        if zero_ratio >= 0.80:
+            return []
+    return values
+
+
+def _clamp01(value: float) -> float:
+    return max(0.0, min(1.0, value))
+
+
 def _market_fit(category: str, rows: list[dict[str, Any]]) -> tuple[float, str]:
     if not rows:
         return 0.0, "시장 스냅샷 없음"
 
-    rel = _median([_number(r, "relative_volume_10d_calc", "relative_volume") for r in rows], 1.0)
-    adx = _median([_number(r, "ADX", "adx") for r in rows], 20.0)
-    vol = _median([_number(r, "Volatility.D", "volatility_d") for r in rows], 1.0)
-    rsi_dev = _median([abs(_number(r, "RSI", "rsi", default=50.0) - 50.0) for r in rows], 0.0)
-    change = _median([abs(_number(r, "change")) for r in rows], 0.0)
-    rec = _median([abs(_number(r, "Recommend.All", "recommendation")) for r in rows], 0.0)
-    liquid_ratio = sum(1 for r in rows if _number(r, "volume") > 0 and _number(r, "close") > 0) / max(len(rows), 1)
+    rel_values = _feature_values(rows, "relative_volume_10d_calc", "relative_volume", min_value=0.0, max_value=100.0)
+    adx_values = _feature_values(rows, "ADX", "adx", min_value=0.0, max_value=100.0, reject_zero_dominant=True)
+    vol_values = _feature_values(rows, "Volatility.D", "volatility_d", min_value=0.0, max_value=200.0)
+    rsi_values = _feature_values(rows, "RSI", "rsi", min_value=0.0, max_value=100.0, reject_zero_dominant=True)
+    change_values = _feature_values(rows, "change", min_value=-1000.0, max_value=1000.0)
+    rec_values = _feature_values(rows, "Recommend.All", "recommendation", min_value=-1.0, max_value=1.0)
+
+    rel = _median(rel_values, 1.0)
+    adx = _median(adx_values, 20.0)
+    vol = _median(vol_values, 1.0)
+    rsi_dev = _median([abs(x - 50.0) for x in rsi_values], 8.0)
+    change = _median([abs(x) for x in change_values], 0.5)
+    rec = _median([abs(x) for x in rec_values], 0.0)
+
+    liquid_ratio = sum(
+        1 for r in rows
+        if _number(r, "volume") > 0 and _number(r, "close") > 0
+    ) / max(len(rows), 1)
+
+    feature_sets = {
+        "relative_volume": rel_values,
+        "adx": adx_values,
+        "volatility": vol_values,
+        "rsi": rsi_values,
+        "change": change_values,
+        "recommendation": rec_values,
+    }
+    category_features = {
+        "평균회귀": ("relative_volume", "adx", "rsi", "change"),
+        "돌파": ("relative_volume", "adx", "change"),
+        "모멘텀": ("relative_volume", "adx", "change", "recommendation"),
+        "추세추종": ("relative_volume", "adx", "change", "recommendation"),
+        "변동성": ("relative_volume", "volatility", "change"),
+        "크립토": ("relative_volume", "adx", "volatility", "change"),
+    }.get(category, ("relative_volume", "adx", "volatility", "change"))
+    feature_coverage = sum(1 for name in category_features if feature_sets[name]) / max(len(category_features), 1)
 
     if category == "평균회귀":
-        score = rsi_dev * 2.0 + max(0.0, 35.0 - adx) * 0.8 + min(rel, 4.0) * 8.0
+        raw_score = (
+            _clamp01(rsi_dev / 25.0) * 28.0
+            + _clamp01((32.0 - adx) / 22.0) * 18.0
+            + _clamp01((rel - 0.7) / 1.8) * 14.0
+            + _clamp01(change / 5.0) * 10.0
+            + liquid_ratio * 15.0
+        )
     elif category in {"돌파", "모멘텀"}:
-        score = min(rel, 5.0) * 11.0 + min(adx, 50.0) * 0.7 + min(change, 10.0) * 2.0
+        raw_score = (
+            _clamp01((rel - 0.8) / 2.2) * 24.0
+            + _clamp01((adx - 15.0) / 30.0) * 24.0
+            + _clamp01(change / 7.0) * 17.0
+            + _clamp01(rec) * 8.0
+            + liquid_ratio * 15.0
+        )
     elif category == "추세추종":
-        score = min(adx, 60.0) * 1.05 + min(rec, 1.0) * 20.0 + min(rel, 4.0) * 5.0
+        raw_score = (
+            _clamp01((adx - 15.0) / 35.0) * 28.0
+            + _clamp01(rec) * 18.0
+            + _clamp01((rel - 0.7) / 2.0) * 12.0
+            + _clamp01(change / 8.0) * 10.0
+            + liquid_ratio * 15.0
+        )
     elif category == "변동성":
-        score = min(vol, 10.0) * 6.0 + min(rel, 4.0) * 7.0 + min(change, 10.0) * 1.5
+        raw_score = (
+            _clamp01(vol / 8.0) * 28.0
+            + _clamp01((rel - 0.7) / 2.0) * 15.0
+            + _clamp01(change / 8.0) * 20.0
+            + liquid_ratio * 15.0
+        )
     elif category == "크립토":
-        score = min(vol, 12.0) * 4.0 + min(rel, 5.0) * 8.0 + min(adx, 50.0) * 0.5
+        raw_score = (
+            _clamp01(vol / 10.0) * 22.0
+            + _clamp01((rel - 0.7) / 2.3) * 18.0
+            + _clamp01((adx - 12.0) / 35.0) * 18.0
+            + _clamp01(change / 10.0) * 12.0
+            + liquid_ratio * 15.0
+        )
     else:
-        score = min(rel, 4.0) * 8.0 + min(adx, 50.0) * 0.6 + min(vol, 8.0) * 3.0
+        raw_score = (
+            _clamp01((rel - 0.7) / 2.0) * 18.0
+            + _clamp01((adx - 12.0) / 35.0) * 20.0
+            + _clamp01(vol / 10.0) * 18.0
+            + _clamp01(change / 8.0) * 12.0
+            + liquid_ratio * 15.0
+        )
 
-    score += liquid_ratio * 15.0
-    score = round(max(0.0, min(100.0, score)), 2)
+    # Missing/placeholder indicators must not make a market look perfect.
+    coverage_factor = 0.60 + 0.40 * feature_coverage
+    score = round(max(0.0, min(85.0, raw_score * coverage_factor)), 2)
     rationale = (
-        f"상대거래량 중앙값 {rel:.2f}, ADX {adx:.1f}, 변동성 {vol:.2f}, "
-        f"RSI 이격 {rsi_dev:.1f}, 절대등락 {change:.2f}, 유효유동성 {liquid_ratio:.0%}"
+        f"상대거래량 {rel:.2f}, ADX {adx:.1f}, 변동성 {vol:.2f}, "
+        f"RSI 이격 {rsi_dev:.1f}, 절대등락 {change:.2f}, 유효유동성 {liquid_ratio:.0%}, "
+        f"핵심피처 충족 {feature_coverage:.0%}"
     )
     return score, rationale
 
@@ -628,6 +736,7 @@ def discover_candidate_horizons(
                 "rationale": rationale,
                 "evaluated_at": evaluated_at,
                 "is_current": 1,
+                "scoring_version": DISCOVERY_SCORING_VERSION,
             }
             evaluations.append(item)
 
@@ -651,8 +760,8 @@ def discover_candidate_horizons(
             INSERT INTO horizon_discovery (
                 discovery_id,run_id,candidate_id,registry_source_id,source_id,origin_source_id,
                 horizon,country,market,universe,scanner_market,fit_score,market_score,
-                horizon_score,source_score,target_score,status,rationale,evaluated_at,is_current
-            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                horizon_score,source_score,target_score,status,rationale,evaluated_at,is_current,scoring_version
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             """,
             [
                 (
@@ -660,7 +769,7 @@ def discover_candidate_horizons(
                     x["source_id"], x["origin_source_id"], x["horizon"], x["country"],
                     x["market"], x["universe"], x["scanner_market"], x["fit_score"],
                     x["market_score"], x["horizon_score"], x["source_score"], x["target_score"],
-                    x["status"], x["rationale"], x["evaluated_at"], 1,
+                    x["status"], x["rationale"], x["evaluated_at"], 1, x["scoring_version"],
                 )
                 for x in evaluations
             ],
@@ -702,11 +811,12 @@ def discover_candidate_horizons(
         "source": source,
         "category": category,
         "market_match_mode": match_mode,
-        "engine": "Horizon Discovery prescreen v2 source-aware",
+        "engine": "Horizon Discovery prescreen v3 source-aware + data-quality guard",
         "note": "적합도는 백테스트 수익률이 아니라 원본 전략 시장문맥·고정기간·현재 시장상태의 사전 적합도입니다.",
         "count": len(evaluations),
         "items": evaluations,
         "evaluated_at": evaluated_at,
+        "scoring_version": DISCOVERY_SCORING_VERSION,
     }
 
 
@@ -722,13 +832,16 @@ def discovery_queue_status() -> dict[str, Any]:
             FROM horizon_discovery d
             JOIN strategy_candidates c ON c.candidate_id = d.candidate_id
             WHERE d.is_current = 1
+              AND COALESCE(d.scoring_version,'') = ?
               AND c.source_kind = 'TradingViewPineStrategy'
-            """
+            """,
+            (DISCOVERY_SCORING_VERSION,),
         ).fetchone()[0])
     return {
         "total_candidates": total,
         "discovered_candidates": discovered,
         "remaining": max(0, total - discovered),
+        "scoring_version": DISCOVERY_SCORING_VERSION,
     }
 
 
@@ -747,6 +860,7 @@ def batch_discover_pending_candidates(
             LEFT JOIN horizon_discovery d
               ON d.candidate_id = c.candidate_id
              AND d.is_current = 1
+             AND COALESCE(d.scoring_version,'') = ?
             WHERE c.source_kind = 'TradingViewPineStrategy'
             GROUP BY c.candidate_id, c.updated_at
             HAVING last_discovery IS NULL
@@ -813,11 +927,12 @@ def discovery_leaderboard(
             FROM horizon_discovery d
             JOIN strategy_candidates c ON c.candidate_id = d.candidate_id
             WHERE d.is_current = 1
+              AND COALESCE(d.scoring_version,'') = ?
               AND d.fit_score >= ?
             ORDER BY d.fit_score DESC, d.source_score DESC, d.evaluated_at DESC
             LIMIT ?
             """,
-            (float(min_score), safe_limit),
+            (DISCOVERY_SCORING_VERSION, float(min_score), safe_limit),
         ).fetchall()
     return [dict(row) for row in rows]
 
@@ -834,9 +949,10 @@ def list_candidate_discovery(
                 """
                 SELECT * FROM horizon_discovery
                 WHERE candidate_id = ? AND is_current = 1
+                  AND COALESCE(scoring_version,'') = ?
                 ORDER BY fit_score DESC, market ASC, horizon ASC
                 """,
-                (candidate_id,),
+                (candidate_id, DISCOVERY_SCORING_VERSION),
             ).fetchall()
         else:
             rows = conn.execute(
