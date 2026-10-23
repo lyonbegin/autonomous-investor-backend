@@ -30,7 +30,7 @@ CORPORATE_FILTER = {"left": "typespecs", "operation": "has", "right": "corporate
 # worker threads share this limiter so concurrency cannot turn into a burst.
 _QUERY_LOCK = threading.Lock()
 _NEXT_QUERY_AT = 0.0
-_QUERY_INTERVAL_SECONDS = 0.8
+_QUERY_INTERVAL_SECONDS = 0.55
 _MAX_QUERY_RETRIES = 12
 
 # Four disjoint areas cover the current public corporate-bond universe.
@@ -713,7 +713,7 @@ def corporate_bond_backfill(
 
     results: list[dict[str, Any]] = []
     if tasks:
-        with ThreadPoolExecutor(max_workers=min(2, len(tasks))) as executor:
+        with ThreadPoolExecutor(max_workers=min(4, len(tasks))) as executor:
             futures = [
                 executor.submit(_process_task, dict(task), safe_pages)
                 for task in tasks
@@ -727,7 +727,7 @@ def corporate_bond_backfill(
         "scan_id": scan_id,
         "source_total": int(state.get("source_total") or 0),
         "selected_tasks": len(tasks),
-        "workers": min(2, max(1, len(tasks))),
+        "workers": min(4, max(1, len(tasks))),
         "pages_per_task": safe_pages,
         "tasks_completed_this_run": sum(1 for x in results if x.get("complete")),
         "rows_added_this_run": sum(int(x.get("added") or 0) for x in results),
