@@ -1487,7 +1487,21 @@ function MiniLines({lines}:{lines:string[]}){return <>{lines.map(l=><div classNa
 function Audit(){return <><SectionHeader title="의사결정 / 근거 추적" eyebrow="에이전트·전략·예측·주문이 왜 만들어졌는지 재현" actions={['추적 기록 내보내기']} /><div className="panel"><div className="trace"><TraceNode title="SOURCE" text="TV-021 · original URL · author · hash"/><TraceNode title="HORIZON EVIDENCE" text="10m selected with independent holdout"/><TraceNode title="STRATEGY LINEAGE" text="L-101 · fixed_horizon=10m · immutable"/><TraceNode title="INVESTOR ASSIGNMENT" text="A-043 · 평가자산 Growth"/><TraceNode title="VERSION" text="Champion v1.4"/><TraceNode title="PREDICTION" text="P-8821 · created before outcome"/><TraceNode title="RISK" text="Local PASS → Global PASS"/><TraceNode title="EXECUTION" text="Nautilus → Broker fill #1882"/><TraceNode title="LEDGER" text="A-043 / L-101 virtual fill attribution"/><TraceNode title="REALITY" text="Forecast +0.30% · Actual +0.10%"/><TraceNode title="EVOLUTION" text="Challenger v1.5 proposed"/></div></div></>}
 function TraceNode({title,text}:{title:string;text:string}){return <div className="trace-node"><Badge tone="cyan">{title}</Badge><b>{text}</b></div>}
 
-function System(){return <><SectionHeader title="시스템 상태" eyebrow="설치된 퀀트 엔진과 구축 중인 제품 엔진"/><div className="grid two"><div className="panel"><div className="panel-title"><b>퀀트 / 매매 엔진</b></div>{['TradingAgents','FinRobot','RD-Agent','Qlib','Chronos','Stable-Baselines3','Ray RLlib','vectorbt','FinRL','Riskfolio','PyPortfolioOpt','NautilusTrader'].map(x=><div className="row-line" key={x}><span>{x}</span><Badge tone="green">설치완료</Badge></div>)}</div><div className="panel"><div className="panel-title"><b>제품 기능 엔진</b><span>프론트 기능 구조 우선 설계</span></div>{['Source Registry','Pine Importer','Horizon Discovery','예측 원장','가상 에이전트 원장','Capital Allocator','Population Controller','Evolution Engine','Broker Reconciliation'].map(x=><div className="row-line" key={x}><span>{x}</span><Badge tone="amber">구축예정</Badge></div>)}</div></div></>}
+function System(){
+  const productEngines:[string,'LIVE'|'PARTIAL'|'PLANNED'][]=[
+    ['Source Registry','LIVE'],
+    ['TradingView Collector','LIVE'],
+    ['Horizon Discovery','LIVE'],
+    ['Agent Factory','LIVE'],
+    ['Pine Importer','PARTIAL'],
+    ['예측 원장','PLANNED'],
+    ['Capital Allocator','PLANNED'],
+    ['Population Controller','PLANNED'],
+    ['Evolution Engine','PLANNED'],
+    ['Broker Reconciliation','PLANNED'],
+  ];
+  return <><SectionHeader title="시스템 상태" eyebrow="실제 배포 엔진과 다음 구축 대상을 구분"/><div className="grid two"><div className="panel"><div className="panel-title"><b>퀀트 / 매매 엔진</b></div>{['TradingAgents','FinRobot','RD-Agent','Qlib','Chronos','Stable-Baselines3','Ray RLlib','vectorbt','FinRL','Riskfolio','PyPortfolioOpt','NautilusTrader'].map(x=><div className="row-line" key={x}><span>{x}</span><Badge tone="green">설치완료</Badge></div>)}</div><div className="panel"><div className="panel-title"><b>제품 기능 엔진</b><span>실제 배포 상태</span></div>{productEngines.map(([name,state])=><div className="row-line" key={name}><span>{name}</span><Badge tone={state==='LIVE'?'green':state==='PARTIAL'?'cyan':'amber'}>{state==='LIVE'?'운영중':state==='PARTIAL'?'부분연결':'다음 구축'}</Badge></div>)}</div></div></>;
+}
 
 function Settings(){return <><SectionHeader title="설정" eyebrow="정책·제약·안전 설정"/><div className="grid two"><div className="panel"><div className="panel-title"><b>영역 / 에이전트 수 정책</b></div><label>영역별 최소 연구 에이전트 수<input value="10" readOnly/></label><label>전체 최대 허용 낙폭<input value="10%" readOnly/></label><label>최대 레버리지<input value="1.5x" readOnly/></label></div><div className="panel"><div className="panel-title"><b>전략 계보 고정 규칙</b></div><dl className="kv"><dt>전략 계보 ID</dt><dd>LOCKED</dd><dt>원천 전략</dt><dd>LOCKED</dd><dt>고정 시간축</dt><dd>LOCKED</dd><dt>전략 버전</dt><dd>EVOLVES via Champion / Challenger</dd></dl></div></div><div className="panel danger-zone"><div className="panel-title"><b>실전 매매 안전장치</b><Badge tone="red">고위험 조작</Badge></div><button>신규 주문 일시정지</button><button>미체결 주문 취소</button><button className="kill">긴급 전체정지</button></div></>}
 
