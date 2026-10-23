@@ -1109,6 +1109,28 @@ def list_stored_scripts(limit: int = 200) -> list[dict[str, Any]]:
     return [dict(row) for row in rows]
 
 
+def search_stored_scripts(query: str, limit: int = 50) -> list[dict[str, Any]]:
+    init_db()
+    needle = f"%{str(query or '').strip()}%"
+    safe_limit = min(max(int(limit), 1), 200)
+    with _connect() as conn:
+        rows = conn.execute(
+            """
+            SELECT script_id_part,script_id,name,author,script_type,script_access,version,
+                   likes_count,comments_count,views_count,created_at,updated_at,chart_url,image_url,
+                   symbol,interval,is_picked,is_hot,description,collected_at
+            FROM community_scripts
+            WHERE name LIKE ? COLLATE NOCASE
+               OR description LIKE ? COLLATE NOCASE
+               OR symbol LIKE ? COLLATE NOCASE
+            ORDER BY is_picked DESC, likes_count DESC, collected_at DESC
+            LIMIT ?
+            """,
+            (needle, needle, needle, safe_limit),
+        ).fetchall()
+    return [dict(row) for row in rows]
+
+
 def fetch_script_source(script_id_part: str, version: str = "last") -> dict[str, Any]:
     init_db()
     with _connect() as conn:
