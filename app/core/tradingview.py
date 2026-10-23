@@ -1165,6 +1165,33 @@ def _prescreen_score(category: str, row: dict[str, Any]) -> tuple[float, str]:
         rationale = f"상대거래량 {rel:.2f}, ADX {adx:.1f}, 거래대금 {turnover:,.0f}"
     return round(score, 4), rationale
 
+def _explicit_universe_tickers(plan: dict[str, Any]) -> list[str]:
+    label = str(plan.get("universe") or "")
+    normalized = (
+        label.replace("↔", " ")
+        .replace("·", " ")
+        .replace(",", " ")
+        .replace("(", " ")
+        .replace(")", " ")
+        .replace("[", " ")
+        .replace("]", " ")
+    )
+    tickers: list[str] = []
+    for token in normalized.split():
+        token = token.strip()
+        if ":" not in token:
+            continue
+        exchange, symbol = token.split(":", 1)
+        if not exchange or not symbol:
+            continue
+        if not exchange.replace("_", "").isalnum():
+            continue
+        qualified = f"{exchange.upper()}:{symbol.upper()}"
+        if qualified not in tickers:
+            tickers.append(qualified)
+    return tickers
+
+
 def resolve_agent_universe(agent_id: str, limit: int = 20) -> dict[str, Any]:
     init_db()
     safe_limit = min(max(int(limit), 1), 100)
@@ -1181,6 +1208,69 @@ def resolve_agent_universe(agent_id: str, limit: int = 20) -> dict[str, Any]:
             (plan["candidate_id"],),
         ).fetchone()
     category = str(candidate_row["category"]) if candidate_row is not None else "아이디어 기반"
+
+    if str(plan.get("status") or "").startswith("RETIRED"):
+        return {
+            "agent_id": agent_id,
+            "candidate_id": plan["candidate_id"],
+            "resolved": False,
+            "reason": f"Agent plan is retired: {plan.get('status')}",
+            "items": [],
+        }
+
+    explicit_tickers = _explicit_universe_tickers(plan)
+    if explicit_tickers:
+        now = utcnow()
+        selected = [
+            {
+                "ticker": ticker,
+                "name": ticker,
+                "exchange": ticker.split(":", 1)[0],
+                "prescreen_score": 100.0,
+                "rationale": "원본 전략이 명시한 고정 Universe 심볼 — Scanner 랭킹으로 대체하지 않음",
+                "rsi": None,
+                "adx": None,
+                "relative_volume": None,
+                "volatility_d": None,
+                "change": None,
+                "market_cap": None,
+                "turnover": None,
+            }
+            for ticker in explicit_tickers[:safe_limit]
+        ]
+        with _connect() as conn:
+            conn.execute("DELETE FROM agent_universe_members WHERE agent_id = ?", (agent_id,))
+            conn.executemany(
+                """
+                INSERT INTO agent_universe_members (
+                    agent_id,ticker,rank_index,prescreen_score,rationale,snapshot_at,resolved_at
+                ) VALUES (?,?,?,?,?,?,?)
+                """,
+                [
+                    (
+                        agent_id,
+                        x["ticker"],
+                        rank_index,
+                        x["prescreen_score"],
+                        x["rationale"],
+                        now,
+                        now,
+                    )
+                    for rank_index, x in enumerate(selected, start=1)
+                ],
+            )
+        return {
+            "agent_id": agent_id,
+            "candidate_id": plan["candidate_id"],
+            "category": category,
+            "fixed_horizon": plan["fixed_horizon"],
+            "resolved": True,
+            "method": "EXPLICIT_SOURCE_UNIVERSE",
+            "snapshot_at": now,
+            "count": len(selected),
+            "items": selected,
+        }
+
     scanner_market = _scanner_market_for_agent(plan)
     if scanner_market is None:
         return {
