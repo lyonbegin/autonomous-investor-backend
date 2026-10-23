@@ -11,6 +11,8 @@ from urllib.error import HTTPError
 
 from app.core.toss_market import base_interval_for_horizon, credentials_configured
 from app.core.macro_data import macro_ready
+from app.core.market_history import fetch_history_for_agent
+from app.core.strategy_spec import StrategySpecError, compile_pine_to_spec, run_validation
 
 DB_PATH = os.getenv("QUANT_DB_PATH", "/tmp/quant_lab.sqlite3")
 TRADINGVIEW_SERVICE_URL = os.getenv(
@@ -96,6 +98,17 @@ def init_db() -> None:
             );
             """
         )
+        migrations = [
+            ("experiments", "strategy_spec_json", "TEXT"),
+            ("experiments", "source_hash", "TEXT"),
+            ("experiments", "validation_summary_json", "TEXT"),
+            ("experiments", "completed_at", "TEXT"),
+        ]
+        for table, column, definition in migrations:
+            try:
+                conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")
+            except sqlite3.OperationalError:
+                pass
 
 
 def _json_request(url: str, method: str = "GET") -> dict[str, Any]:
@@ -135,9 +148,8 @@ def resolve_agent_symbols(agent_id: str, limit: int = 20) -> list[str]:
         ticker = str(item.get("ticker") or "").strip()
         if not ticker:
             continue
-        broker_symbol = ticker.split(":", 1)[-1]
-        if broker_symbol and broker_symbol not in symbols:
-            symbols.append(broker_symbol)
+        if ticker and ticker not in symbols:
+            symbols.append(ticker)
     return symbols
 
 
@@ -168,39 +180,55 @@ def _default_validation_plan() -> dict[str, Any]:
     }
 
 
-def _toss_supported_for_plan(plan: dict[str, Any]) -> bool:
-    country = str(plan.get("country") or "").lower()
-    market = str(plan.get("market") or "").lower()
-    if "가상자산" in country or country == "fx":
-        return False
-    if "선물" in country or "cme" in market or "선물" in market:
-        return False
-    return any(
-        token in country or token in market
-        for token in ("한국", "미국", "etf", "kospi", "kosdaq", "nasdaq", "nyse")
-    )
+def _source_spec(source_id: str) -> tuple[dict[str, Any] | None, str | None]:
+    from urllib.parse import quote
+
+    try:
+        payload = _json_request(
+            f"{TRADINGVIEW_SERVICE_URL}/api/v1/tradingview/scripts/{quote(source_id, safe='')}/source"
+        )
+        if not payload.get("ok"):
+            return None, str(payload.get("reason") or "Pine source unavailable")
+        source = str(payload.get("source") or "")
+        if not source:
+            return None, "Pine source is empty"
+        return compile_pine_to_spec(source_id, source), None
+    except StrategySpecError as exc:
+        return None, str(exc)
+    except Exception as exc:
+        return None, f"{type(exc).__name__}: {exc}"
 
 
-def _initial_blocker(plan: dict[str, Any], symbols: list[str]) -> tuple[str, str | None]:
+def _history_supported(plan: dict[str, Any], symbols: list[str]) -> tuple[bool, str | None]:
     if not symbols:
-        return (
-            "BLOCKED_UNIVERSE",
-            "TradingView market pre-screen did not resolve concrete instrument symbols for this Agent.",
-        )
-    if not _toss_supported_for_plan(plan):
-        return (
-            "BLOCKED_DATA_SOURCE",
-            "This asset class is outside Toss Securities KR/US stock candle coverage; a matching historical data provider is required.",
-        )
-    if not credentials_configured():
-        return (
-            "BLOCKED_DATA_SOURCE",
-            "Toss Open API credentials are not configured in Railway.",
-        )
-    return (
-        "BLOCKED_STRATEGY_ENGINE",
-        "Historical data can be requested, but a licensed/sandboxed Pine or StrategySpec executor has not been attached yet.",
-    )
+        return False, "TradingView market pre-screen did not resolve concrete instrument symbols for this Agent."
+    text = " ".join([
+        str(plan.get("country") or ""),
+        str(plan.get("market") or ""),
+        " ".join(symbols),
+    ]).lower()
+    if any(token in text for token in ("vn30", "hose:", "hnx:", "외환", " forex", "fx ")):
+        return False, "Historical provider for this FX/Vietnam futures market is not connected yet."
+    unsupported_exchanges = ("gate:", "bybit:", "okx:")
+    if any(token in text for token in unsupported_exchanges):
+        return False, "Historical provider for this crypto exchange is not connected yet."
+    return True, None
+
+
+def _initial_blocker(
+    plan: dict[str, Any],
+    symbols: list[str],
+    spec: dict[str, Any] | None,
+    spec_error: str | None,
+) -> tuple[str, str | None]:
+    if not symbols:
+        return "BLOCKED_UNIVERSE", "TradingView market pre-screen did not resolve concrete instrument symbols for this Agent."
+    if spec is None:
+        return "BLOCKED_STRATEGY_ENGINE", f"StrategySpec-v1 unsupported Pine semantics: {spec_error or 'unknown'}"
+    history_ok, history_reason = _history_supported(plan, symbols)
+    if not history_ok:
+        return "BLOCKED_DATA_SOURCE", history_reason
+    return "READY", None
 
 
 def create_experiment(agent_id: str, symbols: list[str] | None = None) -> dict[str, Any]:
@@ -214,18 +242,23 @@ def create_experiment(agent_id: str, symbols: list[str] | None = None) -> dict[s
             symbol_list = resolve_agent_symbols(agent_id, limit=20)
         except Exception:
             symbol_list = []
+
+    spec, spec_error = _source_spec(str(plan["source_id"]))
+    source_hash = str((spec or {}).get("source_hash") or "")
     identity = "|".join(
         [
             agent_id,
-            plan["source_id"],
-            plan["fixed_horizon"],
+            str(plan["source_id"]),
+            str(plan["fixed_horizon"]),
             ",".join(symbol_list),
+            source_hash,
         ]
     )
     experiment_id = "EXP-" + hashlib.sha1(identity.encode()).hexdigest()[:14].upper()
-    status, reason = _initial_blocker(plan, symbol_list)
+    status, reason = _initial_blocker(plan, symbol_list, spec, spec_error)
     now = utcnow()
     validation_plan = _default_validation_plan()
+    data_source = "Yahoo Finance chart API / Binance public klines"
 
     with _connect() as conn:
         conn.execute(
@@ -242,7 +275,7 @@ def create_experiment(agent_id: str, symbols: list[str] | None = None) -> dict[s
               )
             """,
             (
-                f"Superseded by {experiment_id} because the Agent experiment inputs/universe changed.",
+                f"Superseded by {experiment_id} because the Agent experiment inputs/source changed.",
                 now,
                 agent_id,
                 experiment_id,
@@ -253,12 +286,17 @@ def create_experiment(agent_id: str, symbols: list[str] | None = None) -> dict[s
             INSERT INTO experiments (
                 experiment_id,agent_id,candidate_id,source_id,fixed_horizon,country,market,universe,
                 symbols_json,data_source,base_interval,strategy_engine,validation_plan,status,
-                blocked_reason,created_at,updated_at
-            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                blocked_reason,created_at,updated_at,strategy_spec_json,source_hash
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             ON CONFLICT(experiment_id) DO UPDATE SET
                 symbols_json=excluded.symbols_json,
+                data_source=excluded.data_source,
+                strategy_engine=excluded.strategy_engine,
+                validation_plan=excluded.validation_plan,
                 status=excluded.status,
                 blocked_reason=excluded.blocked_reason,
+                strategy_spec_json=excluded.strategy_spec_json,
+                source_hash=excluded.source_hash,
                 updated_at=excluded.updated_at
             """,
             (
@@ -271,14 +309,16 @@ def create_experiment(agent_id: str, symbols: list[str] | None = None) -> dict[s
                 plan["market"],
                 plan["universe"],
                 json.dumps(symbol_list, ensure_ascii=False),
-                "Toss Securities Open API",
+                data_source,
                 base_interval_for_horizon(plan["fixed_horizon"]),
-                "UNASSIGNED",
+                "StrategySpec-v1" if spec else "UNSUPPORTED_PINE",
                 json.dumps(validation_plan, ensure_ascii=False),
                 status,
                 reason,
                 now,
                 now,
+                json.dumps(spec, ensure_ascii=False) if spec else None,
+                source_hash or None,
             ),
         )
     return get_experiment(experiment_id)
@@ -296,6 +336,8 @@ def get_experiment(experiment_id: str) -> dict[str, Any]:
     item = dict(row)
     item["symbols"] = json.loads(item.pop("symbols_json"))
     item["validation_plan"] = json.loads(item["validation_plan"])
+    item["strategy_spec"] = json.loads(item["strategy_spec_json"]) if item.get("strategy_spec_json") else None
+    item["validation_summary"] = json.loads(item["validation_summary_json"]) if item.get("validation_summary_json") else None
     return item
 
 
@@ -319,7 +361,13 @@ def update_symbols(experiment_id: str, symbols: list[str]) -> dict[str, Any]:
         "market": current["market"],
         "universe": current["universe"],
     }
-    status, reason = _initial_blocker(plan, symbol_list)
+    spec = current.get("strategy_spec")
+    status, reason = _initial_blocker(
+        plan,
+        symbol_list,
+        spec,
+        None if spec else "StrategySpec not compiled",
+    )
     now = utcnow()
     with _connect() as conn:
         conn.execute(
@@ -339,9 +387,193 @@ def update_symbols(experiment_id: str, symbols: list[str]) -> dict[str, Any]:
     return get_experiment(experiment_id)
 
 
+def _result_id(experiment_id: str, stage: str) -> str:
+    return "RES-" + hashlib.sha1(f"{experiment_id}|{stage}|{utcnow()}".encode()).hexdigest()[:16].upper()
+
+
+def list_experiment_results(experiment_id: str) -> list[dict[str, Any]]:
+    init_db()
+    with _connect() as conn:
+        rows = conn.execute(
+            """
+            SELECT * FROM experiment_results
+            WHERE experiment_id=?
+            ORDER BY created_at ASC
+            """,
+            (experiment_id,),
+        ).fetchall()
+    out: list[dict[str, Any]] = []
+    for row in rows:
+        item = dict(row)
+        item["metrics"] = json.loads(item.pop("metrics_json") or "{}")
+        item["diagnostics"] = json.loads(item.pop("diagnostics_json") or "{}")
+        out.append(item)
+    return out
+
+
+def run_experiment(
+    experiment_id: str,
+    *,
+    max_symbols: int = 5,
+    commission_bps: float = 5.0,
+    slippage_bps: float = 2.0,
+) -> dict[str, Any]:
+    experiment = get_experiment(experiment_id)
+    if experiment["status"] != "READY":
+        raise RuntimeError(
+            f"experiment is not READY: {experiment['status']} - {experiment.get('blocked_reason') or ''}"
+        )
+    spec = experiment.get("strategy_spec")
+    if not spec:
+        raise RuntimeError("StrategySpec is missing")
+
+    symbols = list(experiment.get("symbols") or [])[: min(max(int(max_symbols), 1), 20)]
+    now = utcnow()
+    with _connect() as conn:
+        conn.execute(
+            "UPDATE experiments SET status='RUNNING', blocked_reason=NULL, updated_at=? WHERE experiment_id=?",
+            (now, experiment_id),
+        )
+
+    per_symbol: list[dict[str, Any]] = []
+    failures: list[dict[str, str]] = []
+    for symbol in symbols:
+        try:
+            history = fetch_history_for_agent(
+                symbol,
+                horizon=str(experiment["fixed_horizon"]),
+                market=str(experiment["market"]),
+                country=str(experiment["country"]),
+            )
+            bars = list(history.get("bars") or [])
+            validation = run_validation(
+                spec,
+                bars,
+                folds=5,
+                holdout_fraction=0.20,
+                commission_bps=commission_bps,
+                slippage_bps=slippage_bps,
+            )
+            item = {
+                "symbol": symbol,
+                "provider": history.get("provider"),
+                "provider_symbol": history.get("provider_symbol"),
+                "base_interval": history.get("base_interval"),
+                "effective_interval": history.get("effective_interval"),
+                "bar_count": len(bars),
+                "validation": validation,
+            }
+            per_symbol.append(item)
+
+            with _connect() as conn:
+                for stage, payload in [
+                    ("WALK_FORWARD", validation["walk_forward"]),
+                    ("HOLDOUT", validation["holdout"]),
+                ]:
+                    conn.execute(
+                        """
+                        INSERT INTO experiment_results (
+                            result_id,experiment_id,stage,data_start,data_end,data_hash,
+                            metrics_json,diagnostics_json,created_at
+                        ) VALUES (?,?,?,?,?,?,?,?,?)
+                        """,
+                        (
+                            _result_id(experiment_id, f"{symbol}:{stage}"),
+                            experiment_id,
+                            f"{stage}:{symbol}",
+                            str(bars[0]["timestamp"]) if bars else None,
+                            str(bars[-1]["timestamp"]) if bars else None,
+                            hashlib.sha256(
+                                json.dumps(bars, separators=(",", ":"), sort_keys=True).encode()
+                            ).hexdigest(),
+                            json.dumps(payload.get("metrics") or payload, ensure_ascii=False),
+                            json.dumps(
+                                {
+                                    "symbol": symbol,
+                                    "provider": history.get("provider"),
+                                    "effective_interval": history.get("effective_interval"),
+                                    "passed": payload.get("passed"),
+                                },
+                                ensure_ascii=False,
+                            ),
+                            utcnow(),
+                        ),
+                    )
+        except Exception as exc:
+            failures.append({"symbol": symbol, "error": f"{type(exc).__name__}: {exc}"})
+
+    passed_items = [x for x in per_symbol if bool(x["validation"].get("passed"))]
+    pass_ratio = len(passed_items) / len(per_symbol) if per_symbol else 0.0
+    avg_holdout_return = (
+        sum(float(x["validation"]["holdout"]["metrics"]["net_return"]) for x in per_symbol) / len(per_symbol)
+        if per_symbol else 0.0
+    )
+    promoted = bool(per_symbol and pass_ratio >= 0.40 and avg_holdout_return > 0)
+    final_status = "COMPLETED" if promoted else "FAILED"
+    summary = {
+        "symbols_requested": symbols,
+        "symbols_completed": len(per_symbol),
+        "symbols_failed": len(failures),
+        "passed_symbols": len(passed_items),
+        "pass_ratio": pass_ratio,
+        "avg_holdout_return": avg_holdout_return,
+        "promotion": "PAPER_CANDIDATE" if promoted else "REJECTED",
+        "performance_semantics": "normalized StrategySpec signal backtest; not TradingView Strategy Tester parity",
+        "commission_bps": commission_bps,
+        "slippage_bps": slippage_bps,
+        "items": per_symbol,
+        "failures": failures,
+    }
+    completed_at = utcnow()
+    with _connect() as conn:
+        conn.execute(
+            """
+            UPDATE experiments
+            SET status=?, validation_summary_json=?, completed_at=?, updated_at=?
+            WHERE experiment_id=?
+            """,
+            (
+                final_status,
+                json.dumps(summary, ensure_ascii=False),
+                completed_at,
+                completed_at,
+                experiment_id,
+            ),
+        )
+        decision_id = "DEC-" + hashlib.sha1(
+            f"{experiment_id}|{completed_at}|{summary['promotion']}".encode()
+        ).hexdigest()[:16].upper()
+        conn.execute(
+            """
+            INSERT INTO promotion_decisions (
+                decision_id,experiment_id,from_stage,to_stage,decision,reasons_json,created_at
+            ) VALUES (?,?,?,?,?,?,?)
+            """,
+            (
+                decision_id,
+                experiment_id,
+                "RESEARCH",
+                "PAPER_CANDIDATE" if promoted else "REJECTED",
+                "PROMOTE" if promoted else "REJECT",
+                json.dumps(
+                    {
+                        "pass_ratio": pass_ratio,
+                        "avg_holdout_return": avg_holdout_return,
+                        "symbols_completed": len(per_symbol),
+                        "failures": failures,
+                    },
+                    ensure_ascii=False,
+                ),
+                completed_at,
+            ),
+        )
+    result = get_experiment(experiment_id)
+    result["results"] = list_experiment_results(experiment_id)
+    return result
+
+
 def readiness() -> dict[str, Any]:
     toss_ready = credentials_configured()
-    pine_engine_url = os.getenv("PINE_ENGINE_URL")
     return {
         "service": "quant-lab-control",
         "status": "ok",
@@ -355,9 +587,13 @@ def readiness() -> dict[str, Any]:
             }
         },
         "strategy_execution": {
-            "pine_engine_configured": bool(pine_engine_url),
-            "pine_engine_url": pine_engine_url,
-            "policy": "Do not fabricate performance. Experiment stays blocked until a licensed/sandboxed executor is attached.",
+            "strategy_spec_v1": True,
+            "policy": "Compile only the supported Pine subset. Unsupported semantics are rejected explicitly; no fabricated performance.",
+        },
+        "public_history": {
+            "yahoo_finance_chart": True,
+            "binance_public_klines": True,
+            "coverage": "US/KR stock-like symbols and BINANCE crypto; unsupported exchanges remain blocked.",
         },
         "quant_engines": {
             "integrated_service": INTEGRATED_SERVICE_URL,
@@ -397,7 +633,8 @@ def pipeline_status() -> dict[str, Any]:
         tv_ready = False
 
     toss_ready = credentials_configured()
-    pine_ready = bool(os.getenv("PINE_ENGINE_URL"))
+    pine_ready = True
+    public_history_ready = True
     macro_data_ready = macro_ready()
 
     stages = [
@@ -479,8 +716,8 @@ def pipeline_status() -> dict[str, Any]:
             "name": "Walk-forward Test",
             "engines": ["vectorbt", "Qlib"],
             "engine_ready": ready("vectorbt", "qlib"),
-            "state": "BLOCKED_STRATEGY_ENGINE" if not pine_ready else ("BLOCKED_DATA_SOURCE" if not toss_ready else "READY"),
-            "blocker": "Pine/StrategySpec 실행기 미연결" if not pine_ready else ("실제 OHLCV 자격증명 미설정" if not toss_ready else None),
+            "state": "READY" if public_history_ready else "BLOCKED_DATA_SOURCE",
+            "blocker": None if public_history_ready else "실제 OHLCV 데이터 소스 미연결",
         },
         {
             "order": 10,
@@ -515,8 +752,8 @@ def pipeline_status() -> dict[str, Any]:
             "name": "Paper Trading",
             "engines": ["NautilusTrader"],
             "engine_ready": ready("nautilus"),
-            "state": "BLOCKED_STRATEGY_ENGINE" if not pine_ready else ("BLOCKED_DATA_SOURCE" if not toss_ready else "READY"),
-            "blocker": "검증 가능한 전략 실행기 미연결" if not pine_ready else ("시세/브로커 데이터 자격증명 미설정" if not toss_ready else None),
+            "state": "READY",
+            "blocker": "StrategySpec-v1 검증 통과 Agent만 Paper 후보로 승격",
         },
         {
             "order": 14,
@@ -536,6 +773,8 @@ def pipeline_status() -> dict[str, Any]:
         "tradingview_ready": tv_ready,
         "toss_ready": toss_ready,
         "pine_executor_ready": pine_ready,
+        "strategy_spec_ready": True,
+        "public_history_ready": public_history_ready,
         "macro_data_ready": macro_data_ready,
         "stages": stages,
     }
