@@ -28,7 +28,7 @@ def _clean_source(source: str) -> str:
 
 
 def _input_value(expr: str) -> float | int | bool | str | None:
-    match = re.match(r"input\.(?:int|float|bool|string)\s*\((.*)\)\s*$", expr.strip())
+    match = re.match(r"(?:input(?:\.(?:int|float|bool|string))?)\s*\((.*)\)\s*$", expr.strip())
     if not match:
         return None
     body = match.group(1)
@@ -49,6 +49,20 @@ def _normalize_expr(expr: str) -> str:
     value = re.sub(r"\btrue\b", "True", value, flags=re.I)
     value = re.sub(r"\bfalse\b", "False", value, flags=re.I)
     value = re.sub(r"\bna\b", "float('nan')", value)
+    # Pine v4 global TA functions map to the same StrategySpec-v1 primitives.
+    aliases = {
+        "ema": "ta.ema",
+        "sma": "ta.sma",
+        "rsi": "ta.rsi",
+        "atr": "ta.atr",
+        "highest": "ta.highest",
+        "lowest": "ta.lowest",
+        "crossover": "ta.crossover",
+        "crossunder": "ta.crossunder",
+        "change": "ta.change",
+    }
+    for old, new in aliases.items():
+        value = re.sub(rf"(?<![\w.]){old}\s*\(", new + "(", value)
     return value
 
 
@@ -178,19 +192,26 @@ def compile_pine_to_spec(source_id: str, source: str) -> dict[str, Any]:
         "supported_semantics": sorted(SUPPORTED_TA),
     }
 
-    # Parse every expression now so unsupported syntax fails before a backtest.
-    for expr in [
-        *expressions.values(),
-        spec["entry_long"],
-        spec["entry_short"],
-        spec["exit_long"],
-        spec["exit_short"],
-    ]:
-        if expr:
-            try:
-                ast.parse(expr, mode="eval")
-            except SyntaxError as exc:
-                raise StrategySpecError(f"unsupported Pine expression: {expr[:160]}") from exc
+    # Validate only the expression dependency graph that can affect orders.
+    # Plotting/color/date-display helpers must not block an otherwise executable strategy.
+    visited: set[str] = set()
+
+    def validate_expr(expr: str | None) -> None:
+        if not expr:
+            return
+        try:
+            tree = ast.parse(expr, mode="eval")
+        except SyntaxError as exc:
+            raise StrategySpecError(f"unsupported Pine signal expression: {expr[:160]}") from exc
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Name) and node.id in expressions and node.id not in visited:
+                visited.add(node.id)
+                validate_expr(expressions[node.id])
+
+    validate_expr(spec["entry_long"])
+    validate_expr(spec["entry_short"])
+    validate_expr(spec["exit_long"])
+    validate_expr(spec["exit_short"])
     return spec
 
 
