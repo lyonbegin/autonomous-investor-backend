@@ -1021,17 +1021,23 @@ def market_universe_counts() -> list[dict[str, Any]]:
     with _connect() as conn:
         rows = conn.execute(
             """
-            WITH latest AS (
-              SELECT market, scan_id, MAX(collected_at) AS collected_at
+            WITH scan_stats AS (
+              SELECT market,scan_id,COUNT(*) AS count,MAX(collected_at) AS collected_at
               FROM market_universe_rows
-              GROUP BY market
+              GROUP BY market,scan_id
+            ),
+            ranked AS (
+              SELECT market,scan_id,count,collected_at,
+                     ROW_NUMBER() OVER (
+                       PARTITION BY market
+                       ORDER BY collected_at DESC
+                     ) AS rn
+              FROM scan_stats
             )
-            SELECT l.market,l.scan_id,l.collected_at,COUNT(r.rank_index) AS count
-            FROM latest l
-            JOIN market_universe_rows r
-              ON r.market=l.market AND r.scan_id=l.scan_id
-            GROUP BY l.market,l.scan_id,l.collected_at
-            ORDER BY l.market
+            SELECT market,scan_id,collected_at,count
+            FROM ranked
+            WHERE rn=1
+            ORDER BY market
             """
         ).fetchall()
     return [dict(row) for row in rows]
