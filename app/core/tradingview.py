@@ -340,6 +340,33 @@ def init_db() -> None:
             CREATE INDEX IF NOT EXISTS idx_market_snapshots_ticker_time
                 ON market_snapshots(ticker, collected_at DESC);
 
+            CREATE TABLE IF NOT EXISTS market_universe_current (
+                market TEXT NOT NULL,
+                ticker TEXT NOT NULL,
+                name TEXT,
+                description TEXT,
+                exchange TEXT,
+                asset_type TEXT,
+                raw_json TEXT NOT NULL,
+                scan_id TEXT NOT NULL,
+                rank_index INTEGER NOT NULL,
+                collected_at TEXT NOT NULL,
+                PRIMARY KEY (market, ticker)
+            );
+            CREATE INDEX IF NOT EXISTS idx_market_universe_market_rank
+                ON market_universe_current(market, rank_index);
+
+            CREATE TABLE IF NOT EXISTS market_collector_state (
+                market TEXT PRIMARY KEY,
+                cursor_offset INTEGER NOT NULL DEFAULT 0,
+                total_count INTEGER NOT NULL DEFAULT 0,
+                scan_id TEXT NOT NULL,
+                cycle_started_at TEXT NOT NULL,
+                last_completed_at TEXT,
+                last_error TEXT,
+                updated_at TEXT NOT NULL
+            );
+
             CREATE TABLE IF NOT EXISTS strategy_candidates (
                 candidate_id TEXT PRIMARY KEY,
                 source_kind TEXT NOT NULL,
@@ -907,6 +934,266 @@ def list_market_snapshots(market: str, limit: int = 100, latest_only: bool = Tru
     return [dict(row) for row in rows]
 
 
+def _market_cycle_id(market: str) -> str:
+    return "MKT-" + hashlib.sha1(f"{market}|{utcnow()}".encode()).hexdigest()[:16].upper()
+
+
+def _market_state(market: str) -> dict[str, Any]:
+    init_db()
+    market_key = MARKET_ALIASES.get(market.lower(), market.lower())
+    now = utcnow()
+    with _connect() as conn:
+        row = conn.execute(
+            "SELECT * FROM market_collector_state WHERE market = ?",
+            (market_key,),
+        ).fetchone()
+        if row is None:
+            scan_id = _market_cycle_id(market_key)
+            conn.execute(
+                """
+                INSERT INTO market_collector_state (
+                    market,cursor_offset,total_count,scan_id,cycle_started_at,last_completed_at,last_error,updated_at
+                ) VALUES (?,?,?,?,?,?,?,?)
+                """,
+                (market_key, 0, 0, scan_id, now, None, None, now),
+            )
+            return {
+                "market": market_key,
+                "cursor_offset": 0,
+                "total_count": 0,
+                "scan_id": scan_id,
+                "cycle_started_at": now,
+                "last_completed_at": None,
+                "last_error": None,
+                "updated_at": now,
+            }
+    return dict(row)
+
+
+def market_backfill_state() -> list[dict[str, Any]]:
+    init_db()
+    with _connect() as conn:
+        rows = conn.execute(
+            """
+            SELECT s.*,
+                   (SELECT COUNT(*) FROM market_universe_current u WHERE u.market = s.market) AS stored_count
+            FROM market_collector_state s
+            ORDER BY s.market
+            """
+        ).fetchall()
+    return [dict(row) for row in rows]
+
+
+def market_universe_counts() -> list[dict[str, Any]]:
+    init_db()
+    with _connect() as conn:
+        rows = conn.execute(
+            """
+            SELECT market, COUNT(*) AS count, MAX(collected_at) AS collected_at,
+                   MAX(scan_id) AS scan_id
+            FROM market_universe_current
+            GROUP BY market
+            ORDER BY market
+            """
+        ).fetchall()
+    return [dict(row) for row in rows]
+
+
+def list_market_universe(
+    market: str,
+    *,
+    limit: int = 100,
+    offset: int = 0,
+) -> dict[str, Any]:
+    init_db()
+    market_key = MARKET_ALIASES.get(market.lower(), market.lower())
+    safe_limit = min(max(int(limit), 1), 1000)
+    safe_offset = max(int(offset), 0)
+    with _connect() as conn:
+        total = int(conn.execute(
+            "SELECT COUNT(*) AS c FROM market_universe_current WHERE market = ?",
+            (market_key,),
+        ).fetchone()["c"])
+        rows = conn.execute(
+            """
+            SELECT market,ticker,name,description,exchange,asset_type,raw_json,
+                   scan_id,rank_index,collected_at
+            FROM market_universe_current
+            WHERE market = ?
+            ORDER BY rank_index ASC
+            LIMIT ? OFFSET ?
+            """,
+            (market_key, safe_limit, safe_offset),
+        ).fetchall()
+    items: list[dict[str, Any]] = []
+    for row in rows:
+        item = dict(row)
+        try:
+            raw = json.loads(item.pop("raw_json") or "{}")
+        except Exception:
+            raw = {}
+        raw.update({
+            "market": item["market"],
+            "ticker": item["ticker"],
+            "name": item["name"],
+            "description": item["description"],
+            "exchange": item["exchange"],
+            "type": item["asset_type"],
+            "scan_id": item["scan_id"],
+            "rank_index": item["rank_index"],
+            "collected_at": item["collected_at"],
+        })
+        items.append(raw)
+    return {
+        "market": market_key,
+        "total_count": total,
+        "offset": safe_offset,
+        "limit": safe_limit,
+        "has_more": safe_offset + len(items) < total,
+        "count": len(items),
+        "items": items,
+    }
+
+
+def _store_market_universe_page(
+    market: str,
+    rows: list[dict[str, Any]],
+    *,
+    scan_id: str,
+    base_rank: int,
+    collected_at: str,
+) -> None:
+    init_db()
+    with _connect() as conn:
+        conn.executemany(
+            """
+            INSERT INTO market_universe_current (
+                market,ticker,name,description,exchange,asset_type,raw_json,
+                scan_id,rank_index,collected_at
+            ) VALUES (?,?,?,?,?,?,?,?,?,?)
+            ON CONFLICT(market,ticker) DO UPDATE SET
+                name=excluded.name,
+                description=excluded.description,
+                exchange=excluded.exchange,
+                asset_type=excluded.asset_type,
+                raw_json=excluded.raw_json,
+                scan_id=excluded.scan_id,
+                rank_index=excluded.rank_index,
+                collected_at=excluded.collected_at
+            """,
+            [
+                (
+                    market,
+                    str(x.get("ticker") or ""),
+                    x.get("name"),
+                    x.get("description"),
+                    x.get("exchange"),
+                    x.get("type"),
+                    json.dumps(x, ensure_ascii=False),
+                    scan_id,
+                    base_rank + idx,
+                    collected_at,
+                )
+                for idx, x in enumerate(rows, start=1)
+                if x.get("ticker")
+            ],
+        )
+
+
+def backfill_market_universe(
+    market: str,
+    *,
+    chunks: int = 5,
+    page_size: int = 1000,
+) -> dict[str, Any]:
+    market_key = MARKET_ALIASES.get(market.lower(), market.lower())
+    if market_key not in MARKET_SCANNER_PROFILES:
+        raise ValueError(f"unsupported market: {market}")
+    safe_chunks = min(max(int(chunks), 1), 25)
+    safe_page_size = min(max(int(page_size), 100), 1000)
+    state = _market_state(market_key)
+    offset = max(0, int(state["cursor_offset"]))
+    scan_id = str(state["scan_id"])
+    total_count = max(0, int(state["total_count"]))
+    processed = 0
+    items_seen = 0
+    cycle_completed = False
+    last_error: str | None = None
+    now = utcnow()
+
+    for _ in range(safe_chunks):
+        try:
+            payload = collect_market(
+                market_key,
+                limit=safe_page_size,
+                offset=offset,
+                sort_by=str(MARKET_SCANNER_PROFILES[market_key].get("default_sort") or "volume"),
+                sort_order="desc",
+                persist_snapshot=False,
+            )
+            rows = list(payload.get("items") or [])
+            total_count = int(payload.get("total_count") or 0)
+            page_time = str(payload.get("collected_at") or utcnow())
+            _store_market_universe_page(
+                market_key,
+                rows,
+                scan_id=scan_id,
+                base_rank=offset,
+                collected_at=page_time,
+            )
+            processed += 1
+            items_seen += len(rows)
+            offset += len(rows)
+            if not payload.get("has_more") or not rows or offset >= total_count:
+                cycle_completed = True
+                completed_at = utcnow()
+                with _connect() as conn:
+                    conn.execute(
+                        "DELETE FROM market_universe_current WHERE market = ? AND scan_id <> ?",
+                        (market_key, scan_id),
+                    )
+                    new_scan_id = _market_cycle_id(market_key)
+                    conn.execute(
+                        """
+                        UPDATE market_collector_state
+                        SET cursor_offset=0,total_count=?,scan_id=?,cycle_started_at=?,
+                            last_completed_at=?,last_error=NULL,updated_at=?
+                        WHERE market=?
+                        """,
+                        (
+                            total_count,new_scan_id,completed_at,completed_at,completed_at,market_key,
+                        ),
+                    )
+                break
+        except Exception as exc:
+            last_error = f"{type(exc).__name__}: {exc}"
+            break
+
+    if not cycle_completed:
+        with _connect() as conn:
+            conn.execute(
+                """
+                UPDATE market_collector_state
+                SET cursor_offset=?,total_count=?,last_error=?,updated_at=?
+                WHERE market=?
+                """,
+                (offset,total_count,last_error,utcnow(),market_key),
+            )
+
+    return {
+        "market": market_key,
+        "scan_id": scan_id,
+        "processed_chunks": processed,
+        "page_size": safe_page_size,
+        "items_seen": items_seen,
+        "next_offset": 0 if cycle_completed else offset,
+        "total_count": total_count,
+        "cycle_completed": cycle_completed,
+        "last_error": last_error,
+        "at": utcnow(),
+    }
+
+
 def collect_market(
     market: str,
     *,
@@ -914,12 +1201,13 @@ def collect_market(
     offset: int = 0,
     sort_by: str = "volume",
     sort_order: str = "desc",
+    persist_snapshot: bool = True,
 ) -> dict[str, Any]:
     market_key = MARKET_ALIASES.get(market.lower(), market.lower())
     if market_key not in MARKET_SCANNER_PROFILES:
         raise ValueError(f"unsupported market: {market}")
 
-    safe_limit = min(max(limit, 1), 100)
+    safe_limit = min(max(limit, 1), 1000)
     safe_offset = max(int(offset), 0)
     profile = MARKET_SCANNER_PROFILES[market_key]
     default_allowed_sort = {
@@ -965,8 +1253,9 @@ def collect_market(
         rows.append(row)
 
     collected_at = utcnow()
-    store_market_snapshot(market_key, rows, collected_at)
-    prune_market_snapshots(retention_days=30)
+    if persist_snapshot:
+        store_market_snapshot(market_key, rows, collected_at)
+        prune_market_snapshots(retention_days=30)
     return {
         "source": "TradingView scanner",
         "market": market_key,
