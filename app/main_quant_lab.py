@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.quant_routes import router as quant_router
 from app.core.quant_lab import init_db
+from app.core.macro_data import init_macro_db
 
 app = FastAPI(
     title="Autonomous Investor Quant Lab Control",
@@ -21,6 +22,7 @@ app.add_middleware(
 @app.on_event("startup")
 def startup() -> None:
     init_db()
+    init_macro_db()
 
 
 @app.get("/health")
