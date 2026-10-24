@@ -53,6 +53,7 @@ def public_strategies(
     limit: int = Query(default=100, ge=1, le=500),
     status: str | None = None,
     source_kind: str | None = None,
+    with_agents_only: bool = True,
 ) -> dict:
     candidates = list_candidates(limit=limit)
     all_agents = list_agent_plans(limit=1000)
@@ -66,12 +67,21 @@ def public_strategies(
             continue
         if source_kind and str(candidate.get("source_kind") or "").lower() != source_kind.lower():
             continue
-        items.append(
-            _strategy_view(
-                candidate,
-                by_candidate.get(str(candidate.get("candidate_id") or ""), []),
-            )
+        view = _strategy_view(
+            candidate,
+            by_candidate.get(str(candidate.get("candidate_id") or ""), []),
         )
+        if with_agents_only and int(view.get("agent_count") or 0) <= 0:
+            continue
+        items.append(view)
+    items.sort(
+        key=lambda x: (
+            int(x.get("active_agent_count") or 0),
+            int(x.get("agent_count") or 0),
+            str(x.get("created_at") or ""),
+        ),
+        reverse=True,
+    )
     return {"count": len(items), "items": items}
 
 
