@@ -96,7 +96,7 @@ function upgradeLegacyPine(source:string){
 
   const ta=[
     'sma','ema','wma','vwma','rma','rsi','atr','highest','lowest','stdev','variance',
-    'change','crossover','crossunder','rising','falling','barssince','valuewhen',
+    'change','cross','crossover','crossunder','rising','falling','barssince','valuewhen',
     'pivothigh','pivotlow','sum','cum','correlation','linreg','percentile_nearest_rank',
     'percentile_linear_interpolation','percentrank','alma','bb','bbw','cci','cmo',
     'dmi','hma','kc','kcw','macd','mfi','mom','sar','supertrend','swma','tsi','vwap'
