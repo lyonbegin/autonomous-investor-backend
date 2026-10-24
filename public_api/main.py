@@ -302,6 +302,17 @@ async def scripts(
     return await _get(TV_API, "/api/v1/tradingview/scripts/live?" + "&".join(params))
 
 
+@app.get("/api/public/scripts/search")
+async def script_search(
+    q: str = Query(min_length=1),
+    limit: int = Query(default=50, ge=1, le=200),
+) -> dict[str, Any]:
+    return await _get(
+        TV_API,
+        f"/api/v1/tradingview/scripts/search?q={quote(q, safe='')}&limit={limit}",
+    )
+
+
 @app.get("/api/public/scripts/{script_id_part}/full")
 async def script_full(script_id_part: str) -> dict[str, Any]:
     return await _get(
