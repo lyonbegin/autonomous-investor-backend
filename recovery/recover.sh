@@ -36,6 +36,16 @@ fi
 ls -lh "$SRC"
 rm -f "$REC" "$FINAL" recovered_integrity.txt recover_source.err recover_import.err
 
+
+
+echo "SOURCE_SCHEMA_PROBE"
+sqlite3 "$SRC" "SELECT type,name,tbl_name,rootpage FROM sqlite_master ORDER BY type,name;" 2>&1 | head -n 200 || true
+echo "SOURCE_TABLE_PROBE"
+for t in community_ideas community_scripts script_sources script_source_attempts source_details strategy_candidates agent_plans horizon_discovery agent_discovery_links market_snapshots market_universe_current market_collector_state corporate_bond_prefix_queue; do
+  printf "%s=" "$t"
+  sqlite3 "$SRC" "SELECT COUNT(*) FROM \"$t\";" 2>&1 | head -n 3 || true
+done
+
 echo "RECOVER_IGNORE_FREELIST_BEGIN"
 set +e
 sqlite3 "$SRC" ".recover --ignore-freelist" 2>recover_source.err | sqlite3 "$REC" 2>recover_import.err
