@@ -19,7 +19,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from pydantic import BaseModel, Field
 
-from app.alpha_nodes.inventory import ENGINES, OPERATIONS, OPERATION_MAP, module_inventory
+from app.alpha_nodes.inventory import ENGINES, OPERATIONS, OPERATION_MAP, module_inventory, upstream_registry
 from app.alpha_nodes.runtime import ExecuteRequest, get_job, handle_info, submit_invocation
 
 router = APIRouter(prefix="/api/v1/alpha", tags=["AlphaForge engine function nodes"])
@@ -38,9 +38,11 @@ def require_auth(authorization: str | None = Header(None)) -> None:
 @router.get("/projects", dependencies=[Depends(require_auth)])
 def projects() -> dict:
     rows = module_inventory()
+    origins = upstream_registry()
     return {"count": len(ENGINES), "projects": [
         {
             "engine": engine,
+            "upstream": origins.get(engine),
             "module_count": len([m for m in rows if m["engine"] == engine]),
             "function_count": sum(m["function_count"] for m in rows if m["engine"] == engine),
         } for engine in ENGINES
