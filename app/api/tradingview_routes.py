@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
-from app.core.corporate_bonds import corporate_bond_backfill, corporate_bond_status, corporate_bond_coverage_audit
+from app.core.corporate_bonds import corporate_bond_backfill, corporate_bond_status, corporate_bond_coverage_audit, repair_corporate_bond_phase
 
 from app.core.tradingview import (
     collect_ideas,
@@ -153,6 +153,21 @@ def corporate_bonds_full_backfill_coverage() -> dict:
 @router.get("/markets/corporate-bonds/full-backfill/state")
 def corporate_bonds_full_backfill_state() -> dict:
     return corporate_bond_status()
+
+
+@router.post("/markets/corporate-bonds/full-backfill/repair")
+def corporate_bonds_full_backfill_repair(
+    phase: str = Query(default="yield"),
+) -> dict:
+    try:
+        return repair_corporate_bond_phase(phase=phase)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"TradingView corporate bond repair failed: {type(exc).__name__}: {exc}",
+        ) from exc
 
 
 @router.post("/markets/corporate-bonds/full-backfill")
