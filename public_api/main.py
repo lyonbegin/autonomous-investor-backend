@@ -263,3 +263,19 @@ async def summary() -> dict[str, Any]:
         "markets": sorted({str(a.get("market")) for a in agent_rows if a.get("market")}),
         "invariant": "Agent = immutable strategy source × fixed horizon × market universe",
     }
+
+
+@app.post("/api/public/self-test")
+async def self_test() -> dict[str, Any]:
+    result = await summary()
+    print(
+        "PUBLIC_SELF_TEST",
+        {
+            "strategy_count": result.get("strategy_count"),
+            "agent_count": result.get("agent_count"),
+            "ready_experiments": result.get("ready_experiments"),
+            "completed_performance": result.get("completed_performance"),
+        },
+        flush=True,
+    )
+    return {"status": "ok", **result}
