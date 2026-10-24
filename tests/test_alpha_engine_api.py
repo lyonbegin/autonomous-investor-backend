@@ -116,7 +116,7 @@ def test_all_native_order_submission_is_disabled():
                       "nautilus.app.bridge.submit_market_intent",
                       "nautilus.lab.bridge.market_order",
                       "nautilus.lab.bridge.submit_order",
-                      "orchestration.orchestration.pipeline.submit"]:
+                      "orchestration.orchestration.pipeline.nautilusexecutioncoordinator-submit"]:
         op = next(x for x in OPERATIONS if x["id"] == operation)
         r = post(op["endpoint"], {})
         assert r.status_code == 403, (operation, r.text)
