@@ -47,6 +47,12 @@ class HttpFetchRequest(BaseModel):
     timeout_ms: int = 30000
 
 
+class PageVerifyRequest(BaseModel):
+    url: HttpUrl
+    wait_ms: int = 8000
+    text_contains: str | None = None
+
+
 def _validate_public_url(value: str) -> str:
     parsed = urlparse(value)
     if parsed.scheme not in {"http", "https"}:
@@ -189,6 +195,57 @@ async def http_fetch(req: HttpFetchRequest) -> dict[str, Any]:
         }
     except HTTPException:
         raise
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"{type(exc).__name__}: {exc}") from exc
+    finally:
+        await _close(p, browser, context)
+
+
+@app.post("/v1/page/verify")
+async def page_verify(req: PageVerifyRequest) -> dict[str, Any]:
+    target = _validate_public_url(str(req.url))
+    p, browser, context = await _browser()
+    console_errors: list[str] = []
+    page_errors: list[str] = []
+    try:
+        page = await context.new_page()
+
+        def on_console(msg):
+            if msg.type == "error":
+                console_errors.append(msg.text[:4000])
+
+        def on_page_error(exc):
+            page_errors.append(str(exc)[:4000])
+
+        page.on("console", on_console)
+        page.on("pageerror", on_page_error)
+
+        response = await page.goto(target, wait_until="domcontentloaded", timeout=60000)
+        await page.wait_for_timeout(max(1000, min(int(req.wait_ms), 30000)))
+
+        state = await page.evaluate(
+            """() => ({
+              title: document.title,
+              text: (document.body?.innerText || '').slice(0, 30000),
+              canvases: document.querySelectorAll('canvas').length,
+              svgs: document.querySelectorAll('svg').length,
+              iframes: document.querySelectorAll('iframe').length,
+              runtimePanels: document.querySelectorAll('.runtime-panel').length,
+              nativePineCharts: document.querySelectorAll('.native-pine-chart').length,
+              nativePineErrors: Array.from(document.querySelectorAll('.native-pine-error')).map(x => (x.textContent || '').trim()).slice(0, 20),
+              htmlChars: document.documentElement.innerHTML.length
+            })"""
+        )
+        needle = str(req.text_contains or "")
+        return {
+            "ok": True,
+            "url": target,
+            "status": response.status if response else None,
+            "contains": (needle in (state.get("text") or "")) if needle else None,
+            "console_errors": console_errors[-50:],
+            "page_errors": page_errors[-50:],
+            "state": state,
+        }
     except Exception as exc:
         raise HTTPException(status_code=502, detail=f"{type(exc).__name__}: {exc}") from exc
     finally:
