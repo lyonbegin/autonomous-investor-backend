@@ -794,6 +794,99 @@ def _rebalance_stale_long_tasks(scan_id: str, *, min_pages: int = 15, parts: int
     return split_count
 
 
+def _rebalance_dense_tasks(
+    scan_id: str,
+    *,
+    max_candidates: int = 16,
+    target_rows: int = 120,
+    parts: int = 16,
+) -> int:
+    """Split numerically narrow but row-dense tasks using live TradingView counts."""
+    stale_before = (datetime.now(UTC) - timedelta(seconds=30)).isoformat()
+    with _connect() as conn:
+        rows = conn.execute(
+            """
+            SELECT *
+            FROM corporate_bond_scan_tasks
+            WHERE scan_id=?
+              AND primary_field<>'__all_empty__'
+              AND high_value>low_value
+              AND (
+                    status IN ('PENDING','ERROR')
+                    OR (status='RUNNING' AND updated_at<?)
+                  )
+            ORDER BY pages_done DESC, estimated_count DESC, task_id ASC
+            LIMIT ?
+            """,
+            (scan_id, stale_before, max_candidates),
+        ).fetchall()
+
+    split_count = 0
+    now = utcnow()
+    for raw in rows:
+        task = dict(raw)
+        field = str(task["primary_field"])
+        cursor = float(task["cursor_value"]) if task["cursor_value"] is not None else float(task["low_value"])
+        high = float(task["high_value"])
+        if not math.isfinite(cursor) or not math.isfinite(high) or high <= cursor:
+            continue
+        try:
+            probe = _query(_task_filters(task, cursor if task["cursor_value"] is not None else None), sort_by=field, sort_order="asc")
+            live_total = int(probe["total_count"])
+        except Exception:
+            continue
+        if live_total <= target_rows:
+            continue
+
+        count = max(2, min(int(parts), 32, math.ceil(live_total / max(target_rows, 10))))
+        step = (high - cursor) / count
+        if step <= 0:
+            continue
+        children: list[tuple[Any, ...]] = []
+        for i in range(count):
+            low = cursor if i == 0 else cursor + step * i
+            right = high if i == count - 1 else cursor + step * (i + 1)
+            task_id = f"{task['task_id']}:D{i:02d}"
+            children.append((
+                scan_id,
+                task_id,
+                str(task["phase"]),
+                field,
+                low,
+                right,
+                None,
+                str(task["filters_json"]),
+                str(task["tie_fields_json"]),
+                max(10, math.ceil(live_total / count)),
+                0,
+                0,
+                "PENDING",
+                None,
+                now,
+            ))
+        with _connect() as conn:
+            conn.execute(
+                """
+                UPDATE corporate_bond_scan_tasks
+                SET status='COMPLETE',last_error='DENSE_RANGE_REBALANCED',updated_at=?
+                WHERE scan_id=? AND task_id=?
+                """,
+                (now, scan_id, task["task_id"]),
+            )
+            conn.executemany(
+                """
+                INSERT OR IGNORE INTO corporate_bond_scan_tasks (
+                    scan_id,task_id,phase,primary_field,low_value,high_value,cursor_value,
+                    filters_json,tie_fields_json,estimated_count,pages_done,rows_seen,
+                    status,last_error,updated_at
+                ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                """,
+                children,
+            )
+        split_count += 1
+    return split_count
+
+
 def corporate_bond_backfill(
     *,
     max_tasks: int = 64,
@@ -803,6 +896,7 @@ def corporate_bond_backfill(
     state = _init_scan(force_new=force_new)
     scan_id = str(state["scan_id"])
     rebalanced_tasks = _rebalance_stale_long_tasks(scan_id)
+    dense_rebalanced_tasks = _rebalance_dense_tasks(scan_id)
     safe_tasks = min(max(int(max_tasks), 1), 128)
     safe_pages = min(max(int(pages_per_task), 1), 500)
     worker_limit = min(8, safe_tasks)
@@ -854,6 +948,7 @@ def corporate_bond_backfill(
         "scan_id": scan_id,
         "source_total": int(state.get("source_total") or 0),
         "rebalanced_tasks": rebalanced_tasks,
+        "dense_rebalanced_tasks": dense_rebalanced_tasks,
         "selected_tasks": len(tasks),
         "workers": min(worker_limit, max(1, len(tasks))),
         "pages_per_task": safe_pages,
