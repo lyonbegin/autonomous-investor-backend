@@ -39,13 +39,13 @@ def test_tradingview_script_catalog_uses_verified_remote_path(monkeypatch):
     called = []
     def fake(service, path, *, query=None, method="GET", body=None):
         called.append((service, path, query, method))
-        return {"items": [{"script_id": "open-123"}], "count": 1}
+        return {"items": [{"script_id_part": "open-123"}], "count": 1}
     monkeypatch.setattr(services, "_request", fake)
-    result = native_call("tradingview.service.api.script_catalog", {"limit": 3, "script_type": "strategy"})
+    result = native_call("tradingview.service.api.script_catalog", {"limit": 3, "script_type": "strategies"})
     assert result.status_code == 200, result.text
-    assert result.json()["result"]["items"][0]["script_id"] == "open-123"
+    assert result.json()["result"]["items"][0]["script_id_part"] == "open-123"
     assert called == [("tradingview", "/api/v1/tradingview/scripts/catalog",
-                       {"limit": 3, "offset": 0, "script_type": "strategy"}, "GET")]
+                       {"limit": 3, "offset": 0, "script_type": "strategies"}, "GET")]
 
 
 def test_quant_history_inputs_forward_to_existing_api(monkeypatch):
@@ -84,7 +84,7 @@ def test_service_graph_binds_script_id_from_catalog_to_source(monkeypatch):
     def fake(service, path, *, query=None, method="GET", body=None):
         calls.append(path)
         if path == "/api/v1/tradingview/scripts/catalog":
-            return {"items": [{"script_id": "open-456"}], "count": 1}
+            return {"items": [{"script_id_part": "open-456"}], "count": 1}
         if path == "/api/v1/tradingview/scripts/open-456/source":
             return {"ok": True, "script_id": "open-456", "source": "//@version=6"}
         raise AssertionError("unexpected service route " + path)
@@ -94,9 +94,9 @@ def test_service_graph_binds_script_id_from_catalog_to_source(monkeypatch):
         "background": False,
         "nodes": [
             {"id": "catalog", "operation_id": "tradingview.service.api.script_catalog",
-             "arguments": {"limit": 1, "script_type": "strategy"}},
+             "arguments": {"limit": 1, "script_type": "strategies"}},
             {"id": "source", "operation_id": "tradingview.service.api.script_source",
-             "arguments": {"script_id": {"$node": "catalog", "path": "result.items.0.script_id"}}}
+             "arguments": {"script_id_part": {"$node": "catalog", "path": "result.items.0.script_id_part"}}}
         ],
     }
     r = client.post("/api/v1/alpha/graphs/run", headers=AUTH, json=graph)
