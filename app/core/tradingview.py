@@ -99,13 +99,32 @@ CATEGORY_RULES: list[tuple[str, tuple[str, ...]]] = [
 ]
 
 MARKET_SCANNER_PROFILES: dict[str, dict[str, Any]] = {
-    "korea": {"endpoint": "korea", "filters": []},
-    "america": {"endpoint": "america", "filters": []},
-    "crypto": {"endpoint": "crypto", "filters": []},
+    "korea": {
+        "endpoint": "korea",
+        "filters": [{"left": "type", "operation": "equal", "right": "stock"}],
+    },
+    "america": {
+        "endpoint": "america",
+        "filters": [{"left": "type", "operation": "equal", "right": "stock"}],
+    },
+    "crypto": {
+        "endpoint": "crypto",
+        "filters": [],
+        "default_sort": "market_cap_calc",
+    },
     "forex": {"endpoint": "forex", "filters": []},
-    "india": {"endpoint": "india", "filters": []},
-    "japan": {"endpoint": "japan", "filters": []},
-    "vietnam": {"endpoint": "vietnam", "filters": []},
+    "india": {
+        "endpoint": "india",
+        "filters": [{"left": "type", "operation": "equal", "right": "stock"}],
+    },
+    "japan": {
+        "endpoint": "japan",
+        "filters": [{"left": "type", "operation": "equal", "right": "stock"}],
+    },
+    "vietnam": {
+        "endpoint": "vietnam",
+        "filters": [{"left": "type", "operation": "equal", "right": "stock"}],
+    },
     "futures": {"endpoint": "futures", "filters": []},
     "bonds": {"endpoint": "bonds", "filters": []},
     "corporate-bonds": {
