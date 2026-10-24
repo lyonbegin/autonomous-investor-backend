@@ -1,6 +1,7 @@
 import {useEffect,useState} from 'react';
 import {Header} from './components/Header';
 import {IdeasPage} from './pages/ideas/IdeasPage';
+import {IdeaDetailPage} from './pages/ideas/IdeaDetailPage';
 import {StrategiesPage} from './pages/strategies/StrategiesPage';
 import {MarketsPage} from './pages/markets/MarketsPage';
 import {StrategyDetailPage} from './pages/strategies/StrategyDetailPage';
@@ -18,7 +19,8 @@ export default function App(){
   },[]);
   const go=(p:string)=>{history.pushState({},'',p);setPath(p);scrollTo(0,0)};
   let page=<StrategiesPage go={go}/>;
-  if(path==='/ideas') page=<IdeasPage/>;
+  if(path==='/ideas') page=<IdeasPage go={go}/>;
+  else if(path.startsWith('/ideas/')) page=<IdeaDetailPage id={decodeURIComponent(path.split('/')[2]||'')} go={go}/>;
   else if(path==='/markets') page=<MarketsPage/>;
   else if(path==='/strategies') page=<StrategiesPage go={go}/>;
   else if(path.startsWith('/strategies/')) page=<StrategyDetailPage id={decodeURIComponent(path.split('/')[2]||'')} go={go}/>;
