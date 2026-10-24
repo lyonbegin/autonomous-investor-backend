@@ -7,6 +7,7 @@ libraries themselves are not flattened into thousands of unsupported methods.
 from __future__ import annotations
 
 import ast
+import tomllib
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -162,3 +163,17 @@ def module_inventory() -> list[dict]:
                         "call_kind": op["call_kind"]} for op in items]}
         for (engine, source, module), items in sorted(groups.items())
     ]
+
+
+def upstream_registry() -> dict[str, dict]:
+    """Read exact original upstream repository and pinned revision for each engine."""
+    path = ROOT / "lab" / "upstreams.toml"
+    if not path.exists():
+        return {}
+    projects = tomllib.loads(path.read_text(encoding="utf-8")).get("projects", [])
+    if len(projects) != len(ENGINES):
+        raise RuntimeError("upstream registry does not contain exactly twelve projects")
+    return {engine: {"name": p["name"], "repo": p["repo"],
+                     "upstream_ref": p["ref"], "status": p["status"],
+                     "version": p.get("version"), "install_path": p.get("install_path")}
+            for engine, p in zip(ENGINES, projects, strict=True)}
