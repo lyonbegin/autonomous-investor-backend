@@ -22,6 +22,7 @@ from app.core.tradingview import (
     create_candidate_from_script,
     fetch_script_source,
     fetch_source_detail,
+    get_candidate,
     get_agent_plan,
     list_agent_plans,
     list_agent_universe,
@@ -449,6 +450,14 @@ def candidates_build(
 def candidates(limit: int = Query(default=100, ge=1, le=500)) -> dict:
     items = list_candidates(limit)
     return {"count": len(items), "items": items}
+
+
+@router.get("/candidates/{candidate_id}")
+def candidate_detail(candidate_id: str) -> dict:
+    try:
+        return get_candidate(candidate_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=f"candidate not found: {candidate_id}") from exc
 
 
 @router.post("/candidates/{candidate_id}/agent-plans")
