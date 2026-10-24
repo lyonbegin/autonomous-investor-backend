@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.tradingview_routes import router as tradingview_router
 from app.api.source_registry_routes import router as source_registry_router
+from app.api.public_routes import router as public_router
 from app.core.source_registry import init_source_registry_db
 
 app = FastAPI(
@@ -28,3 +29,4 @@ init_source_registry_db()
 
 app.include_router(tradingview_router)
 app.include_router(source_registry_router)
+app.include_router(public_router)
