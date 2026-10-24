@@ -696,13 +696,13 @@ def _finalize_if_complete(scan_id: str) -> bool:
         conn.close()
 
 
-def _rebalance_stale_long_tasks(scan_id: str, *, min_pages: int = 200, parts: int = 32) -> int:
+def _rebalance_stale_long_tasks(scan_id: str, *, min_pages: int = 15, parts: int = 32) -> int:
     """Split a stale long-running numeric task at its current cursor.
 
     Previously collected rows stay in corporate_bond_scan_rows and are keyed by
     ticker, so overlap at the cursor boundary is harmless while gaps are not.
     """
-    stale_before = (datetime.now(UTC) - timedelta(minutes=2)).isoformat()
+    stale_before = (datetime.now(UTC) - timedelta(seconds=30)).isoformat()
     now = utcnow()
     with _connect() as conn:
         rows = conn.execute(
@@ -795,7 +795,7 @@ def corporate_bond_backfill(
     safe_tasks = min(max(int(max_tasks), 1), 128)
     safe_pages = min(max(int(pages_per_task), 1), 500)
 
-    stale_before=(datetime.now(UTC)-timedelta(minutes=2)).isoformat()
+    stale_before=(datetime.now(UTC)-timedelta(seconds=30)).isoformat()
     with _connect() as conn:
         # Recover interrupted workers, but never let overlapping cron/manual
         # invocations process the same live task.
