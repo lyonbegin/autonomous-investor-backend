@@ -57,6 +57,17 @@ def _yahoo_symbol(symbol: str, market: str = "") -> str:
 
     if exchange in {"FX", "FX_IDC", "OANDA", "FOREXCOM", "SAXO"}:
         compact = upper.replace("/", "").replace("-", "")
+        commodity_aliases = {
+            "XAUUSD": "GC=F",
+            "XAGUSD": "SI=F",
+            "WTICOUSD": "CL=F",
+            "USOILUSD": "CL=F",
+            "BCOUSD": "BZ=F",
+            "UKOILUSD": "BZ=F",
+            "NATGASUSD": "NG=F",
+        }
+        if compact in commodity_aliases:
+            return commodity_aliases[compact]
         if len(compact) == 6 and compact.isalpha():
             return compact + "=X"
 
