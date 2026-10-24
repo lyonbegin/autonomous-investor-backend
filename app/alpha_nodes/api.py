@@ -21,6 +21,7 @@ from pydantic import BaseModel, Field
 
 from app.alpha_nodes.inventory import ENGINES, OPERATIONS, OPERATION_MAP, module_inventory, upstream_registry
 from app.alpha_nodes.runtime import ExecuteRequest, get_job, handle_info, submit_invocation
+from app.alpha_nodes.graph import GraphSpec, compile_graph, create_graph_run, get_graph_run, get_graph_node, list_graph_runs
 
 router = APIRouter(prefix="/api/v1/alpha", tags=["AlphaForge engine function nodes"])
 
@@ -109,6 +110,38 @@ def validate_contract(model_name: str, payload: ContractPayload) -> dict:
         return {"contract": model_name, "status": "validated", "value": obj.model_dump(mode="json")}
     except ValidationError as exc:
         raise HTTPException(status_code=422, detail=exc.errors(include_url=False)) from exc
+
+
+
+@router.post("/graphs/validate", dependencies=[Depends(require_auth)])
+def graph_validate(graph: GraphSpec) -> dict:
+    """Check operation IDs, cycles, connections and security gates without running."""
+    try:
+        return compile_graph(graph)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.post("/graphs/run", dependencies=[Depends(require_auth)])
+async def graph_run(graph: GraphSpec) -> dict:
+    """Execute native module nodes in dependency order; no broker submissions."""
+    import asyncio
+    return await asyncio.to_thread(create_graph_run, graph)
+
+
+@router.get("/graphs/runs", dependencies=[Depends(require_auth)])
+def graph_runs(limit: int = Query(30, ge=1, le=100)) -> dict:
+    return list_graph_runs(limit)
+
+
+@router.get("/graphs/runs/{run_id}", dependencies=[Depends(require_auth)])
+def graph_run_status(run_id: str) -> dict:
+    return get_graph_run(run_id)
+
+
+@router.get("/graphs/runs/{run_id}/nodes/{node_id}", dependencies=[Depends(require_auth)])
+def graph_node_status(run_id: str, node_id: str) -> dict:
+    return get_graph_node(run_id, node_id)
 
 
 def _make_executor(operation_id: str):
