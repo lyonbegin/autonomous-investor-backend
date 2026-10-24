@@ -44,6 +44,7 @@ from app.core.tradingview import (
     backfill_corporate_bond_universe,
     list_stored_ideas,
     list_stored_scripts,
+    list_stored_script_catalog,
 )
 
 router = APIRouter(prefix="/api/v1/tradingview", tags=["tradingview"])
@@ -338,6 +339,22 @@ def scripts_search(
 def scripts_stored(limit: int = Query(default=200, ge=1, le=1000)) -> dict:
     items = list_stored_scripts(limit=limit)
     return {"count": len(items), "items": items}
+
+
+@router.get("/scripts/catalog")
+def scripts_catalog(
+    limit: int = Query(default=50, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
+    script_type: str = Query(default="all"),
+) -> dict:
+    try:
+        return list_stored_script_catalog(
+            limit=limit,
+            offset=offset,
+            script_type=script_type,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @router.get("/scripts/completion")
