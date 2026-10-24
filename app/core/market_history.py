@@ -34,6 +34,54 @@ def _qualified(symbol: str) -> tuple[str, str]:
 def _yahoo_symbol(symbol: str, market: str = "") -> str:
     exchange, ticker = _qualified(symbol)
     ticker = ticker.replace(".P", "")
+    upper = ticker.upper()
+
+    # TradingView symbols do not always match provider symbols. Normalize the
+    # common FX, index and continuous-futures forms used by collected scripts.
+    index_aliases = {
+        "SPX500USD": "^GSPC",
+        "SPX": "^GSPC",
+        "US500": "^GSPC",
+        "NAS100USD": "^NDX",
+        "NDX": "^NDX",
+        "US30USD": "^DJI",
+        "DJI": "^DJI",
+        "UK100GBP": "^FTSE",
+        "DE40EUR": "^GDAXI",
+        "DE30EUR": "^GDAXI",
+        "JP225USD": "^N225",
+        "DXY": "DX-Y.NYB",
+    }
+    if upper in index_aliases:
+        return index_aliases[upper]
+
+    if exchange in {"FX", "FX_IDC", "OANDA", "FOREXCOM", "SAXO"}:
+        compact = upper.replace("/", "").replace("-", "")
+        if len(compact) == 6 and compact.isalpha():
+            return compact + "=X"
+
+    if exchange in {"CME_MINI", "CME", "CBOT", "COMEX", "NYMEX", "ICEUS"}:
+        continuous = upper
+        if continuous.endswith("1!"):
+            continuous = continuous[:-2]
+        futures_aliases = {
+            "NQ": "NQ=F",
+            "ES": "ES=F",
+            "YM": "YM=F",
+            "RTY": "RTY=F",
+            "CL": "CL=F",
+            "GC": "GC=F",
+            "SI": "SI=F",
+            "HG": "HG=F",
+            "NG": "NG=F",
+            "ZB": "ZB=F",
+            "ZN": "ZN=F",
+            "ZF": "ZF=F",
+            "ZT": "ZT=F",
+        }
+        if continuous in futures_aliases:
+            return futures_aliases[continuous]
+
     if exchange in {"NASDAQ", "NYSE", "AMEX", "BATS", "ARCA"}:
         return ticker
     if exchange in {"BINANCE", "COINBASE", "BITSTAMP", "BITFINEX"}:
