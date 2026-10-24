@@ -94,7 +94,8 @@ def _scan_module(path: Path, *, project: str, source: str, module: str) -> list[
         else:
             kind = "function"
         name = "create" if kind == "constructor" else fn.name
-        operation_id = f"{project}.{source}.{module}.{name}"
+        operation_name = f"{cls.lower()}-{name}" if source == "orchestration" and cls else name
+        operation_id = f"{project}.{source}.{module}.{operation_name}"
         blocked = (
             SIDE_EFFECTS.get((project, fn.name), "NONE")
             if source in ("app", "lab") else "NONE"
@@ -114,7 +115,7 @@ def _scan_module(path: Path, *, project: str, source: str, module: str) -> list[
             "source_path": str(path.relative_to(ROOT)),
             "source_line": fn.lineno,
             "guard": blocked,
-            "endpoint": f"/api/v1/alpha/modules/{project}/{source}/{module}/{name}/execute",
+            "endpoint": f"/api/v1/alpha/modules/{project}/{source}/{module}/{operation_name}/execute",
         })
     for item in parsed.body:
         if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)) and source == "orchestration":
