@@ -418,8 +418,19 @@ def _init_scan(force_new: bool = False) -> dict[str, Any]:
             "SELECT * FROM corporate_bond_scan_state WHERE market=?",
             (MARKET,),
         ).fetchone()
-    if state is not None and str(state["status"]) == "COLLECTING" and not force_new:
-        return dict(state)
+    if state is not None and not force_new:
+        status = str(state["status"])
+        if status == "COLLECTING":
+            return dict(state)
+        if status == "COMPLETE" and state["completed_at"]:
+            try:
+                completed_at = datetime.fromisoformat(str(state["completed_at"]))
+                if completed_at.tzinfo is None:
+                    completed_at = completed_at.replace(tzinfo=UTC)
+                if datetime.now(UTC) - completed_at < timedelta(hours=24):
+                    return dict(state)
+            except (TypeError, ValueError):
+                pass
 
     source = _query([], sort_by="yield_to_worst", sort_order="asc")
     source_total = int(source["total_count"])
