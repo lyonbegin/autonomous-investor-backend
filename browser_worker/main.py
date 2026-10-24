@@ -131,11 +131,13 @@ async def _shutdown_browser():
 @app.get("/health")
 async def health() -> dict[str, Any]:
     browser = await _ensure_browser()
+    regression = await page_self_test()
     return {
         "status": "ok",
         "service": "autonomous-investor-data-browser",
         "browser_connected": bool(browser and browser.is_connected()),
         "transport": "playwright-chromium",
+        "native_pine_regression": regression,
     }
 
 
