@@ -165,6 +165,9 @@ def _validate_gate(op: dict) -> None:
         op["engine"] == "orchestration" and op["module"] == "pipeline" and method == "submit"
     ):
         raise HTTPException(status_code=403, detail="native order submission is disabled in Alpha node API; use a separately authorized Nautilus risk/order gateway")
+    if op["source"] == "service" and op["engine"] == "quantlab" and method in ("quant_experiment_create", "quant_experiment_run"):
+        if os.getenv("ALPHA_ALLOW_QUANT_WRITES", "false").lower() != "true":
+            raise HTTPException(status_code=403, detail="Quant Lab experiment mutation disabled; require ALPHA_ALLOW_QUANT_WRITES=true")
     if op["guard"] == "RESEARCH_APPROVAL" and os.getenv("ALPHA_ALLOW_RESEARCH", "false").lower() != "true":
         raise HTTPException(status_code=403, detail="research execution disabled: set ALPHA_ALLOW_RESEARCH after reviewing sandbox/costs")
     if op["guard"] == "TRAINING_APPROVAL" and os.getenv("ALPHA_ALLOW_TRAINING", "false").lower() != "true":
