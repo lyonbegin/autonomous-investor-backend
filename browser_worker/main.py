@@ -196,30 +196,26 @@ async def bond_page(req: BondPageRequest) -> dict[str, Any]:
         payload = dict(template["payload"])
         payload["range"] = [offset, offset + limit]
 
-        result = await page.evaluate(
-            """async ({url,payload}) => {
-              const r = await fetch(url, {
-                method: 'POST',
-                credentials: 'include',
-                headers: {
-                  'Accept': 'application/json',
-                  'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(payload)
-              });
-              const text = await r.text();
-              let data = null;
-              try { data = JSON.parse(text); } catch (e) {}
-              return {status:r.status, ok:r.ok, text: data ? null : text.slice(0,2000), data};
-            }""",
-            {"url": template["url"], "payload": payload},
+        api_response = await context.request.post(
+            template["url"],
+            data=payload,
+            headers={
+                "Accept": "application/json",
+                "Content-Type": "application/json",
+                "Referer": "https://www.tradingview.com/bond-screener/",
+            },
+            timeout=30000,
         )
-        data = result.get("data") or {}
+        text_body = await api_response.text()
+        try:
+            data = json.loads(text_body)
+        except Exception:
+            data = {}
         rows = list(data.get("data") or [])
         return {
-            "ok": bool(result.get("ok")),
+            "ok": api_response.ok,
             "browser_status": response.status if response else None,
-            "scanner_status": result.get("status"),
+            "scanner_status": api_response.status,
             "offset": offset,
             "limit": limit,
             "total_count": int(data.get("totalCount") or 0),
@@ -228,7 +224,7 @@ async def bond_page(req: BondPageRequest) -> dict[str, Any]:
             "items": rows,
             "scanner_url": template["url"],
             "request_range": payload.get("range"),
-            "error_text": result.get("text"),
+            "error_text": None if data else text_body[:2000],
         }
     except Exception as exc:
         raise HTTPException(status_code=502, detail=f"{type(exc).__name__}: {exc}") from exc
