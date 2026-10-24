@@ -121,7 +121,7 @@ def _make_executor(operation_id: str):
 
 for _op in OPERATIONS:
     router.add_api_route(
-        _op["endpoint"],
+        _op["endpoint"].removeprefix("/api/v1/alpha"),
         _make_executor(_op["id"]),
         methods=["POST"],
         name=_op["id"],
