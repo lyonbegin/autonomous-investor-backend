@@ -267,6 +267,52 @@ async def page_verify_get(
     )
 
 
+@app.get("/v1/page/self_test")
+async def page_self_test() -> dict[str, Any]:
+    target = (
+        "https://autonomous-investor-public-production.up.railway.app/"
+        "scripts/PUB%3Bfd5cad2ba18e450f8665ea1761f9b034"
+    )
+    result = await page_verify(
+        PageVerifyRequest(
+            url=target,
+            wait_ms=15000,
+            text_contains="실행 성공",
+        )
+    )
+    state = result.get("state") or {}
+    ok = bool(
+        result.get("contains")
+        and int(state.get("nativePineCharts") or 0) >= 1
+        and int(state.get("canvases") or 0) >= 1
+        and not (result.get("page_errors") or [])
+        and not (state.get("nativePineErrors") or [])
+    )
+    if not ok:
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "reason": "Native Pine chart regression check failed",
+                "contains": result.get("contains"),
+                "canvases": state.get("canvases"),
+                "nativePineCharts": state.get("nativePineCharts"),
+                "nativePineErrors": state.get("nativePineErrors"),
+                "page_errors": result.get("page_errors"),
+                "console_errors": result.get("console_errors"),
+                "text": str(state.get("text") or "")[:4000],
+            },
+        )
+    return {
+        "status": "ok",
+        "runtime": "Vela + PineTS",
+        "script": "Dynamic Liquidity Clouds [BigBeluga]",
+        "contains_execution_success": True,
+        "canvases": state.get("canvases"),
+        "native_pine_charts": state.get("nativePineCharts"),
+        "console_error_count": len(result.get("console_errors") or []),
+    }
+
+
 @app.post("/v1/source/detail")
 async def source_detail(req: DetailRequest) -> dict[str, Any]:
     p, browser, context = await _browser()
