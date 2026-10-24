@@ -961,6 +961,112 @@ def corporate_bond_backfill(
     }
 
 
+def corporate_bond_coverage_audit() -> dict[str, Any]:
+    """Compare TradingView source phase totals with persisted unique rows."""
+    init_corporate_bond_db()
+    source_phases: list[dict[str, Any]] = []
+    source_sum = 0
+    for phase in PHASES:
+        result = _query(list(phase["filters"]), sort_by=str(phase["field"]), sort_order="asc")
+        total = int(result["total_count"])
+        source_sum += total
+        source_phases.append({
+            "phase": str(phase["phase"]),
+            "source_count": total,
+        })
+
+    all_empty_filters = [
+        {"left": "yield_to_worst", "operation": "empty", "right": None},
+        {"left": "maturity_date", "operation": "empty", "right": None},
+        {"left": "current_coupon", "operation": "empty", "right": None},
+        {"left": "close_pct", "operation": "empty", "right": None},
+        {"left": "close_net", "operation": "empty", "right": None},
+    ]
+    all_empty = _query(all_empty_filters, sort_by="name", sort_order="asc")
+    all_empty_total = int(all_empty["total_count"])
+    source_sum += all_empty_total
+    source_phases.append({"phase": "all_empty", "source_count": all_empty_total})
+
+    with _connect() as conn:
+        state = conn.execute(
+            "SELECT * FROM corporate_bond_scan_state WHERE market=?",
+            (MARKET,),
+        ).fetchone()
+        if state is None:
+            return {
+                "market": MARKET,
+                "source_total": 0,
+                "source_phase_sum": source_sum,
+                "source_phases": source_phases,
+                "stored_total": 0,
+                "stored_phases": [],
+            }
+        scan_id = str(state["scan_id"])
+        rows = conn.execute(
+            "SELECT raw_json FROM corporate_bond_scan_rows WHERE scan_id=?",
+            (scan_id,),
+        ).fetchall()
+
+    stored_counts = {
+        "yield": 0,
+        "yield_empty_maturity": 0,
+        "yield_maturity_empty_coupon": 0,
+        "yield_maturity_coupon_empty_price": 0,
+        "final_close_net": 0,
+        "all_empty": 0,
+        "unclassified": 0,
+    }
+    for row in rows:
+        try:
+            raw = json.loads(str(row["raw_json"]))
+        except Exception:
+            stored_counts["unclassified"] += 1
+            continue
+        y = _numeric_value(raw, "yield_to_worst")
+        m = _numeric_value(raw, "maturity_date")
+        cp = _numeric_value(raw, "current_coupon")
+        px = _numeric_value(raw, "close_pct")
+        net = _numeric_value(raw, "close_net")
+        if y is not None:
+            stored_counts["yield"] += 1
+        elif m is not None:
+            stored_counts["yield_empty_maturity"] += 1
+        elif cp is not None:
+            stored_counts["yield_maturity_empty_coupon"] += 1
+        elif px is not None:
+            stored_counts["yield_maturity_coupon_empty_price"] += 1
+        elif net is not None:
+            stored_counts["final_close_net"] += 1
+        else:
+            stored_counts["all_empty"] += 1
+
+    by_phase = []
+    source_map = {x["phase"]: int(x["source_count"]) for x in source_phases}
+    for phase, stored_count in stored_counts.items():
+        source_count = int(source_map.get(phase, 0))
+        by_phase.append({
+            "phase": phase,
+            "source_count": source_count,
+            "stored_count": int(stored_count),
+            "missing": max(0, source_count - int(stored_count)),
+            "excess": max(0, int(stored_count) - source_count),
+        })
+
+    source_total = int(state["source_total"] or 0)
+    return {
+        "market": MARKET,
+        "scan_id": scan_id,
+        "source_total": source_total,
+        "source_phase_sum": source_sum,
+        "source_phases": source_phases,
+        "stored_total": len(rows),
+        "coverage": round(len(rows) / max(source_total, 1) * 100, 4),
+        "by_phase": by_phase,
+        "delta": source_total - len(rows),
+        "at": utcnow(),
+    }
+
+
 def corporate_bond_status() -> dict[str, Any]:
     init_corporate_bond_db()
     with _connect() as conn:
