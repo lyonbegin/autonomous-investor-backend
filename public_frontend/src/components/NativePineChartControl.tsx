@@ -3,6 +3,37 @@ import {Vela} from '@luxalgo/vela';
 import {PineWorkerEngine} from '@luxalgo/vela-pinets';
 import type {PineVisualResponse} from '../types';
 
+function upgradeLegacyPine(source:string){
+  const version=Number((source.match(/\/\/@version\s*=\s*(\d+)/)||[])[1]||0);
+  if(!version||version>=5)return {source,legacy:false,from:version||undefined};
+
+  let out=source.replace(/\/\/@version\s*=\s*4\b/,'//@version=5');
+  out=out.replace(/(^|[^\w.])study\s*\(/gm,'$1indicator(');
+  out=out.replace(/(^|[^\w.])security\s*\(/gm,'$1request.security(');
+  out=out.replace(/(^|[^\w.])tostring\s*\(/gm,'$1str.tostring(');
+  out=out.replace(/(^|[^\w.])tonumber\s*\(/gm,'$1str.tonumber(');
+
+  const ta=[
+    'sma','ema','wma','vwma','rma','rsi','atr','highest','lowest','stdev','variance',
+    'change','crossover','crossunder','rising','falling','barssince','valuewhen',
+    'pivothigh','pivotlow','sum','cum','correlation','linreg','percentile_nearest_rank',
+    'percentile_linear_interpolation','percentrank','alma','bb','bbw','cci','cmo',
+    'dmi','hma','kc','kcw','macd','mfi','mom','sar','supertrend','swma','tsi','vwap'
+  ];
+  for(const name of ta){
+    const re=new RegExp('(^|[^\\w.])'+name+'\\s*\\(','gm');
+    out=out.replace(re,'$1ta.'+name+'(');
+  }
+
+  const math=['abs','max','min','round','ceil','floor','sqrt','pow','log','exp','sign'];
+  for(const name of math){
+    const re=new RegExp('(^|[^\\w.])'+name+'\\s*\\(','gm');
+    out=out.replace(re,'$1math.'+name+'(');
+  }
+
+  return {source:out,legacy:true,from:version};
+}
+
 type Props={
   data:PineVisualResponse;
   source:string;
@@ -33,6 +64,8 @@ export function NativePineChartControl({data,source,onRuntime}:Props){
       volume:Number(b.volume||0),
     }));
 
+    const compatible=upgradeLegacyPine(source);
+
     const chart=new Vela(el,{
       data:bars as any,
       timeframe:data.horizon||'1h',
@@ -42,10 +75,14 @@ export function NativePineChartControl({data,source,onRuntime}:Props){
 
     chart.registerEngine('pine',new PineWorkerEngine());
 
-    const handle=chart.addIndicator(source);
+    const handle=chart.addIndicator(compatible.source);
     const offReady=handle.on('ready',()=>{
       if(disposed)return;
-      runtimeRef.current?.({state:'ready',kind:(handle as any).kind||data.kind});
+      runtimeRef.current?.({
+        state:'ready',
+        kind:(handle as any).kind||data.kind,
+        message:compatible.legacy?`Pine v${compatible.from} compatibility mode`:undefined,
+      });
     });
     const offError=handle.on('error',(payload:any)=>{
       if(disposed)return;
