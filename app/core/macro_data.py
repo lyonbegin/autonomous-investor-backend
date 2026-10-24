@@ -9,6 +9,8 @@ from urllib import parse, request
 from urllib.error import HTTPError
 import xml.etree.ElementTree as ET
 
+from app.core.browser_http import browser_json, browser_text
+
 DB_PATH = os.getenv("QUANT_DB_PATH", "/tmp/quant_lab.sqlite3")
 BLS_URL = "https://api.bls.gov/publicAPI/v2/timeseries/data/"
 TREASURY_XML_URL = (
@@ -89,41 +91,38 @@ def init_macro_db() -> None:
 
 
 def _post_json(url: str, payload: dict[str, Any]) -> dict[str, Any]:
-    body = json.dumps(payload).encode("utf-8")
-    req = request.Request(
-        url,
-        data=body,
-        method="POST",
-        headers={
-            "Content-Type": "application/json",
-            "Accept": "application/json",
-            "User-Agent": "AUTONOMOUS-INVESTOR-Macro/1.0",
-        },
-    )
     try:
-        with request.urlopen(req, timeout=30) as response:
-            return json.loads(response.read().decode("utf-8"))
-    except HTTPError as exc:
-        detail = exc.read().decode("utf-8", errors="replace")
-        raise RuntimeError(f"Macro JSON source failed HTTP {exc.code}: {detail[:700]}") from exc
+        raw = browser_json(
+            url,
+            method="POST",
+            headers={
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+                "User-Agent": "AUTONOMOUS-INVESTOR-Macro/2.0",
+            },
+            payload=payload,
+            timeout=40,
+        )
+        if not isinstance(raw, dict):
+            raise RuntimeError(f"Macro JSON source returned {type(raw).__name__}")
+        return raw
+    except Exception as exc:
+        raise RuntimeError(f"Macro JSON source failed via Chromium gateway: {type(exc).__name__}: {exc}") from exc
 
 
 def _get_text(url: str, accept: str) -> str:
-    req = request.Request(
-        url,
-        method="GET",
-        headers={
-            "Accept": accept,
-            "User-Agent": "Mozilla/5.0 AUTONOMOUS-INVESTOR-Macro/1.0",
-        },
-    )
     try:
-        with request.urlopen(req, timeout=30) as response:
-            return response.read().decode("utf-8", errors="replace")
-    except HTTPError as exc:
-        detail = exc.read().decode("utf-8", errors="replace")
-        raise RuntimeError(f"Macro text source failed HTTP {exc.code}: {detail[:700]}") from exc
-
+        return browser_text(
+            url,
+            method="GET",
+            headers={
+                "Accept": accept,
+                "User-Agent": "Mozilla/5.0 AUTONOMOUS-INVESTOR-Macro/2.0",
+            },
+            timeout=40,
+        )
+    except Exception as exc:
+        raise RuntimeError(f"Macro text source failed via Chromium gateway: {type(exc).__name__}: {exc}") from exc
 
 def _bls_period_to_date(year: str, period: str) -> str | None:
     if not period.startswith("M"):
