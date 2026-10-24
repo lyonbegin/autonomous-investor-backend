@@ -131,13 +131,11 @@ async def _shutdown_browser():
 @app.get("/health")
 async def health() -> dict[str, Any]:
     browser = await _ensure_browser()
-    regression = await page_self_test()
     return {
         "status": "ok",
         "service": "autonomous-investor-data-browser",
         "browser_connected": bool(browser and browser.is_connected()),
         "transport": "playwright-chromium",
-        "native_pine_regression": regression,
     }
 
 
@@ -317,6 +315,50 @@ async def page_self_test() -> dict[str, Any]:
         "canvases": state.get("canvases"),
         "native_pine_charts": state.get("nativePineCharts"),
         "console_error_count": len(result.get("console_errors") or []),
+    }
+
+
+@app.get("/v1/page/self_test_strategy")
+async def page_self_test_strategy() -> dict[str, Any]:
+    target = (
+        "https://autonomous-investor-public-production.up.railway.app/"
+        "scripts/PUB%3B9697fd0fa80f4251ac278e6ec9d172f5"
+    )
+    result = await page_verify(
+        PageVerifyRequest(
+            url=target,
+            wait_ms=25000,
+            text_contains="실행 성공",
+        )
+    )
+    state = result.get("state") or {}
+    ok = bool(
+        result.get("contains")
+        and int(state.get("nativePineCharts") or 0) >= 1
+        and int(state.get("canvases") or 0) >= 1
+        and not (result.get("page_errors") or [])
+        and not (state.get("nativePineErrors") or [])
+    )
+    diagnostics = {
+        "contains": result.get("contains"),
+        "canvases": state.get("canvases"),
+        "nativePineCharts": state.get("nativePineCharts"),
+        "nativePineErrors": state.get("nativePineErrors"),
+        "page_errors": result.get("page_errors"),
+        "console_errors": result.get("console_errors"),
+        "text": str(state.get("text") or "")[:5000],
+    }
+    if not ok:
+        print("NATIVE_PINE_STRATEGY_TEST_FAIL", json.dumps(diagnostics, ensure_ascii=False), flush=True)
+        raise HTTPException(status_code=503, detail={"reason": "Native Pine strategy regression failed", **diagnostics})
+    print("NATIVE_PINE_STRATEGY_TEST_OK", json.dumps(diagnostics, ensure_ascii=False), flush=True)
+    return {
+        "status": "ok",
+        "runtime": "Vela + PineTS",
+        "script": "Liquidity Gravity Strategy | Weighted Swing-Pool Imbalance",
+        "contains_execution_success": True,
+        "canvases": state.get("canvases"),
+        "native_pine_charts": state.get("nativePineCharts"),
     }
 
 
