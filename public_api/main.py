@@ -313,6 +313,14 @@ async def script_search(
     )
 
 
+@app.get("/api/public/scripts/{script_id_part}/meta")
+async def script_meta(script_id_part: str) -> dict[str, Any]:
+    return await _get(
+        TV_API,
+        f"/api/v1/tradingview/scripts/{quote(script_id_part, safe='')}/meta",
+    )
+
+
 @app.get("/api/public/scripts/{script_id_part}/full")
 async def script_full(script_id_part: str) -> dict[str, Any]:
     return await _get(
