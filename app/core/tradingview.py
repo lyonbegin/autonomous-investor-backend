@@ -3146,6 +3146,20 @@ def build_pending_strategy_candidates(limit: int = 500) -> dict[str, Any]:
     }
 
 
+def get_candidate(candidate_id: str) -> dict[str, Any]:
+    init_db()
+    with _connect() as conn:
+        row = conn.execute(
+            "SELECT * FROM strategy_candidates WHERE candidate_id = ?",
+            (candidate_id,),
+        ).fetchone()
+    if row is None:
+        raise KeyError(candidate_id)
+    item = dict(row)
+    item["candidate_horizons"] = json.loads(item["candidate_horizons"])
+    return item
+
+
 def list_candidates(limit: int = 100) -> list[dict[str, Any]]:
     init_db()
     with _connect() as conn:
