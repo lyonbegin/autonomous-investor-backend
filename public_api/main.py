@@ -4,6 +4,7 @@ import os
 import time
 from collections import defaultdict
 from typing import Any
+from urllib.parse import quote
 
 import httpx
 from fastapi import FastAPI, HTTPException, Query
@@ -95,11 +96,31 @@ async def _bundle(limit: int = 300) -> dict[str, Any]:
         resolved = await asyncio.gather(*[one(cid) for cid in missing_ids])
         candidate_items.extend([x for x in resolved if x])
 
+    source_items = list(sources.get("items") or [])
+    existing_source_ids = {str(x.get("source_id") or "") for x in source_items}
+    agent_candidate_ids = {str(x.get("candidate_id") or "") for x in agent_items if x.get("candidate_id")}
+    linked_candidates = [x for x in candidate_items if str(x.get("candidate_id") or "") in agent_candidate_ids]
+    missing_source_ids = sorted({
+        str(x.get("source_id") or "")
+        for x in linked_candidates
+        if x.get("source_id") and str(x.get("source_id")) not in existing_source_ids
+    })
+    if missing_source_ids:
+        import asyncio
+        async def source_one(source_id: str) -> dict[str, Any] | None:
+            registry_id = ("TVS:" + source_id) if source_id.startswith("PUB;") else source_id
+            try:
+                return await _get(TV_API, "/api/v1/strategy-sources/" + quote(registry_id, safe=""))
+            except HTTPException:
+                return None
+        resolved_sources = await asyncio.gather(*[source_one(sid) for sid in missing_source_ids])
+        source_items.extend([x for x in resolved_sources if x])
+
     result = {
         "candidates": candidate_items,
         "agents": agent_items,
         "handoff": handoff.get("items") or [],
-        "sources": sources.get("items") or [],
+        "sources": source_items,
         "experiments": experiments.get("items") or [],
     }
     _BUNDLE_CACHE["at"] = now
@@ -198,6 +219,23 @@ def _strategy_view(candidate: dict[str, Any], idx: dict[str, Any]) -> dict[str, 
             "research": sum(1 for a in agents if a.get("status") == "RESEARCH"),
         },
     }
+
+
+@app.on_event("startup")
+async def _startup_prewarm() -> None:
+    try:
+        data = await _bundle(300)
+        print(
+            "PUBLIC_PREWARM",
+            {
+                "candidates": len(data.get("candidates") or []),
+                "agents": len(data.get("agents") or []),
+                "experiments": len(data.get("experiments") or []),
+            },
+            flush=True,
+        )
+    except Exception as exc:
+        print("PUBLIC_PREWARM_ERROR", type(exc).__name__, str(exc), flush=True)
 
 
 @app.get("/health")
