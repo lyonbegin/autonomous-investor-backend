@@ -1,5 +1,5 @@
 type Props={path:string;go:(p:string)=>void};
-const items=[['/strategies','전략'],['/scripts','TradingView 스크립트'],['/agents','에이전트'],['/markets','마켓'],['/performance','성과']];
+const items=[['/strategies','전략'],['/scripts','TradingView 스크립트'],['/agents','에이전트'],['/markets','마켓'],['/performance','성과'],['/workflow','AlphaForge 노드 스튜디오']];
 export function Header({path,go}:Props){
   return <>
     <header className="topbar">
