@@ -104,3 +104,54 @@ export type Summary={
   markets:string[];
   invariant:string;
 };
+
+export type CommunityScript={
+  script_id_part:string;
+  script_id?:string;
+  name:string;
+  author?:string;
+  script_type?:string;
+  script_access?:number;
+  version?:string;
+  likes_count?:number;
+  comments_count?:number;
+  views_count?:number;
+  created_at?:string;
+  updated_at?:string;
+  chart_url?:string;
+  image_url?:string;
+  symbol?:string;
+  interval?:string;
+  is_picked?:number|boolean;
+  is_hot?:number|boolean;
+  description?:string;
+  collected_at?:string;
+};
+
+export type ScriptDetail={
+  source_kind:string;
+  source_id:string;
+  source_url:string;
+  title:string;
+  full_text:string;
+  page_hash?:string;
+  fetched_at?:string;
+  hero_images?:string[];
+  content_images?:string[];
+  from_cache?:boolean;
+};
+
+export type PineSource={
+  ok?:boolean;
+  protected?:boolean;
+  reason?:string;
+  script_id_part:string;
+  version?:string;
+  script_name?:string;
+  kind?:string;
+  pine_version?:number;
+  source_hash?:string;
+  source?:string;
+  fetched_at?:string;
+  from_cache?:boolean;
+};
