@@ -6,6 +6,7 @@ import re
 import json
 import os
 import sqlite3
+import time
 from datetime import UTC, datetime, timedelta
 from concurrent.futures import ThreadPoolExecutor
 from html.parser import HTMLParser
@@ -1429,11 +1430,26 @@ def _bond_scan_prefix(prefix: str) -> dict[str, Any]:
         "sort": {"sortBy": "ticker-view-sort", "sortOrder": "asc"},
         "range": [0, 100],
     }
-    raw = _http_json(
-        SCANNER_URL.format(market="bond") + "?label-product=screener-bond",
-        method="POST",
-        payload=payload,
-    )
+    raw = None
+    for attempt in range(8):
+        try:
+            raw = _http_json(
+                SCANNER_URL.format(market="bond") + "?label-product=screener-bond",
+                method="POST",
+                payload=payload,
+            )
+            break
+        except error.HTTPError as exc:
+            if exc.code != 429:
+                raise
+            retry_after = 0.0
+            try:
+                retry_after = float(exc.headers.get("Retry-After") or 0)
+            except (TypeError, ValueError):
+                retry_after = 0.0
+            time.sleep(max(retry_after, min(20.0, 0.75 * (2 ** attempt))))
+    if raw is None:
+        raise RuntimeError("TradingView bond scanner remained rate-limited after retries")
     rows: list[dict[str, Any]] = []
     for item in raw.get("data", []):
         values = item.get("d", [])
@@ -1520,6 +1536,15 @@ def backfill_corporate_bond_universe(max_prefixes: int = 500) -> dict[str, Any]:
     state = _market_state("corporate-bonds")
     scan_id = str(state["scan_id"])
     safe_limit = min(max(int(max_prefixes), 1), 5000)
+    with _connect() as conn:
+        conn.execute(
+            """
+            UPDATE bond_prefix_queue
+            SET status='PENDING',last_error=NULL,updated_at=?
+            WHERE scan_id=? AND status='ERROR' AND last_error LIKE '%429%'
+            """,
+            (utcnow(), scan_id),
+        )
     processed = 0
     split_count = 0
     stored_rows = 0
@@ -1560,7 +1585,7 @@ def backfill_corporate_bond_universe(max_prefixes: int = 500) -> dict[str, Any]:
             except Exception as exc:
                 return prefix, None, exc
 
-        with ThreadPoolExecutor(max_workers=min(16, len(prefixes))) as executor:
+        with ThreadPoolExecutor(max_workers=min(4, len(prefixes))) as executor:
             futures = [executor.submit(_scan_one, prefix) for prefix in prefixes]
             for future in futures:
                 wave_results.append(future.result())
