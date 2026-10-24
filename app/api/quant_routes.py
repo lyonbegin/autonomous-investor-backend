@@ -177,6 +177,27 @@ def experiment_symbols(experiment_id: str, body: SymbolUpdate) -> dict:
         raise HTTPException(status_code=404, detail=f"experiment not found: {experiment_id}") from exc
 
 
+@router.get("/pine/self-test")
+def pine_visual_self_test() -> dict:
+    result = visualize_pine_script(
+        "PUB;fd5cad2ba18e450f8665ea1761f9b034",
+        symbol="BINANCE:BTCUSDT",
+        horizon="1h",
+    )
+    visual = result.get("visual") or {}
+    market = result.get("market_data") or {}
+    return {
+        "status": "ok",
+        "script": result.get("script_name"),
+        "symbol": result.get("symbol"),
+        "horizon": result.get("horizon"),
+        "provider": market.get("provider"),
+        "bars": market.get("count"),
+        "adapter": visual.get("adapter"),
+        "nodes": visual.get("node_count"),
+    }
+
+
 @router.get("/pine/visualize")
 def pine_visualize(
     script_id: str,
