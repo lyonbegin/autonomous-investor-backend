@@ -2433,12 +2433,13 @@ def search_stored_scripts(query: str, limit: int = 50) -> list[dict[str, Any]]:
                    symbol,interval,is_picked,is_hot,description,collected_at
             FROM community_scripts
             WHERE name LIKE ? COLLATE NOCASE
+               OR author LIKE ? COLLATE NOCASE
                OR description LIKE ? COLLATE NOCASE
                OR symbol LIKE ? COLLATE NOCASE
             ORDER BY is_picked DESC, likes_count DESC, collected_at DESC
             LIMIT ?
             """,
-            (needle, needle, needle, safe_limit),
+            (needle, needle, needle, needle, safe_limit),
         ).fetchall()
     return [dict(row) for row in rows]
 
