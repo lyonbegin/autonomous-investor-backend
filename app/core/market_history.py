@@ -4,20 +4,21 @@ import json
 import math
 from datetime import UTC, datetime
 from typing import Any
-from urllib import parse, request
+from urllib import parse
+
+from app.core.browser_http import browser_json
 
 
 USER_AGENT = "AUTONOMOUS-INVESTOR-QuantLab/1.0"
 
 
-def _json(url: str) -> dict[str, Any]:
-    req = request.Request(
+def _json(url: str) -> Any:
+    return browser_json(
         url,
+        method="GET",
         headers={"User-Agent": USER_AGENT, "Accept": "application/json"},
+        timeout=35,
     )
-    with request.urlopen(req, timeout=25) as response:
-        return json.loads(response.read().decode("utf-8"))
-
 
 def _qualified(symbol: str) -> tuple[str, str]:
     value = str(symbol or "").strip()
