@@ -97,7 +97,7 @@ function upgradeLegacyPine(source:string){
   const ta=[
     'sma','ema','wma','vwma','rma','rsi','atr','highest','lowest','stdev','variance',
     'change','cross','crossover','crossunder','rising','falling','barssince','valuewhen',
-    'pivothigh','pivotlow','sum','cum','correlation','linreg','percentile_nearest_rank',
+    'pivothigh','pivotlow','cum','correlation','linreg','percentile_nearest_rank',
     'percentile_linear_interpolation','percentrank','alma','bb','bbw','cci','cmo',
     'dmi','hma','kc','kcw','macd','mfi','mom','sar','supertrend','swma','tsi','vwap'
   ];
@@ -108,7 +108,7 @@ function upgradeLegacyPine(source:string){
 
   out=out.replace(/(^|[^\w.])tr\b(?!\s*\()/gm,'$1ta.tr');
 
-  const math=['abs','max','min','round','ceil','floor','sqrt','pow','log','exp','sign'];
+  const math=['abs','max','min','round','ceil','floor','sqrt','pow','log','exp','sign','sum'];
   for(const name of math){
     const re=new RegExp('(?<![\\w.])'+name+'\\s*\\(','g');
     out=out.replace(re,'math.'+name+'(');
