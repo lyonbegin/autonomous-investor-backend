@@ -109,6 +109,40 @@ type Props={
   onRuntime?:(x:{state:'loading'|'ready'|'error';message?:string;kind?:string})=>void;
 };
 
+function normalizeLegacyPine(source:string){
+  let s=String(source||'');
+  const v=(s.match(/\/\/@version\s*=\s*(\d+)/i)?.[1]||'').trim();
+  if(v!=='4'&&v!=='3'&&v!=='2')return s;
+
+  // Pine v4 and earlier use global TA helpers. Pine v5+ moved most of them
+  // under ta./request./math. Convert only known namespace migrations and
+  // declaration names, leaving user-defined identifiers untouched.
+  s=s.replace(/\/\/@version\s*=\s*\d+/i,'//@version=5');
+  s=s.replace(/\bstudy\s*\(/g,'indicator(');
+  s=s.replace(/\bsecurity\s*\(/g,'request.security(');
+  s=s.replace(/\bsyminfo\.tickerid\b/g,'syminfo.tickerid');
+
+  const taFns=[
+    'sma','ema','wma','vwma','rma','rsi','atr','tr','stdev','variance',
+    'highest','lowest','highestbars','lowestbars','change','roc','mom',
+    'crossover','crossunder','cross','valuewhen','barssince','pivothigh','pivotlow',
+    'alma','hma','swma','linreg','sar','supertrend','bb','bbw','kc','kcp','mfi',
+    'cci','cmo','dmi','adx','macd','stoch','tsi','wpr'
+  ];
+  for(const fn of taFns){
+    s=s.replace(new RegExp('(?<![A-Za-z0-9_\\.])'+fn+'\\s*\\(','g'),'ta.'+fn+'(');
+  }
+
+  const mathFns=['abs','max','min','round','floor','ceil','sqrt','pow','log','exp','sign'];
+  for(const fn of mathFns){
+    s=s.replace(new RegExp('(?<![A-Za-z0-9_\\.])'+fn+'\\s*\\(','g'),'math.'+fn+'(');
+  }
+
+  // input() remains valid in v5, but typed helpers moved to input.*.
+  // plot/strategy/order functions remain in their existing namespaces.
+  return s;
+}
+
 export function NativePineChartControl({data,source,onRuntime}:Props){
   const host=useRef<HTMLDivElement>(null);
   const runtimeRef=useRef(onRuntime);
@@ -134,6 +168,8 @@ export function NativePineChartControl({data,source,onRuntime}:Props){
     }));
 
     const compatible=upgradeLegacyPine(source);
+
+    const runtimeSource=normalizeLegacyPine(source);
 
     const chart=new Vela(el,{
       data:bars as any,
