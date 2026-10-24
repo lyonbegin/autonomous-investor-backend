@@ -394,6 +394,87 @@ async def page_self_test_all() -> dict[str, Any]:
     }
 
 
+@app.get("/v1/page/sample_test")
+async def page_sample_test() -> dict[str, Any]:
+    async def list_scripts(script_type: str) -> list[dict[str, Any]]:
+        p, browser, context = await _browser()
+        try:
+            url = (
+                "https://autonomous-investor-public-api-production.up.railway.app/"
+                f"api/public/scripts?page=1&script_type={script_type}&sort=latest_popular"
+            )
+            response = await context.request.get(url, timeout=60000)
+            payload = await response.json()
+            return list(payload.get("items") or [])
+        finally:
+            await _close(p, browser, context)
+
+    picked: list[dict[str, Any]] = []
+    for script_type in ("indicators", "strategies"):
+        items = await list_scripts(script_type)
+        for item in items[:2]:
+            picked.append(item)
+
+    results: list[dict[str, Any]] = []
+    for item in picked:
+        sid = str(item.get("script_id_part") or "")
+        if not sid:
+            continue
+        target = (
+            "https://autonomous-investor-public-production.up.railway.app/scripts/"
+            + sid.replace(";", "%3B")
+        )
+        try:
+            result = await page_verify(
+                PageVerifyRequest(
+                    url=target,
+                    wait_ms=18000,
+                    text_contains="실행 성공",
+                )
+            )
+            state = result.get("state") or {}
+            ok = bool(
+                result.get("contains")
+                and int(state.get("nativePineCharts") or 0) >= 1
+                and int(state.get("canvases") or 0) >= 1
+                and not (result.get("page_errors") or [])
+                and not (state.get("nativePineErrors") or [])
+            )
+            results.append({
+                "script_id": sid,
+                "name": item.get("name"),
+                "script_type": item.get("script_type"),
+                "ok": ok,
+                "canvases": state.get("canvases"),
+                "native_pine_charts": state.get("nativePineCharts"),
+                "native_pine_errors": state.get("nativePineErrors"),
+                "page_errors": result.get("page_errors"),
+                "console_errors": result.get("console_errors"),
+                "screenshot_bytes": result.get("screenshot_bytes"),
+                "screenshot_sha256": result.get("screenshot_sha256"),
+            })
+        except Exception as exc:
+            results.append({
+                "script_id": sid,
+                "name": item.get("name"),
+                "script_type": item.get("script_type"),
+                "ok": False,
+                "error": f"{type(exc).__name__}: {exc}",
+            })
+
+    passed = sum(1 for x in results if x.get("ok"))
+    summary = {
+        "status": "ok" if passed == len(results) and results else "partial",
+        "transport": "playwright-chromium",
+        "tested": len(results),
+        "passed": passed,
+        "failed": len(results) - passed,
+        "results": results,
+    }
+    print("NATIVE_PINE_SAMPLE_TEST", json.dumps(summary, ensure_ascii=False), flush=True)
+    return summary
+
+
 @app.post("/v1/source/detail")
 async def source_detail(req: DetailRequest) -> dict[str, Any]:
     p, browser, context = await _browser()
