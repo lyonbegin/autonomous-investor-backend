@@ -283,6 +283,41 @@ async def idea_detail(idea_id: str) -> dict[str, Any]:
     return await _get(TV_API, f"/api/v1/tradingview/ideas/{quote(idea_id, safe='')}/full")
 
 
+@app.get("/api/public/scripts")
+async def scripts(
+    page: int = Query(default=1, ge=1),
+    sort: str = Query(default="latest_popular"),
+    script_type: str = Query(default="all"),
+    topic: str | None = None,
+    editors_picks: bool = False,
+) -> dict[str, Any]:
+    params = [
+        f"page={page}",
+        f"sort={quote(sort, safe='')}",
+        f"script_type={quote(script_type, safe='')}",
+        f"editors_picks={'true' if editors_picks else 'false'}",
+    ]
+    if topic:
+        params.append(f"topic={quote(topic, safe='')}")
+    return await _get(TV_API, "/api/v1/tradingview/scripts/live?" + "&".join(params))
+
+
+@app.get("/api/public/scripts/{script_id_part}/full")
+async def script_full(script_id_part: str) -> dict[str, Any]:
+    return await _get(
+        TV_API,
+        f"/api/v1/tradingview/scripts/{quote(script_id_part, safe='')}/full",
+    )
+
+
+@app.get("/api/public/scripts/{script_id_part}/source")
+async def script_source(script_id_part: str) -> dict[str, Any]:
+    return await _get(
+        TV_API,
+        f"/api/v1/tradingview/scripts/{quote(script_id_part, safe='')}/source",
+    )
+
+
 @app.get("/api/public/strategies")
 async def strategies(
     limit: int = Query(default=100, ge=1, le=300),
