@@ -1833,11 +1833,6 @@ def collect_market(
     persist_snapshot: bool = True,
 ) -> dict[str, Any]:
     market_key = MARKET_ALIASES.get(market.lower(), market.lower())
-    if market_key == "corporate-bonds":
-        return backfill_corporate_bond_universe(
-            prefixes=max(1, int(chunks) * 50),
-            workers=24,
-        )
     if market_key not in MARKET_SCANNER_PROFILES:
         raise ValueError(f"unsupported market: {market}")
 
