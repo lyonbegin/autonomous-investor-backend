@@ -655,6 +655,40 @@ def _detail_source(source_kind: str, source_id: str) -> tuple[str, str, str]:
     )
 
 
+def _browser_source_detail(source_url: str) -> dict[str, Any] | None:
+    browser_url = os.environ.get(
+        "TRADINGVIEW_BROWSER_URL",
+        "https://autonomous-investor-tradingview-browser-production.up.railway.app",
+    ).rstrip("/")
+    payload = json.dumps({"url": source_url, "wait_ms": 2500}).encode("utf-8")
+    req = request.Request(
+        browser_url + "/v1/source/detail",
+        data=payload,
+        headers={
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "User-Agent": "AUTONOMOUS-INVESTOR-TradingView/BrowserClient",
+        },
+        method="POST",
+    )
+    try:
+        with request.urlopen(req, timeout=40) as response:
+            data = json.loads(response.read().decode("utf-8"))
+        if not data.get("ok"):
+            return None
+        images = [str(x) for x in (data.get("images") or []) if x]
+        return {
+            "title": str(data.get("title") or ""),
+            "full_text": str(data.get("full_text") or ""),
+            "hero_images": images[:1],
+            "content_images": images[1:],
+            "browser_status": data.get("status"),
+            "collector": "headless-chromium",
+        }
+    except Exception:
+        return None
+
+
 def fetch_source_detail(source_kind: str, source_id: str, *, force: bool = False) -> dict[str, Any]:
     init_db()
     with _connect() as conn:
@@ -675,22 +709,25 @@ def fetch_source_detail(source_kind: str, source_id: str, *, force: bool = False
 
     separator = "&" if "?" in source_url else "?"
     detail_missing = False
-    try:
-        html_text = _http_text(source_url + separator + "component-data-only=1")
-        parser = _TradingViewDetailParser()
-        parser.feed(html_text)
-        parsed = parser.result()
-    except error.HTTPError as exc:
-        if exc.code not in {404, 410}:
-            raise
-        detail_missing = True
-        html_text = ""
-        parsed = {
-            "title": fallback_title,
-            "full_text": fallback_text,
-            "hero_images": [],
-            "content_images": [],
-        }
+    html_text = ""
+    parsed = _browser_source_detail(source_url)
+    collector = "headless-chromium" if parsed is not None else "direct-html-fallback"
+    if parsed is None:
+        try:
+            html_text = _http_text(source_url + separator + "component-data-only=1")
+            parser = _TradingViewDetailParser()
+            parser.feed(html_text)
+            parsed = parser.result()
+        except error.HTTPError as exc:
+            if exc.code not in {404, 410}:
+                raise
+            detail_missing = True
+            parsed = {
+                "title": fallback_title,
+                "full_text": fallback_text,
+                "hero_images": [],
+                "content_images": [],
+            }
 
     hero_images = list(parsed["hero_images"])
     content_images = list(parsed["content_images"])
@@ -754,6 +791,7 @@ def fetch_source_detail(source_kind: str, source_id: str, *, force: bool = False
         "fetched_at": now,
         "from_cache": False,
         "detail_missing": detail_missing,
+        "collector": collector,
     }
 
 
