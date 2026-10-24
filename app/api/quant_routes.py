@@ -18,6 +18,7 @@ from app.core.quant_lab import (
 from app.core.toss_market import TossApiError, TossConfigError, fetch_history, get_candles
 from app.core.macro_data import latest_macro_snapshot, macro_series, refresh_macro
 from app.core.market_history import fetch_history_for_agent
+from app.core.pine_visual import visualize_pine_script
 
 router = APIRouter(prefix="/api/v1/quant", tags=["quant-lab"])
 
@@ -174,6 +175,29 @@ def experiment_symbols(experiment_id: str, body: SymbolUpdate) -> dict:
         return update_symbols(experiment_id, body.symbols)
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=f"experiment not found: {experiment_id}") from exc
+
+
+@router.get("/pine/visualize")
+def pine_visualize(
+    script_id: str,
+    symbol: str,
+    horizon: str,
+    market: str = "",
+    country: str = "",
+) -> dict:
+    try:
+        return visualize_pine_script(
+            script_id,
+            symbol=symbol,
+            horizon=horizon,
+            market=market,
+            country=country,
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Pine visualization failed: {type(exc).__name__}: {exc}",
+        ) from exc
 
 
 @router.get("/market-data/history")
