@@ -811,6 +811,18 @@ def corporate_bond_status() -> dict[str, Any]:
             """,
             (scan_id,),
         ).fetchall()
+        open_rows = conn.execute(
+            """
+            SELECT task_id,phase,primary_field,low_value,high_value,cursor_value,
+                   estimated_count,pages_done,rows_seen,status,last_error,updated_at
+            FROM corporate_bond_scan_tasks
+            WHERE scan_id=? AND status<>'COMPLETE'
+            ORDER BY estimated_count DESC,task_id ASC
+            LIMIT 20
+            """,
+            (scan_id,),
+        ).fetchall()
+        open_tasks = [dict(row) for row in open_rows]
         error_summary = [
             {"error": str(row["last_error"] or ""), "count": int(row["count"] or 0)}
             for row in error_rows
@@ -821,6 +833,7 @@ def corporate_bond_status() -> dict[str, Any]:
             "tasks_complete": int(counts["complete"] or 0),
             "tasks_error": int(counts["errors"] or 0),
             "error_summary": error_summary,
+            "open_tasks": open_tasks,
             "pages_done": int(counts["pages_done"] or 0),
             "progress": round(
                 stored / max(int(item.get("source_total") or 0), 1) * 100,
