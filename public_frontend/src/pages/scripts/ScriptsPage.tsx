@@ -20,7 +20,6 @@ export function ScriptsPage({go}:{go:(p:string)=>void}){
   const [items,setItems]=useState<CommunityScript[]>([]);
   const [page,setPage]=useState(1);
   const [scriptType,setScriptType]=useState('all');
-  const [sort,setSort]=useState('latest_popular');
   const [query,setQuery]=useState('');
   const [loading,setLoading]=useState(true);
   const [error,setError]=useState('');
@@ -35,7 +34,7 @@ export function ScriptsPage({go}:{go:(p:string)=>void}){
         const q=query.trim();
         const r=q.length>=2
           ? await api.scriptSearch(q,100)
-          : await api.scripts(page,scriptType,sort);
+          : await api.scripts(page,scriptType);
         if(!alive)return;
         setItems(r.items||[]);
         setTotal('total_count' in r?r.total_count:('count' in r?r.count:undefined));
@@ -44,7 +43,7 @@ export function ScriptsPage({go}:{go:(p:string)=>void}){
       finally{if(alive)setLoading(false)}
     },query.trim().length>=2?250:0);
     return()=>{alive=false;clearTimeout(t)};
-  },[page,scriptType,sort,query]);
+  },[page,scriptType,query]);
 
   const filtered=useMemo(()=>{
     if(query.trim().length>=2&&scriptType!=='all'){
@@ -66,10 +65,6 @@ export function ScriptsPage({go}:{go:(p:string)=>void}){
     <section className="script-toolbar">
       <div className="script-type-tabs">{TYPES.map(([v,l])=><button key={v} className={scriptType===v?'selected':''} onClick={()=>{setScriptType(v);setPage(1)}}>{l}</button>)}</div>
       <input value={query} onChange={e=>{setQuery(e.target.value);setPage(1)}} placeholder="스크립트명·작성자·종목 검색"/>
-      <select value={sort} onChange={e=>{setSort(e.target.value);setPage(1)}} disabled={query.trim().length>=2}>
-        <option value="latest_popular">인기 + 최신</option>
-        <option value="recent_extended">최신순</option>
-      </select>
     </section>
 
     <div className="feed-head">
