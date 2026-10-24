@@ -82,6 +82,11 @@ def _scan_module(path: Path, *, project: str, source: str, module: str) -> list[
         dec = _decorators(fn)
         if fn.name.startswith("_") and fn.name != "__init__":
             return
+        if source == "service":
+            if project == "quantlab" and not fn.name.startswith("quant_"):
+                return
+            if project == "tradingview" and fn.name.startswith("quant_"):
+                return
         if fn.name == "__init__":
             kind = "constructor"
         elif "property" in dec:
@@ -119,7 +124,7 @@ def _scan_module(path: Path, *, project: str, source: str, module: str) -> list[
             "endpoint": f"/api/v1/alpha/modules/{project}/{source}/{module}/{operation_name}/execute",
         })
     for item in parsed.body:
-        if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)) and source == "orchestration":
+        if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)) and source in ("orchestration", "service"):
             add(item)
         elif isinstance(item, ast.ClassDef):
             for member in item.body:
@@ -139,6 +144,9 @@ def build_inventory() -> list[dict]:
     for name in ORCHESTRATION:
         result.extend(_scan_module(ROOT / "app" / "orchestration" / f"{name}.py",
                                    project="orchestration", source="orchestration", module=name))
+    for service_project in ("tradingview", "quantlab"):
+        result.extend(_scan_module(ROOT / "app" / "alpha_nodes" / "services.py",
+                                   project=service_project, source="service", module="api"))
     result.sort(key=lambda x: (x["engine"], x["source"], x["module"], x["source_line"]))
     ids = [item["id"] for item in result]
     if len(set(ids)) != len(ids):
