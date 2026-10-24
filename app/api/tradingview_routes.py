@@ -38,6 +38,8 @@ from app.core.tradingview import (
     market_universe_counts,
     market_backfill_state,
     backfill_market_universe,
+    bond_prefix_backfill_state,
+    backfill_corporate_bond_universe,
     list_stored_ideas,
     list_stored_scripts,
 )
@@ -195,6 +197,24 @@ def market_backfill_reset(market: str) -> dict:
         return reset_market_backfill(market)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get("/markets/corporate-bonds/prefix-backfill/state")
+def corporate_bond_prefix_state() -> dict:
+    return bond_prefix_backfill_state()
+
+
+@router.post("/markets/corporate-bonds/prefix-backfill")
+def corporate_bond_prefix_backfill(
+    max_prefixes: int = Query(default=500, ge=1, le=5000),
+) -> dict:
+    try:
+        return backfill_corporate_bond_universe(max_prefixes=max_prefixes)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"TradingView corporate bond prefix backfill failed: {type(exc).__name__}: {exc}",
+        ) from exc
 
 
 @router.post("/markets/{market}/backfill")
