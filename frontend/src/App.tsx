@@ -476,6 +476,7 @@ function scannerSortForView(view:string,tab:MarketTab):{sortBy:string;sortOrder:
   if(view==='상승주') return {sortBy:'change',sortOrder:'desc'};
   if(view==='하락주') return {sortBy:'change',sortOrder:'asc'};
   if(view==='시총 상위') return {sortBy:tab==='크립토'?'market_cap_calc':'market_cap_basic',sortOrder:'desc'};
+  if(view==='개요' && tab==='크립토') return {sortBy:'market_cap_calc',sortOrder:'desc'};
   return {sortBy:'volume',sortOrder:'desc'};
 }
 
