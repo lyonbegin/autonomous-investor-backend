@@ -13,7 +13,7 @@ from html.parser import HTMLParser
 from typing import Any
 from urllib import error, parse, request
 
-from app.core.browser_http import browser_json, browser_text
+from app.core.browser_http import browser_json, browser_text, browser_render_detail
 
 
 IDEAS_URL = "https://www.tradingview.com/api/v1/ideas/"
@@ -661,26 +661,8 @@ def _detail_source(source_kind: str, source_id: str) -> tuple[str, str, str]:
 
 
 def _browser_source_detail(source_url: str) -> dict[str, Any] | None:
-    browser_url = os.environ.get(
-        "TRADINGVIEW_BROWSER_URL",
-        "https://autonomous-investor-tradingview-browser-production.up.railway.app",
-    ).rstrip("/")
-    payload = json.dumps({"url": source_url, "wait_ms": 2500}).encode("utf-8")
-    req = request.Request(
-        browser_url + "/v1/source/detail",
-        data=payload,
-        headers={
-            "Content-Type": "application/json",
-            "Accept": "application/json",
-            "User-Agent": "AUTONOMOUS-INVESTOR-TradingView/BrowserClient",
-        },
-        method="POST",
-    )
     try:
-        with request.urlopen(req, timeout=40) as response:
-            data = json.loads(response.read().decode("utf-8"))
-        if not data.get("ok"):
-            return None
+        data = browser_render_detail(source_url, wait_ms=2500, timeout=45)
         images = [str(x) for x in (data.get("images") or []) if x]
         return {
             "title": str(data.get("title") or ""),
@@ -692,7 +674,6 @@ def _browser_source_detail(source_url: str) -> dict[str, Any] | None:
         }
     except Exception:
         return None
-
 
 def fetch_source_detail(source_kind: str, source_id: str, *, force: bool = False) -> dict[str, Any]:
     init_db()
