@@ -1368,7 +1368,7 @@ def bond_prefix_backfill_state() -> dict[str, Any]:
             (scan_id,),
         ).fetchall()
         stored = int(conn.execute(
-            "SELECT COUNT(*) AS c FROM market_universe_current WHERE market='corporate-bonds' AND scan_id=?",
+            "SELECT COUNT(*) AS c FROM market_universe_rows WHERE market='corporate-bonds' AND scan_id=?",
             (scan_id,),
         ).fetchone()["c"])
     status_counts = {str(r["status"]): int(r["count"]) for r in rows}
@@ -1379,6 +1379,7 @@ def bond_prefix_backfill_state() -> dict[str, Any]:
         "pending": status_counts.get("PENDING", 0),
         "split": status_counts.get("SPLIT", 0),
         "done": status_counts.get("DONE", 0),
+        "overflow": status_counts.get("OVERFLOW", 0),
         "error": status_counts.get("ERROR", 0),
         "cycle_started_at": state.get("cycle_started_at"),
         "last_completed_at": state.get("last_completed_at"),
@@ -1395,40 +1396,106 @@ def backfill_corporate_bond_universe(max_prefixes: int = 500) -> dict[str, Any]:
     split_count = 0
     stored_rows = 0
     errors: list[str] = []
-    now = utcnow()
+
+    with _connect() as conn:
+        row = conn.execute(
+            """
+            SELECT COALESCE(MAX(rank_index),0) AS max_rank
+            FROM market_universe_rows
+            WHERE market='corporate-bonds' AND scan_id=?
+            """,
+            (scan_id,),
+        ).fetchone()
+        next_rank = int(row["max_rank"] or 0) + 1
 
     while processed < safe_limit:
+        wave_size = min(64, safe_limit - processed)
         with _connect() as conn:
-            row = conn.execute(
+            pending_rows = conn.execute(
                 """
                 SELECT prefix FROM bond_prefix_queue
                 WHERE scan_id=? AND status='PENDING'
                 ORDER BY LENGTH(prefix) ASC,prefix ASC
-                LIMIT 1
+                LIMIT ?
                 """,
-                (scan_id,),
-            ).fetchone()
-        if row is None:
+                (scan_id, wave_size),
+            ).fetchall()
+        if not pending_rows:
             break
-        prefix = str(row["prefix"])
-        try:
-            result = _bond_scan_prefix(prefix)
+
+        prefixes = [str(row["prefix"]) for row in pending_rows]
+        wave_results: list[tuple[str, dict[str, Any] | None, Exception | None]] = []
+
+        def _scan_one(prefix: str) -> tuple[str, dict[str, Any] | None, Exception | None]:
+            try:
+                return prefix, _bond_scan_prefix(prefix), None
+            except Exception as exc:
+                return prefix, None, exc
+
+        with ThreadPoolExecutor(max_workers=min(16, len(prefixes))) as executor:
+            futures = [executor.submit(_scan_one, prefix) for prefix in prefixes]
+            for future in futures:
+                wave_results.append(future.result())
+
+        for prefix, result, exc in wave_results:
+            if exc is not None or result is None:
+                message = f"{type(exc).__name__}: {exc}"
+                errors.append(f"{prefix}:{message}")
+                with _connect() as conn:
+                    conn.execute(
+                        """
+                        UPDATE bond_prefix_queue
+                        SET status='ERROR',attempts=attempts+1,last_error=?,updated_at=?
+                        WHERE scan_id=? AND prefix=?
+                        """,
+                        (message, utcnow(), scan_id, prefix),
+                    )
+                processed += 1
+                continue
+
             total = int(result["total_count"])
             items = list(result["items"])
+
             if total <= 10:
-                _store_market_universe_page(
-                    "corporate-bonds",
-                    items,
-                    scan_id=scan_id,
-                    base_rank=0,
-                    collected_at=utcnow(),
-                )
-                stored_rows += len(items)
+                if items:
+                    _store_market_universe_page(
+                        "corporate-bonds",
+                        items,
+                        scan_id=scan_id,
+                        base_rank=next_rank - 1,
+                        collected_at=utcnow(),
+                    )
+                    next_rank += len(items)
+                    stored_rows += len(items)
                 with _connect() as conn:
                     conn.execute(
                         """
                         UPDATE bond_prefix_queue
                         SET status='DONE',total_count=?,attempts=attempts+1,last_error=NULL,updated_at=?
+                        WHERE scan_id=? AND prefix=?
+                        """,
+                        (total, utcnow(), scan_id, prefix),
+                    )
+            elif len(prefix) >= 12:
+                # An exact 12-character ISIN can still have >10 rows when the same
+                # security is listed on many exchanges.  Keep it explicit for the
+                # second-stage exchange partitioner rather than silently dropping rows.
+                if items:
+                    _store_market_universe_page(
+                        "corporate-bonds",
+                        items,
+                        scan_id=scan_id,
+                        base_rank=next_rank - 1,
+                        collected_at=utcnow(),
+                    )
+                    next_rank += len(items)
+                    stored_rows += len(items)
+                with _connect() as conn:
+                    conn.execute(
+                        """
+                        UPDATE bond_prefix_queue
+                        SET status='OVERFLOW',total_count=?,attempts=attempts+1,
+                            last_error='exact ISIN has more than 10 exchange listings',updated_at=?
                         WHERE scan_id=? AND prefix=?
                         """,
                         (total, utcnow(), scan_id, prefix),
@@ -1456,19 +1523,7 @@ def backfill_corporate_bond_universe(max_prefixes: int = 500) -> dict[str, Any]:
                         ],
                     )
                 split_count += 1
-        except Exception as exc:
-            message = f"{type(exc).__name__}: {exc}"
-            errors.append(f"{prefix}:{message}")
-            with _connect() as conn:
-                conn.execute(
-                    """
-                    UPDATE bond_prefix_queue
-                    SET status='ERROR',attempts=attempts+1,last_error=?,updated_at=?
-                    WHERE scan_id=? AND prefix=?
-                    """,
-                    (message, utcnow(), scan_id, prefix),
-                )
-        processed += 1
+            processed += 1
 
     with _connect() as conn:
         pending = int(conn.execute(
@@ -1479,33 +1534,32 @@ def backfill_corporate_bond_universe(max_prefixes: int = 500) -> dict[str, Any]:
             "SELECT COUNT(*) AS c FROM bond_prefix_queue WHERE scan_id=? AND status='ERROR'",
             (scan_id,),
         ).fetchone()["c"])
+        overflow = int(conn.execute(
+            "SELECT COUNT(*) AS c FROM bond_prefix_queue WHERE scan_id=? AND status='OVERFLOW'",
+            (scan_id,),
+        ).fetchone()["c"])
         stored = int(conn.execute(
-            "SELECT COUNT(*) AS c FROM market_universe_current WHERE market='corporate-bonds' AND scan_id=?",
+            "SELECT COUNT(*) AS c FROM market_universe_rows WHERE market='corporate-bonds' AND scan_id=?",
             (scan_id,),
         ).fetchone()["c"])
 
-    cycle_completed = pending == 0
+    cycle_completed = pending == 0 and failed == 0 and overflow == 0
     if cycle_completed:
         completed_at = utcnow()
         with _connect() as conn:
             conn.execute(
-                "DELETE FROM market_universe_current WHERE market='corporate-bonds' AND scan_id<>?",
+                "DELETE FROM market_universe_rows WHERE market='corporate-bonds' AND scan_id<>?",
                 (scan_id,),
             )
-            # Keep completed queue for audit, start a fresh queue on the next call.
-            next_scan_id = _market_cycle_id("corporate-bonds")
+            new_scan_id = _market_cycle_id("corporate-bonds")
             conn.execute(
                 """
                 UPDATE market_collector_state
-                SET cursor_offset=0,total_count=?,scan_id=?,cycle_started_at=?,
-                    last_completed_at=?,last_error=?,updated_at=?
+                SET cursor_offset=0,total_count=?,scan_id=?,completed_scan_id=?,
+                    cycle_started_at=?,last_completed_at=?,last_error=NULL,updated_at=?
                 WHERE market='corporate-bonds'
                 """,
-                (
-                    stored,next_scan_id,completed_at,completed_at,
-                    None if failed == 0 else f"{failed} prefix nodes failed",
-                    completed_at,
-                ),
+                (stored,new_scan_id,scan_id,completed_at,completed_at,completed_at),
             )
 
     return {
@@ -1516,6 +1570,7 @@ def backfill_corporate_bond_universe(max_prefixes: int = 500) -> dict[str, Any]:
         "new_rows_seen": stored_rows,
         "stored_count": stored,
         "pending_prefixes": pending,
+        "overflow_prefixes": overflow,
         "failed_prefixes": failed,
         "cycle_completed": cycle_completed,
         "errors": errors[:20],
