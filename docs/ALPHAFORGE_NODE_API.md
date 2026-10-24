@@ -11,7 +11,7 @@ This implementation exposes the **actual callable methods** in existing Python w
 - Execution: app/alpha_nodes/runtime.py (actual native wrapper calls, no simulated result)
 - Endpoint registration: app/alpha_nodes/api.py
 
-The initial GitHub Actions run confirms 12 projects, 30 modules, **117 per-function POST endpoints**, and 30 passing tests.
+The initial GitHub Actions run confirms 12 projects, 30 modules, **117 engine/orchestration per-function POST endpoints**, and 30 passing tests.
 
 ## API routes
 All routes are under /api/v1/alpha on the existing FastAPI app.
@@ -87,3 +87,98 @@ Input conversions include "$dataframe" to pandas.DataFrame, "$series" to pandas.
 ## Tests
 
 .github/workflows/alpha-node-api-tests.yml runs the actual FastAPI route tests, real plan_rebalance input/output, chained vectorbt object handles (native dependency isolated by a test double), authentication gates, and missing-dependency errors. The separate original integration-lab workflow validates co-installation of the twelve native libraries.
+
+
+## Extension: native workflow graphs + 20 actual source service API operations
+
+The engine inventory is now **12 engines + 6 orchestration modules + 2 service modules**:
+- 88 existing app/lab bridge functions for the 12 engines
+- 29 existing orchestration functions
+- 10 TradingView-service HTTP operations
+- 10 Quant Lab HTTP operations
+- **137 individual function endpoints, 32 modules** in total
+
+These are existing module/API **boundaries**, not wholesale wrappers around every upstream Python internal.
+
+TradingView service source locations:
+- tradingview-service: app/api/tradingview_routes.py
+- tradingview-service: app/core/tradingview.py
+
+Quant Lab source:
+- quant-lab-control: app/api/quant_routes.py
+
+Exact service examples:
+- /modules/tradingview/service/api/script_catalog/execute
+- /modules/tradingview/service/api/script_source/execute
+- /modules/tradingview/service/api/agent_plan/execute
+- /modules/tradingview/service/api/market_stored/execute
+- /modules/quantlab/service/api/quant_market_history/execute
+- /modules/quantlab/service/api/quant_experiment_results/execute
+- /modules/quantlab/service/api/quant_experiment_run/execute
+
+TradingView script catalogs use script_type="strategies" (plural); source lookup requires the **script_id_part** identifier returned by the catalog. Do not use script_id interchangeably.
+
+Backend-only environment:
+- ALPHA_TRADINGVIEW_BASE=https://... (defaults to existing TradingView Railway service)
+- ALPHA_QUANT_BASE=https://... (defaults to existing Quant Lab Railway service)
+- ALPHA_TRADINGVIEW_TOKEN and ALPHA_QUANT_TOKEN (optional internal bearer tokens)
+- ALPHA_ALLOW_QUANT_WRITES=true enables the two Quant Lab experiment mutation endpoints (default disabled)
+- ALPHA_GRAPH_DB_PATH=/path/to/alpha-graph.sqlite3 (default /tmp/autonomous_alpha_graph.sqlite3)
+
+Only HTTPS service base URLs are supported, other than loopback HTTP for isolated local tests. URL routes are fixed by the known server code; callers cannot supply arbitrary upstream URLs. The container requires network access to those two actual running services for real results.
+
+### Visual AlphaForge node palette endpoints
+
+- GET /api/v1/alpha/palette
+- GET /api/v1/alpha/palette?role=execution
+- GET /api/v1/alpha/palette?engine=tradingview
+- GET /api/v1/alpha/palette/{operation_id}
+- GET /api/v1/alpha/graphs/templates
+
+The palette returns each **actual function** with a label, engine group, node inputs (required/default/type), output ports, source path, HTTP execution URL, and a safety gate status. "Not blocked" is not a claim of library/data availability.
+
+### Execute connected graphs with real function I/O
+
+- POST /api/v1/alpha/graphs/validate : validate dependencies, cycles, referenced nodes, known operation IDs, and dangerous-call guards; NEVER runs functions
+- POST /api/v1/alpha/graphs/run : execute DAG steps in valid topological order (background by default)
+- GET /api/v1/alpha/graphs/runs : list executed graph runs
+- GET /api/v1/alpha/graphs/runs/{run_id} : every node status, redacted input snapshot, result, and errors
+- GET /api/v1/alpha/graphs/runs/{run_id}/nodes/{node_id} : inspect one node
+
+Example: select TradingView strategy from existing catalog and fetch original Pine source.
+
+~~~json
+{
+  "name": "TradingView strategy → original Pine",
+  "background": true,
+  "nodes": [
+    {
+      "id": "catalog",
+      "operation_id": "tradingview.service.api.script_catalog",
+      "arguments": {
+        "limit": 1, "offset": 0, "script_type": "strategies"
+      }
+    },
+    {
+      "id": "source",
+      "operation_id": "tradingview.service.api.script_source",
+      "arguments": {
+        "script_id_part": {
+          "$node": "catalog",
+          "path": "result.items.0.script_id_part"
+        }
+      }
+    }
+  ]
+}
+~~~
+
+The returned run includes a unique run_id. Background requests initially return queued and a poll endpoint; inline requests with background=false return full results. Node failures stop downstream execution. A cycle, missing operation or forbidden order operation is rejected before execution begins. 
+
+Node linking format: {"$node":"previous-node-id","path":"result.some_key.0"}; the path is an exact JSON key traversal, not arbitrary Python code. References to native object handles are automatically normalized to {"$handle":"..."}.
+
+**Limitations:** SQLite persists the run audit but native Python objects and in-flight jobs remain process-local; after a server restart in-flight runs become interrupted and handles are no longer usable. This prototype assumes one application worker; production must add durable queue + object artifact store, job worker isolation, per-module rate limits and recoverable execution before scaling to multiple workers. This feature does NOT itself generate Python from Pine or submit broker orders.
+
+### Scope of automated validation
+
+CI tests exercise FastAPI route generation, native plan_rebalance, vectorbt object handoff (native library mocked to isolate adapter logic), service contract routing (external HTTP mocked to isolate client mapping), cyclic/missing dependency detection, graph result persistence, auth and order execution blocks. They do **not** assert working production TradingView/Quant endpoints, trading broker credentials, real native training/model APIs, or backtest vs TradingView strategy tester parity.
