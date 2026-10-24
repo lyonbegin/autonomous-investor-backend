@@ -214,7 +214,16 @@ async def strategies(
         items = [x for x in items if x.get("category") == category]
     if status:
         items = [x for x in items if any(a.get("status") == status for a in x["agents"])]
-    return {"count": min(len(items), limit), "items": items[:limit]}
+    items.sort(
+        key=lambda x: (
+            1 if x.get("agent_count", 0) > 0 else 0,
+            int((x.get("research_state") or {}).get("completed") or 0),
+            max([float(a.get("fit_score") or 0) for a in (x.get("agents") or [])] or [0.0]),
+            str(x.get("created_at") or ""),
+        ),
+        reverse=True,
+    )
+    return {"count": min(len(items), limit), "total_count": len(items), "items": items[:limit]}
 
 
 @app.get("/api/public/strategies/{candidate_id}")
