@@ -22,6 +22,7 @@ from pydantic import BaseModel, Field
 from app.alpha_nodes.inventory import ENGINES, OPERATIONS, OPERATION_MAP, module_inventory, upstream_registry
 from app.alpha_nodes.runtime import ExecuteRequest, get_job, handle_info, submit_invocation
 from app.alpha_nodes.graph import GraphSpec, compile_graph, create_graph_run, get_graph_run, get_graph_node, list_graph_runs
+from app.alpha_nodes.palette import node_palette, node_palette_entry, template_graphs
 
 router = APIRouter(prefix="/api/v1/alpha", tags=["AlphaForge engine function nodes"])
 
@@ -112,6 +113,28 @@ def validate_contract(model_name: str, payload: ContractPayload) -> dict:
         raise HTTPException(status_code=422, detail=exc.errors(include_url=False)) from exc
 
 
+
+
+
+@router.get("/palette", dependencies=[Depends(require_auth)])
+def palette(role: str | None = None, engine: str | None = None,
+            search: str | None = None) -> dict:
+    """Actual native function palette for the AlphaForge canvas."""
+    return node_palette(role=role, engine=engine, search=search)
+
+
+@router.get("/palette/{operation_id}", dependencies=[Depends(require_auth)])
+def palette_item(operation_id: str) -> dict:
+    op = OPERATION_MAP.get(operation_id)
+    if op is None:
+        raise HTTPException(status_code=404, detail="unknown module function")
+    return node_palette_entry(op)
+
+
+@router.get("/graphs/templates", dependencies=[Depends(require_auth)])
+def graph_templates() -> dict:
+    """Runnable native-operation graph definitions; demonstration inputs only."""
+    return template_graphs()
 
 @router.post("/graphs/validate", dependencies=[Depends(require_auth)])
 def graph_validate(graph: GraphSpec) -> dict:
