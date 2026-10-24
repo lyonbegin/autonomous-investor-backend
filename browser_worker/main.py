@@ -70,7 +70,7 @@ async def source_detail(req: DetailRequest) -> dict[str, Any]:
         response = await page.goto(str(req.url), wait_until="domcontentloaded", timeout=45000)
         await page.wait_for_timeout(max(0, min(req.wait_ms, 10000)))
         data = await page.evaluate(
-            """() => {
+            r"""() => {
               const root = document.querySelector('main') || document.body;
               const clean = (s) => (s || '').replace(/\u00a0/g,' ').replace(/[ \t]+\n/g,'\n').replace(/\n{3,}/g,'\n\n').trim();
               const imgs = Array.from(root.querySelectorAll('img'))
