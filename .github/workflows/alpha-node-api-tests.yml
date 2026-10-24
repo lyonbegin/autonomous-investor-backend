@@ -34,7 +34,7 @@ jobs:
           python - <<'PY'
           from app.alpha_nodes.inventory import OPERATIONS, module_inventory, ENGINES
           from app.main import app
-          paths = {r.path for r in app.routes}
+          paths = set(app.openapi()["paths"])
           assert all(op["endpoint"] in paths for op in OPERATIONS)
           assert len(ENGINES) == 12
           print("ALPHA_PROJECTS", len(ENGINES))
