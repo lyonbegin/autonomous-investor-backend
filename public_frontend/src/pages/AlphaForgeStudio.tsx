@@ -101,7 +101,7 @@ function parseSnapshot(value:unknown):Snapshot{
     if(!v||typeof v.id!=='string'||!d||typeof d.operation!=='string'||!DEF_MAP.has(d.operation)||!p||!Number.isFinite(p.x)||!Number.isFinite(p.y))throw new Error('지원하지 않는 노드 정보입니다.');
     const made=makeNode(d.operation,v.id,p.x,p.y);
     const old=d.settings&&typeof d.settings==='object' ? d.settings as Record<string,unknown>:{};
-    made.data.settings={...made.data.settings,...Object.fromEntries(Object.entries(old).filter(([,s])=>typeof s==='string'||typeof s==='number'||typeof s==='boolean'))};
+    made.data.settings={...made.data.settings,...(Object.fromEntries(Object.entries(old).filter(([,s])=>typeof s==='string'||typeof s==='number'||typeof s==='boolean')) as Record<string,Setting>)};
     return made;
   });
   const ids=new Set(nodes.map(n=>n.id));if(ids.size!==nodes.length)throw new Error('중복된 노드 ID입니다.');
