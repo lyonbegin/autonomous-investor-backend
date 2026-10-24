@@ -17,6 +17,7 @@ from app.core.quant_lab import (
 )
 from app.core.toss_market import TossApiError, TossConfigError, fetch_history, get_candles
 from app.core.macro_data import latest_macro_snapshot, macro_series, refresh_macro
+from app.core.market_history import fetch_history_for_agent
 
 router = APIRouter(prefix="/api/v1/quant", tags=["quant-lab"])
 
@@ -173,6 +174,27 @@ def experiment_symbols(experiment_id: str, body: SymbolUpdate) -> dict:
         return update_symbols(experiment_id, body.symbols)
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=f"experiment not found: {experiment_id}") from exc
+
+
+@router.get("/market-data/history")
+def market_data_history(
+    symbol: str,
+    horizon: str,
+    market: str = "",
+    country: str = "",
+) -> dict:
+    try:
+        return fetch_history_for_agent(
+            symbol,
+            horizon=horizon,
+            market=market,
+            country=country,
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"market history failed: {type(exc).__name__}: {exc}",
+        ) from exc
 
 
 @router.get("/market-data/toss/candles")
