@@ -8,6 +8,7 @@ import {StrategyDetailPage} from './pages/strategies/StrategyDetailPage';
 import {AgentsPage} from './pages/agents/AgentsPage';
 import {AgentDetailPage} from './pages/agents/AgentDetailPage';
 import {PerformancePage} from './pages/performance/PerformancePage';
+import AlphaForgeStudio from './pages/AlphaForgeStudio';
 
 export default function App(){
   const [path,setPath]=useState(location.pathname==='/'?'/strategies':location.pathname);
@@ -19,6 +20,7 @@ export default function App(){
     return()=>removeEventListener('popstate',f);
   },[]);
   const go=(p:string)=>{history.pushState({},'',p);setPath(new URL(p,location.origin).pathname);scrollTo(0,0)};
+  if(path==='/workflow') return <AlphaForgeStudio onExit={()=>go('/strategies')}/>;
   let page=<StrategiesPage go={go}/>;
   if(path==='/scripts'||path==='/ideas') page=<ScriptsPage go={go}/>;
   else if(path.startsWith('/scripts/')) page=<ScriptDetailPage id={decodeURIComponent(path.split('/')[2]||'')} go={go}/>;
