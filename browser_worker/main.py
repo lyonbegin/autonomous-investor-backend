@@ -290,20 +290,25 @@ async def page_self_test() -> dict[str, Any]:
         and not (result.get("page_errors") or [])
         and not (state.get("nativePineErrors") or [])
     )
+    diagnostics = {
+        "contains": result.get("contains"),
+        "canvases": state.get("canvases"),
+        "nativePineCharts": state.get("nativePineCharts"),
+        "nativePineErrors": state.get("nativePineErrors"),
+        "page_errors": result.get("page_errors"),
+        "console_errors": result.get("console_errors"),
+        "text": str(state.get("text") or "")[:4000],
+    }
     if not ok:
+        print("NATIVE_PINE_SELF_TEST_FAIL", json.dumps(diagnostics, ensure_ascii=False), flush=True)
         raise HTTPException(
             status_code=503,
             detail={
                 "reason": "Native Pine chart regression check failed",
-                "contains": result.get("contains"),
-                "canvases": state.get("canvases"),
-                "nativePineCharts": state.get("nativePineCharts"),
-                "nativePineErrors": state.get("nativePineErrors"),
-                "page_errors": result.get("page_errors"),
-                "console_errors": result.get("console_errors"),
-                "text": str(state.get("text") or "")[:4000],
+                **diagnostics,
             },
         )
+    print("NATIVE_PINE_SELF_TEST_OK", json.dumps(diagnostics, ensure_ascii=False), flush=True)
     return {
         "status": "ok",
         "runtime": "Vela + PineTS",
