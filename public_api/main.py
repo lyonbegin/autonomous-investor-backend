@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import time
 from collections import defaultdict
 from typing import Any
 
@@ -12,6 +13,9 @@ TV_API = os.getenv("TRADINGVIEW_API", "https://autonomous-investor-tradingview-p
 QUANT_API = os.getenv("QUANT_API", "https://autonomous-investor-quant-lab-production.up.railway.app").rstrip("/")
 
 app = FastAPI(title="Autonomous Investor Public API", version="1.0.0")
+
+_BUNDLE_CACHE: dict[str, Any] = {"at": 0.0, "data": None}
+_BUNDLE_TTL_SECONDS = 30.0
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -52,7 +56,7 @@ def _metrics(exp: dict[str, Any] | None) -> dict[str, Any] | None:
         "strategy_engine": exp.get("strategy_engine"),
         "promotion": summary.get("promotion"),
         "holdout_return_pct": round(avg("net_return") * 100, 2),
-        "max_drawdown_pct": round(avg("max_drawdown") * 100, 2),
+        "max_drawdown_pct": round(-abs(avg("max_drawdown") * 100), 2),
         "trade_sharpe": round(avg("trade_sharpe"), 3),
         "win_rate_pct": round(avg("win_rate") * 100, 1),
         "trade_count": int(sum(int(x.get("trade_count") or 0) for x in holdouts)),
@@ -61,12 +65,17 @@ def _metrics(exp: dict[str, Any] | None) -> dict[str, Any] | None:
 
 
 async def _bundle(limit: int = 300) -> dict[str, Any]:
+    now = time.monotonic()
+    cached = _BUNDLE_CACHE.get("data")
+    if cached is not None and now - float(_BUNDLE_CACHE.get("at") or 0.0) < _BUNDLE_TTL_SECONDS:
+        return cached
+
     candidates, agents, handoff, sources, experiments = await _parallel(
-        (TV_API, f"/api/v1/tradingview/candidates?limit={min(limit,500)}"),
-        (TV_API, f"/api/v1/tradingview/agent-plans?limit={min(limit*4,1000)}"),
-        (TV_API, f"/api/v1/quant-handoff/agents?limit={min(limit*4,1000)}&min_score=0"),
-        (TV_API, f"/api/v1/strategy-sources?limit={min(limit*2,1000)}"),
-        (QUANT_API, f"/api/v1/quant/experiments?limit={min(limit*4,1000)}"),
+        (TV_API, "/api/v1/tradingview/candidates?limit=300"),
+        (TV_API, "/api/v1/tradingview/agent-plans?limit=1000"),
+        (TV_API, "/api/v1/quant-handoff/agents?limit=1000&min_score=0"),
+        (TV_API, "/api/v1/strategy-sources?limit=1000"),
+        (QUANT_API, "/api/v1/quant/experiments?limit=1000"),
     )
     candidate_items = list(candidates.get("items") or [])
     agent_items = list(agents.get("items") or [])
@@ -85,14 +94,17 @@ async def _bundle(limit: int = 300) -> dict[str, Any]:
                 return None
         resolved = await asyncio.gather(*[one(cid) for cid in missing_ids])
         candidate_items.extend([x for x in resolved if x])
-    return {
+
+    result = {
         "candidates": candidate_items,
         "agents": agent_items,
         "handoff": handoff.get("items") or [],
         "sources": sources.get("items") or [],
         "experiments": experiments.get("items") or [],
     }
-
+    _BUNDLE_CACHE["at"] = now
+    _BUNDLE_CACHE["data"] = result
+    return result
 
 async def _parallel(*pairs: tuple[str, str]) -> list[dict[str, Any]]:
     import asyncio
