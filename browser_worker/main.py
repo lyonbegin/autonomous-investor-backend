@@ -160,7 +160,7 @@ async def http_fetch(req: HttpFetchRequest) -> dict[str, Any]:
         except Exception:
             parsed_json = None
 
-        headers = await response.all_headers()
+        headers = dict(response.headers)
         safe_headers = {
             k: v for k, v in headers.items()
             if k.lower() in {
