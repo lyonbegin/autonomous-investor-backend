@@ -159,6 +159,13 @@ async def _startup_sample_regression() -> None:
         except Exception as exc:
             print("PINE_SOURCE_DIAGNOSTIC_ERROR", f"{type(exc).__name__}: {exc}", flush=True)
     asyncio.create_task(diag_once())
+    async def pmax_once() -> None:
+        await asyncio.sleep(15)
+        try:
+            await page_self_test_pmax()
+        except Exception as exc:
+            print("NATIVE_PINE_PMAX_STARTUP_ERROR", f"{type(exc).__name__}: {exc}", flush=True)
+    asyncio.create_task(pmax_once())
 
 
 @app.on_event("shutdown")
@@ -495,6 +502,43 @@ async def pine_source_diagnostic(
         return result
     finally:
         await _close(p, browser, context)
+
+
+@app.get("/v1/page/self_test_pmax")
+async def page_self_test_pmax() -> dict[str, Any]:
+    target = (
+        "https://autonomous-investor-public-production.up.railway.app/"
+        "scripts/PUB%3BjN9HBNhynFqGOf4KrVcu2d0TU9g0jvGR"
+    )
+    result = await page_verify(
+        PageVerifyRequest(
+            url=target,
+            wait_ms=22000,
+            text_contains="실행 성공",
+        )
+    )
+    state = result.get("state") or {}
+    ok = bool(
+        result.get("contains")
+        and int(state.get("nativePineCharts") or 0) >= 1
+        and int(state.get("canvases") or 0) >= 1
+        and not (result.get("page_errors") or [])
+        and not (state.get("nativePineErrors") or [])
+    )
+    summary = {
+        "status": "ok" if ok else "failed",
+        "script": "PMax Explorer STRATEGY & SCREENER",
+        "contains": result.get("contains"),
+        "canvases": state.get("canvases"),
+        "native_pine_charts": state.get("nativePineCharts"),
+        "native_pine_errors": state.get("nativePineErrors"),
+        "page_errors": result.get("page_errors"),
+        "console_errors": result.get("console_errors"),
+        "screenshot_bytes": result.get("screenshot_bytes"),
+        "screenshot_sha256": result.get("screenshot_sha256"),
+    }
+    print("NATIVE_PINE_PMAX_TEST", json.dumps(summary, ensure_ascii=False), flush=True)
+    return summary
 
 
 @app.get("/v1/page/sample_test")
