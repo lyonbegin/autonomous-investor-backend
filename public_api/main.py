@@ -16,7 +16,9 @@ QUANT_API = os.getenv("QUANT_API", "https://autonomous-investor-quant-lab-produc
 app = FastAPI(title="Autonomous Investor Public API", version="1.0.0")
 
 _BUNDLE_CACHE: dict[str, Any] = {"at": 0.0, "data": None}
-_BUNDLE_TTL_SECONDS = 30.0
+_BUNDLE_TTL_SECONDS = 600.0
+_BUNDLE_LOCK = asyncio.Lock()
+_REFRESH_TASK: asyncio.Task | None = None
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -65,67 +67,71 @@ def _metrics(exp: dict[str, Any] | None) -> dict[str, Any] | None:
     }
 
 
+async def _refresh_bundle() -> dict[str, Any]:
+    async with _BUNDLE_LOCK:
+        candidates, agents, handoff, sources, experiments = await _parallel(
+            (TV_API, "/api/v1/tradingview/candidates?limit=300"),
+            (TV_API, "/api/v1/tradingview/agent-plans?limit=1000"),
+            (TV_API, "/api/v1/quant-handoff/agents?limit=1000&min_score=0"),
+            (TV_API, "/api/v1/strategy-sources?limit=1000"),
+            (QUANT_API, "/api/v1/quant/experiments?limit=1000"),
+        )
+        candidate_items = list(candidates.get("items") or [])
+        agent_items = list(agents.get("items") or [])
+        known = {str(x.get("candidate_id") or "") for x in candidate_items}
+        missing_ids = sorted({
+            str(x.get("candidate_id") or "")
+            for x in agent_items
+            if x.get("candidate_id") and str(x.get("candidate_id")) not in known
+        })
+        if missing_ids:
+            async def one(cid: str) -> dict[str, Any] | None:
+                try:
+                    return await _get(TV_API, f"/api/v1/tradingview/candidates/{cid}")
+                except HTTPException:
+                    return None
+            resolved = await asyncio.gather(*[one(cid) for cid in missing_ids])
+            candidate_items.extend([x for x in resolved if x])
+
+        source_items = list(sources.get("items") or [])
+        existing_source_ids = {str(x.get("source_id") or "") for x in source_items}
+        agent_candidate_ids = {str(x.get("candidate_id") or "") for x in agent_items if x.get("candidate_id")}
+        linked_candidates = [x for x in candidate_items if str(x.get("candidate_id") or "") in agent_candidate_ids]
+        missing_source_ids = sorted({
+            str(x.get("source_id") or "")
+            for x in linked_candidates
+            if x.get("source_id") and str(x.get("source_id")) not in existing_source_ids
+        })
+        if missing_source_ids:
+            async def source_one(source_id: str) -> dict[str, Any] | None:
+                registry_id = ("TVS:" + source_id) if source_id.startswith("PUB;") else source_id
+                try:
+                    return await _get(TV_API, "/api/v1/strategy-sources/" + quote(registry_id, safe=""))
+                except HTTPException:
+                    return None
+            resolved_sources = await asyncio.gather(*[source_one(sid) for sid in missing_source_ids])
+            source_items.extend([x for x in resolved_sources if x])
+
+        result = {
+            "candidates": candidate_items,
+            "agents": agent_items,
+            "handoff": handoff.get("items") or [],
+            "sources": source_items,
+            "experiments": experiments.get("items") or [],
+        }
+        _BUNDLE_CACHE["at"] = time.monotonic()
+        _BUNDLE_CACHE["data"] = result
+        return result
+
+
 async def _bundle(limit: int = 300) -> dict[str, Any]:
-    now = time.monotonic()
     cached = _BUNDLE_CACHE.get("data")
-    if cached is not None and now - float(_BUNDLE_CACHE.get("at") or 0.0) < _BUNDLE_TTL_SECONDS:
+    if cached is not None:
+        age = time.monotonic() - float(_BUNDLE_CACHE.get("at") or 0.0)
+        if age >= _BUNDLE_TTL_SECONDS and not _BUNDLE_LOCK.locked():
+            asyncio.create_task(_refresh_bundle())
         return cached
-
-    candidates, agents, handoff, sources, experiments = await _parallel(
-        (TV_API, "/api/v1/tradingview/candidates?limit=300"),
-        (TV_API, "/api/v1/tradingview/agent-plans?limit=1000"),
-        (TV_API, "/api/v1/quant-handoff/agents?limit=1000&min_score=0"),
-        (TV_API, "/api/v1/strategy-sources?limit=1000"),
-        (QUANT_API, "/api/v1/quant/experiments?limit=1000"),
-    )
-    candidate_items = list(candidates.get("items") or [])
-    agent_items = list(agents.get("items") or [])
-    known = {str(x.get("candidate_id") or "") for x in candidate_items}
-    missing_ids = sorted({
-        str(x.get("candidate_id") or "")
-        for x in agent_items
-        if x.get("candidate_id") and str(x.get("candidate_id")) not in known
-    })
-    if missing_ids:
-        import asyncio
-        async def one(cid: str) -> dict[str, Any] | None:
-            try:
-                return await _get(TV_API, f"/api/v1/tradingview/candidates/{cid}")
-            except HTTPException:
-                return None
-        resolved = await asyncio.gather(*[one(cid) for cid in missing_ids])
-        candidate_items.extend([x for x in resolved if x])
-
-    source_items = list(sources.get("items") or [])
-    existing_source_ids = {str(x.get("source_id") or "") for x in source_items}
-    agent_candidate_ids = {str(x.get("candidate_id") or "") for x in agent_items if x.get("candidate_id")}
-    linked_candidates = [x for x in candidate_items if str(x.get("candidate_id") or "") in agent_candidate_ids]
-    missing_source_ids = sorted({
-        str(x.get("source_id") or "")
-        for x in linked_candidates
-        if x.get("source_id") and str(x.get("source_id")) not in existing_source_ids
-    })
-    if missing_source_ids:
-        import asyncio
-        async def source_one(source_id: str) -> dict[str, Any] | None:
-            registry_id = ("TVS:" + source_id) if source_id.startswith("PUB;") else source_id
-            try:
-                return await _get(TV_API, "/api/v1/strategy-sources/" + quote(registry_id, safe=""))
-            except HTTPException:
-                return None
-        resolved_sources = await asyncio.gather(*[source_one(sid) for sid in missing_source_ids])
-        source_items.extend([x for x in resolved_sources if x])
-
-    result = {
-        "candidates": candidate_items,
-        "agents": agent_items,
-        "handoff": handoff.get("items") or [],
-        "sources": source_items,
-        "experiments": experiments.get("items") or [],
-    }
-    _BUNDLE_CACHE["at"] = now
-    _BUNDLE_CACHE["data"] = result
-    return result
+    return await _refresh_bundle()
 
 async def _parallel(*pairs: tuple[str, str]) -> list[dict[str, Any]]:
     import asyncio
@@ -221,10 +227,20 @@ def _strategy_view(candidate: dict[str, Any], idx: dict[str, Any]) -> dict[str, 
     }
 
 
+async def _periodic_refresh() -> None:
+    while True:
+        await asyncio.sleep(60)
+        try:
+            await _refresh_bundle()
+        except Exception as exc:
+            print("PUBLIC_REFRESH_ERROR", type(exc).__name__, str(exc), flush=True)
+
+
 @app.on_event("startup")
 async def _startup_prewarm() -> None:
+    global _REFRESH_TASK
     try:
-        data = await _bundle(300)
+        data = await _refresh_bundle()
         print(
             "PUBLIC_PREWARM",
             {
@@ -234,6 +250,7 @@ async def _startup_prewarm() -> None:
             },
             flush=True,
         )
+        _REFRESH_TASK = asyncio.create_task(_periodic_refresh())
     except Exception as exc:
         print("PUBLIC_PREWARM_ERROR", type(exc).__name__, str(exc), flush=True)
 
