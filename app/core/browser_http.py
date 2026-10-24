@@ -121,3 +121,21 @@ def browser_text(
     if wrapper.get("json") is not None:
         return json.dumps(wrapper["json"], ensure_ascii=False)
     return str(wrapper.get("text_preview") or "")
+
+
+def browser_render_detail(url: str, *, wait_ms: int = 2500, timeout: int = 45) -> dict[str, Any]:
+    req = request.Request(
+        browser_base_url() + "/v1/source/detail",
+        data=json.dumps({"url": url, "wait_ms": wait_ms}, ensure_ascii=False).encode("utf-8"),
+        headers={
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "User-Agent": "AUTONOMOUS-INVESTOR/DataBrowserClient/2.0",
+        },
+        method="POST",
+    )
+    with request.urlopen(req, timeout=timeout) as response:
+        payload = json.loads(response.read().decode("utf-8"))
+    if not payload.get("ok"):
+        raise RuntimeError(f"rendered detail failed: {payload}")
+    return payload
