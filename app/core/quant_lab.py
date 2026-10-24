@@ -9,6 +9,8 @@ from typing import Any
 from urllib import request
 from urllib.error import HTTPError
 
+from app.core.internal_http import internal_json_request
+
 from app.core.toss_market import base_interval_for_horizon, credentials_configured
 from app.core.macro_data import macro_ready
 from app.core.market_history import fetch_history_for_agent
@@ -116,26 +118,7 @@ def _json_request(
     method: str = "GET",
     payload: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    body = json.dumps(payload, ensure_ascii=False).encode("utf-8") if payload is not None else None
-    headers = {
-        "Accept": "application/json",
-        "User-Agent": "AUTONOMOUS-INVESTOR-QuantLab/1.0",
-    }
-    if body is not None:
-        headers["Content-Type"] = "application/json"
-    req = request.Request(
-        url,
-        data=body,
-        method=method,
-        headers=headers,
-    )
-    try:
-        with request.urlopen(req, timeout=20) as response:
-            return json.loads(response.read().decode("utf-8"))
-    except HTTPError as exc:
-        detail = exc.read().decode("utf-8", errors="replace")
-        raise RuntimeError(f"upstream HTTP {exc.code}: {detail[:500]}") from exc
-
+    return internal_json_request(url, method=method, payload=payload, timeout=20)
 
 def fetch_agent_plan(agent_id: str) -> dict[str, Any]:
     from urllib.parse import quote
