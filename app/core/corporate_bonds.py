@@ -620,6 +620,55 @@ def _process_task(task: dict[str, Any], max_pages: int) -> dict[str, Any]:
         return {"task_id": task_id, "complete": False, "added": added_total, "error": message}
 
 
+def repair_corporate_bond_phase(phase: str = "yield") -> dict[str, Any]:
+    init_corporate_bond_db()
+    valid_phases = {str(x["phase"]) for x in PHASES} | {"all_empty"}
+    if phase not in valid_phases:
+        raise ValueError(f"unsupported corporate-bond phase: {phase}")
+
+    with _connect() as conn:
+        state = conn.execute(
+            "SELECT * FROM corporate_bond_scan_state WHERE market=?",
+            (MARKET,),
+        ).fetchone()
+        if state is None:
+            raise RuntimeError("corporate bond scan has not been initialized")
+        scan_id = str(state["scan_id"])
+        count = int(conn.execute(
+            "SELECT COUNT(*) AS c FROM corporate_bond_scan_tasks WHERE scan_id=? AND phase=?",
+            (scan_id, phase),
+        ).fetchone()["c"])
+        if count <= 0:
+            raise RuntimeError(f"no tasks found for phase: {phase}")
+        now = utcnow()
+        conn.execute(
+            """
+            UPDATE corporate_bond_scan_tasks
+            SET cursor_value=NULL,pages_done=0,rows_seen=0,status='PENDING',
+                last_error='COVERAGE_REPAIR_RESCAN',updated_at=?
+            WHERE scan_id=? AND phase=?
+            """,
+            (now, scan_id, phase),
+        )
+        conn.execute(
+            """
+            UPDATE corporate_bond_scan_state
+            SET status='COLLECTING',completed_at=NULL,
+                last_error='coverage repair rescan',updated_at=?
+            WHERE market=?
+            """,
+            (now, MARKET),
+        )
+    return {
+        "market": MARKET,
+        "scan_id": scan_id,
+        "phase": phase,
+        "tasks_reset": count,
+        "status": "COLLECTING",
+        "at": utcnow(),
+    }
+
+
 def _finalize_if_complete(scan_id: str) -> bool:
     init_corporate_bond_db()
     conn=sqlite3.connect(DB_PATH,timeout=180,isolation_level=None)
@@ -640,6 +689,29 @@ def _finalize_if_complete(scan_id: str) -> bool:
             (scan_id,),
         ).fetchall()
         if not rows:
+            return False
+
+        # A task graph being exhausted is not sufficient proof of completeness.
+        # Compare against TradingView's live corporate-bond source count before
+        # publishing the scan as COMPLETE.
+        source_now = _query([], sort_by="yield_to_worst", sort_order="asc")
+        live_source_total = int(source_now.get("total_count") or 0)
+        if live_source_total > 0 and len(rows) < live_source_total:
+            now = utcnow()
+            conn.execute(
+                """
+                UPDATE corporate_bond_scan_state
+                SET source_total=?,status='INCOMPLETE',
+                    last_error=?,updated_at=?,completed_at=NULL
+                WHERE market=?
+                """,
+                (
+                    live_source_total,
+                    f"coverage gap: stored={len(rows)} source={live_source_total}",
+                    now,
+                    MARKET,
+                ),
+            )
             return False
 
         completed=utcnow()
