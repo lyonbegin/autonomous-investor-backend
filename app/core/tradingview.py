@@ -390,6 +390,18 @@ def init_db() -> None:
                 updated_at TEXT NOT NULL
             );
 
+            CREATE TABLE IF NOT EXISTS corporate_bond_prefix_queue (
+                scan_id TEXT NOT NULL,
+                prefix TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'PENDING',
+                matched_count INTEGER,
+                processed_at TEXT,
+                error TEXT,
+                PRIMARY KEY (scan_id, prefix)
+            );
+            CREATE INDEX IF NOT EXISTS idx_corp_bond_prefix_queue_status
+                ON corporate_bond_prefix_queue(scan_id, status, prefix);
+
             CREATE TABLE IF NOT EXISTS bond_prefix_queue (
                 scan_id TEXT NOT NULL,
                 prefix TEXT NOT NULL,
@@ -1821,6 +1833,11 @@ def collect_market(
     persist_snapshot: bool = True,
 ) -> dict[str, Any]:
     market_key = MARKET_ALIASES.get(market.lower(), market.lower())
+    if market_key == "corporate-bonds":
+        return backfill_corporate_bond_universe(
+            prefixes=max(1, int(chunks) * 50),
+            workers=24,
+        )
     if market_key not in MARKET_SCANNER_PROFILES:
         raise ValueError(f"unsupported market: {market}")
 
