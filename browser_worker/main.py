@@ -455,8 +455,19 @@ async def pine_source_diagnostic(
             "https://autonomous-investor-public-api-production.up.railway.app/"
             f"api/public/scripts/{encoded}/source"
         )
-        response = await context.request.get(url, timeout=60000)
-        payload = await response.json()
+        payload: dict[str, Any] = {}
+        status = 0
+        for attempt in range(1, 6):
+            response = await context.request.get(url, timeout=60000)
+            status = int(response.status)
+            try:
+                payload = await response.json()
+            except Exception:
+                payload = {}
+            if status == 200 and payload.get("source"):
+                break
+            await asyncio.sleep(attempt)
+
         source = str(payload.get("source") or "")
         lines = source.splitlines()
         hits = []
@@ -472,8 +483,11 @@ async def pine_source_diagnostic(
         result = {
             "script_id": script_id,
             "needle": needle,
+            "http_status": status,
+            "payload_keys": sorted(payload.keys()),
             "pine_version": payload.get("pine_version"),
             "kind": payload.get("kind"),
+            "source_chars": len(source),
             "hit_count": len(hits),
             "hits": hits[:100],
         }
