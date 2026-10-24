@@ -155,3 +155,65 @@ export type PineSource={
   fetched_at?:string;
   from_cache?:boolean;
 };
+
+export type OhlcvBar={
+  timestamp:number;
+  open:number;
+  high:number;
+  low:number;
+  close:number;
+  volume:number;
+};
+
+export type LiquidityLayer={
+  from_time:number;
+  to_time:number;
+  top:number;
+  bottom:number;
+};
+
+export type LiquidityNode={
+  side:'BSL'|'SSL'|string;
+  pivot_time:number;
+  pivot_price:number;
+  right_time:number;
+  outer_top:number;
+  outer_bottom:number;
+  swept:boolean;
+  swept_time?:number|null;
+  volume_ratio?:number;
+  layers:LiquidityLayer[];
+};
+
+export type PineVisualResponse={
+  script_id:string;
+  script_name:string;
+  kind?:string;
+  pine_version?:number;
+  source_hash?:string;
+  symbol:string;
+  horizon:string;
+  market_data:{
+    provider?:string;
+    provider_symbol?:string;
+    base_interval?:string;
+    effective_interval?:string;
+    fallback_used?:boolean;
+    fallback_reason?:string|null;
+    fetched_at?:string;
+    count:number;
+  };
+  bars:OhlcvBar[];
+  visual:{
+    runtime?:string;
+    adapter?:string;
+    error?:string;
+    inputs?:Record<string,unknown>;
+    node_count?:number;
+    nodes?:LiquidityNode[];
+    markers?:Array<Record<string,unknown>>;
+    metrics?:Record<string,unknown>;
+    trades?:Array<Record<string,unknown>>;
+    equity_curve?:number[];
+  };
+};
