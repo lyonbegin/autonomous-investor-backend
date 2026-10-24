@@ -134,13 +134,13 @@ export function ScriptDetailPage({id,go}:{id:string;go:(p:string)=>void}){
 
       {chartLoading&&!chart?<div className="loading runtime-loading">트레이딩부 데이터를 가져와 Pine 계산 중...</div>:null}
       {chartError?<div className="empty-state">{chartError}</div>:null}
-      {chart&&chart.visual.adapter==='unsupported'?<div className="empty-state">현재 Pine 실행기가 이 스크립트의 문법을 아직 지원하지 않습니다: {chart.visual.error}</div>:null}
-      {chart&&chart.visual.adapter!=='unsupported'?<>
+      {chart?<>
         <div className="runtime-summary">
           <span>Engine <b>Native Pine v5/v6</b></span>
           <span>상태 <b>{nativeState==='ready'?'실행 성공':nativeState==='error'?'실행 오류':'실행 중'}</b></span>
           <span>Bars <b>{chart.market_data.count}</b></span>
           <span>Data <b>{chart.market_data.provider||'-'}</b></span>
+          <span>Server adapter <b>{chart.visual.adapter||'-'}</b></span>
         </div>
         <NativePineChartControl
           data={chart}
@@ -155,6 +155,7 @@ export function ScriptDetailPage({id,go}:{id:string;go:(p:string)=>void}){
           <PineChartControl data={chart}/>
         </>}
         {nativeState==='error'&&nativeMessage&&<div className="runtime-note">Pine 원문 실행 진단: {nativeMessage}</div>}
+        {chart.visual.adapter==='unsupported'&&nativeState==='error'&&<div className="runtime-note">서버 보조 어댑터도 미지원: {chart.visual.error}</div>}
         {chart.market_data.fallback_used&&<div className="runtime-note">대체 데이터 사용: {chart.market_data.fallback_reason}</div>}
       </>:null}
     </section>
