@@ -2277,6 +2277,7 @@ def collect_scripts(
     sort: str = "latest_popular",
     topic: str | None = None,
     editors_picks: bool = False,
+    script_type: str = "all",
 ) -> dict[str, Any]:
     if sort not in {"latest_popular", "recent_extended"}:
         raise ValueError(f"unsupported script sort: {sort}")
@@ -2291,12 +2292,18 @@ def collect_scripts(
     if page > 1:
         parts.append(f"page-{page}")
     path = "/" + "/".join(parts) + "/"
-    query = parse.urlencode({
+    normalized_type = str(script_type or "all").strip().lower()
+    if normalized_type not in {"all", "indicators", "strategies", "libraries"}:
+        raise ValueError(f"unsupported script type: {script_type}")
+
+    query_params = {
         "component-data-only": "1",
-        "script_type": "strategies",
         "script_access": "open",
         "sort": sort,
-    })
+    }
+    if normalized_type != "all":
+        query_params["script_type"] = normalized_type
+    query = parse.urlencode(query_params)
     raw = _http_json(f"{SCRIPTS_ORIGIN}{path}?{query}")
     feed = (((raw.get("data") or {}).get("ideas") or {}).get("data") or {})
     raw_items = feed.get("items") or []
@@ -2308,7 +2315,7 @@ def collect_scripts(
     store_scripts(rows)
     return {
         "source": "TradingView Community Scripts",
-        "script_type": "strategies",
+        "script_type": normalized_type,
         "script_access": "open",
         "sort": sort,
         "topic": topic,
