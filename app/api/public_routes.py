@@ -1,10 +1,53 @@
 from __future__ import annotations
 
+import json
+
 from fastapi import APIRouter, HTTPException, Query
 
-from app.core.tradingview import list_agent_plans, list_candidates
+from app.core.tradingview import _connect, init_db, list_agent_plans
 
 router = APIRouter(prefix="/api/v1/public", tags=["public"])
+
+
+def _decode_candidate(row) -> dict:
+    item = dict(row)
+    raw = item.get("candidate_horizons")
+    if isinstance(raw, str):
+        try:
+            item["candidate_horizons"] = json.loads(raw)
+        except Exception:
+            item["candidate_horizons"] = []
+    return item
+
+
+def _candidate_by_id(candidate_id: str) -> dict | None:
+    init_db()
+    with _connect() as conn:
+        row = conn.execute(
+            "SELECT * FROM strategy_candidates WHERE candidate_id = ?",
+            (candidate_id,),
+        ).fetchone()
+    return _decode_candidate(row) if row is not None else None
+
+
+def _agent_backed_candidates(limit: int) -> list[dict]:
+    init_db()
+    with _connect() as conn:
+        rows = conn.execute(
+            """
+            SELECT c.*
+            FROM strategy_candidates c
+            JOIN (
+                SELECT candidate_id, MAX(created_at) AS last_agent_at, COUNT(*) AS agent_count
+                FROM agent_plans
+                GROUP BY candidate_id
+            ) a ON a.candidate_id = c.candidate_id
+            ORDER BY a.last_agent_at DESC, a.agent_count DESC
+            LIMIT ?
+            """,
+            (min(max(int(limit), 1), 500),),
+        ).fetchall()
+    return [_decode_candidate(row) for row in rows]
 
 
 def _strategy_view(candidate: dict, agents: list[dict]) -> dict:
@@ -55,11 +98,21 @@ def public_strategies(
     source_kind: str | None = None,
     with_agents_only: bool = True,
 ) -> dict:
-    candidates = list_candidates(limit=limit)
     all_agents = list_agent_plans(limit=1000)
     by_candidate: dict[str, list[dict]] = {}
     for agent in all_agents:
         by_candidate.setdefault(str(agent.get("candidate_id") or ""), []).append(agent)
+
+    if with_agents_only:
+        candidates = _agent_backed_candidates(limit)
+    else:
+        init_db()
+        with _connect() as conn:
+            rows = conn.execute(
+                "SELECT * FROM strategy_candidates ORDER BY created_at DESC LIMIT ?",
+                (min(max(int(limit), 1), 500),),
+            ).fetchall()
+        candidates = [_decode_candidate(row) for row in rows]
 
     items = []
     for candidate in candidates:
@@ -74,6 +127,7 @@ def public_strategies(
         if with_agents_only and int(view.get("agent_count") or 0) <= 0:
             continue
         items.append(view)
+
     items.sort(
         key=lambda x: (
             int(x.get("active_agent_count") or 0),
@@ -87,8 +141,7 @@ def public_strategies(
 
 @router.get("/strategies/{candidate_id}")
 def public_strategy(candidate_id: str) -> dict:
-    candidates = list_candidates(limit=500)
-    candidate = next((x for x in candidates if str(x.get("candidate_id")) == candidate_id), None)
+    candidate = _candidate_by_id(candidate_id)
     if candidate is None:
         raise HTTPException(status_code=404, detail="strategy not found")
     agents = list_agent_plans(candidate_id=candidate_id, limit=1000)
@@ -113,8 +166,5 @@ def public_agent(agent_id: str) -> dict:
     if agent is None:
         raise HTTPException(status_code=404, detail="agent not found")
     candidate_id = str(agent.get("candidate_id") or "")
-    candidate = next(
-        (x for x in list_candidates(limit=500) if str(x.get("candidate_id")) == candidate_id),
-        None,
-    )
+    candidate = _candidate_by_id(candidate_id)
     return {"agent": agent, "strategy": candidate}
