@@ -262,14 +262,14 @@ def _run(run_id: str, graph: GraphSpec, plan: dict) -> None:
     try:
         for i, nid in enumerate(ordered):
             node = nodes[nid]
-            inputs = {
-                "arguments": _resolve(node.arguments, outcomes),
-                "positional": _resolve(node.positional, outcomes),
-                "init_arguments": _resolve(node.init_arguments, outcomes),
-                "instance_handle": _resolve(node.instance_handle, outcomes),
-            }
-            _update_node(run_id, nid, status="running", inputs=inputs)
             try:
+                inputs = {
+                    "arguments": _resolve(node.arguments, outcomes),
+                    "positional": _resolve(node.positional, outcomes),
+                    "init_arguments": _resolve(node.init_arguments, outcomes),
+                    "instance_handle": _resolve(node.instance_handle, outcomes),
+                }
+                _update_node(run_id, nid, status="running", inputs=inputs)
                 handle = inputs["instance_handle"]
                 if isinstance(handle, dict) and "$handle" in handle:
                     handle = handle["$handle"]
