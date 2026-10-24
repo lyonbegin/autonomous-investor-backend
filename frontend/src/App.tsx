@@ -603,27 +603,25 @@ function TradingViewMarkets(){
       sort_by:sort.sortBy,
       sort_order:sort.sortOrder,
     });
-    const restricted=code==='corporate-bonds' && corporateBackfill?.status!=='COMPLETE';
+    const corporateRepairing=code==='corporate-bonds' && corporateBackfill?.status!=='COMPLETE';
     const storedUrl=API_BASE+'/api/v1/tradingview/markets/'+code+'/stored?'+params.toString();
     const liveUrl=API_BASE+'/api/v1/tradingview/markets/'+code+'?'+params.toString();
     setLiveError('');
 
     const load=async()=>{
       try{
-        if(!restricted){
-          const sr=await fetch(storedUrl,{signal:controller.signal});
-          if(!sr.ok) throw new Error(await sr.text());
-          const stored=await sr.json();
-          if(Number(stored.total_count||0)>0){
-            const rows=(stored.items||[]) as LiveMarketRow[];
-            setLiveRows(rows);
-            setLiveTotal(Number(stored.total_count||0));
-            setLiveCollectedAt(rows[0]?.collected_at||'');
-            setHasMore(Boolean(stored.has_more));
-            setDataMode('stored');
-            setSelectedTicker(prev=>rows.some(x=>x.ticker===prev)?prev:(rows[0]?.ticker||''));
-            return;
-          }
+        const sr=await fetch(storedUrl,{signal:controller.signal});
+        if(!sr.ok) throw new Error(await sr.text());
+        const stored=await sr.json();
+        if(Number(stored.total_count||0)>0){
+          const rows=(stored.items||[]) as LiveMarketRow[];
+          setLiveRows(rows);
+          setLiveTotal(Number(stored.total_count||0));
+          setLiveCollectedAt(rows[0]?.collected_at||'');
+          setHasMore(Boolean(stored.has_more));
+          setDataMode('stored');
+          setSelectedTicker(prev=>rows.some(x=>x.ticker===prev)?prev:(rows[0]?.ticker||''));
+          return;
         }
 
         const lr=await fetch(liveUrl,{signal:controller.signal});
@@ -633,8 +631,8 @@ function TradingViewMarkets(){
         setLiveRows(rows);
         setLiveTotal(typeof live.total_count==='number'?live.total_count:null);
         setLiveCollectedAt(live.collected_at||'');
-        setHasMore(restricted?false:Boolean(live.has_more));
-        setDataMode(restricted?'restricted':'live');
+        setHasMore(Boolean(live.has_more));
+        setDataMode(corporateRepairing?'restricted':'live');
         setSelectedTicker(prev=>rows.some(x=>x.ticker===prev)?prev:(rows[0]?.ticker||''));
       }catch(e:any){
         if(e?.name!=='AbortError') setLiveError('TradingView 원본 데이터 조회 오류');
@@ -684,7 +682,11 @@ function TradingViewMarkets(){
         <div><span>마켓</span><h1>{tab}</h1><p>TradingView Scanner 원본을 전체 Universe로 저장하고, 그 전체 DB를 메뉴별로 정렬·페이지 조회합니다.</p></div>
         <div className="market-clock">
           <b>{dataMode==='stored'?'전체 DB 원본':dataMode==='restricted'?'TradingView 제한 원본':'실시간 Scanner'}</b>
-          <span>{collectorState?.stored_count!=null?collectorState.stored_count.toLocaleString('ko-KR')+'행 저장':'Scanner 실수집'} · 화면 내 차트</span>
+          <span>{tab==='회사채' && corporateBackfill
+            ? Number(corporateBackfill.stored_count||0).toLocaleString('ko-KR')+'행 저장'
+            : collectorState?.stored_count!=null
+              ? collectorState.stored_count.toLocaleString('ko-KR')+'행 저장'
+              : 'Scanner 실수집'} · 화면 내 차트</span>
         </div>
       </div>
       <div className="market-tabs">{marketTabs.map(x=><button className={tab===x?'active':''} key={x} onClick={()=>setTab(x)}>{x}</button>)}</div>
@@ -732,9 +734,9 @@ function TradingViewMarkets(){
           {liveError ? <div className="empty-state">{liveError}</div> :
             <DataTable headers={liveHeaders} rows={liveTableRows}/>}
           <div className="tv-pagination">
-            <button disabled={marketOffset<=0 || restriction} onClick={()=>setMarketOffset(v=>Math.max(0,v-marketPageSize))}>이전 50개</button>
+            <button disabled={marketOffset<=0} onClick={()=>setMarketOffset(v=>Math.max(0,v-marketPageSize))}>이전 50개</button>
             <button className="active">{page} / {pageCount}</button>
-            <button disabled={!hasMore || restriction} onClick={()=>setMarketOffset(v=>v+marketPageSize)}>다음 50개</button>
+            <button disabled={!hasMore} onClick={()=>setMarketOffset(v=>v+marketPageSize)}>다음 50개</button>
           </div>
         </div>
       </> : tab==='경제' ? <div className="panel tv-economic-panel">
