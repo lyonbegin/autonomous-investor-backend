@@ -177,7 +177,7 @@ def experiment_symbols(experiment_id: str, body: SymbolUpdate) -> dict:
         raise HTTPException(status_code=404, detail=f"experiment not found: {experiment_id}") from exc
 
 
-@router.get("/pine/self-test")
+@router.get("/pine/self_test")
 def pine_visual_self_test() -> dict:
     result = visualize_pine_script(
         "PUB;fd5cad2ba18e450f8665ea1761f9b034",
