@@ -2000,8 +2000,16 @@ def _extract_crypto_coins_ssr(html_text: str) -> dict[str, Any]:
                     or (((value.get("params") or {}).get("screener_table_config") or {}).get("id"))
                 )
                 screener = ((value.get("data") or {}).get("screener") or {}).get("data")
-                if table_id == "crypto_coins.all" and isinstance(screener, dict):
-                    return screener
+                if isinstance(screener, dict):
+                    symbols = list(screener.get("symbols") or [])
+                    if table_id == "crypto_coins.all" or (symbols and str(symbols[0]).startswith("CRYPTO:")):
+                        return screener
+                if isinstance(value.get("screener"), dict):
+                    nested = (value.get("screener") or {}).get("data")
+                    if isinstance(nested, dict):
+                        symbols = list(nested.get("symbols") or [])
+                        if symbols and str(symbols[0]).startswith("CRYPTO:"):
+                            return nested
             except Exception:
                 pass
             for child in value.values():
