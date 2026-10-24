@@ -1,0 +1,2 @@
+import type {Agent} from '../types';import {StatusBadge} from './StatusBadge';
+export function AgentCard({a,onOpen}:{a:Agent;onOpen:()=>void}){return <article className="agent-card" onClick={onOpen}><div className="agent-head"><div><small>{a.agent_id}</small><h3>{a.fixed_horizon} Agent</h3></div><StatusBadge value={a.status}/></div><dl><dt>시장</dt><dd>{a.country} · {a.market}</dd><dt>유니버스</dt><dd>{a.universe}</dd><dt>전략 원본</dt><dd>{a.source_id}</dd></dl></article>}
