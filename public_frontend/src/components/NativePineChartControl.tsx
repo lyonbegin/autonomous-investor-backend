@@ -40,17 +40,30 @@ function upgradeLegacyInputs(source:string){
 
     const body=source.slice(open+1,close);
     const tm=body.match(/(?:^|,)\s*type\s*=\s*input\.(integer|float|bool|string|source|color|time|session|symbol|resolution)\s*(?=,|$)/);
-    if(!tm){
+    let inferredKind:string|undefined;
+    if(!tm&&/\boptions\s*=\s*\[/.test(body)){
+      const named=body.match(/(?:^|,)\s*defval\s*=\s*([^,]+)/);
+      const first=body.match(/^\s*([^,]+)/);
+      const raw=String((named?.[1]||first?.[1]||'')).trim();
+      const options=body.match(/\boptions\s*=\s*\[([\s\S]*?)\]/)?.[1]||'';
+      if(/^["']/.test(raw)||/["']/.test(options)) inferredKind='string';
+      else if(/^(true|false)\b/i.test(raw)) inferredKind='bool';
+      else if(/[-+]?\d+\.\d+/.test(raw)||/[-+]?\d+\.\d+/.test(options)) inferredKind='float';
+      else inferredKind='int';
+    }
+    if(!tm&&!inferredKind){
       out+=source.slice(cursor,close+1);
       cursor=close+1;
       continue;
     }
 
-    const kind=typeMap[tm[1]]||tm[1];
-    let nextBody=body
-      .replace(/(^|,)\s*type\s*=\s*input\.(integer|float|bool|string|source|color|time|session|symbol|resolution)\s*(?=,|$)/,'$1')
-      .replace(/^\s*,\s*/,'')
-      .replace(/,\s*,/g,',');
+    const kind=tm?(typeMap[tm[1]]||tm[1]):inferredKind!;
+    let nextBody=tm
+      ? body
+          .replace(/(^|,)\s*type\s*=\s*input\.(integer|float|bool|string|source|color|time|session|symbol|resolution)\s*(?=,|$)/,'$1')
+          .replace(/^\s*,\s*/,'')
+          .replace(/,\s*,/g,',')
+      : body;
     out+=source.slice(cursor,callStart)+`input.${kind}(${nextBody})`;
     cursor=close+1;
   }
