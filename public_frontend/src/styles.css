@@ -16,3 +16,47 @@
 .idea-analysis h2{font-size:18px;margin:0 0 12px}
 .idea-analysis .idea-full-text{padding:0}
 @media(max-width:900px){.idea-live-chart,.tv-advanced-chart-host{height:560px;min-height:560px}.idea-analysis{padding:20px}}
+
+/* TradingView scripts source browser */
+.scripts-hero{margin-bottom:18px}
+.script-toolbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:0 0 18px}
+.script-type-tabs{display:flex;gap:6px;flex-wrap:wrap}
+.script-type-tabs button,.script-toolbar select{border:1px solid #dfe3eb;background:#fff;border-radius:8px;padding:9px 12px;font-weight:700;color:#515867}
+.script-type-tabs button.selected{background:#131722;color:white;border-color:#131722}
+.script-toolbar input{flex:1;min-width:260px;border:1px solid #dfe3eb;border-radius:8px;padding:10px 12px;font:inherit}
+.count-note{font-weight:500;color:#787f8e}
+.script-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.script-card{display:grid;grid-template-columns:210px 1fr;background:#fff;border:1px solid #e5e8ef;border-radius:12px;overflow:hidden;cursor:pointer;min-height:230px}
+.script-card:hover{transform:translateY(-2px);box-shadow:0 9px 28px rgba(15,23,42,.08);transition:.15s}
+.script-thumb{background:#f2f4f7;min-height:230px}
+.script-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.script-body{padding:18px;min-width:0}
+.script-badges{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:10px}
+.script-badges span{font-size:11px;font-weight:800;letter-spacing:.03em;border-radius:999px;padding:5px 8px;background:#f1f3f6;color:#606776}
+.script-badges .type-badge{background:#e9efff;color:#2457c5}
+.script-badges .type-badge.전략{background:#e8f6ef;color:#137046}
+.script-badges .type-badge.지표{background:#eef2ff;color:#4f46a5}
+.script-badges .type-badge.라이브러리{background:#fff3df;color:#9a5a00}
+.script-body h2{font-size:19px;line-height:1.3;margin:0 0 5px;letter-spacing:-.02em}
+.script-author{font-size:13px;font-weight:700;color:#6b7280;margin-bottom:12px}
+.script-body p{font-size:14px;line-height:1.55;color:#505866;margin:0 0 14px;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+.script-meta{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:13px}
+.script-meta span{font-size:12px;color:#69707d;background:#f6f7f9;border-radius:6px;padding:5px 7px}
+.script-body button{border:0;background:none;color:#2962ff;font-weight:800;padding:0;cursor:pointer}
+.script-detail-page{max-width:1180px}
+.script-detail-head{display:flex;justify-content:space-between;gap:24px;align-items:flex-start;padding:26px 28px}
+.script-detail-head h1{font-size:32px;line-height:1.25;margin:7px 0 8px;letter-spacing:-.035em}
+.script-detail-head p{margin:0;color:#67707d}
+.license-panel{padding:18px 22px;margin-top:14px}
+.license-panel pre{white-space:pre-wrap;margin:9px 0 0;font:12px/1.55 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:#535b67}
+.pine-panel{padding:0;margin-top:14px;overflow:hidden}
+.pine-head{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid #e7eaf0}
+.pine-head>div{display:flex;gap:10px;align-items:center}
+.pine-head span{font:11px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:#8a919f}
+.pine-head button{border:1px solid #d4d9e3;background:#fff;border-radius:7px;padding:8px 11px;font-weight:700;cursor:pointer}
+.pine-code{margin:0;padding:20px;background:#101318;color:#d8dee9;max-height:780px;overflow:auto;font:12.5px/1.55 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;tab-size:4;white-space:pre}
+.script-description{padding:24px 28px;margin-top:14px}
+.script-description h2{margin:0 0 14px;font-size:19px}
+.script-description>div{white-space:pre-wrap;line-height:1.7;color:#4b5563;font-size:14px}
+@media(max-width:1000px){.script-grid{grid-template-columns:1fr}.script-card{grid-template-columns:180px 1fr}}
+@media(max-width:700px){.script-card{grid-template-columns:1fr}.script-thumb{height:220px;min-height:0}.script-detail-head{display:block;padding:20px}.script-detail-head .external-link{margin-top:16px}.script-detail-head h1{font-size:25px}.pine-code{font-size:11px}.script-toolbar input{min-width:100%}}
