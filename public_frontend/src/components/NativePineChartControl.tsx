@@ -106,6 +106,8 @@ function upgradeLegacyPine(source:string){
     out=out.replace(re,'$1ta.'+name+'(');
   }
 
+  out=out.replace(/(^|[^\w.])tr\b(?!\s*\()/gm,'$1ta.tr');
+
   const math=['abs','max','min','round','ceil','floor','sqrt','pow','log','exp','sign'];
   for(const name of math){
     const re=new RegExp('(^|[^\\w.])'+name+'\\s*\\(','gm');
