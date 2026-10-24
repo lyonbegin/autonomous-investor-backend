@@ -390,6 +390,19 @@ def init_db() -> None:
                 updated_at TEXT NOT NULL
             );
 
+            CREATE TABLE IF NOT EXISTS bond_prefix_queue (
+                scan_id TEXT NOT NULL,
+                prefix TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'PENDING',
+                total_count INTEGER NOT NULL DEFAULT 0,
+                attempts INTEGER NOT NULL DEFAULT 0,
+                last_error TEXT,
+                updated_at TEXT NOT NULL,
+                PRIMARY KEY (scan_id, prefix)
+            );
+            CREATE INDEX IF NOT EXISTS idx_bond_prefix_queue_status
+                ON bond_prefix_queue(scan_id, status, prefix);
+
             CREATE TABLE IF NOT EXISTS strategy_candidates (
                 candidate_id TEXT PRIMARY KEY,
                 source_kind TEXT NOT NULL,
@@ -1268,6 +1281,246 @@ def reset_market_backfill(market: str) -> dict[str, Any]:
     finally:
         conn.close()
     return {"market":market_key,"scan_id":scan_id,"cursor_offset":0,"at":now}
+
+
+BOND_ISIN_CHARS = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+
+def _bond_scan_prefix(prefix: str) -> dict[str, Any]:
+    profile = MARKET_SCANNER_PROFILES["corporate-bonds"]
+    columns = list(profile.get("columns") or [])
+    payload = {
+        "filter": [{
+            "left": "isin-displayed",
+            "operation": "match",
+            "right": "^" + re.escape(prefix),
+        }],
+        "options": {"lang": "ko"},
+        "markets": ["bond"],
+        "columns": columns,
+        "sort": {"sortBy": "ticker-view-sort", "sortOrder": "asc"},
+        "range": [0, 100],
+    }
+    raw = _http_json(
+        SCANNER_URL.format(market="bond") + "?label-product=screener-bond",
+        method="POST",
+        payload=payload,
+    )
+    rows: list[dict[str, Any]] = []
+    for item in raw.get("data", []):
+        values = item.get("d", [])
+        row = dict(zip(columns, values))
+        row["ticker"] = item.get("s")
+        ticker_view = row.get("ticker-view") if isinstance(row.get("ticker-view"), dict) else {}
+        row["name"] = ticker_view.get("name") or row.get("isin-displayed") or item.get("s")
+        row["description"] = ticker_view.get("description") or ""
+        row["ticker_view"] = ticker_view
+        row["close"] = row.get("close_pct")
+        row["change"] = row.get("close_net")
+        row["type"] = row.get("type") or ticker_view.get("type") or "bond"
+        row["exchange"] = row.get("exchange.tr")
+        rows.append(row)
+    return {
+        "prefix": prefix,
+        "total_count": int(raw.get("totalCount") or 0),
+        "count": len(rows),
+        "items": rows,
+    }
+
+
+def _init_bond_prefix_scan() -> dict[str, Any]:
+    init_db()
+    now = utcnow()
+    state = _market_state("corporate-bonds")
+    scan_id = str(state["scan_id"])
+    with _connect() as conn:
+        existing = int(conn.execute(
+            "SELECT COUNT(*) AS c FROM bond_prefix_queue WHERE scan_id = ?",
+            (scan_id,),
+        ).fetchone()["c"])
+        if existing == 0:
+            conn.executemany(
+                """
+                INSERT OR IGNORE INTO bond_prefix_queue (
+                    scan_id,prefix,status,total_count,attempts,last_error,updated_at
+                ) VALUES (?,?,?,?,?,?,?)
+                """,
+                [
+                    (scan_id, ch, "PENDING", 0, 0, None, now)
+                    for ch in BOND_ISIN_CHARS
+                ],
+            )
+    return state
+
+
+def bond_prefix_backfill_state() -> dict[str, Any]:
+    init_db()
+    state = _market_state("corporate-bonds")
+    scan_id = str(state["scan_id"])
+    with _connect() as conn:
+        rows = conn.execute(
+            """
+            SELECT status,COUNT(*) AS count,SUM(total_count) AS total
+            FROM bond_prefix_queue
+            WHERE scan_id = ?
+            GROUP BY status
+            """,
+            (scan_id,),
+        ).fetchall()
+        stored = int(conn.execute(
+            "SELECT COUNT(*) AS c FROM market_universe_current WHERE market='corporate-bonds' AND scan_id=?",
+            (scan_id,),
+        ).fetchone()["c"])
+    status_counts = {str(r["status"]): int(r["count"]) for r in rows}
+    return {
+        "market": "corporate-bonds",
+        "scan_id": scan_id,
+        "stored_count": stored,
+        "pending": status_counts.get("PENDING", 0),
+        "split": status_counts.get("SPLIT", 0),
+        "done": status_counts.get("DONE", 0),
+        "error": status_counts.get("ERROR", 0),
+        "cycle_started_at": state.get("cycle_started_at"),
+        "last_completed_at": state.get("last_completed_at"),
+    }
+
+
+def backfill_corporate_bond_universe(max_prefixes: int = 500) -> dict[str, Any]:
+    init_db()
+    _init_bond_prefix_scan()
+    state = _market_state("corporate-bonds")
+    scan_id = str(state["scan_id"])
+    safe_limit = min(max(int(max_prefixes), 1), 5000)
+    processed = 0
+    split_count = 0
+    stored_rows = 0
+    errors: list[str] = []
+    now = utcnow()
+
+    while processed < safe_limit:
+        with _connect() as conn:
+            row = conn.execute(
+                """
+                SELECT prefix FROM bond_prefix_queue
+                WHERE scan_id=? AND status='PENDING'
+                ORDER BY LENGTH(prefix) ASC,prefix ASC
+                LIMIT 1
+                """,
+                (scan_id,),
+            ).fetchone()
+        if row is None:
+            break
+        prefix = str(row["prefix"])
+        try:
+            result = _bond_scan_prefix(prefix)
+            total = int(result["total_count"])
+            items = list(result["items"])
+            if total <= 10:
+                _store_market_universe_page(
+                    "corporate-bonds",
+                    items,
+                    scan_id=scan_id,
+                    base_rank=0,
+                    collected_at=utcnow(),
+                )
+                stored_rows += len(items)
+                with _connect() as conn:
+                    conn.execute(
+                        """
+                        UPDATE bond_prefix_queue
+                        SET status='DONE',total_count=?,attempts=attempts+1,last_error=NULL,updated_at=?
+                        WHERE scan_id=? AND prefix=?
+                        """,
+                        (total, utcnow(), scan_id, prefix),
+                    )
+            else:
+                children = [prefix + ch for ch in BOND_ISIN_CHARS]
+                with _connect() as conn:
+                    conn.execute(
+                        """
+                        UPDATE bond_prefix_queue
+                        SET status='SPLIT',total_count=?,attempts=attempts+1,last_error=NULL,updated_at=?
+                        WHERE scan_id=? AND prefix=?
+                        """,
+                        (total, utcnow(), scan_id, prefix),
+                    )
+                    conn.executemany(
+                        """
+                        INSERT OR IGNORE INTO bond_prefix_queue (
+                            scan_id,prefix,status,total_count,attempts,last_error,updated_at
+                        ) VALUES (?,?,?,?,?,?,?)
+                        """,
+                        [
+                            (scan_id, child, "PENDING", 0, 0, None, utcnow())
+                            for child in children
+                        ],
+                    )
+                split_count += 1
+        except Exception as exc:
+            message = f"{type(exc).__name__}: {exc}"
+            errors.append(f"{prefix}:{message}")
+            with _connect() as conn:
+                conn.execute(
+                    """
+                    UPDATE bond_prefix_queue
+                    SET status='ERROR',attempts=attempts+1,last_error=?,updated_at=?
+                    WHERE scan_id=? AND prefix=?
+                    """,
+                    (message, utcnow(), scan_id, prefix),
+                )
+        processed += 1
+
+    with _connect() as conn:
+        pending = int(conn.execute(
+            "SELECT COUNT(*) AS c FROM bond_prefix_queue WHERE scan_id=? AND status='PENDING'",
+            (scan_id,),
+        ).fetchone()["c"])
+        failed = int(conn.execute(
+            "SELECT COUNT(*) AS c FROM bond_prefix_queue WHERE scan_id=? AND status='ERROR'",
+            (scan_id,),
+        ).fetchone()["c"])
+        stored = int(conn.execute(
+            "SELECT COUNT(*) AS c FROM market_universe_current WHERE market='corporate-bonds' AND scan_id=?",
+            (scan_id,),
+        ).fetchone()["c"])
+
+    cycle_completed = pending == 0
+    if cycle_completed:
+        completed_at = utcnow()
+        with _connect() as conn:
+            conn.execute(
+                "DELETE FROM market_universe_current WHERE market='corporate-bonds' AND scan_id<>?",
+                (scan_id,),
+            )
+            # Keep completed queue for audit, start a fresh queue on the next call.
+            next_scan_id = _market_cycle_id("corporate-bonds")
+            conn.execute(
+                """
+                UPDATE market_collector_state
+                SET cursor_offset=0,total_count=?,scan_id=?,cycle_started_at=?,
+                    last_completed_at=?,last_error=?,updated_at=?
+                WHERE market='corporate-bonds'
+                """,
+                (
+                    stored,next_scan_id,completed_at,completed_at,
+                    None if failed == 0 else f"{failed} prefix nodes failed",
+                    completed_at,
+                ),
+            )
+
+    return {
+        "market": "corporate-bonds",
+        "scan_id": scan_id,
+        "processed_prefixes": processed,
+        "split_prefixes": split_count,
+        "new_rows_seen": stored_rows,
+        "stored_count": stored,
+        "pending_prefixes": pending,
+        "failed_prefixes": failed,
+        "cycle_completed": cycle_completed,
+        "errors": errors[:20],
+        "at": utcnow(),
+    }
 
 
 def backfill_market_universe(
