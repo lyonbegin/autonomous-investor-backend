@@ -1,19 +1,13 @@
 FROM python:3.13-slim-bookworm
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    PIP_NO_CACHE_DIR=1 \
-    PORT=8080
+    PYTHONUNBUFFERED=1
 
-WORKDIR /app
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends sqlite3 wget ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 
-RUN pip install --no-cache-dir "fastapi>=0.115,<1" "uvicorn[standard]>=0.34,<1" "pydantic>=2.12,<3"
+COPY recovery/recover.sh /recover.sh
+RUN chmod +x /recover.sh
 
-COPY app /app/app
-
-EXPOSE 8080
-
-HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
-  CMD python -c "import os,urllib.request; urllib.request.urlopen('http://127.0.0.1:'+os.environ.get('PORT','8080')+'/health', timeout=5).read()" || exit 1
-
-CMD ["sh", "-c", "uvicorn app.main_tradingview:app --host 0.0.0.0 --port ${PORT:-8080}"]
+CMD ["/recover.sh"]
