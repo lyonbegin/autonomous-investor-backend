@@ -141,7 +141,16 @@ async def _parallel(*pairs: tuple[str, str]) -> list[dict[str, Any]]:
 
 def _index(bundle: dict[str, Any]) -> dict[str, Any]:
     candidates = {x.get("candidate_id"): x for x in bundle["candidates"]}
-    sources = {x.get("source_id"): x for x in bundle["sources"]}
+    sources: dict[str, dict[str, Any]] = {}
+    for source in bundle["sources"]:
+        sid = str(source.get("source_id") or "")
+        if not sid:
+            continue
+        sources[sid] = source
+        if sid.startswith("TVS:"):
+            sources[sid[4:]] = source
+        else:
+            sources["TVS:" + sid] = source
     handoff = {x.get("agent_id"): x for x in bundle["handoff"]}
 
     agents_by_candidate: dict[str, list[dict[str, Any]]] = defaultdict(list)
