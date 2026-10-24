@@ -696,6 +696,93 @@ def _finalize_if_complete(scan_id: str) -> bool:
         conn.close()
 
 
+def _rebalance_stale_long_tasks(scan_id: str, *, min_pages: int = 200, parts: int = 32) -> int:
+    """Split a stale long-running numeric task at its current cursor.
+
+    Previously collected rows stay in corporate_bond_scan_rows and are keyed by
+    ticker, so overlap at the cursor boundary is harmless while gaps are not.
+    """
+    stale_before = (datetime.now(UTC) - timedelta(minutes=2)).isoformat()
+    now = utcnow()
+    with _connect() as conn:
+        rows = conn.execute(
+            """
+            SELECT *
+            FROM corporate_bond_scan_tasks
+            WHERE scan_id=?
+              AND pages_done>=?
+              AND primary_field<>'__all_empty__'
+              AND cursor_value IS NOT NULL
+              AND (
+                    status IN ('PENDING','ERROR')
+                    OR (status='RUNNING' AND updated_at<?)
+                  )
+            ORDER BY pages_done DESC
+            LIMIT 8
+            """,
+            (scan_id, min_pages, stale_before),
+        ).fetchall()
+
+    split_count = 0
+    for raw in rows:
+        task = dict(raw)
+        cursor = float(task["cursor_value"])
+        high = float(task["high_value"])
+        if not math.isfinite(cursor) or not math.isfinite(high) or high <= cursor:
+            continue
+        count = max(2, min(int(parts), 64))
+        step = (high - cursor) / count
+        if step <= 0:
+            continue
+
+        children: list[tuple[Any, ...]] = []
+        for i in range(count):
+            low = cursor if i == 0 else cursor + step * i
+            right = high if i == count - 1 else cursor + step * (i + 1)
+            task_id = f"{task['task_id']}:R{i:02d}"
+            children.append((
+                scan_id,
+                task_id,
+                str(task["phase"]),
+                str(task["primary_field"]),
+                low,
+                right,
+                None,
+                str(task["filters_json"]),
+                str(task["tie_fields_json"]),
+                max(10, int(task["estimated_count"] or 0) // count),
+                0,
+                0,
+                "PENDING",
+                None,
+                now,
+            ))
+
+        with _connect() as conn:
+            conn.execute(
+                """
+                UPDATE corporate_bond_scan_tasks
+                SET status='COMPLETE',
+                    last_error='REBALANCED_FROM_CURSOR',
+                    updated_at=?
+                WHERE scan_id=? AND task_id=?
+                """,
+                (now, scan_id, task["task_id"]),
+            )
+            conn.executemany(
+                """
+                INSERT OR IGNORE INTO corporate_bond_scan_tasks (
+                    scan_id,task_id,phase,primary_field,low_value,high_value,cursor_value,
+                    filters_json,tie_fields_json,estimated_count,pages_done,rows_seen,
+                    status,last_error,updated_at
+                ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                """,
+                children,
+            )
+        split_count += 1
+    return split_count
+
+
 def corporate_bond_backfill(
     *,
     max_tasks: int = 64,
@@ -704,6 +791,7 @@ def corporate_bond_backfill(
 ) -> dict[str, Any]:
     state = _init_scan(force_new=force_new)
     scan_id = str(state["scan_id"])
+    rebalanced_tasks = _rebalance_stale_long_tasks(scan_id)
     safe_tasks = min(max(int(max_tasks), 1), 128)
     safe_pages = min(max(int(pages_per_task), 1), 500)
 
@@ -753,6 +841,7 @@ def corporate_bond_backfill(
         "market": MARKET,
         "scan_id": scan_id,
         "source_total": int(state.get("source_total") or 0),
+        "rebalanced_tasks": rebalanced_tasks,
         "selected_tasks": len(tasks),
         "workers": min(8, max(1, len(tasks))),
         "pages_per_task": safe_pages,
