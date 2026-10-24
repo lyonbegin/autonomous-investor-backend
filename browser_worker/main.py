@@ -416,7 +416,7 @@ async def page_sample_test() -> dict[str, Any]:
         try:
             url = (
                 "https://autonomous-investor-public-api-production.up.railway.app/"
-                f"api/public/scripts?page=1&script_type={script_type}&sort=latest_popular"
+                f"api/public/scripts/catalog?limit=2&offset=0&script_type={script_type}"
             )
             response = await context.request.get(url, timeout=60000)
             payload = await response.json()
