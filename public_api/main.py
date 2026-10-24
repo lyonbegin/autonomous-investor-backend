@@ -268,6 +268,11 @@ async def ideas(
     return await _get(TV_API, f"/api/v1/tradingview/ideas/live?page={page}&sort={sort}&lang=ko")
 
 
+@app.get("/api/public/ideas/{idea_id}")
+async def idea_detail(idea_id: str) -> dict[str, Any]:
+    return await _get(TV_API, f"/api/v1/tradingview/ideas/{quote(idea_id, safe='')}/full")
+
+
 @app.get("/api/public/strategies")
 async def strategies(
     limit: int = Query(default=100, ge=1, le=300),
@@ -303,6 +308,21 @@ async def strategy(candidate_id: str) -> dict[str, Any]:
     return _strategy_view(candidate, idx)
 
 
+@app.get("/api/public/strategies/{candidate_id}/agents")
+async def strategy_agents(candidate_id: str) -> dict[str, Any]:
+    bundle = await _bundle(limit=300)
+    idx = _index(bundle)
+    candidate = idx["candidates"].get(candidate_id)
+    if not candidate:
+        raise HTTPException(status_code=404, detail="strategy not found")
+    rows = [
+        _agent_view(a, candidate, idx["experiments"].get(str(a.get("agent_id"))))
+        for a in idx["agents_by_candidate"].get(candidate_id, [])
+    ]
+    rows.sort(key=lambda x: (str(x.get("fixed_horizon") or ""), str(x.get("agent_id") or "")))
+    return {"strategy_id": candidate_id, "count": len(rows), "items": rows}
+
+
 @app.get("/api/public/agents")
 async def agents(limit: int = Query(default=200, ge=1, le=500)) -> dict[str, Any]:
     bundle = await _bundle(limit=300)
@@ -325,6 +345,61 @@ async def agent(agent_id: str) -> dict[str, Any]:
             if raw.get("agent_id") == agent_id:
                 return _agent_view(raw, idx["candidates"].get(cid), idx["experiments"].get(agent_id))
     raise HTTPException(status_code=404, detail="agent not found")
+
+
+@app.get("/api/public/agents/{agent_id}/performance")
+async def agent_performance(agent_id: str) -> dict[str, Any]:
+    bundle = await _bundle(limit=300)
+    idx = _index(bundle)
+    exp = idx["experiments"].get(agent_id)
+    if not exp:
+        return {"agent_id": agent_id, "available": False, "performance": None, "stages": []}
+    stages: list[dict[str, Any]] = []
+    experiment_id = str(exp.get("experiment_id") or "")
+    if experiment_id:
+        try:
+            payload = await _get(QUANT_API, f"/api/v1/quant/experiments/{quote(experiment_id, safe='')}/results")
+            stages = list(payload.get("items") or [])
+        except HTTPException:
+            stages = []
+    return {
+        "agent_id": agent_id,
+        "available": _metrics(exp) is not None,
+        "experiment_id": experiment_id or None,
+        "experiment_status": exp.get("status"),
+        "performance": _metrics(exp),
+        "stages": stages,
+    }
+
+
+@app.get("/api/public/agents/{agent_id}/positions")
+async def agent_positions(agent_id: str) -> dict[str, Any]:
+    return {
+        "agent_id": agent_id,
+        "available": False,
+        "items": [],
+        "reason": "paper/live position ledger is not yet persisted by the current backend",
+    }
+
+
+@app.get("/api/public/agents/{agent_id}/decisions")
+async def agent_decisions(agent_id: str) -> dict[str, Any]:
+    bundle = await _bundle(limit=300)
+    idx = _index(bundle)
+    exp = idx["experiments"].get(agent_id)
+    promotion = ((exp or {}).get("validation_summary") or {}).get("promotion")
+    items = ([{"kind": "validation_promotion", "decision": promotion}] if promotion else [])
+    return {"agent_id": agent_id, "available": bool(items), "items": items}
+
+
+@app.get("/api/public/agents/{agent_id}/trades")
+async def agent_trades(agent_id: str) -> dict[str, Any]:
+    return {
+        "agent_id": agent_id,
+        "available": False,
+        "items": [],
+        "reason": "paper/live trade ledger is not yet persisted by the current backend",
+    }
 
 
 @app.get("/api/public/markets/{market}")
