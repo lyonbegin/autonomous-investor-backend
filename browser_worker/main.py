@@ -436,6 +436,46 @@ async def page_self_test_all() -> dict[str, Any]:
     }
 
 
+@app.get("/v1/page/pine_source_diagnostic")
+async def pine_source_diagnostic(
+    script_id: str = "PUB;jN9HBNhynFqGOf4KrVcu2d0TU9g0jvGR",
+    needle: str = "sma",
+) -> dict[str, Any]:
+    p, browser, context = await _browser()
+    try:
+        encoded = script_id.replace(";", "%3B")
+        url = (
+            "https://autonomous-investor-public-api-production.up.railway.app/"
+            f"api/public/scripts/{encoded}/source"
+        )
+        response = await context.request.get(url, timeout=60000)
+        payload = await response.json()
+        source = str(payload.get("source") or "")
+        lines = source.splitlines()
+        hits = []
+        token = str(needle or "").lower()
+        for idx, line in enumerate(lines):
+            if token in line.lower():
+                hits.append({
+                    "line": idx + 1,
+                    "text": line,
+                    "before": lines[idx - 1] if idx > 0 else "",
+                    "after": lines[idx + 1] if idx + 1 < len(lines) else "",
+                })
+        result = {
+            "script_id": script_id,
+            "needle": needle,
+            "pine_version": payload.get("pine_version"),
+            "kind": payload.get("kind"),
+            "hit_count": len(hits),
+            "hits": hits[:100],
+        }
+        print("PINE_SOURCE_DIAGNOSTIC", json.dumps(result, ensure_ascii=False), flush=True)
+        return result
+    finally:
+        await _close(p, browser, context)
+
+
 @app.get("/v1/page/sample_test")
 async def page_sample_test() -> dict[str, Any]:
     async def list_scripts(script_type: str) -> list[dict[str, Any]]:
