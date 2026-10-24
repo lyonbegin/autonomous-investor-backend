@@ -2,6 +2,7 @@ import {useEffect,useMemo,useState} from 'react';
 import {api} from '../../api';
 import type {CommunityScript,PineSource,PineVisualResponse,ScriptDetail} from '../../types';
 import {PineChartControl} from '../../components/PineChartControl';
+import {NativePineChartControl} from '../../components/NativePineChartControl';
 
 function label(kind?:string){
   const x=(kind||'').toLowerCase();
@@ -45,6 +46,8 @@ export function ScriptDetailPage({id,go}:{id:string;go:(p:string)=>void}){
   const [chartError,setChartError]=useState('');
   const [chartLoading,setChartLoading]=useState(false);
   const [copied,setCopied]=useState(false);
+  const [nativeState,setNativeState]=useState<'loading'|'ready'|'error'>('loading');
+  const [nativeMessage,setNativeMessage]=useState('');
 
   useEffect(()=>{
     let alive=true;
@@ -79,7 +82,7 @@ export function ScriptDetailPage({id,go}:{id:string;go:(p:string)=>void}){
   };
 
   const runChart=async()=>{
-    setChartLoading(true);setChartError('');
+    setChartLoading(true);setChartError('');setNativeState('loading');setNativeMessage('');
     try{setChart(await api.scriptChart(id,symbol.trim(),horizon))}
     catch(e){setChartError(String(e))}
     finally{setChartLoading(false)}
@@ -134,12 +137,24 @@ export function ScriptDetailPage({id,go}:{id:string;go:(p:string)=>void}){
       {chart&&chart.visual.adapter==='unsupported'?<div className="empty-state">현재 Pine 실행기가 이 스크립트의 문법을 아직 지원하지 않습니다: {chart.visual.error}</div>:null}
       {chart&&chart.visual.adapter!=='unsupported'?<>
         <div className="runtime-summary">
-          <span>Runtime <b>{chart.visual.runtime}</b></span>
-          <span>Adapter <b>{chart.visual.adapter}</b></span>
+          <span>Engine <b>Native Pine v5/v6</b></span>
+          <span>상태 <b>{nativeState==='ready'?'실행 성공':nativeState==='error'?'실행 오류':'실행 중'}</b></span>
           <span>Bars <b>{chart.market_data.count}</b></span>
-          {typeof chart.visual.node_count==='number'&&<span>Clouds <b>{chart.visual.node_count}</b></span>}
+          <span>Data <b>{chart.market_data.provider||'-'}</b></span>
         </div>
-        <PineChartControl data={chart}/>
+        <NativePineChartControl
+          data={chart}
+          source={source.source||''}
+          onRuntime={x=>{setNativeState(x.state);setNativeMessage(x.message||'')}}
+        />
+        {nativeState==='error'&&chart.visual.adapter!=='unsupported'&&<>
+          <div className="runtime-fallback-head">
+            <b>검증용 서버 계산 결과</b>
+            <span>Native 실행 오류 시 현재 지원되는 서버 어댑터 결과를 함께 표시합니다.</span>
+          </div>
+          <PineChartControl data={chart}/>
+        </>}
+        {nativeState==='error'&&nativeMessage&&<div className="runtime-note">Pine 원문 실행 진단: {nativeMessage}</div>}
         {chart.market_data.fallback_used&&<div className="runtime-note">대체 데이터 사용: {chart.market_data.fallback_reason}</div>}
       </>:null}
     </section>
