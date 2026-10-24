@@ -28,7 +28,7 @@ jobs:
           python -m pip check
       - name: Validate module inventory and endpoints
         run: |
-          python -m pytest -q tests/test_alpha_engine_api.py tests/test_orchestration.py tests/test_api.py
+          python -m pytest -q tests/test_alpha_engine_api.py tests/test_alpha_graph.py tests/test_orchestration.py tests/test_api.py
       - name: Summarize generated native function routes
         run: |
           python - <<'PY'
