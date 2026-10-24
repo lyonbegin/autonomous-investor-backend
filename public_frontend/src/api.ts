@@ -12,7 +12,7 @@ export const api={
   ideas:(page=1,sort='recent')=>j<{items:Idea[];total_count:number;page_count:number}>(`${API}/api/public/ideas?page=${page}&sort=${sort}`),
   ideaDetail:(id:string)=>j<IdeaDetail>(`${API}/api/public/ideas/${encodeURIComponent(id)}`),
 
-  scripts:(page=1,scriptType='all',sort='latest_popular')=>j<{items:CommunityScript[];total_count?:number;has_more?:boolean;count:number}>(`${API}/api/public/scripts?page=${page}&script_type=${encodeURIComponent(scriptType)}&sort=${encodeURIComponent(sort)}`),
+  scripts:(page=1,scriptType='all')=>j<{items:CommunityScript[];total_count:number;has_more:boolean;count:number;limit:number;offset:number}>(`${API}/api/public/scripts/catalog?limit=50&offset=${(Math.max(1,page)-1)*50}&script_type=${encodeURIComponent(scriptType)}`),
   scriptSearch:(q:string,limit=100)=>j<{query:string;count:number;items:CommunityScript[]}>(`${API}/api/public/scripts/search?q=${encodeURIComponent(q)}&limit=${limit}`),
   scriptDetail:(id:string)=>j<ScriptDetail>(`${API}/api/public/scripts/${encodeURIComponent(id)}/full`),
   scriptMeta:(id:string)=>j<CommunityScript>(`${API}/api/public/scripts/${encodeURIComponent(id)}/meta`),
