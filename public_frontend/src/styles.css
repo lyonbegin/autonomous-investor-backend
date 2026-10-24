@@ -8,3 +8,11 @@
 /* idea detail navigation */
 .idea-card.clickable{cursor:pointer}.idea-card.clickable:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(15,23,42,.08);transition:.15s}.idea-card.clickable .idea-content button{position:relative;z-index:2}.idea-detail-page{max-width:1040px}.idea-detail{padding:0;overflow:hidden}.idea-detail-head{padding:28px 30px 18px}.idea-detail-head h1{font-size:32px;line-height:1.25;letter-spacing:-.035em;margin:10px 0 0}.idea-detail-hero-image{display:block;width:100%;max-height:620px;object-fit:contain;background:#f3f5f7;border-top:1px solid #edf0f4;border-bottom:1px solid #edf0f4}.idea-full-text{white-space:pre-wrap;line-height:1.75;font-size:15px;color:#303846;padding:28px 30px}.idea-content-images{padding:0 30px 24px}.idea-content-images img{display:block;max-width:100%;margin:0 auto 18px;border-radius:8px}.idea-detail-actions{padding:0 30px 30px}.external-link{display:inline-flex;align-items:center;padding:10px 14px;border:1px solid #d9dee7;border-radius:7px;text-decoration:none;color:#2962ff;font-weight:700;background:white}
 @media(max-width:900px){.idea-detail-head{padding:20px}.idea-detail-head h1{font-size:26px}.idea-full-text{padding:20px}.idea-content-images,.idea-detail-actions{padding-left:20px;padding-right:20px}}
+
+/* interactive TradingView idea chart */
+.idea-live-chart{height:680px;width:100%;background:#fff;border-top:1px solid #edf0f4;border-bottom:1px solid #edf0f4}
+.tv-advanced-chart-host{height:100%;width:100%;min-height:680px}
+.idea-analysis{padding:28px 30px 4px}
+.idea-analysis h2{font-size:18px;margin:0 0 12px}
+.idea-analysis .idea-full-text{padding:0}
+@media(max-width:900px){.idea-live-chart,.tv-advanced-chart-host{height:560px;min-height:560px}.idea-analysis{padding:20px}}
