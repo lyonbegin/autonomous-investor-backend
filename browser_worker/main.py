@@ -142,7 +142,7 @@ async def _close_page(p, browser, context):
 @app.on_event("startup")
 async def _startup_sample_regression() -> None:
     async def run_once() -> None:
-        await asyncio.sleep(20)
+        await asyncio.sleep(55)
         try:
             await page_sample_test()
         except Exception as exc:
@@ -153,14 +153,14 @@ async def _startup_sample_regression() -> None:
             )
     asyncio.create_task(run_once())
     async def diag_once() -> None:
-        await asyncio.sleep(12)
+        await asyncio.sleep(5)
         try:
             await pine_source_diagnostic()
         except Exception as exc:
             print("PINE_SOURCE_DIAGNOSTIC_ERROR", f"{type(exc).__name__}: {exc}", flush=True)
     asyncio.create_task(diag_once())
     async def pmax_once() -> None:
-        await asyncio.sleep(15)
+        await asyncio.sleep(12)
         try:
             await page_self_test_pmax()
         except Exception as exc:
