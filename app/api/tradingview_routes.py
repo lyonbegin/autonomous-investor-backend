@@ -305,6 +305,7 @@ def scripts_live(
     sort: str = Query(default="latest_popular"),
     topic: str | None = None,
     editors_picks: bool = False,
+    script_type: str = Query(default="all"),
 ) -> dict:
     try:
         return collect_scripts(
@@ -312,6 +313,7 @@ def scripts_live(
             sort=sort,
             topic=topic,
             editors_picks=editors_picks,
+            script_type=script_type,
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
