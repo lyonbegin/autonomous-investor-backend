@@ -102,16 +102,16 @@ function upgradeLegacyPine(source:string){
     'dmi','hma','kc','kcw','macd','mfi','mom','sar','supertrend','swma','tsi','vwap'
   ];
   for(const name of ta){
-    const re=new RegExp('(^|[^\\w.])'+name+'\\s*\\(','gm');
-    out=out.replace(re,'$1ta.'+name+'(');
+    const re=new RegExp('(?<![\\w.])'+name+'\\s*\\(','g');
+    out=out.replace(re,'ta.'+name+'(');
   }
 
   out=out.replace(/(^|[^\w.])tr\b(?!\s*\()/gm,'$1ta.tr');
 
   const math=['abs','max','min','round','ceil','floor','sqrt','pow','log','exp','sign'];
   for(const name of math){
-    const re=new RegExp('(^|[^\\w.])'+name+'\\s*\\(','gm');
-    out=out.replace(re,'$1math.'+name+'(');
+    const re=new RegExp('(?<![\\w.])'+name+'\\s*\\(','g');
+    out=out.replace(re,'math.'+name+'(');
   }
 
   return {source:out,legacy:true,from:version};
