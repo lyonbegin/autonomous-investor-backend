@@ -794,6 +794,7 @@ def corporate_bond_backfill(
     rebalanced_tasks = _rebalance_stale_long_tasks(scan_id)
     safe_tasks = min(max(int(max_tasks), 1), 128)
     safe_pages = min(max(int(pages_per_task), 1), 500)
+    worker_limit = min(8, safe_tasks)
 
     stale_before=(datetime.now(UTC)-timedelta(seconds=30)).isoformat()
     with _connect() as conn:
@@ -815,7 +816,7 @@ def corporate_bond_backfill(
                      estimated_count DESC, task_id ASC
             LIMIT ?
             """,
-            (scan_id, safe_tasks),
+            (scan_id, worker_limit),
         ).fetchall()
         conn.executemany(
             """
@@ -828,7 +829,7 @@ def corporate_bond_backfill(
 
     results: list[dict[str, Any]] = []
     if tasks:
-        with ThreadPoolExecutor(max_workers=min(8, len(tasks))) as executor:
+        with ThreadPoolExecutor(max_workers=min(worker_limit, len(tasks))) as executor:
             futures = [
                 executor.submit(_process_task, dict(task), safe_pages)
                 for task in tasks
@@ -843,7 +844,7 @@ def corporate_bond_backfill(
         "source_total": int(state.get("source_total") or 0),
         "rebalanced_tasks": rebalanced_tasks,
         "selected_tasks": len(tasks),
-        "workers": min(8, max(1, len(tasks))),
+        "workers": min(worker_limit, max(1, len(tasks))),
         "pages_per_task": safe_pages,
         "tasks_completed_this_run": sum(1 for x in results if x.get("complete")),
         "rows_added_this_run": sum(int(x.get("added") or 0) for x in results),
