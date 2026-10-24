@@ -24,6 +24,11 @@ class InspectRequest(BaseModel):
     scroll_steps: int = 8
 
 
+class BondPageRequest(BaseModel):
+    offset: int = 0
+    limit: int = 100
+
+
 async def _browser():
     p = await async_playwright().start()
     browser = await p.chromium.launch(
@@ -148,6 +153,82 @@ async def inspect_network(req: InspectRequest) -> dict[str, Any]:
             "captured": captured[-200:],
             "dom": dom,
             "at": time.time(),
+        }
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"{type(exc).__name__}: {exc}") from exc
+    finally:
+        await _close(p, browser, context)
+
+
+@app.post("/v1/bond/page")
+async def bond_page(req: BondPageRequest) -> dict[str, Any]:
+    p, browser, context = await _browser()
+    try:
+        page = await context.new_page()
+        template: dict[str, Any] = {}
+        event = asyncio.Event()
+
+        def on_request(request):
+            if "scanner.tradingview.com/bond/scan" not in request.url:
+                return
+            if request.method != "POST" or not request.post_data:
+                return
+            try:
+                template["url"] = request.url
+                template["payload"] = json.loads(request.post_data)
+                event.set()
+            except Exception:
+                return
+
+        page.on("request", on_request)
+        response = await page.goto(
+            "https://www.tradingview.com/bond-screener/",
+            wait_until="domcontentloaded",
+            timeout=45000,
+        )
+        try:
+            await asyncio.wait_for(event.wait(), timeout=15)
+        except asyncio.TimeoutError as exc:
+            raise RuntimeError("Bond Screener scan request was not observed") from exc
+
+        offset = max(0, int(req.offset))
+        limit = max(1, min(int(req.limit), 500))
+        payload = dict(template["payload"])
+        payload["range"] = [offset, offset + limit]
+
+        result = await page.evaluate(
+            """async ({url,payload}) => {
+              const r = await fetch(url, {
+                method: 'POST',
+                credentials: 'include',
+                headers: {
+                  'Accept': 'application/json',
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+              });
+              const text = await r.text();
+              let data = null;
+              try { data = JSON.parse(text); } catch (e) {}
+              return {status:r.status, ok:r.ok, text: data ? null : text.slice(0,2000), data};
+            }""",
+            {"url": template["url"], "payload": payload},
+        )
+        data = result.get("data") or {}
+        rows = list(data.get("data") or [])
+        return {
+            "ok": bool(result.get("ok")),
+            "browser_status": response.status if response else None,
+            "scanner_status": result.get("status"),
+            "offset": offset,
+            "limit": limit,
+            "total_count": int(data.get("totalCount") or 0),
+            "count": len(rows),
+            "has_more": offset + len(rows) < int(data.get("totalCount") or 0),
+            "items": rows,
+            "scanner_url": template["url"],
+            "request_range": payload.get("range"),
+            "error_text": result.get("text"),
         }
     except Exception as exc:
         raise HTTPException(status_code=502, detail=f"{type(exc).__name__}: {exc}") from exc
