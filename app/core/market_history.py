@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import math
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
 from urllib import parse
 
@@ -12,11 +12,14 @@ from app.core.browser_http import browser_json
 USER_AGENT = "AUTONOMOUS-INVESTOR-QuantLab/1.0"
 
 
-def _json(url: str) -> Any:
+def _json(url: str, headers: dict[str, str] | None = None) -> Any:
+    merged = {"User-Agent": USER_AGENT, "Accept": "application/json"}
+    if headers:
+        merged.update(headers)
     return browser_json(
         url,
         method="GET",
-        headers={"User-Agent": USER_AGENT, "Accept": "application/json"},
+        headers=merged,
         timeout=35,
     )
 
@@ -180,6 +183,169 @@ def fetch_binance_history(symbol: str, *, horizon: str, limit: int = 1000) -> di
     }
 
 
+
+def _clean_price(value: Any) -> float:
+    text = str(value or "").replace("$", "").replace(",", "").strip()
+    return float(text)
+
+
+def fetch_nasdaq_daily_history(symbol: str, *, days: int = 365 * 5) -> dict[str, Any]:
+    exchange, ticker = _qualified(symbol)
+    if exchange and exchange not in {"NASDAQ", "NYSE", "AMEX", "BATS", "ARCA"}:
+        raise RuntimeError(f"Nasdaq provider cannot serve exchange {exchange}")
+    ticker = ticker.replace(".P", "")
+    end = datetime.now(UTC).date()
+    start = end - timedelta(days=max(30, min(int(days), 365 * 10)))
+    url = (
+        f"https://api.nasdaq.com/api/quote/{parse.quote(ticker)}/historical?"
+        + parse.urlencode(
+            {
+                "assetclass": "stocks",
+                "limit": 5000,
+                "offset": 0,
+                "fromdate": start.isoformat(),
+                "todate": end.isoformat(),
+            }
+        )
+    )
+    raw = _json(
+        url,
+        {
+            "User-Agent": "Mozilla/5.0",
+            "Accept": "application/json, text/plain, */*",
+            "Referer": f"https://www.nasdaq.com/market-activity/stocks/{ticker.lower()}/historical",
+            "Origin": "https://www.nasdaq.com",
+        },
+    )
+    status = raw.get("status") if isinstance(raw, dict) else None
+    if not isinstance(raw, dict) or not isinstance(raw.get("data"), dict) or (status or {}).get("rCode") != 200:
+        raise RuntimeError(f"Nasdaq historical response invalid: {str(raw)[:500]}")
+    rows = ((((raw.get("data") or {}).get("tradesTable") or {}).get("rows")) or [])
+    bars: list[dict[str, Any]] = []
+    for row in rows:
+        try:
+            ts = int(datetime.strptime(str(row["date"]), "%m/%d/%Y").replace(tzinfo=UTC).timestamp() * 1000)
+            bars.append(
+                {
+                    "timestamp": ts,
+                    "open": _clean_price(row.get("open")),
+                    "high": _clean_price(row.get("high")),
+                    "low": _clean_price(row.get("low")),
+                    "close": _clean_price(row.get("close")),
+                    "volume": float(str(row.get("volume") or "0").replace(",", "")),
+                }
+            )
+        except (KeyError, TypeError, ValueError):
+            continue
+    bars.sort(key=lambda x: int(x["timestamp"]))
+    return {
+        "provider": "Nasdaq official historical API",
+        "provider_symbol": ticker,
+        "base_interval": "1d",
+        "count": len(bars),
+        "bars": bars,
+    }
+
+
+def _coinbase_product(symbol: str) -> str:
+    _, ticker = _qualified(symbol)
+    value = ticker.upper().replace(".P", "").replace("/", "").replace("-", "")
+    for quote in ("USDT", "USDC", "BUSD", "USD"):
+        if value.endswith(quote) and len(value) > len(quote):
+            return value[:-len(quote)] + "-USD"
+    return value + "-USD"
+
+
+def _crypto_minutes(horizon: str) -> int:
+    value = str(horizon or "").strip().lower()
+    if value.endswith("d") and value[:-1].isdigit():
+        return int(value[:-1]) * 1440
+    return _target_minutes(value) or 60
+
+
+def fetch_coinbase_history(symbol: str, *, horizon: str) -> dict[str, Any]:
+    product = _coinbase_product(symbol)
+    minutes = _crypto_minutes(horizon)
+    allowed = [1, 5, 15, 60, 360, 1440]
+    base_minutes = max([x for x in allowed if x <= minutes] or [1])
+    granularity = base_minutes * 60
+    url = (
+        f"https://api.exchange.coinbase.com/products/{parse.quote(product, safe='-')}/candles?"
+        + parse.urlencode({"granularity": granularity})
+    )
+    raw = _json(url, {"User-Agent": "AUTONOMOUS-INVESTOR-QuantLab/2.0"})
+    if not isinstance(raw, list):
+        raise RuntimeError(f"Coinbase returned unexpected payload: {str(raw)[:300]}")
+    bars = []
+    for row in raw:
+        if not isinstance(row, list) or len(row) < 6:
+            continue
+        try:
+            bars.append(
+                {
+                    "timestamp": int(row[0]) * 1000,
+                    "low": float(row[1]),
+                    "high": float(row[2]),
+                    "open": float(row[3]),
+                    "close": float(row[4]),
+                    "volume": float(row[5]),
+                }
+            )
+        except (TypeError, ValueError):
+            continue
+    bars.sort(key=lambda x: int(x["timestamp"]))
+    return {
+        "provider": "Coinbase Exchange public candles",
+        "provider_symbol": product,
+        "base_interval": f"{base_minutes}m" if base_minutes < 1440 else "1d",
+        "count": len(bars),
+        "bars": bars,
+    }
+
+
+def fetch_kraken_history(symbol: str, *, horizon: str) -> dict[str, Any]:
+    product = _coinbase_product(symbol)
+    base, quote = product.split("-", 1)
+    pair = ("XBT" if base == "BTC" else base) + quote
+    minutes = _crypto_minutes(horizon)
+    allowed = [1, 5, 15, 30, 60, 240, 1440]
+    interval = max([x for x in allowed if x <= minutes] or [1])
+    url = "https://api.kraken.com/0/public/OHLC?" + parse.urlencode({"pair": pair, "interval": interval})
+    raw = _json(url)
+    if not isinstance(raw, dict) or raw.get("error"):
+        raise RuntimeError(f"Kraken returned error: {str(raw)[:300]}")
+    result = raw.get("result") or {}
+    key = next((k for k in result.keys() if k != "last"), None)
+    rows = result.get(key) if key else None
+    if not isinstance(rows, list):
+        raise RuntimeError(f"Kraken returned no OHLC rows for {pair}")
+    bars = []
+    for row in rows:
+        if not isinstance(row, list) or len(row) < 7:
+            continue
+        try:
+            bars.append(
+                {
+                    "timestamp": int(row[0]) * 1000,
+                    "open": float(row[1]),
+                    "high": float(row[2]),
+                    "low": float(row[3]),
+                    "close": float(row[4]),
+                    "volume": float(row[6]),
+                }
+            )
+        except (TypeError, ValueError):
+            continue
+    bars.sort(key=lambda x: int(x["timestamp"]))
+    return {
+        "provider": "Kraken public OHLC",
+        "provider_symbol": pair,
+        "base_interval": f"{interval}m" if interval < 1440 else "1d",
+        "count": len(bars),
+        "bars": bars,
+    }
+
+
 def _aggregate_minutes(bars: list[dict[str, Any]], minutes: int) -> list[dict[str, Any]]:
     if minutes <= 1:
         return bars
@@ -214,24 +380,56 @@ def fetch_history_for_agent(
     country: str = "",
 ) -> dict[str, Any]:
     exchange, _ = _qualified(symbol)
+    lower_horizon = str(horizon).lower()
+    is_daily = lower_horizon.endswith("d") or lower_horizon in {"1w", "1mo", "1mth"}
+
     if exchange == "BINANCE":
+        errors: list[str] = []
+        for provider in (
+            lambda: fetch_binance_history(symbol, horizon=horizon),
+            lambda: fetch_coinbase_history(symbol, horizon=horizon),
+            lambda: fetch_kraken_history(symbol, horizon=horizon),
+        ):
+            try:
+                payload = provider()
+                payload["fallback_used"] = bool(errors)
+                if errors:
+                    payload["fallback_reason"] = " | ".join(errors)
+                break
+            except Exception as exc:
+                errors.append(f"{type(exc).__name__}: {exc}")
+        else:
+            raise RuntimeError("All crypto history providers failed: " + " | ".join(errors))
+    elif exchange == "COINBASE":
         try:
-            payload = fetch_binance_history(symbol, horizon=horizon)
+            payload = fetch_coinbase_history(symbol, horizon=horizon)
             payload["fallback_used"] = False
-        except Exception as binance_exc:
-            payload = fetch_yahoo_history(symbol, horizon=horizon, market=market)
+        except Exception as exc:
+            payload = fetch_kraken_history(symbol, horizon=horizon)
             payload["fallback_used"] = True
-            payload["fallback_reason"] = f"Binance unavailable: {type(binance_exc).__name__}: {binance_exc}"
-    elif exchange in {"COINBASE", "BITSTAMP", "BITFINEX"}:
-        payload = fetch_yahoo_history(symbol, horizon=horizon, market=market)
-        payload["fallback_used"] = True
-        payload["fallback_reason"] = f"{exchange} direct historical provider not configured; Yahoo crypto proxy used"
-    elif exchange in {"GATE", "BYBIT", "OKX"}:
-        raise RuntimeError(f"Historical provider for {exchange} is not connected yet")
+            payload["fallback_reason"] = f"Coinbase unavailable: {type(exc).__name__}: {exc}"
+    elif exchange in {"BITSTAMP", "BITFINEX", "GATE", "BYBIT", "OKX"}:
+        try:
+            payload = fetch_coinbase_history(symbol, horizon=horizon)
+            payload["fallback_used"] = True
+            payload["fallback_reason"] = f"{exchange} historical API not connected; Coinbase market proxy used"
+        except Exception as exc:
+            payload = fetch_kraken_history(symbol, horizon=horizon)
+            payload["fallback_used"] = True
+            payload["fallback_reason"] = f"Coinbase proxy unavailable: {type(exc).__name__}: {exc}; Kraken proxy used"
     elif any(token in (country + " " + market).lower() for token in ("fx", "외환", "선물", "vn30", "hose", "hnx")):
         raise RuntimeError("Historical provider for this FX/futures market is not connected yet")
     else:
-        payload = fetch_yahoo_history(symbol, horizon=horizon, market=market)
+        try:
+            payload = fetch_yahoo_history(symbol, horizon=horizon, market=market)
+            payload["fallback_used"] = False
+        except Exception as yahoo_exc:
+            if is_daily and (not exchange or exchange in {"NASDAQ", "NYSE", "AMEX", "BATS", "ARCA"}):
+                payload = fetch_nasdaq_daily_history(symbol)
+                payload["fallback_used"] = True
+                payload["fallback_reason"] = f"Yahoo unavailable: {type(yahoo_exc).__name__}: {yahoo_exc}"
+            else:
+                raise
 
     target_minutes = _target_minutes(horizon)
     base = str(payload.get("base_interval") or "")
