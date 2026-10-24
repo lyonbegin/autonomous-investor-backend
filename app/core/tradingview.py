@@ -33,7 +33,9 @@ MARKET_ALIASES: dict[str, str] = {
     "미국": "america",
     "세계주식": "america",
     "crypto": "crypto",
-    "크립토": "crypto",
+    "crypto-coins": "crypto-coins",
+    "crypto_coins": "crypto-coins",
+    "크립토": "crypto-coins",
     "forex": "forex",
     "fx": "forex",
     "외환": "forex",
@@ -109,6 +111,11 @@ MARKET_SCANNER_PROFILES: dict[str, dict[str, Any]] = {
     },
     "crypto": {
         "endpoint": "crypto",
+        "filters": [],
+        "default_sort": "market_cap_calc",
+    },
+    "crypto-coins": {
+        "endpoint": "crypto-coins-ssr",
         "filters": [],
         "default_sort": "market_cap_calc",
     },
@@ -1968,6 +1975,134 @@ def compact_market_storage() -> dict[str, Any]:
         conn.close()
 
 
+
+def _crypto_coins_url(sort_by: str, sort_order: str) -> str:
+    base = "https://www.tradingview.com/markets/cryptocurrencies/"
+    if sort_by == "volume":
+        return base + "prices-most-traded/"
+    if sort_by == "change":
+        return base + ("prices-losers/" if sort_order == "asc" else "prices-gainers/")
+    return base + "prices-all/"
+
+
+def _extract_crypto_coins_ssr(html_text: str) -> dict[str, Any]:
+    blocks = re.findall(
+        r'<script[^>]+type=["\\']application/prs\\.init-data\\+json["\\'][^>]*>([\\s\\S]*?)</script>',
+        html_text,
+    )
+
+    def find_payload(value: Any) -> dict[str, Any] | None:
+        if isinstance(value, dict):
+            try:
+                table_id = (
+                    (((value.get("meta") or {}).get("screener_table") or {}).get("current_screener_tab") or {}).get("screener_table_id")
+                    or value.get("screener_table_id")
+                    or (((value.get("params") or {}).get("screener_table_config") or {}).get("id"))
+                )
+                screener = ((value.get("data") or {}).get("screener") or {}).get("data")
+                if table_id == "crypto_coins.all" and isinstance(screener, dict):
+                    return screener
+            except Exception:
+                pass
+            for child in value.values():
+                found = find_payload(child)
+                if found is not None:
+                    return found
+        elif isinstance(value, list):
+            for child in value:
+                found = find_payload(child)
+                if found is not None:
+                    return found
+        return None
+
+    for block in blocks:
+        try:
+            parsed = json.loads(html_lib.unescape(block))
+        except Exception:
+            continue
+        found = find_payload(parsed)
+        if found is not None:
+            return found
+    raise RuntimeError("TradingView crypto_coins.all SSR payload not found")
+
+
+def _collect_crypto_coins_market(
+    *,
+    limit: int,
+    offset: int,
+    sort_by: str,
+    sort_order: str,
+    persist_snapshot: bool,
+) -> dict[str, Any]:
+    url = _crypto_coins_url(sort_by, sort_order)
+    raw = _extract_crypto_coins_ssr(_http_text(url))
+    symbols = list(raw.get("symbols") or [])
+    columns = {
+        str(item.get("id") or ""): list(item.get("rawValues") or [])
+        for item in (raw.get("data") or [])
+        if isinstance(item, dict)
+    }
+    size = max([len(symbols)] + [len(v) for v in columns.values()] + [0])
+    rows: list[dict[str, Any]] = []
+    ticker_values = columns.get("TickerInstrumentUniversal") or []
+    rank_values = columns.get("Rank") or []
+    price_values = columns.get("Price") or []
+    change_values = columns.get("ChangeCrypto") or []
+    market_cap_values = columns.get("MarketCapCalc") or []
+    volume_values = columns.get("Volume24hCoin") or []
+    supply_values = columns.get("SupplyCirculating") or []
+    volume_to_cap_values = columns.get("VolumeToMarketCap") or []
+    category_values = columns.get("CryptoCategory") or []
+    rating_values = columns.get("TechnicalRating") or []
+
+    for i in range(size):
+        meta = ticker_values[i] if i < len(ticker_values) and isinstance(ticker_values[i], dict) else {}
+        ticker = symbols[i] if i < len(symbols) else f"CRYPTO:{meta.get('name') or i}USD"
+        rows.append({
+            "ticker": ticker,
+            "name": meta.get("name") or ticker.split(":")[-1].replace("USD", ""),
+            "description": meta.get("description") or "",
+            "exchange": meta.get("exchange") or "CRYPTO",
+            "type": meta.get("type") or "spot",
+            "rank": rank_values[i] if i < len(rank_values) else i + 1,
+            "close": price_values[i] if i < len(price_values) else None,
+            "change": change_values[i] if i < len(change_values) else None,
+            "market_cap_calc": market_cap_values[i] if i < len(market_cap_values) else None,
+            "volume": volume_values[i] if i < len(volume_values) else None,
+            "volume_24h_coin": volume_values[i] if i < len(volume_values) else None,
+            "supply_circulating": supply_values[i] if i < len(supply_values) else None,
+            "volume_to_market_cap": volume_to_cap_values[i] if i < len(volume_to_cap_values) else None,
+            "crypto_category": category_values[i] if i < len(category_values) else None,
+            "recommendation": rating_values[i] if i < len(rating_values) else None,
+        })
+
+    safe_offset = max(0, int(offset))
+    safe_limit = min(max(int(limit), 1), 100)
+    visible = rows[safe_offset:safe_offset + safe_limit]
+    collected_at = utcnow()
+    if persist_snapshot:
+        store_market_snapshot("crypto-coins", visible, collected_at)
+        prune_market_snapshots(retention_days=30)
+    total = int(raw.get("totalCount") or len(rows))
+    return {
+        "source": "TradingView crypto_coins.all SSR",
+        "market": "crypto-coins",
+        "total_count": total,
+        "count": len(visible),
+        "offset": safe_offset,
+        "limit": safe_limit,
+        "has_more": safe_offset + len(visible) < total,
+        "columns": [
+            "rank", "name", "description", "close", "change", "market_cap_calc",
+            "volume_24h_coin", "supply_circulating", "volume_to_market_cap",
+            "crypto_category", "recommendation", "exchange", "type",
+        ],
+        "items": visible,
+        "collected_at": collected_at,
+        "source_url": url,
+    }
+
+
 def collect_market(
     market: str,
     *,
@@ -1980,6 +2115,14 @@ def collect_market(
     market_key = MARKET_ALIASES.get(market.lower(), market.lower())
     if market_key not in MARKET_SCANNER_PROFILES:
         raise ValueError(f"unsupported market: {market}")
+    if market_key == "crypto-coins":
+        return _collect_crypto_coins_market(
+            limit=limit,
+            offset=offset,
+            sort_by=sort_by,
+            sort_order=sort_order,
+            persist_snapshot=persist_snapshot,
+        )
 
     safe_limit = min(max(limit, 1), 1000)
     safe_offset = max(int(offset), 0)
