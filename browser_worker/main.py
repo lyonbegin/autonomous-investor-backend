@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 import os
 import time
@@ -228,14 +229,25 @@ async def page_verify(req: PageVerifyRequest) -> dict[str, Any]:
               title: document.title,
               text: (document.body?.innerText || '').slice(0, 30000),
               canvases: document.querySelectorAll('canvas').length,
+              canvasSizes: Array.from(document.querySelectorAll('canvas')).slice(0,20).map(c => ({
+                width: c.width, height: c.height,
+                clientWidth: c.clientWidth, clientHeight: c.clientHeight,
+                className: c.className || ''
+              })),
               svgs: document.querySelectorAll('svg').length,
               iframes: document.querySelectorAll('iframe').length,
               runtimePanels: document.querySelectorAll('.runtime-panel').length,
               nativePineCharts: document.querySelectorAll('.native-pine-chart').length,
+              nativePineChartRects: Array.from(document.querySelectorAll('.native-pine-chart')).slice(0,10).map(x => {
+                const r=x.getBoundingClientRect();
+                return {width:r.width,height:r.height,top:r.top,left:r.left};
+              }),
               nativePineErrors: Array.from(document.querySelectorAll('.native-pine-error')).map(x => (x.textContent || '').trim()).slice(0, 20),
+              runtimeSummary: Array.from(document.querySelectorAll('.runtime-summary')).map(x => (x.textContent || '').trim()).slice(0,10),
               htmlChars: document.documentElement.innerHTML.length
             })"""
         )
+        screenshot = await page.screenshot(type="png", full_page=False)
         needle = str(req.text_contains or "")
         return {
             "ok": True,
@@ -244,6 +256,8 @@ async def page_verify(req: PageVerifyRequest) -> dict[str, Any]:
             "contains": (needle in (state.get("text") or "")) if needle else None,
             "console_errors": console_errors[-50:],
             "page_errors": page_errors[-50:],
+            "screenshot_bytes": len(screenshot),
+            "screenshot_sha256": hashlib.sha256(screenshot).hexdigest(),
             "state": state,
         }
     except Exception as exc:
@@ -359,6 +373,24 @@ async def page_self_test_strategy() -> dict[str, Any]:
         "contains_execution_success": True,
         "canvases": state.get("canvases"),
         "native_pine_charts": state.get("nativePineCharts"),
+    }
+
+
+@app.get("/v1/page/self_test_all")
+async def page_self_test_all() -> dict[str, Any]:
+    indicator = await page_self_test()
+    strategy = await page_self_test_strategy()
+    return {
+        "status": "ok",
+        "transport": "playwright-chromium",
+        "indicator": indicator,
+        "strategy": strategy,
+        "verified": [
+            "Pine source loaded into native chart engine",
+            "Trading Department OHLCV rendered",
+            "Canvas created with non-zero size",
+            "No page/runtime Pine errors",
+        ],
     }
 
 
