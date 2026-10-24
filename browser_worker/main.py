@@ -12,7 +12,11 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, HttpUrl
 from playwright.async_api import async_playwright
 
-app = FastAPI(title="Autonomous Investor TradingView Browser Worker", version="1.0.0")
+app = FastAPI(title="Autonomous Investor Data Browser Worker", version="2.0.0")
+
+_PLAYWRIGHT = None
+_SHARED_BROWSER = None
+_BROWSER_LOCK = asyncio.Lock()
 
 
 class DetailRequest(BaseModel):
@@ -58,12 +62,24 @@ def _validate_public_url(value: str) -> str:
     return value
 
 
+async def _ensure_browser():
+    global _PLAYWRIGHT, _SHARED_BROWSER
+    if _SHARED_BROWSER is not None and _SHARED_BROWSER.is_connected():
+        return _SHARED_BROWSER
+    async with _BROWSER_LOCK:
+        if _SHARED_BROWSER is not None and _SHARED_BROWSER.is_connected():
+            return _SHARED_BROWSER
+        if _PLAYWRIGHT is None:
+            _PLAYWRIGHT = await async_playwright().start()
+        _SHARED_BROWSER = await _PLAYWRIGHT.chromium.launch(
+            headless=True,
+            args=["--no-sandbox", "--disable-dev-shm-usage", "--disable-gpu"],
+        )
+        return _SHARED_BROWSER
+
+
 async def _browser():
-    p = await async_playwright().start()
-    browser = await p.chromium.launch(
-        headless=True,
-        args=["--no-sandbox", "--disable-dev-shm-usage", "--disable-gpu"],
-    )
+    browser = await _ensure_browser()
     context = await browser.new_context(
         locale="en-US",
         timezone_id="Asia/Seoul",
@@ -73,22 +89,39 @@ async def _browser():
             "(KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36"
         ),
     )
-    return p, browser, context
+    return None, browser, context
 
 
 async def _close(p, browser, context):
-    try:
-        await context.close()
-    finally:
+    await context.close()
+
+
+@app.on_event("shutdown")
+async def _shutdown_browser():
+    global _PLAYWRIGHT, _SHARED_BROWSER
+    if _SHARED_BROWSER is not None:
         try:
-            await browser.close()
-        finally:
-            await p.stop()
+            await _SHARED_BROWSER.close()
+        except Exception:
+            pass
+        _SHARED_BROWSER = None
+    if _PLAYWRIGHT is not None:
+        try:
+            await _PLAYWRIGHT.stop()
+        except Exception:
+            pass
+        _PLAYWRIGHT = None
 
 
 @app.get("/health")
 async def health() -> dict[str, Any]:
-    return {"status": "ok", "service": "autonomous-investor-tradingview-browser"}
+    browser = await _ensure_browser()
+    return {
+        "status": "ok",
+        "service": "autonomous-investor-data-browser",
+        "browser_connected": bool(browser and browser.is_connected()),
+        "transport": "playwright-chromium",
+    }
 
 
 @app.post("/v1/http/fetch")
