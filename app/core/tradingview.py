@@ -2346,6 +2346,63 @@ def list_stored_scripts(limit: int = 200) -> list[dict[str, Any]]:
     return [dict(row) for row in rows]
 
 
+def list_stored_script_catalog(
+    *,
+    limit: int = 50,
+    offset: int = 0,
+    script_type: str = "all",
+) -> dict[str, Any]:
+    init_db()
+    safe_limit = min(max(int(limit), 1), 200)
+    safe_offset = max(int(offset), 0)
+    normalized = str(script_type or "all").strip().lower()
+    if normalized not in {"all", "indicators", "strategies", "libraries"}:
+        raise ValueError(f"unsupported script type: {script_type}")
+
+    where = ""
+    params: list[Any] = []
+    if normalized == "indicators":
+        where = "WHERE lower(COALESCE(script_type,'')) LIKE ?"
+        params.append("%indicator%")
+    elif normalized == "strategies":
+        where = "WHERE lower(COALESCE(script_type,'')) LIKE ?"
+        params.append("%strateg%")
+    elif normalized == "libraries":
+        where = "WHERE lower(COALESCE(script_type,'')) LIKE ?"
+        params.append("%librar%")
+
+    with _connect() as conn:
+        total = int(
+            conn.execute(
+                f"SELECT COUNT(*) FROM community_scripts {where}",
+                params,
+            ).fetchone()[0]
+        )
+        rows = conn.execute(
+            f"""
+            SELECT script_id_part,script_id,name,author,script_type,script_access,version,
+                   likes_count,comments_count,views_count,created_at,updated_at,chart_url,image_url,
+                   symbol,interval,is_picked,is_hot,description,collected_at
+            FROM community_scripts
+            {where}
+            ORDER BY is_picked DESC, likes_count DESC, collected_at DESC
+            LIMIT ? OFFSET ?
+            """,
+            [*params, safe_limit, safe_offset],
+        ).fetchall()
+
+    items = [dict(row) for row in rows]
+    return {
+        "count": len(items),
+        "total_count": total,
+        "limit": safe_limit,
+        "offset": safe_offset,
+        "has_more": safe_offset + len(items) < total,
+        "script_type": normalized,
+        "items": items,
+    }
+
+
 def get_stored_script(script_id_part: str) -> dict[str, Any]:
     init_db()
     with _connect() as conn:
