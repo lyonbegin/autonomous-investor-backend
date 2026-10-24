@@ -635,6 +635,7 @@ def repair_corporate_bond_phase(phase: str = "yield") -> dict[str, Any]:
         raise RuntimeError("corporate bond scan has not been initialized")
 
     scan_id = str(state["scan_id"])
+    live_source_total = int(_query([], sort_by="yield_to_worst", sort_order="asc")["total_count"])
     bounds = _bounds(list(phase_config["filters"]), str(phase_config["field"]))
     if bounds is None:
         raise RuntimeError(f"no live TradingView rows found for phase: {phase}")
@@ -688,7 +689,7 @@ def repair_corporate_bond_phase(phase: str = "yield") -> dict[str, Any]:
                 last_error='coverage repair clean rescan',updated_at=?
             WHERE market=?
             """,
-            (int(estimated), now, MARKET),
+            (live_source_total, now, MARKET),
         )
 
     return {
