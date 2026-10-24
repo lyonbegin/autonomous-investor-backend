@@ -8,6 +8,8 @@ from typing import Any
 from urllib import parse, request
 from urllib.error import HTTPError
 
+from app.core.browser_http import browser_json
+
 BASE_URL = "https://openapi.tossinvest.com"
 TOKEN_URL = BASE_URL + "/oauth2/token"
 
@@ -56,24 +58,23 @@ def access_token() -> str:
                 "client_id": client_id,
                 "client_secret": client_secret,
             }
-        ).encode("utf-8")
-        req = request.Request(
-            TOKEN_URL,
-            data=body,
-            method="POST",
-            headers={
-                "Content-Type": "application/x-www-form-urlencoded",
-                "Accept": "application/json",
-            },
         )
         try:
-            with request.urlopen(req, timeout=20) as response:
-                payload = json.loads(response.read().decode("utf-8"))
-        except HTTPError as exc:
-            detail = exc.read().decode("utf-8", errors="replace")
-            raise TossApiError(f"Toss OAuth failed: HTTP {exc.code}: {detail[:500]}") from exc
+            payload = browser_json(
+                TOKEN_URL,
+                method="POST",
+                headers={
+                    "Content-Type": "application/x-www-form-urlencoded",
+                    "Accept": "application/json",
+                    "User-Agent": "AUTONOMOUS-INVESTOR-Toss/2.0",
+                },
+                body=body,
+                timeout=30,
+            )
+        except Exception as exc:
+            raise TossApiError(f"Toss OAuth failed via Chromium gateway: {type(exc).__name__}: {exc}") from exc
 
-        token = payload.get("access_token")
+        token = payload.get("access_token") if isinstance(payload, dict) else None
         if not token:
             raise TossApiError("Toss OAuth response did not contain access_token")
         expires_in = int(payload.get("expires_in") or 86400)
@@ -81,29 +82,31 @@ def access_token() -> str:
         _token_expires_at = now + max(60, expires_in)
         return _token_value
 
-
 def _get_json(path: str, params: dict[str, Any]) -> dict[str, Any]:
     token = access_token()
     query = parse.urlencode(
         {k: v for k, v in params.items() if v is not None},
         doseq=True,
     )
-    req = request.Request(
-        BASE_URL + path + ("?" + query if query else ""),
-        method="GET",
-        headers={
-            "Authorization": f"Bearer {token}",
-            "Accept": "application/json",
-            "User-Agent": "AUTONOMOUS-INVESTOR/1.0",
-        },
-    )
+    url = BASE_URL + path + ("?" + query if query else "")
     try:
-        with request.urlopen(req, timeout=30) as response:
-            return json.loads(response.read().decode("utf-8"))
-    except HTTPError as exc:
-        detail = exc.read().decode("utf-8", errors="replace")
-        raise TossApiError(f"Toss API failed: HTTP {exc.code}: {detail[:700]}") from exc
-
+        payload = browser_json(
+            url,
+            method="GET",
+            headers={
+                "Authorization": f"Bearer {token}",
+                "Accept": "application/json",
+                "User-Agent": "AUTONOMOUS-INVESTOR-Toss/2.0",
+            },
+            timeout=40,
+        )
+        if not isinstance(payload, dict):
+            raise TossApiError(f"Toss API returned {type(payload).__name__}")
+        return payload
+    except Exception as exc:
+        if isinstance(exc, TossApiError):
+            raise
+        raise TossApiError(f"Toss API failed via Chromium gateway: {type(exc).__name__}: {exc}") from exc
 
 def get_candles(
     symbol: str,
