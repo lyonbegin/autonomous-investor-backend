@@ -329,6 +329,24 @@ async def script_source(script_id_part: str) -> dict[str, Any]:
     )
 
 
+@app.get("/api/public/scripts/{script_id_part}/chart")
+async def script_chart(
+    script_id_part: str,
+    symbol: str,
+    horizon: str,
+    market: str = "",
+    country: str = "",
+) -> dict[str, Any]:
+    params = [
+        f"script_id={quote(script_id_part, safe='')}",
+        f"symbol={quote(symbol, safe='')}",
+        f"horizon={quote(horizon, safe='')}",
+        f"market={quote(market, safe='')}",
+        f"country={quote(country, safe='')}",
+    ]
+    return await _get(QUANT_API, "/api/v1/quant/pine/visualize?" + "&".join(params))
+
+
 @app.get("/api/public/strategies")
 async def strategies(
     limit: int = Query(default=100, ge=1, le=300),
