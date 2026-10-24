@@ -13,6 +13,8 @@ from html.parser import HTMLParser
 from typing import Any
 from urllib import error, parse, request
 
+from app.core.browser_http import browser_json, browser_text
+
 
 IDEAS_URL = "https://www.tradingview.com/api/v1/ideas/"
 SCANNER_URL = "https://scanner.tradingview.com/{market}/scan"
@@ -503,18 +505,19 @@ def init_db() -> None:
 
 
 def _http_json(url: str, *, method: str = "GET", payload: dict[str, Any] | None = None) -> Any:
-    body = None
     headers = {
         "User-Agent": USER_AGENT,
         "Accept": "application/json,text/plain,*/*",
         "Referer": "https://www.tradingview.com/",
     }
-    if payload is not None:
-        body = json.dumps(payload).encode("utf-8")
-        headers["Content-Type"] = "application/json"
-    req = request.Request(url, data=body, headers=headers, method=method)
-    with request.urlopen(req, timeout=20) as response:
-        return json.loads(response.read().decode("utf-8"))
+    return browser_json(
+        url,
+        method=method,
+        headers=headers,
+        payload=payload,
+        warmup_url="https://www.tradingview.com/",
+        timeout=35,
+    )
 
 
 def _http_text(url: str) -> str:
@@ -524,10 +527,13 @@ def _http_text(url: str) -> str:
         "Referer": "https://www.tradingview.com/",
         "Accept-Language": "ko-KR,ko;q=0.9,en;q=0.8",
     }
-    req = request.Request(url, headers=headers, method="GET")
-    with request.urlopen(req, timeout=25) as response:
-        return response.read().decode("utf-8", errors="replace")
-
+    return browser_text(
+        url,
+        method="GET",
+        headers=headers,
+        warmup_url="https://www.tradingview.com/",
+        timeout=40,
+    )
 
 class _TradingViewDetailParser(HTMLParser):
     def __init__(self) -> None:
