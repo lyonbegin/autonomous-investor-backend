@@ -1081,6 +1081,28 @@ def market_universe_counts() -> list[dict[str, Any]]:
         for state in states:
             market = str(state["market"])
             completed_scan_id = state["completed_scan_id"]
+            if market == "corporate-bonds":
+                cb_state = conn.execute(
+                    "SELECT scan_id FROM corporate_bond_scan_state WHERE market='corporate-bonds'"
+                ).fetchone()
+                if cb_state is not None:
+                    cb_scan_id = str(cb_state["scan_id"])
+                    row = conn.execute(
+                        """
+                        SELECT COUNT(*) AS count,MAX(collected_at) AS collected_at
+                        FROM corporate_bond_scan_rows
+                        WHERE scan_id=?
+                        """,
+                        (cb_scan_id,),
+                    ).fetchone()
+                    out.append({
+                        "market": market,
+                        "scan_id": cb_scan_id,
+                        "collected_at": row["collected_at"],
+                        "count": int(row["count"] or 0),
+                        "storage": "corporate_bond_scan_rows",
+                    })
+                    continue
             if completed_scan_id:
                 row = conn.execute(
                     """
@@ -1150,6 +1172,62 @@ def list_market_universe(
     direction = "ASC" if str(sort_order).lower() == "asc" else "DESC"
 
     with _connect() as conn:
+        if market_key == "corporate-bonds":
+            cb_state = conn.execute(
+                "SELECT scan_id FROM corporate_bond_scan_state WHERE market='corporate-bonds'"
+            ).fetchone()
+            if cb_state is not None:
+                cb_scan_id = str(cb_state["scan_id"])
+                total = int(conn.execute(
+                    "SELECT COUNT(*) AS c FROM corporate_bond_scan_rows WHERE scan_id=?",
+                    (cb_scan_id,),
+                ).fetchone()["c"])
+                cb_sort_map = {
+                    "rank": "ticker",
+                    "name": "CAST(json_extract(raw_json, '$.name') AS TEXT)",
+                    "yield_to_worst": "CAST(json_extract(raw_json, '$.yield_to_worst') AS REAL)",
+                    "current_coupon": "CAST(json_extract(raw_json, '$.current_coupon') AS REAL)",
+                    "maturity_date": "CAST(json_extract(raw_json, '$.maturity_date') AS REAL)",
+                    "change": "CAST(json_extract(raw_json, '$.change') AS REAL)",
+                    "close": "CAST(json_extract(raw_json, '$.close') AS REAL)",
+                }
+                cb_order = cb_sort_map.get(sort_by, "CAST(json_extract(raw_json, '$.yield_to_worst') AS REAL)")
+                cb_sql = f"""
+                    SELECT ticker,raw_json,collected_at
+                    FROM corporate_bond_scan_rows
+                    WHERE scan_id=?
+                    ORDER BY ({cb_order}) {direction} NULLS LAST, ticker ASC
+                    LIMIT ? OFFSET ?
+                """
+                cb_rows = conn.execute(
+                    cb_sql,
+                    (cb_scan_id, safe_limit, safe_offset),
+                ).fetchall()
+                items: list[dict[str, Any]] = []
+                for row in cb_rows:
+                    try:
+                        raw = json.loads(row["raw_json"] or "{}")
+                    except Exception:
+                        raw = {}
+                    raw["market"] = market_key
+                    raw["ticker"] = row["ticker"]
+                    raw["scan_id"] = cb_scan_id
+                    raw["collected_at"] = row["collected_at"]
+                    items.append(raw)
+                return {
+                    "market": market_key,
+                    "scan_id": cb_scan_id,
+                    "storage": "corporate_bond_scan_rows",
+                    "sort_by": sort_by,
+                    "sort_order": direction.lower(),
+                    "total_count": total,
+                    "offset": safe_offset,
+                    "limit": safe_limit,
+                    "has_more": safe_offset + len(items) < total,
+                    "count": len(items),
+                    "items": items,
+                }
+
         state = conn.execute(
             "SELECT completed_scan_id FROM market_collector_state WHERE market=?",
             (market_key,),
