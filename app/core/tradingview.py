@@ -198,7 +198,6 @@ def _http_json(url: str, *, method: str = "GET", payload: dict[str, Any] | None 
             "Referer": "https://www.tradingview.com/",
         },
         payload=payload,
-        warmup_url="https://www.tradingview.com/",
         timeout=35,
     )
 
