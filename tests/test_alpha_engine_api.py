@@ -42,7 +42,7 @@ def test_twelve_engine_projects_are_registered():
 def test_all_existing_public_app_and_lab_methods_get_distinct_routes():
     assert len(OPERATIONS) >= 75
     assert len(OPERATIONS) == len(build_inventory())
-    paths = {x.path for x in app.routes if x.path.startswith("/api/v1/alpha/modules/")}
+    paths = {x for x in app.openapi()["paths"] if x.startswith("/api/v1/alpha/modules/")}
     for spec in OPERATIONS:
         assert spec["endpoint"] in paths, spec["id"]
     ids = [x["id"] for x in OPERATIONS]
