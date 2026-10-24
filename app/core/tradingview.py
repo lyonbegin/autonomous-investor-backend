@@ -1987,7 +1987,7 @@ def _crypto_coins_url(sort_by: str, sort_order: str) -> str:
 
 def _extract_crypto_coins_ssr(html_text: str) -> dict[str, Any]:
     blocks = re.findall(
-        r"<script[^>]+type=[\"']application/prs\\.init-data\\+json[\"'][^>]*>([\\s\\S]*?)</script>",
+        r"<script[^>]+type=[\"']application/prs\.init-data\+json[\"'][^>]*>([\s\S]*?)</script>",
         html_text,
     )
 
