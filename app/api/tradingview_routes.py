@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
-from app.core.corporate_bonds import corporate_bond_backfill, corporate_bond_status
+from app.core.corporate_bonds import corporate_bond_backfill, corporate_bond_status, corporate_bond_coverage_audit
 
 from app.core.tradingview import (
     collect_ideas,
@@ -137,6 +137,17 @@ def idea_to_candidate(idea_id: str) -> dict:
         return create_candidate_from_idea(idea_id)
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=f"idea not found: {idea_id}") from exc
+
+
+@router.get("/markets/corporate-bonds/full-backfill/coverage")
+def corporate_bonds_full_backfill_coverage() -> dict:
+    try:
+        return corporate_bond_coverage_audit()
+    except Exception as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"TradingView corporate bond coverage audit failed: {type(exc).__name__}: {exc}",
+        ) from exc
 
 
 @router.get("/markets/corporate-bonds/full-backfill/state")
