@@ -465,8 +465,18 @@ def fetch_history_for_agent(
             payload = fetch_kraken_history(symbol, horizon=horizon)
             payload["fallback_used"] = True
             payload["fallback_reason"] = f"Coinbase proxy unavailable: {type(exc).__name__}: {exc}; Kraken proxy used"
-    elif any(token in (country + " " + market).lower() for token in ("fx", "외환", "선물", "vn30", "hose", "hnx")):
-        raise RuntimeError("Historical provider for this FX/futures market is not connected yet")
+    elif exchange in {"FX", "FX_IDC", "OANDA", "FOREXCOM", "SAXO", "CME_MINI", "CME", "CBOT", "COMEX", "NYMEX", "ICEUS"} or any(
+        token in (country + " " + market).lower() for token in ("fx", "외환", "선물", "futures")
+    ):
+        try:
+            payload = fetch_yahoo_history(symbol, horizon=horizon, market=market)
+            payload["fallback_used"] = False
+        except Exception as exc:
+            raise RuntimeError(
+                f"Mapped FX/futures history failed for {symbol}: {type(exc).__name__}: {exc}"
+            ) from exc
+    elif any(token in (country + " " + market).lower() for token in ("vn30", "hose", "hnx")):
+        raise RuntimeError("Historical provider for this Vietnam market is not connected yet")
     else:
         try:
             payload = fetch_yahoo_history(symbol, horizon=horizon, market=market)
