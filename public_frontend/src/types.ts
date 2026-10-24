@@ -1,0 +1,4 @@
+export type Agent={agent_id:string;candidate_id:string;source_id:string;fixed_horizon:string;country:string;market:string;universe:string;status:string;created_at:string}
+export type Strategy={candidate_id:string;source_kind:string;source_id:string;name:string;category:string;domain:string;logic:string;candidate_horizons:string[];status:string;created_at:string;agent_count:number;active_agent_count:number;agent_statuses:Record<string,number>;fixed_horizons:string[];markets:string[];countries:string[];agents:Agent[]}
+export type Idea={idea_id:string;title:string;description:string;author:string;symbol:string;exchange:string;asset_type:string;direction:string;interval:string;created_at:string;comments_count:number;likes_count:number;views_count:number;chart_url?:string;image_url?:string}
+export type IdeaDetail={source_kind:string;source_id:string;source_url:string;title:string;full_text:string;hero_images:string[];content_images:string[];collector?:string}
