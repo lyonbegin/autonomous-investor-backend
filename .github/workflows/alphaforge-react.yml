@@ -1,0 +1,40 @@
+name: AlphaForge React Studio
+
+on:
+  push:
+    branches:
+      - feature/alphaforge-react-clone-phase1
+    paths:
+      - "public_frontend/**"
+      - ".github/workflows/alphaforge-react.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install frontend deps
+        working-directory: public_frontend
+        run: npm install --no-audit --no-fund
+      - name: Type-check and bundle AlphaForge studio
+        working-directory: public_frontend
+        run: npm run build
+      - name: Ensure studio route, templates and status labeling exist
+        run: |
+          node - <<'JS'
+          const fs=require('fs');
+          const app=fs.readFileSync('public_frontend/src/App.tsx','utf8');
+          const canvas=fs.readFileSync('public_frontend/src/pages/AlphaForgeStudio.tsx','utf8');
+          for(const needle of ["path==='/workflow'",'AlphaForgeStudio']) if(!app.includes(needle)) throw Error('Missing route: '+needle);
+          for(const needle of ['ReactFlow','research.consensus','topologicalOrder','template(which:string)','sampleRun','DEMO','onConnect']) if(!canvas.includes(needle)) throw Error('Missing studio behavior: '+needle);
+          const pkg=require('./public_frontend/package.json');
+          if(!pkg.dependencies['@xyflow/react'])throw Error('Missing React Flow');
+          console.log('AlphaForge phase1 UI module, graph connections and DEMO guards found');
+          JS
