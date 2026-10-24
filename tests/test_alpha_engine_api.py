@@ -158,3 +158,13 @@ def test_missing_or_expired_handle_is_explicit_error():
     r = post("/api/v1/alpha/modules/vectorbt/lab/bridge/stats/execute",
              {"portfolio": {"$handle": "not-a-real-handle"}})
     assert r.status_code == 422, r.text
+
+
+def test_orchestration_research_coordinators_cannot_bypass_cost_approval():
+    for operation in [
+        "orchestration.orchestration.pipeline.researchcoordinator-run",
+        "orchestration.orchestration.pipeline.rdagentcoordinator-run",
+    ]:
+        op = next(x for x in OPERATIONS if x["id"] == operation)
+        r = post(op["endpoint"], {})
+        assert r.status_code == 403, (operation, r.text)
