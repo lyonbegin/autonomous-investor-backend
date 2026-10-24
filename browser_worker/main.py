@@ -112,6 +112,21 @@ async def _close(p, browser, context):
         _CONTEXT_SEMAPHORE.release()
 
 
+@app.on_event("startup")
+async def _startup_sample_regression() -> None:
+    async def run_once() -> None:
+        await asyncio.sleep(20)
+        try:
+            await page_sample_test()
+        except Exception as exc:
+            print(
+                "NATIVE_PINE_SAMPLE_TEST_ERROR",
+                f"{type(exc).__name__}: {exc}",
+                flush=True,
+            )
+    asyncio.create_task(run_once())
+
+
 @app.on_event("shutdown")
 async def _shutdown_browser():
     global _PLAYWRIGHT, _SHARED_BROWSER
