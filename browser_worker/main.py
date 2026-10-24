@@ -152,6 +152,13 @@ async def _startup_sample_regression() -> None:
                 flush=True,
             )
     asyncio.create_task(run_once())
+    async def diag_once() -> None:
+        await asyncio.sleep(12)
+        try:
+            await pine_source_diagnostic()
+        except Exception as exc:
+            print("PINE_SOURCE_DIAGNOSTIC_ERROR", f"{type(exc).__name__}: {exc}", flush=True)
+    asyncio.create_task(diag_once())
 
 
 @app.on_event("shutdown")
