@@ -17,6 +17,7 @@ app = FastAPI(title="Autonomous Investor Data Browser Worker", version="2.0.0")
 _PLAYWRIGHT = None
 _SHARED_BROWSER = None
 _BROWSER_LOCK = asyncio.Lock()
+_CONTEXT_SEMAPHORE = asyncio.Semaphore(max(1, int(os.getenv("BROWSER_MAX_CONTEXTS", "4"))))
 
 
 class DetailRequest(BaseModel):
@@ -79,8 +80,10 @@ async def _ensure_browser():
 
 
 async def _browser():
-    browser = await _ensure_browser()
-    context = await browser.new_context(
+    await _CONTEXT_SEMAPHORE.acquire()
+    try:
+        browser = await _ensure_browser()
+        context = await browser.new_context(
         locale="en-US",
         timezone_id="Asia/Seoul",
         viewport={"width": 1600, "height": 1200},
@@ -88,12 +91,18 @@ async def _browser():
             "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
             "(KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36"
         ),
-    )
-    return None, browser, context
+        )
+        return None, browser, context
+    except Exception:
+        _CONTEXT_SEMAPHORE.release()
+        raise
 
 
 async def _close(p, browser, context):
-    await context.close()
+    try:
+        await context.close()
+    finally:
+        _CONTEXT_SEMAPHORE.release()
 
 
 @app.on_event("shutdown")
