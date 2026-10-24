@@ -68,9 +68,26 @@ async def _bundle(limit: int = 300) -> dict[str, Any]:
         (TV_API, f"/api/v1/strategy-sources?limit={min(limit*2,1000)}"),
         (QUANT_API, f"/api/v1/quant/experiments?limit={min(limit*4,1000)}"),
     )
+    candidate_items = list(candidates.get("items") or [])
+    agent_items = list(agents.get("items") or [])
+    known = {str(x.get("candidate_id") or "") for x in candidate_items}
+    missing_ids = sorted({
+        str(x.get("candidate_id") or "")
+        for x in agent_items
+        if x.get("candidate_id") and str(x.get("candidate_id")) not in known
+    })
+    if missing_ids:
+        import asyncio
+        async def one(cid: str) -> dict[str, Any] | None:
+            try:
+                return await _get(TV_API, f"/api/v1/tradingview/candidates/{cid}")
+            except HTTPException:
+                return None
+        resolved = await asyncio.gather(*[one(cid) for cid in missing_ids])
+        candidate_items.extend([x for x in resolved if x])
     return {
-        "candidates": candidates.get("items") or [],
-        "agents": agents.get("items") or [],
+        "candidates": candidate_items,
+        "agents": agent_items,
         "handoff": handoff.get("items") or [],
         "sources": sources.get("items") or [],
         "experiments": experiments.get("items") or [],
