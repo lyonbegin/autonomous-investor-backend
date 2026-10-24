@@ -1526,7 +1526,7 @@ def backfill_corporate_bond_universe(max_prefixes: int = 500) -> dict[str, Any]:
             """
             UPDATE bond_prefix_queue
             SET status='PENDING',last_error=NULL,updated_at=?
-            WHERE scan_id=? AND status='ERROR' AND last_error LIKE '%429%'
+            WHERE scan_id=? AND status='ERROR' AND attempts < 3
             """,
             (utcnow(), scan_id),
         )
