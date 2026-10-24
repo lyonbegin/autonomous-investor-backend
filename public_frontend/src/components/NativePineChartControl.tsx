@@ -11,7 +11,10 @@ type Props={
 
 export function NativePineChartControl({data,source,onRuntime}:Props){
   const host=useRef<HTMLDivElement>(null);
+  const runtimeRef=useRef(onRuntime);
   const [localError,setLocalError]=useState('');
+
+  useEffect(()=>{runtimeRef.current=onRuntime},[onRuntime]);
 
   useEffect(()=>{
     const el=host.current;
@@ -19,7 +22,7 @@ export function NativePineChartControl({data,source,onRuntime}:Props){
 
     let disposed=false;
     setLocalError('');
-    onRuntime?.({state:'loading'});
+    runtimeRef.current?.({state:'loading'});
 
     const bars=(data.bars||[]).map(b=>({
       time:Number(b.timestamp),
@@ -42,13 +45,13 @@ export function NativePineChartControl({data,source,onRuntime}:Props){
     const handle=chart.addIndicator(source);
     const offReady=handle.on('ready',()=>{
       if(disposed)return;
-      onRuntime?.({state:'ready',kind:(handle as any).kind||data.kind});
+      runtimeRef.current?.({state:'ready',kind:(handle as any).kind||data.kind});
     });
     const offError=handle.on('error',(payload:any)=>{
       if(disposed)return;
       const message=payload?.error?.message||payload?.message||String(payload?.error||payload||'Pine runtime error');
       setLocalError(message);
-      onRuntime?.({state:'error',message,kind:data.kind});
+      runtimeRef.current?.({state:'error',message,kind:data.kind});
     });
 
     chart.ready().then(()=>{
@@ -57,7 +60,7 @@ export function NativePineChartControl({data,source,onRuntime}:Props){
       if(disposed)return;
       const message=err?.message||String(err);
       setLocalError(message);
-      onRuntime?.({state:'error',message,kind:data.kind});
+      runtimeRef.current?.({state:'error',message,kind:data.kind});
     });
 
     const ro=new ResizeObserver(()=>{if(!disposed)chart.resize()});
@@ -71,7 +74,7 @@ export function NativePineChartControl({data,source,onRuntime}:Props){
       chart.destroy();
       el.innerHTML='';
     };
-  },[data,source,onRuntime]);
+  },[data,source]);
 
   return <div className="native-pine-shell">
     <div ref={host} className="native-pine-chart"/>
