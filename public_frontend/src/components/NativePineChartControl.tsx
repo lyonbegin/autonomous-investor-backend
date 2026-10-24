@@ -117,6 +117,17 @@ function upgradeLegacyPine(source:string){
   return {source:out,legacy:true,from:version};
 }
 
+function legacyRuntimeDiagnostic(source:string){
+  const lines=String(source||'').split(/\r?\n/);
+  const hits:string[]=[];
+  lines.forEach((line,i)=>{
+    if(/(^|[^\w.])sma\s*\(/.test(line)||/\bta\.sma\s*\(/.test(line)||/\bta\.tr\b/.test(line)){
+      hits.push(`${i+1}: ${line.trim()}`);
+    }
+  });
+  return hits.slice(0,12).join(' | ');
+}
+
 type Props={
   data:PineVisualResponse;
   source:string;
@@ -169,7 +180,9 @@ export function NativePineChartControl({data,source,onRuntime}:Props){
     });
     const offError=handle.on('error',(payload:any)=>{
       if(disposed)return;
-      const message=payload?.error?.message||payload?.message||String(payload?.error||payload||'Pine runtime error');
+      const baseMessage=payload?.error?.message||payload?.message||String(payload?.error||payload||'Pine runtime error');
+      const diag=compatible.legacy?legacyRuntimeDiagnostic(compatible.source):'';
+      const message=diag?`${baseMessage} | transformed: ${diag}`:baseMessage;
       setLocalError(message);
       runtimeRef.current?.({state:'error',message,kind:data.kind});
     });
