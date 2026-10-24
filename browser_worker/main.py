@@ -19,6 +19,7 @@ _PLAYWRIGHT = None
 _SHARED_BROWSER = None
 _BROWSER_LOCK = asyncio.Lock()
 _CONTEXT_SEMAPHORE = asyncio.Semaphore(max(1, int(os.getenv("BROWSER_MAX_CONTEXTS", "4"))))
+_PAGE_CONTEXT_SEMAPHORE = asyncio.Semaphore(max(1, int(os.getenv("PAGE_BROWSER_MAX_CONTEXTS", "1"))))
 
 
 class DetailRequest(BaseModel):
@@ -110,6 +111,32 @@ async def _close(p, browser, context):
         await context.close()
     finally:
         _CONTEXT_SEMAPHORE.release()
+
+async def _page_browser():
+    await _PAGE_CONTEXT_SEMAPHORE.acquire()
+    try:
+        browser = await _ensure_browser()
+        context = await browser.new_context(
+            locale="en-US",
+            timezone_id="Asia/Seoul",
+            viewport={"width": 1600, "height": 1200},
+            user_agent=(
+                "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+                "(KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36"
+            ),
+        )
+        return None, browser, context
+    except Exception:
+        _PAGE_CONTEXT_SEMAPHORE.release()
+        raise
+
+
+async def _close_page(p, browser, context):
+    try:
+        await context.close()
+    finally:
+        _PAGE_CONTEXT_SEMAPHORE.release()
+
 
 
 @app.on_event("startup")
@@ -220,7 +247,7 @@ async def http_fetch(req: HttpFetchRequest) -> dict[str, Any]:
 @app.post("/v1/page/verify")
 async def page_verify(req: PageVerifyRequest) -> dict[str, Any]:
     target = _validate_public_url(str(req.url))
-    p, browser, context = await _browser()
+    p, browser, context = await _page_browser()
     console_errors: list[str] = []
     page_errors: list[str] = []
     try:
@@ -278,7 +305,7 @@ async def page_verify(req: PageVerifyRequest) -> dict[str, Any]:
     except Exception as exc:
         raise HTTPException(status_code=502, detail=f"{type(exc).__name__}: {exc}") from exc
     finally:
-        await _close(p, browser, context)
+        await _close_page(p, browser, context)
 
 
 @app.get("/v1/page/verify")
