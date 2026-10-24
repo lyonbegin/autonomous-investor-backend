@@ -4,6 +4,8 @@ import asyncio
 import json
 import os
 import time
+import ipaddress
+from urllib.parse import urlparse
 from typing import Any
 
 from fastapi import FastAPI, HTTPException
@@ -27,6 +29,33 @@ class InspectRequest(BaseModel):
 class BondPageRequest(BaseModel):
     offset: int = 0
     limit: int = 100
+
+
+class HttpFetchRequest(BaseModel):
+    url: HttpUrl
+    method: str = "GET"
+    headers: dict[str, str] = {}
+    json_body: Any | None = None
+    body: str | None = None
+    warmup_url: HttpUrl | None = None
+    wait_ms: int = 0
+    timeout_ms: int = 30000
+
+
+def _validate_public_url(value: str) -> str:
+    parsed = urlparse(value)
+    if parsed.scheme not in {"http", "https"}:
+        raise HTTPException(status_code=400, detail="Only http/https URLs are allowed")
+    host = (parsed.hostname or "").lower()
+    if not host or host in {"localhost", "localhost.localdomain"} or host.endswith(".local"):
+        raise HTTPException(status_code=400, detail="Local/private hosts are not allowed")
+    try:
+        addr = ipaddress.ip_address(host)
+        if addr.is_private or addr.is_loopback or addr.is_link_local or addr.is_reserved:
+            raise HTTPException(status_code=400, detail="Local/private IPs are not allowed")
+    except ValueError:
+        pass
+    return value
 
 
 async def _browser():
@@ -60,6 +89,68 @@ async def _close(p, browser, context):
 @app.get("/health")
 async def health() -> dict[str, Any]:
     return {"status": "ok", "service": "autonomous-investor-tradingview-browser"}
+
+
+@app.post("/v1/http/fetch")
+async def http_fetch(req: HttpFetchRequest) -> dict[str, Any]:
+    target = _validate_public_url(str(req.url))
+    warmup = _validate_public_url(str(req.warmup_url)) if req.warmup_url else None
+    method = str(req.method or "GET").upper()
+    if method not in {"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"}:
+        raise HTTPException(status_code=400, detail=f"Unsupported method: {method}")
+
+    p, browser, context = await _browser()
+    try:
+        if warmup:
+            page = await context.new_page()
+            await page.goto(warmup, wait_until="domcontentloaded", timeout=max(1000, min(req.timeout_ms, 60000)))
+            if req.wait_ms > 0:
+                await page.wait_for_timeout(max(0, min(req.wait_ms, 10000)))
+
+        kwargs: dict[str, Any] = {
+            "method": method,
+            "headers": {str(k): str(v) for k, v in (req.headers or {}).items()},
+            "timeout": max(1000, min(int(req.timeout_ms), 120000)),
+        }
+        if req.json_body is not None:
+            kwargs["data"] = req.json_body
+            if not any(k.lower() == "content-type" for k in kwargs["headers"]):
+                kwargs["headers"]["Content-Type"] = "application/json"
+        elif req.body is not None:
+            kwargs["data"] = req.body
+
+        response = await context.request.fetch(target, **kwargs)
+        text_body = await response.text()
+        parsed_json: Any | None = None
+        try:
+            parsed_json = json.loads(text_body)
+        except Exception:
+            parsed_json = None
+
+        headers = await response.all_headers()
+        safe_headers = {
+            k: v for k, v in headers.items()
+            if k.lower() in {
+                "content-type", "content-length", "etag", "last-modified",
+                "retry-after", "cache-control", "x-ratelimit-limit",
+                "x-ratelimit-remaining", "x-ratelimit-reset",
+            }
+        }
+        return {
+            "ok": response.ok,
+            "status": response.status,
+            "url": target,
+            "headers": safe_headers,
+            "json": parsed_json,
+            "text": None if parsed_json is not None else text_body,
+            "text_preview": text_body[:2000],
+        }
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"{type(exc).__name__}: {exc}") from exc
+    finally:
+        await _close(p, browser, context)
 
 
 @app.post("/v1/source/detail")
