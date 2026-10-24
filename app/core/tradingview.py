@@ -2346,6 +2346,24 @@ def list_stored_scripts(limit: int = 200) -> list[dict[str, Any]]:
     return [dict(row) for row in rows]
 
 
+def get_stored_script(script_id_part: str) -> dict[str, Any]:
+    init_db()
+    with _connect() as conn:
+        row = conn.execute(
+            """
+            SELECT script_id_part,script_id,name,author,script_type,script_access,version,
+                   likes_count,comments_count,views_count,created_at,updated_at,chart_url,image_url,
+                   symbol,interval,is_picked,is_hot,description,collected_at
+            FROM community_scripts
+            WHERE script_id_part = ?
+            """,
+            (script_id_part,),
+        ).fetchone()
+    if row is None:
+        raise KeyError(script_id_part)
+    return dict(row)
+
+
 def search_stored_scripts(query: str, limit: int = 50) -> list[dict[str, Any]]:
     init_db()
     needle = f"%{str(query or '').strip()}%"
