@@ -1,4 +1,4 @@
-import type {Agent,AgentPerformance,Idea,IdeaDetail,Strategy,Summary,CommunityScript,ScriptDetail,PineSource} from './types';
+import type {Agent,AgentPerformance,Idea,IdeaDetail,Strategy,Summary,CommunityScript,ScriptDetail,PineSource,PineVisualResponse} from './types';
 
 export const API='https://autonomous-investor-public-api-production.up.railway.app';
 
@@ -16,6 +16,7 @@ export const api={
   scriptSearch:(q:string,limit=100)=>j<{query:string;count:number;items:CommunityScript[]}>(`${API}/api/public/scripts/search?q=${encodeURIComponent(q)}&limit=${limit}`),
   scriptDetail:(id:string)=>j<ScriptDetail>(`${API}/api/public/scripts/${encodeURIComponent(id)}/full`),
   scriptSource:(id:string)=>j<PineSource>(`${API}/api/public/scripts/${encodeURIComponent(id)}/source`),
+  scriptChart:(id:string,symbol:string,horizon:string)=>j<PineVisualResponse>(`${API}/api/public/scripts/${encodeURIComponent(id)}/chart?symbol=${encodeURIComponent(symbol)}&horizon=${encodeURIComponent(horizon)}`),
 
   strategies:(params='')=>j<{count:number;total_count:number;items:Strategy[]}>(`${API}/api/public/strategies?limit=300${params}`),
   strategy:(id:string)=>j<Strategy>(`${API}/api/public/strategies/${encodeURIComponent(id)}`),
