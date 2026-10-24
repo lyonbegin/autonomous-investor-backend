@@ -252,6 +252,21 @@ async def page_verify(req: PageVerifyRequest) -> dict[str, Any]:
         await _close(p, browser, context)
 
 
+@app.get("/v1/page/verify")
+async def page_verify_get(
+    url: HttpUrl,
+    wait_ms: int = 8000,
+    text_contains: str | None = None,
+) -> dict[str, Any]:
+    return await page_verify(
+        PageVerifyRequest(
+            url=url,
+            wait_ms=max(1000, min(int(wait_ms), 30000)),
+            text_contains=text_contains,
+        )
+    )
+
+
 @app.post("/v1/source/detail")
 async def source_detail(req: DetailRequest) -> dict[str, Any]:
     p, browser, context = await _browser()
