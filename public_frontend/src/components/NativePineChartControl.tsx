@@ -3,11 +3,67 @@ import {Vela} from '@luxalgo/vela';
 import {PineWorkerEngine} from '@luxalgo/vela-pinets';
 import type {PineVisualResponse} from '../types';
 
+function upgradeLegacyInputs(source:string){
+  const typeMap:Record<string,string>={
+    integer:'int',float:'float',bool:'bool',string:'string',source:'source',
+    color:'color',time:'time',session:'session',symbol:'symbol',resolution:'timeframe'
+  };
+  let out='';
+  let cursor=0;
+  const startRe=/(^|[^\w.])input\s*\(/gm;
+  while(true){
+    startRe.lastIndex=cursor;
+    const m=startRe.exec(source);
+    if(!m)break;
+    const prefix=m[1]||'';
+    const callStart=m.index+prefix.length;
+    const open=source.indexOf('(',callStart);
+    if(open<0)break;
+
+    let depth=0, quote='', escaped=false, close=-1;
+    for(let i=open;i<source.length;i++){
+      const ch=source[i];
+      if(quote){
+        if(escaped){escaped=false;continue}
+        if(ch==='\\'){escaped=true;continue}
+        if(ch===quote)quote='';
+        continue;
+      }
+      if(ch==='"'||ch==="'"){quote=ch;continue}
+      if(ch==='(')depth++;
+      else if(ch===')'){
+        depth--;
+        if(depth===0){close=i;break}
+      }
+    }
+    if(close<0)break;
+
+    const body=source.slice(open+1,close);
+    const tm=body.match(/(?:^|,)\s*type\s*=\s*input\.(integer|float|bool|string|source|color|time|session|symbol|resolution)\s*(?=,|$)/);
+    if(!tm){
+      out+=source.slice(cursor,close+1);
+      cursor=close+1;
+      continue;
+    }
+
+    const kind=typeMap[tm[1]]||tm[1];
+    let nextBody=body
+      .replace(/(^|,)\s*type\s*=\s*input\.(integer|float|bool|string|source|color|time|session|symbol|resolution)\s*(?=,|$)/,'$1')
+      .replace(/^\s*,\s*/,'')
+      .replace(/,\s*,/g,',');
+    out+=source.slice(cursor,callStart)+`input.${kind}(${nextBody})`;
+    cursor=close+1;
+  }
+  out+=source.slice(cursor);
+  return out;
+}
+
 function upgradeLegacyPine(source:string){
   const version=Number((source.match(/\/\/@version\s*=\s*(\d+)/)||[])[1]||0);
   if(!version||version>=5)return {source,legacy:false,from:version||undefined};
 
   let out=source.replace(/\/\/@version\s*=\s*4\b/,'//@version=5');
+  out=upgradeLegacyInputs(out);
   out=out.replace(/(^|[^\w.])study\s*\(/gm,'$1indicator(');
   out=out.replace(/(^|[^\w.])security\s*\(/gm,'$1request.security(');
   out=out.replace(/(^|[^\w.])tostring\s*\(/gm,'$1str.tostring(');
