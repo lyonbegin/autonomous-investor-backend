@@ -1,90 +1,115 @@
 #!/bin/sh
 set -u
 
-SOURCE_URL="${SOURCE_URL:-http://tradingview-recovery-source2.railway.internal:8080/autonomous_investor.sqlite3}"
 WORKDIR="${RECOVERY_DIR:-/recovery}"
 SRC="$WORKDIR/source.sqlite3"
-REC="$WORKDIR/recovered.sqlite3"
+SALV="$WORKDIR/salvaged.sqlite3"
 FINAL="$WORKDIR/autonomous_investor.sqlite3"
-EXPECTED_MIN=900000000
 
-echo "=== SQLITE RECOVERY START ==="
+echo "=== SQLITE TABLE SALVAGE START ==="
 date -Iseconds
-df -h "$WORKDIR" || true
-mkdir -p "$WORKDIR"
 cd "$WORKDIR"
 
-SRC_SIZE=0
-if [ -f "$SRC" ]; then SRC_SIZE="$(stat -c %s "$SRC" 2>/dev/null || echo 0)"; fi
-if [ "$SRC_SIZE" -lt "$EXPECTED_MIN" ]; then
-  echo "FETCH_SOURCE $SOURCE_URL"
-  rm -f "$SRC"
-  i=0
-  until wget -4 -q -O "$SRC" "$SOURCE_URL"; do
-    i=$((i+1))
-    if [ "$i" -ge 20 ]; then
-      echo "SOURCE_FETCH_FAILED"
-      sleep 3600
-      exit 2
-    fi
-    sleep 3
-  done
-else
-  echo "SOURCE_REUSE size=$SRC_SIZE"
+if [ ! -f "$SRC" ]; then
+  echo "SOURCE_MISSING"
+  sleep 3600
+  exit 2
 fi
 
-ls -lh "$SRC"
-rm -f "$REC" "$FINAL" recovered_integrity.txt recover_source.err recover_import.err
+rm -f "$SALV" "$FINAL" salvage_*.sql salvage_*.err salvage_integrity.txt
+touch "$SALV"
 
+TABLES="
+community_ideas
+community_scripts
+script_sources
+script_source_attempts
+source_details
+strategy_candidates
+strategy_sources
+agent_plans
+agent_discovery_links
+agent_status_history
+agent_universe_members
+horizon_discovery
+collector_state
+market_snapshots
+market_collector_state
+market_universe_current
+market_universe_rows
+bond_prefix_queue
+corporate_bond_scan_state
+corporate_bond_scan_tasks
+corporate_bond_scan_rows
+"
 
-
-echo "SOURCE_SCHEMA_PROBE"
-sqlite3 "$SRC" "SELECT type,name,tbl_name,rootpage FROM sqlite_master ORDER BY type,name;" 2>&1 | head -n 200 || true
-echo "SOURCE_TABLE_PROBE"
-for t in community_ideas community_scripts script_sources script_source_attempts source_details strategy_candidates agent_plans horizon_discovery agent_discovery_links market_snapshots market_universe_current market_collector_state corporate_bond_prefix_queue; do
+echo "SOURCE_COUNTS"
+for t in $TABLES; do
   printf "%s=" "$t"
-  sqlite3 "$SRC" "SELECT COUNT(*) FROM \"$t\";" 2>&1 | head -n 3 || true
+  sqlite3 "$SRC" "SELECT COUNT(*) FROM \"$t\";" 2>/dev/null || echo ERR
 done
 
-echo "RECOVER_IGNORE_FREELIST_BEGIN"
-set +e
-sqlite3 "$SRC" ".recover --ignore-freelist" 2>recover_source.err | sqlite3 "$REC" 2>recover_import.err
-PIPE_STATUS=$?
-set -e
-echo "RECOVER_PIPE_STATUS=$PIPE_STATUS"
-echo "RECOVER_SOURCE_ERRORS"
-tail -n 30 recover_source.err 2>/dev/null || true
-echo "RECOVER_IMPORT_ERRORS"
-tail -n 30 recover_import.err 2>/dev/null || true
-echo "RECOVER_FILE"
-ls -lh "$REC" || true
-
-echo "RECOVERED_INTEGRITY"
-sqlite3 "$REC" "PRAGMA integrity_check;" > recovered_integrity.txt 2>&1 || true
-head -n 50 recovered_integrity.txt || true
-
-echo "TABLES"
-sqlite3 "$REC" ".tables" || true
-echo "SCHEMA_OBJECT_COUNT"
-SCHEMA_COUNT="$(sqlite3 "$REC" "SELECT COUNT(*) FROM sqlite_master;" 2>/dev/null || echo 0)"
-echo "$SCHEMA_COUNT"
-
-echo "TABLE_COUNTS"
-for t in community_ideas community_scripts script_sources script_source_attempts source_details strategy_candidates agent_plans market_snapshots market_universe_current market_collector_state corporate_bond_prefix_queue horizon_discovery agent_discovery_links lost_and_found; do
-  printf "%s=" "$t"
-  sqlite3 "$REC" "SELECT COUNT(*) FROM \"$t\";" 2>/dev/null || echo ERR
+echo "SALVAGE_BEGIN"
+SUCCESS=0
+FAILED=0
+for t in $TABLES; do
+  echo "SALVAGE_TABLE $t"
+  SQL="salvage_${t}.sql"
+  ERR="salvage_${t}.err"
+  rm -f "$SQL" "$ERR"
+  if sqlite3 "$SRC" ".dump $t" > "$SQL" 2> "$ERR"; then
+    if [ -s "$SQL" ]; then
+      if sqlite3 "$SALV" < "$SQL" 2>> "$ERR"; then
+        CNT="$(sqlite3 "$SALV" "SELECT COUNT(*) FROM \"$t\";" 2>/dev/null || echo ERR)"
+        echo "SALVAGED $t=$CNT"
+        SUCCESS=$((SUCCESS+1))
+      else
+        echo "IMPORT_FAILED $t"
+        tail -n 10 "$ERR" || true
+        FAILED=$((FAILED+1))
+      fi
+    else
+      echo "EMPTY_DUMP $t"
+      FAILED=$((FAILED+1))
+    fi
+  else
+    echo "DUMP_FAILED $t"
+    tail -n 10 "$ERR" || true
+    FAILED=$((FAILED+1))
+  fi
+  rm -f "$SQL"
 done
 
-FIRST_LINE="$(head -n 1 recovered_integrity.txt 2>/dev/null || true)"
-if [ "$FIRST_LINE" = "ok" ] && [ "${SCHEMA_COUNT:-0}" -gt 0 ]; then
-  cp "$REC" "$FINAL"
+echo "SALVAGE_RESULT success=$SUCCESS failed=$FAILED"
+echo "SALVAGE_INTEGRITY"
+sqlite3 "$SALV" "PRAGMA integrity_check;" > salvage_integrity.txt 2>&1 || true
+cat salvage_integrity.txt
+
+echo "SALVAGE_TABLES"
+sqlite3 "$SALV" ".tables" || true
+
+echo "SALVAGE_COUNTS"
+for t in $TABLES; do
+  printf "%s=" "$t"
+  sqlite3 "$SALV" "SELECT COUNT(*) FROM \"$t\";" 2>/dev/null || echo ERR
+done
+
+INTEGRITY="$(head -n 1 salvage_integrity.txt 2>/dev/null || true)"
+CRITICAL_OK=1
+for t in community_ideas community_scripts script_sources source_details strategy_candidates agent_plans horizon_discovery; do
+  C="$(sqlite3 "$SALV" "SELECT COUNT(*) FROM \"$t\";" 2>/dev/null || echo ERR)"
+  if [ "$C" = "ERR" ]; then CRITICAL_OK=0; fi
+done
+
+if [ "$INTEGRITY" = "ok" ] && [ "$CRITICAL_OK" = "1" ]; then
+  cp "$SALV" "$FINAL"
   sync
-  echo "RECOVERY_OK"
+  echo "SALVAGE_OK"
   ls -lh "$FINAL"
 else
-  echo "RECOVERY_NOT_OK"
+  echo "SALVAGE_NOT_OK"
 fi
 
 df -h "$WORKDIR" || true
-echo "=== SQLITE RECOVERY FINISHED ==="
+echo "=== SQLITE TABLE SALVAGE FINISHED ==="
 sleep 3600
