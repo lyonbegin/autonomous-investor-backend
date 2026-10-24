@@ -21,6 +21,7 @@ from app.core.tradingview import (
     create_candidate_from_idea,
     create_candidate_from_script,
     fetch_script_source,
+    get_stored_script,
     fetch_source_detail,
     get_candidate,
     get_agent_plan,
@@ -355,6 +356,14 @@ def scripts_complete_missing(
             status_code=502,
             detail=f"TradingView missing script assets backfill failed: {type(exc).__name__}: {exc}",
         ) from exc
+
+
+@router.get("/scripts/{script_id_part}/meta")
+def script_meta(script_id_part: str) -> dict:
+    try:
+        return get_stored_script(script_id_part)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=f"script not found: {script_id_part}") from exc
 
 
 @router.get("/scripts/{script_id_part}/full")
