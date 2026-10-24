@@ -17,7 +17,7 @@ rm -f "$SRC" "$REC" "$FINAL" recovered_integrity.txt source_integrity.txt
 
 echo "FETCH_SOURCE $SOURCE_URL"
 i=0
-until wget -O "$SRC" "$SOURCE_URL"; do
+until wget -4 -O "$SRC" "$SOURCE_URL"; do
   i=$((i+1))
   if [ "$i" -ge 20 ]; then
     echo "SOURCE_FETCH_FAILED"
