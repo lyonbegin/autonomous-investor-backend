@@ -444,7 +444,7 @@ type LiveMarketRow = {
 const liveMarketCode:Partial<Record<MarketTab,string>> = {
   '한국 주식':'korea',
   '세계 주식':'global-stocks',
-  '크립토':'crypto',
+  '크립토':'crypto-coins',
   '선물':'futures',
   '외환':'forex',
   '국채':'bonds',
