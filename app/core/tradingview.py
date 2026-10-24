@@ -515,7 +515,6 @@ def _http_json(url: str, *, method: str = "GET", payload: dict[str, Any] | None 
         method=method,
         headers=headers,
         payload=payload,
-        warmup_url="https://www.tradingview.com/",
         timeout=35,
     )
 
@@ -531,7 +530,6 @@ def _http_text(url: str) -> str:
         url,
         method="GET",
         headers=headers,
-        warmup_url="https://www.tradingview.com/",
         timeout=40,
     )
 
