@@ -17,7 +17,7 @@ export default function App(){
     addEventListener('popstate',f);
     return()=>removeEventListener('popstate',f);
   },[]);
-  const go=(p:string)=>{history.pushState({},'',p);setPath(p);scrollTo(0,0)};
+  const go=(p:string)=>{history.pushState({},'',p);setPath(new URL(p,location.origin).pathname);scrollTo(0,0)};
   let page=<StrategiesPage go={go}/>;
   if(path==='/ideas') page=<IdeasPage go={go}/>;
   else if(path.startsWith('/ideas/')) page=<IdeaDetailPage id={decodeURIComponent(path.split('/')[2]||'')} go={go}/>;
