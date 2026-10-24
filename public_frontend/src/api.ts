@@ -15,6 +15,7 @@ export const api={
   scripts:(page=1,scriptType='all',sort='latest_popular')=>j<{items:CommunityScript[];total_count?:number;has_more?:boolean;count:number}>(`${API}/api/public/scripts?page=${page}&script_type=${encodeURIComponent(scriptType)}&sort=${encodeURIComponent(sort)}`),
   scriptSearch:(q:string,limit=100)=>j<{query:string;count:number;items:CommunityScript[]}>(`${API}/api/public/scripts/search?q=${encodeURIComponent(q)}&limit=${limit}`),
   scriptDetail:(id:string)=>j<ScriptDetail>(`${API}/api/public/scripts/${encodeURIComponent(id)}/full`),
+  scriptMeta:(id:string)=>j<CommunityScript>(`${API}/api/public/scripts/${encodeURIComponent(id)}/meta`),
   scriptSource:(id:string)=>j<PineSource>(`${API}/api/public/scripts/${encodeURIComponent(id)}/source`),
   scriptChart:(id:string,symbol:string,horizon:string)=>j<PineVisualResponse>(`${API}/api/public/scripts/${encodeURIComponent(id)}/chart?symbol=${encodeURIComponent(symbol)}&horizon=${encodeURIComponent(horizon)}`),
 
