@@ -140,7 +140,7 @@ export function ScriptDetailPage({id,go}:{id:string;go:(p:string)=>void}){
           <span>상태 <b>{nativeState==='ready'?'실행 성공':nativeState==='error'?'실행 오류':'실행 중'}</b></span>
           <span>Bars <b>{chart.market_data.count}</b></span>
           <span>Data <b>{chart.market_data.provider||'-'}</b></span>
-          <span>Server adapter <b>{chart.visual.adapter||'-'}</b></span>
+          <span>Pine <b>{source.kind||'script'} v{source.pine_version||'-'}</b></span>
         </div>
         <NativePineChartControl
           data={chart}
@@ -149,13 +149,12 @@ export function ScriptDetailPage({id,go}:{id:string;go:(p:string)=>void}){
         />
         {nativeState==='error'&&chart.visual.adapter!=='unsupported'&&<>
           <div className="runtime-fallback-head">
-            <b>검증용 서버 계산 결과</b>
-            <span>Native 실행 오류 시 현재 지원되는 서버 어댑터 결과를 함께 표시합니다.</span>
+            <b>보조 렌더링</b>
+            <span>Native Pine 실행이 실패한 경우에만 서버 계산 결과를 표시합니다.</span>
           </div>
           <PineChartControl data={chart}/>
         </>}
         {nativeState==='error'&&nativeMessage&&<div className="runtime-note">Pine 원문 실행 진단: {nativeMessage}</div>}
-        {chart.visual.adapter==='unsupported'&&nativeState==='error'&&<div className="runtime-note">서버 보조 어댑터도 미지원: {chart.visual.error}</div>}
         {chart.market_data.fallback_used&&<div className="runtime-note">대체 데이터 사용: {chart.market_data.fallback_reason}</div>}
       </>:null}
     </section>
