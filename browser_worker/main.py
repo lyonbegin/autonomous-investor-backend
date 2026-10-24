@@ -103,6 +103,7 @@ async def source_detail(req: DetailRequest) -> dict[str, Any]:
 async def inspect_network(req: InspectRequest) -> dict[str, Any]:
     p, browser, context = await _browser()
     captured: list[dict[str, Any]] = []
+    scanner_responses: list[dict[str, Any]] = []
     seen: set[str] = set()
     try:
         page = await context.new_page()
@@ -129,7 +130,24 @@ async def inspect_network(req: InspectRequest) -> dict[str, Any]:
                 },
             })
 
+        async def on_response(response):
+            if "scanner.tradingview.com/bond/scan" not in response.url:
+                return
+            try:
+                data = await response.json()
+                scanner_responses.append({
+                    "url": response.url,
+                    "status": response.status,
+                    "total_count": int(data.get("totalCount") or 0),
+                    "count": len(data.get("data") or []),
+                    "first": ((data.get("data") or [{}])[0]).get("s") if data.get("data") else None,
+                    "last": ((data.get("data") or [{}])[-1]).get("s") if data.get("data") else None,
+                })
+            except Exception as exc:
+                scanner_responses.append({"url": response.url, "status": response.status, "error": str(exc)})
+
         page.on("request", on_request)
+        page.on("response", on_response)
         response = await page.goto(str(req.url), wait_until="domcontentloaded", timeout=45000)
         await page.wait_for_timeout(max(1500, min(req.wait_ms, 10000)))
 
@@ -151,6 +169,7 @@ async def inspect_network(req: InspectRequest) -> dict[str, Any]:
             "status": response.status if response else None,
             "captured_count": len(captured),
             "captured": captured[-200:],
+            "scanner_responses": scanner_responses[-50:],
             "dom": dom,
             "at": time.time(),
         }
