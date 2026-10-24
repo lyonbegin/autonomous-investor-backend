@@ -88,12 +88,12 @@ def script_search(q: str, limit: int = 50) -> dict:
                     query={"q": q, "limit": limit})
 
 
-def script_meta(script_id: str) -> dict:
-    return _request("tradingview", f"/api/v1/tradingview/scripts/{_segment(script_id)}/meta")
+def script_meta(script_id_part: str) -> dict:
+    return _request("tradingview", f"/api/v1/tradingview/scripts/{_segment(script_id_part)}/meta")
 
 
-def script_source(script_id: str, version: str = "last") -> dict:
-    return _request("tradingview", f"/api/v1/tradingview/scripts/{_segment(script_id)}/source",
+def script_source(script_id_part: str, version: str = "last") -> dict:
+    return _request("tradingview", f"/api/v1/tradingview/scripts/{_segment(script_id_part)}/source",
                     query={"version": version})
 
 
