@@ -1,0 +1,56 @@
+name: Verify public demo UI and Caddy policy
+on:
+  push:
+    branches:
+      - feature/public-demo-readonly-20261025
+    paths:
+      - 'investment_studio/**'
+      - 'n8n/Caddyfile.railway'
+      - 'n8n/Dockerfile.web.railway'
+      - '.github/workflows/verify-public-demo.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build React demo (TypeScript and Vite)
+        working-directory: investment_studio
+        run: |
+          npm install --no-audit --no-fund
+          npm run build
+          grep -rl '공개 테스트 모드' dist/assets/
+      - name: Validate Caddy config
+        run: |
+          docker run --rm \
+            -v "$PWD/n8n/Caddyfile.railway:/etc/caddy/Caddyfile:ro" \
+            -e PORT=3000 \
+            -e INVESTMENT_BACKEND_UPSTREAM=http://127.0.0.1:65535 \
+            -e ALPHA_NODE_API_KEY=ci-placeholder \
+            caddy:2.10-alpine caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+      - name: Smoke-test public HTML and blocked admin operations
+        run: |
+          docker run -d --name public-demo-verify -p 38080:3000 \
+            -v "$PWD/n8n/Caddyfile.railway:/etc/caddy/Caddyfile:ro" \
+            -v "$PWD/investment_studio/dist:/srv:ro" \
+            -e PORT=3000 \
+            -e INVESTMENT_BACKEND_UPSTREAM=http://127.0.0.1:65535 \
+            -e ALPHA_NODE_API_KEY=ci-placeholder \
+            caddy:2.10-alpine
+          trap 'docker rm -f public-demo-verify || true' EXIT
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:38080/ -o /tmp/demo-home; then break; fi
+            sleep 1
+          done
+          grep -q 'root' /tmp/demo-home
+          for path in /studio-api/api/v1/ops/assignments/allocate-one /studio-api/api/v1/alpha/scenarios/01-new-strategy/dispatch; do
+            status=$(curl -sS -o /dev/null -w '%{http_code}' -X POST "http://127.0.0.1:38080$path")
+            test "$status" = '403' || { echo "Unexpected status on blocked path $path: $status"; exit 1; }
+          done
+          status=$(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:38080/studio-api/api/v1/ops/overview)
+          test "$status" = '502' || { echo "Read-only routing status unexpected: $status"; exit 1; }
