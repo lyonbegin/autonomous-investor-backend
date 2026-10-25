@@ -59,3 +59,18 @@ jobs:
       - name: TypeScript and Vite production bundle
         working-directory: investment_studio
         run: npm run build
+
+  n8n-image-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate Docker Compose config
+        env:
+          N8N_DB_PASSWORD: ci-test-only
+          N8N_REDIS_PASSWORD: ci-test-only
+          N8N_ENCRYPTION_KEY: ci-test-only-n8n-encryption-key-32bytes
+        run: docker compose -f n8n/docker-compose.yml config --quiet
+      - name: Start actual pinned n8n image CLI
+        run: |
+          docker run --rm docker.n8n.io/n8nio/n8n:2.44.5 --version
