@@ -2,6 +2,7 @@ import {test,expect} from '@playwright/test';
 
 test('운영 시나리오 10개를 클릭하고 각 실행 단계를 확인한다',async({page})=>{
   await page.goto('/');
+  await page.getByRole('button',{name:'10개 운영 시나리오 실행'}).click();
   await expect(page.getByText('운영 시나리오 검사 센터')).toBeVisible();
   const options=page.locator('.scenario-menu button');
   await expect(options).toHaveCount(10,{timeout:15000});
@@ -24,6 +25,7 @@ test('운영 시나리오 10개를 클릭하고 각 실행 단계를 확인한�
 
 test('실행 도중 각 독립 플로우가 활성화된다',async({page})=>{
   await page.goto('/');
+  await page.getByRole('button',{name:'10개 운영 시나리오 실행'}).click();
   await expect(page.locator('.scenario-menu button')).toHaveCount(10);
   await page.getByLabel('실행 속도').selectOption('700');
   await page.locator('.scenario-menu button').nth(4).click();
