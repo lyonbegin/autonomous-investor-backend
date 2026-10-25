@@ -34,9 +34,9 @@ jobs:
           assert len(op_flows)==3
           for path in op_flows:
               d=json.loads(path.read_text())
-              assert len(d['nodes'])==4
+              assert len(d['nodes'])==5
               types={n['type'] for n in d['nodes']}
-              assert {'n8n-nodes-base.scheduleTrigger','n8n-nodes-base.manualTrigger','n8n-nodes-base.httpRequest'} <= types
+              assert {'n8n-nodes-base.scheduleTrigger','n8n-nodes-base.manualTrigger','n8n-nodes-base.webhook','n8n-nodes-base.httpRequest'} <= types
               assert len([n for n in d['nodes'] if n['type']=='n8n-nodes-base.httpRequest'])==2
               assert all(n['parameters'].get('authentication')=='genericCredentialType'
                          for n in d['nodes'] if n['type']=='n8n-nodes-base.httpRequest')
