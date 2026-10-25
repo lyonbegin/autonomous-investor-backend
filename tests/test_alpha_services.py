@@ -27,9 +27,9 @@ def native_call(name, payload):
 def test_real_service_modules_are_exposed_as_individual_native_function_urls():
     tv = [op for op in OPERATIONS if op["engine"] == "tradingview" and op["source"] == "service"]
     qt = [op for op in OPERATIONS if op["engine"] == "quantlab" and op["source"] == "service"]
-    assert len(tv) == 10
+    assert len(tv) == 11
     assert len(qt) == 10
-    assert len(OPERATIONS) == 137
+    assert len(OPERATIONS) == 138
     assert {op["module"] for op in tv + qt} == {"api"}
     for op in tv + qt:
         assert op["endpoint"] in app.openapi()["paths"]
