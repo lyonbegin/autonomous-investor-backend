@@ -1,0 +1,87 @@
+name: F01 F03 F05 Persistent Operations
+on:
+  push:
+    branches: [feature/strategy-registry-assignment-audit]
+    paths:
+      - "app/**"
+      - "tests/**"
+      - "n8n/**"
+      - ".github/workflows/ops-f01-f03-f05.yml"
+      - "investment_studio/**"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  ops-api:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.13"}
+      - name: Install dependencies
+        run: python -m pip install -e ".[dev]" numpy pandas
+      - name: Run real-state F01/F03/F05 integration and full regression
+        run: |
+          python -m pytest -q tests/test_operations_core.py tests/test_n8n_scenarios.py tests/test_n8n_gateway.py tests/test_investment_workflow.py tests/test_alpha_engine_api.py tests/test_alpha_graph.py tests/test_alpha_services.py tests/test_alpha_palette.py tests/test_orchestration.py tests/test_api.py
+      - name: Validate 3 independent n8n operating workflows, 10 existing scenarios
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from app.main import app
+          op_flows=sorted(Path('n8n/workflows/operations').glob('*.json'))
+          assert len(op_flows)==3
+          for path in op_flows:
+              d=json.loads(path.read_text())
+              assert len(d['nodes'])==4
+              types={n['type'] for n in d['nodes']}
+              assert {'n8n-nodes-base.scheduleTrigger','n8n-nodes-base.manualTrigger','n8n-nodes-base.httpRequest'} <= types
+              assert len([n for n in d['nodes'] if n['type']=='n8n-nodes-base.httpRequest'])==2
+              assert all(n['parameters'].get('authentication')=='genericCredentialType'
+                         for n in d['nodes'] if n['type']=='n8n-nodes-base.httpRequest')
+          assert len(list(Path('n8n/workflows/scenarios').glob('*.json')))==10
+          paths=app.openapi()['paths']
+          for key in ('/api/v1/ops/strategies/sync','/api/v1/ops/assignments/allocate-one',
+                      '/api/v1/ops/audit/observations','/api/v1/ops/audit/reconcile'):
+              assert key in paths,key
+          print('OPS_FLOWS_READY',len(op_flows))
+          PY
+  react-ui:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: "22"}
+      - working-directory: investment_studio
+        run: npm install --no-audit --no-fund
+      - working-directory: investment_studio
+        run: npm run build
+  ops-container:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify self-host composition with local persistent operations
+        env:
+          N8N_DB_PASSWORD: ci-not-real
+          N8N_REDIS_PASSWORD: ci-not-real
+          N8N_ENCRYPTION_KEY: ci-very-long-unique-test-encryption-key
+          ALPHA_NODE_API_KEY: ci-not-real-ops-key
+        run: |
+          docker compose -f n8n/docker-compose.yml -f n8n/docker-compose.backend.yml config --quiet
+          docker build -f n8n/Dockerfile.backend -t ops-api:ci .
+          docker run -d --name ops-ci -p 127.0.0.1:8019:8000 -e ALPHA_NODE_API_KEY=ci-not-real-ops-key ops-api:ci
+          trap 'docker logs ops-ci; docker rm -f ops-ci || true' EXIT
+          for i in $(seq 1 60); do
+            if curl -fsS -H 'Authorization: Bearer ci-not-real-ops-key'                 http://127.0.0.1:8019/api/v1/ops/overview > /tmp/ops-overview.json; then break; fi
+            sleep 2
+          done
+          python - <<'PY'
+          import json
+          s=json.load(open('/tmp/ops-overview.json'))
+          assert s['broker_connected'] is False
+          assert s['n8n_workflows']==['F01','F03','F05']
+          print('OPS_DOCKER_API_READY')
+          PY
