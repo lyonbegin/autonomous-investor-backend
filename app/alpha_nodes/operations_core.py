@@ -254,10 +254,24 @@ def sync(limit: int = 30, offset: int = 0, max_sources: int = 5, refresh_live: b
     items=upstream.get("items")
     if not isinstance(items,list):
         raise HTTPException(status_code=502,detail="TradingView catalog missing items")
+    # Live pages are newest-first; stored catalog may be popularity-sorted.
+    # Merge the live page ahead of the stored catalog so freshly published
+    # strategies are not starved by older popular/featured scripts.
+    combined=[*(live.get("items",[]) if live and offset==0 else []),*items]
+    dedup=[]
+    seen_ids=set()
+    for candidate in combined:
+        sid=str(candidate.get("script_id_part") or "") if isinstance(candidate,dict) else ""
+        if sid and sid in seen_ids:
+            continue
+        if sid: seen_ids.add(sid)
+        dedup.append(candidate)
+        if len(dedup)>=limit:
+            break
     added=0
     errors=[]
     results=[]
-    for item in items[:limit]:
+    for item in dedup:
         if not isinstance(item,dict):
             errors.append({"id":None,"code":"INVALID_CATALOG_ITEM"})
             continue
@@ -268,7 +282,12 @@ def sync(limit: int = 30, offset: int = 0, max_sources: int = 5, refresh_live: b
             source=None
             if len(results)<max_sources and script_id:
                 try:
-                    source=services.script_source(script_id,version="last")
+                    # Explicit upstream version bypasses the source-service's
+                    # 'last' cache shortcut when TradingView publishes an edit.
+                    remote_version=str(item.get("version") or "").strip()
+                    source=services.script_source(
+                        script_id,version=remote_version if remote_version not in {"","unknown","last"} else "last"
+                    )
                 except (ValueError, RuntimeError, ConnectionError, OSError, TimeoutError):
                     errors.append({"id":script_id[:80],"code":"SOURCE_FETCH_FAILED"})
             outcome=ingest(item,source)
@@ -280,7 +299,7 @@ def sync(limit: int = 30, offset: int = 0, max_sources: int = 5, refresh_live: b
     status="PARTIAL" if errors else "COMPLETED"
     with db(write=True) as con:
         con.execute("INSERT INTO sync_runs VALUES(?,?,?,?,?,?,?)",
-                    (run_id,status,len(items[:limit]),added,len(errors),_utc(),_utc()))
+                    (run_id,status,len(dedup),added,len(errors),_utc(),_utc()))
     return {"sync_id":run_id,"state":status,"scanned":len(items[:limit]),"added":added,
             "source_errors":len(errors),"errors":errors[:30],"items":results,
             "catalog_total":upstream.get("total_count"),
