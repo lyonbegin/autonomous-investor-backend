@@ -580,4 +580,4 @@ def validate_callback_key(supplied: str | None) -> None:
     if not expected or len(expected) < 24:
         raise HTTPException(status_code=503, detail="callback secret missing or too short")
     if not supplied or not hmac.compare_digest(supplied, expected):
-        raise HTTPException(status_code=401, detail="invalid internal scenario callback key"}
+        raise HTTPException(status_code=401, detail="invalid internal scenario callback key")
