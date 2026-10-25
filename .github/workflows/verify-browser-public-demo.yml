@@ -33,7 +33,9 @@ jobs:
           try {
             await page.goto('https://investment-n8n-operations-ui-production.up.railway.app/',{waitUntil:'domcontentloaded',timeout:60000});
             await expect(page.locator('.scenario-header')).toBeVisible({timeout:30000});
-            await expect(page.getByText('공개 테스트 모드')).toBeVisible();
+            const originalN8n=page.getByRole('link',{name:/n8n 원본 노드 플로우/});
+            await expect(originalN8n).toBeVisible();
+            await expect(originalN8n).toHaveAttribute('href','https://investment-n8n-native-editor-production.up.railway.app/');
             await expect(page.locator('.scenario-menu button')).toHaveCount(10,{timeout:30000});
             await page.screenshot({path:'browser-artifacts/01-scenario-ready.png',fullPage:true});
             await page.locator('.scenario-toolbar button.run').click();
