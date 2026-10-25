@@ -1,0 +1,32 @@
+# REQUIRE: INVESTMENT_DOMAIN, INVESTMENT_ADMIN_USER, BCRYPT HASH and backend key.
+# Only authenticated clients reach either React or /studio-api.
+# API bearer is inserted on the server side; never embedded into browser JS.
+{$INVESTMENT_DOMAIN} {
+    encode zstd gzip
+
+    basic_auth {
+        {$INVESTMENT_ADMIN_USER} {$INVESTMENT_ADMIN_PASSWORD_HASH}
+    }
+
+    @studio_api path /studio-api/*
+    handle @studio_api {
+        uri strip_prefix /studio-api
+        reverse_proxy invest-backend:8000 {
+            header_up Authorization "Bearer {$ALPHA_NODE_API_KEY}"
+            header_up -Cookie
+        }
+    }
+
+    handle {
+        root * /srv
+        try_files {path} /index.html
+        file_server
+    }
+
+    header {
+        X-Content-Type-Options nosniff
+        X-Frame-Options DENY
+        Referrer-Policy no-referrer
+        -Server
+    }
+}

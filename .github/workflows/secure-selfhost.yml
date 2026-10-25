@@ -1,0 +1,101 @@
+name: Verified Self-host HTTPS Proxy (not Railway)
+on:
+  push:
+    branches: [feature/secure-selfhost-deployment]
+    paths:
+      - "n8n/**"
+      - "app/**"
+      - "investment_studio/**"
+      - ".dockerignore"
+      - ".github/workflows/secure-selfhost.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  actual-container-auth-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate deploy script rejects missing VPS configuration
+        run: |
+          bash -n n8n/scripts/deploy_selfhost.sh
+          if bash n8n/scripts/deploy_selfhost.sh > /tmp/blocked-deployment.log 2>&1; then
+            echo "FAILED: deployment script ran without server-only secrets"
+            exit 1
+          fi
+          grep -q "BLOCKED: n8n/.env is absent" /tmp/blocked-deployment.log
+          echo "DEPLOYMENT_FAILS_CLOSED_WITHOUT_REAL_VPS_CONFIG"
+      - name: Start n8n + worker + Redis + PostgreSQL + FastAPI + production React gateway
+        shell: bash
+        run: |
+          set -euo pipefail
+          export N8N_DB_PASSWORD="$(openssl rand -hex 24)"
+          export N8N_REDIS_PASSWORD="$(openssl rand -hex 24)"
+          export N8N_ENCRYPTION_KEY="$(openssl rand -hex 32)"
+          export ALPHA_NODE_API_KEY="$(openssl rand -hex 24)"
+          export INVESTMENT_DOMAIN=":80"
+          export INVESTMENT_ADMIN_USER="ci-operator"
+          export INVESTMENT_HTTP_PORT="18080"
+          export INVESTMENT_HTTPS_PORT="18443"
+          export ALPHA_TRADINGVIEW_BASE=""
+          TEST_ADMIN_PASSWORD="$(openssl rand -hex 20)"
+          export INVESTMENT_ADMIN_PASSWORD_HASH="$(docker run --rm caddy:2.10-alpine caddy hash-password --plaintext "$TEST_ADMIN_PASSWORD")"
+          compose() {
+            docker compose -f n8n/docker-compose.yml -f n8n/docker-compose.backend.yml -f n8n/docker-compose.production.yml "$@"
+          }
+          finish() {
+            compose ps || true
+            compose logs --tail=50 invest-web invest-backend || true
+            compose down --volumes --remove-orphans || true
+          }
+          trap finish EXIT
+          compose config --quiet
+          compose up -d --build
+          READY=0
+          for i in $(seq 1 110); do
+            STATUS="$(curl --max-time 3 --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:18080/studio-api/api/v1/ops/overview || true)"
+            if [ "$STATUS" = "401" ]; then READY=1; break; fi
+            sleep 2
+          done
+          test "$READY" = 1
+          echo "UNAUTHENTICATED_HTTP_401_CONFIRMED"
+          STATUS="$(curl --max-time 8 --silent --output /dev/null --write-out '%{http_code}' -u "ci-operator:wrong" http://127.0.0.1:18080/)"
+          test "$STATUS" = "401"
+          echo "BAD_PASSWORD_HTTP_401_CONFIRMED"
+          curl -fsS --max-time 15 -u "ci-operator:$TEST_ADMIN_PASSWORD" http://127.0.0.1:18080/ > /tmp/prod-index.html
+          grep -q 'investment' /tmp/prod-index.html || grep -q '투자 노드 스튜디오' /tmp/prod-index.html
+          echo "ACTUAL_REACT_INDEX_200_CONFIRMED"
+          curl -fsS --max-time 15 -u "ci-operator:$TEST_ADMIN_PASSWORD" http://127.0.0.1:18080/studio-api/api/v1/ops/overview > /tmp/prod-ops.json
+          curl -fsS --max-time 15 -u "ci-operator:$TEST_ADMIN_PASSWORD" http://127.0.0.1:18080/studio-api/api/v1/alpha/scenarios > /tmp/prod-scenarios.json
+          python - <<'PY'
+          import json
+          ops=json.load(open('/tmp/prod-ops.json'))
+          scenarios=json.load(open('/tmp/prod-scenarios.json'))
+          assert ops['broker_connected'] is False
+          assert ops['n8n_workflows'] == ['F01','F03','F05']
+          assert scenarios['count']==10
+          print('AUTHENTICATED_REVERSE_PROXY_TO_REAL_FASTAPI_200_CONFIRMED')
+          PY
+          compose exec -T invest-web sh -c 'if grep -RlF "$ALPHA_NODE_API_KEY" /srv >/dev/null; then echo EXPOSED_API_KEY_IN_FRONTEND; exit 1; fi'
+          echo "PRIVATE_API_KEY_ABSENT_FROM_COMPILED_REACT"
+          STATUS="$(curl --max-time 4 --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:8000/api/v1/ops/overview)"
+          test "$STATUS" = "401"
+          echo "UNAUTHENTICATED_LOCAL_API_HTTP_401_CONFIRMED"
+          python - <<'PY'
+          import json
+          with open('/tmp/selfhost-evidence.json','w') as f:
+            json.dump({
+              "status":"PASS","environment":"GitHub Actions ephemeral Docker server, NOT persistent VPS",
+              "proven":["real React served","reverse proxy auth HTTP 401/200","actual FastAPI backed data",
+                        "server-side API credential","10 scenarios API","client build has no secret"],
+              "not_proven":["public HTTPS DNS or user-controlled VPS deployment","n8n credentials bootstrapped","live trading"]
+            },f,indent=2)
+          PY
+      - name: Archive non-secret gateway verification
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: selfhost-gateway-evidence
+          path: /tmp/selfhost-evidence.json
+          if-no-files-found: ignore

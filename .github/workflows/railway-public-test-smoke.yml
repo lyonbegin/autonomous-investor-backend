@@ -1,0 +1,55 @@
+name: Railway public test UI - no login required
+on:
+  push:
+    branches: [feature/secure-selfhost-deployment]
+    paths:
+      - "n8n/Caddyfile.railway"
+      - ".github/workflows/railway-public-test-smoke.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  external-get:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Verify public unauthenticated GET HTML and API, no credentials supplied
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE="https://investment-n8n-operations-ui-production.up.railway.app"
+          pass=0
+          for i in $(seq 1 20); do
+            status="$(curl -L -sS --max-time 10 -o /tmp/railway-public-index.html -w '%{http_code}' "$BASE/" || true)"
+            if [ "$status" = "200" ] && grep -q '<html' /tmp/railway-public-index.html; then pass=1; break; fi
+            echo "Public page attempt $i: HTTP $status"
+            sleep 4
+          done
+          if [ "$pass" -ne 1 ]; then
+            echo "FAILED: public unauthenticated GET / must return 200 HTML"
+            exit 1
+          fi
+          echo "PUBLIC_REACT_NO_LOGIN_HTTP_200_OK"
+
+          pass=0
+          for i in $(seq 1 12); do
+            status="$(curl -sS --max-time 15 -o /tmp/railway-public-api.json -w '%{http_code}' "$BASE/studio-api/api/v1/alpha/scenarios" || true)"
+            if [ "$status" = "200" ]; then pass=1; break; fi
+            echo "API attempt $i: HTTP $status"
+            sleep 4
+          done
+          test "$pass" -eq 1
+          python - <<'PY'
+          import json
+          obj=json.load(open('/tmp/railway-public-api.json'))
+          assert obj.get('count')==10, obj
+          print('PUBLIC_TEST_TEN_SCENARIOS_NO_LOGIN_HTTP_200_OK')
+          PY
+          status="$(curl -sS --max-time 15 -o /tmp/railway-public-ops.json -w '%{http_code}' "$BASE/studio-api/api/v1/ops/overview")"
+          test "$status" = 200
+          python - <<'PY'
+          import json
+          o=json.load(open('/tmp/railway-public-ops.json'))
+          assert o.get('broker_connected') is False
+          print('PUBLIC_OPS_READ_NO_LOGIN_HTTP_200_OK')
+          PY
