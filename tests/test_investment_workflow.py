@@ -290,3 +290,14 @@ def test_native_research_requires_published_workflow():
     result = post(f"/workflows/{wid}/runs", {"mode": "research"})
     assert result.status_code == 403
     assert "published" in result.text.lower()
+
+
+def test_delete_workflow_keeps_completed_run_history():
+    wid, run = create_and_run(definition())
+    deleted = client.delete(BASE + f"/workflows/{wid}", headers=AUTH)
+    assert deleted.status_code == 200, deleted.text
+    assert deleted.json()["historical_run_audit_preserved"] is True
+    assert client.get(BASE + f"/workflows/{wid}", headers=AUTH).status_code == 404
+    audit = client.get(BASE + f'/runs/{run["run_id"]}', headers=AUTH)
+    assert audit.status_code == 200
+    assert audit.json()["state"] == "completed"
