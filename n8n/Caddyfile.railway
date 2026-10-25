@@ -1,25 +1,37 @@
 :{$PORT:3000} {
-  encode gzip
-  @health path /health
-  respond @health "ok" 200
-  # Public test UI: no username/password login challenge.
-  @api path /studio-api/*
-  handle @api {
-    uri strip_prefix /studio-api
-    reverse_proxy {$INVESTMENT_BACKEND_UPSTREAM} {
-      header_up Authorization "Bearer {$ALPHA_NODE_API_KEY}"
-      header_up -Cookie
+    encode gzip
+
+    @health path /health
+    handle @health {
+        respond "ok" 200
     }
-  }
-  handle {
-    root * /srv
-    try_files {path} /index.html
-    file_server
-  }
-  header {
-    X-Content-Type-Options nosniff
-    X-Frame-Options DENY
-    Referrer-Policy no-referrer
-    -Server
-  }
+
+    # Auth is inside the sole non-health handler; SPA and every API method must pass it.
+    handle {
+        basic_auth {
+            {$INVESTMENT_ADMIN_USER} {$INVESTMENT_ADMIN_PASSWORD_HASH}
+        }
+
+        @api path /studio-api/*
+        handle @api {
+            uri strip_prefix /studio-api
+            reverse_proxy {$INVESTMENT_BACKEND_UPSTREAM} {
+                header_up Authorization "Bearer {$ALPHA_NODE_API_KEY}"
+                header_up -Cookie
+            }
+        }
+
+        handle {
+            root * /srv
+            try_files {path} /index.html
+            file_server
+        }
+    }
+
+    header {
+        X-Content-Type-Options nosniff
+        X-Frame-Options DENY
+        Referrer-Policy no-referrer
+        -Server
+    }
 }
