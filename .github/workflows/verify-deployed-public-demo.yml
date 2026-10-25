@@ -1,0 +1,82 @@
+name: Verify deployed public investment demo
+on:
+  push:
+    branches: [feature/public-demo-readonly-20261025]
+    paths:
+      - '.github/workflows/verify-deployed-public-demo.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  deployed-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Test public read-only API, security, and ten synthetic scenarios
+        shell: bash
+        env:
+          DEMO_BASE: https://investment-n8n-operations-ui-production.up.railway.app
+        run: |
+          python3 - <<'PY'
+          import json, os, time, urllib.request, urllib.error
+          base = os.environ['DEMO_BASE']
+          def call(method, path):
+              req=urllib.request.Request(base+path,method=method,headers={'Accept':'application/json','User-Agent':'Autonomous-Investor-Public-Demo-E2E/1.0'})
+              try:
+                  with urllib.request.urlopen(req,timeout=15) as r:
+                      raw=r.read(300000)
+                      return r.status,raw
+              except urllib.error.HTTPError as e:
+                  return e.code,e.read(3000)
+          ready=False
+          for attempt in range(45):
+              try:
+                  code,_=call('GET','/health')
+                  if code==200:
+                      ready=True
+                      break
+                  print('health status',code,'retry',attempt+1,flush=True)
+              except Exception as exc: print('health retry',attempt+1,type(exc).__name__,flush=True)
+              time.sleep(6)
+          assert ready,'Public demo not healthy'
+          status,html=call('GET','/')
+          assert status==200 and b'id="root"' in html,(status,html[:100])
+          print('PUBLIC_HTML',status)
+          protected=[
+              ('POST','/studio-api/api/v1/ops/assignments/allocate-one'),
+              ('POST','/studio-api/api/v1/ops/strategies/sync'),
+              ('POST','/studio-api/api/v1/alpha/scenarios/01-new-strategy/dispatch'),
+              ('POST','/studio-api/api/v1/alpha/graphs/run')]
+          for method,path in protected:
+              status,_=call(method,path)
+              assert status==403,(method,path,status)
+              print('BLOCKED',status,path)
+          for path in ['/studio-api/api/v1/ops/overview','/studio-api/api/v1/ops/strategies?limit=1','/studio-api/api/v1/ops/agents']:
+              status,data=call('GET',path)
+              assert status==200,(path,status,data[:150])
+              assert isinstance(json.loads(data),dict)
+              print('PUBLIC_READ',status,path)
+          status,data=call('GET','/studio-api/api/v1/alpha/scenarios')
+          assert status==200,(status,data[:200])
+          catalog=json.loads(data)
+          scenarios=catalog['scenarios']
+          assert len(scenarios)==10,len(scenarios)
+          print('SCENARIOS_CATALOG',len(scenarios))
+          for item in scenarios:
+              id=item['id']
+              path='/studio-api/api/v1/alpha/scenarios/'+id
+              status,data=call('POST',path+'/runs?interval_ms=0')
+              assert status in (200,202),(id,status,data[:200])
+              run_id=json.loads(data)['run_id']
+              final=None
+              for _ in range(35):
+                  status,data=call('GET','/studio-api/api/v1/alpha/scenarios/runs/'+run_id)
+                  assert status==200,(id,status,data[:200])
+                  final=json.loads(data)
+                  if final['status'] in ('completed','failed','interrupted'):break
+                  time.sleep(0.3)
+              assert final is not None and final['status']=='completed',(id,final and final['status'])
+              assert final['completed_steps']==final['total_steps'],(id,final['completed_steps'],final['total_steps'])
+              print('SCENARIO_PASS',id,final['completed_steps'],final['total_steps'])
+          print('ALL_PUBLIC_DEMO_TESTS_PASSED')
+          PY
