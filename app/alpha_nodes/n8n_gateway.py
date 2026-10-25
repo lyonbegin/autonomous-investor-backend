@@ -34,7 +34,7 @@ def dispatch(scenario_id: str, interval_ms: int = 160) -> dict:
     if not base:
         raise HTTPException(status_code=503, detail="n8n is not configured; set N8N_INTERNAL_WEBHOOK_BASE")
     parsed = parse.urlparse(base)
-    allowed_internal = parsed.hostname in {"n8n", "localhost", "127.0.0.1", "::1", "host.docker.internal"}
+    allowed_internal = parsed.hostname in {"n8n", "localhost", "127.0.0.1", "::1", "host.docker.internal", "investment-n8n-main.railway.internal"}
     if parsed.username or parsed.password or not parsed.netloc or (
         parsed.scheme != "https" and not (parsed.scheme == "http" and allowed_internal)
     ):
