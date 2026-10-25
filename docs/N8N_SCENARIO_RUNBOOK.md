@@ -27,7 +27,7 @@ docker compose -f n8n_scenarios/compose.yml --env-file n8n_scenarios/.env --prof
 docker compose -f n8n_scenarios/compose.yml --env-file n8n_scenarios/.env up -d n8n n8n-worker
 ~~~
 
-n8n Web UI에서 Investment QA 01~10 워크플로가 게시·활성화됐는지 확인합니다.
+n8n Web UI에서 Investment QA 01~10 워크플로가 게시·활성화됐는지 확인합니다. n8n 재기동 후 단순 /healthz 응답만으로는 부족할 수 있어, Webhook 등록이 완료돼야 첫 실행이 가능합니다.
 
 ## 2. 실행 화면
 
@@ -108,6 +108,10 @@ n8n 2.x는 보통 표현식에서 환경변수 접근을 차단합니다. 이 **
 
 n8n 기본 PostgreSQL/Redis는 n8n 작업 실행 큐에 사용합니다. 거래 원장, 이벤트 정렬, 에이전트 할당 잠금까지 제공되는 것은 아닙니다. 또한 시나리오의 자금·주문·계좌 값은 전부 합성 이벤트이며 실제 시장 가격이나 NautilusTrader 실주문이 아닙니다.
 
-n8n 워크플로 JSON을 생성하고 Python/React 테스트가 통과했다고 해서 self-host n8n 설치·실행이 검증됐다고 주장하지 않습니다. 실제 워크플로 증거는 SCENARIO_SMOKE_MODE=n8n 검사에서 run.events[].origin이 모두 n8n으로 확인되는 경우에만 성립합니다.
+**실제 GitHub Actions n8n Docker 종단간 검증 성공:** https://github.com/lyonbegin/autonomous-investor-backend/actions/runs/40155438343
+
+n8n 2.45.0 + PostgreSQL + Redis + n8n Queue Worker + Python API를 실제로 기동하고, 10개 워크플로를 import/publish했으며, webhook_entity가 10개 등록될 때까지 기다린 뒤 10개 모든 Webhook에 실제 POST했습니다. **총 89개 HTTP Request 노드 콜백, 10개 시나리오 모두 PASS**, 모든 이벤트 origin=n8n, synthetic live_orders_sent=0 검증. 이 검증은 실제 n8n 실행 검증이지만 네이티브 12개 투자 엔진과 실거래 검증이 아닙니다.
+
+주의: n8n의 /healthz가 200이어도 생산 Webhook 등록은 아직 끝나지 않을 수 있습니다. 자동화 배포 시에는 webhook_entity에 10개가 등록될 때까지 확인 후 검사하세요.
 
 여전히 미완료인 항목: F01~F10 상주 운영 서비스의 실제 이벤트 버스, 원본 Pine 범용 컴파일, 실데이터 12개 엔진 실행, 장시간 Worker 내구성, 실제 브로커 주문·체결·계좌 위험 및 감사 원장, 외부 사용자 대상 n8n 임베딩 라이선스 검토.
