@@ -62,13 +62,13 @@ def node_states(out):
     return {n["node_id"]: n["state"] for n in out["nodes"]}
 
 
-def test_twelve_engines_and_137_function_nodes_preserved():
+def test_twelve_engines_and_extended_function_nodes_preserved():
     response = client.get(BASE + "/node-types", headers=AUTH)
     assert response.status_code == 200
     payload = response.json()
     assert payload["engine_count"] == 12
-    assert payload["native_functions"] == 137
-    assert payload["count"] == 140
+    assert payload["native_functions"] == 138
+    assert payload["count"] == 141
     nautilus = client.get(BASE + "/node-types?engine=nautilus", headers=AUTH).json()
     assert nautilus["count"] >= 10
     assert any(x["operation_id"] == "nautilus.app.bridge.submit_order"

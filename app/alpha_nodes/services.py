@@ -78,6 +78,16 @@ def _request(service: str, path: str, *, query: dict[str, Any] | None = None,
 
 # TradingView Source — exact routes from tradingview-service branch
 
+def scripts_live(page: int = 1, sort: str = "recent_extended", script_type: str = "strategies") -> dict:
+    """Tell the existing TradingView collector to fetch the newest public scripts.
+
+    Uses the upstream /scripts/live read endpoint which both collects and stores
+    an actual page. It is not a local-generated strategy or a cached DB read.
+    """
+    return _request("tradingview", "/api/v1/tradingview/scripts/live",
+                    query={"page": page, "sort": sort, "script_type": script_type})
+
+
 def script_catalog(limit: int = 50, offset: int = 0, script_type: str = "all") -> dict:
     return _request("tradingview", "/api/v1/tradingview/scripts/catalog",
                     query={"limit": limit, "offset": offset, "script_type": script_type})

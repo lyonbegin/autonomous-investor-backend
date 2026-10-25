@@ -54,6 +54,7 @@ services:
     volumes:
       - n8n_state:/home/node/.n8n
       - ./workflows/scenarios:/srv/n8n-workflows:ro
+      - ./workflows/operations:/srv/n8n-operation-flows:ro
 
   worker:
     image: docker.n8n.io/n8nio/n8n:2.44.5

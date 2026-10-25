@@ -16,6 +16,7 @@ def main() -> None:
     p = argparse.ArgumentParser()
     p.add_argument("--source", default="n8n/workflows/scenarios")
     p.add_argument("--output", required=True)
+    p.add_argument("--expected",type=int,default=10)
     p.add_argument("--backend", default="http://host.docker.internal:8000")
     args = p.parse_args()
     token = os.environ.get("CI_SCENARIO_TOKEN", "")
@@ -24,8 +25,8 @@ def main() -> None:
     dest = Path(args.output).resolve()
     dest.mkdir(parents=True, exist_ok=True)
     files = sorted(Path(args.source).glob("*.json"))
-    if len(files) != 10:
-        raise SystemExit(f"expected 10 workflows, got {len(files)}")
+    if len(files) != args.expected:
+        raise SystemExit(f"expected {args.expected} workflows, got {len(files)}")
     for file in files:
         data = json.loads(file.read_text(encoding="utf-8"))
         if not data.get("id"):

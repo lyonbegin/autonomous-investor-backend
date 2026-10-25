@@ -1,6 +1,6 @@
 """Investment-specific, versioned and executable node workflow.
 
-Existing 137 callable module API endpoints remain the source of native execution.
+Existing 138 callable module API endpoints remain the source of native execution.
 This module adds real DAG semantics (parallelism, conditions, joins, typed input
 mappings, optional failures and approval barriers), never a replacement engine.
 
