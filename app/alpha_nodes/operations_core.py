@@ -234,12 +234,18 @@ def ingest(item: dict, source_detail: dict | None = None) -> dict:
             "source_present":bool(source)}
 
 
-def sync(limit: int = 30, offset: int = 0, max_sources: int = 5) -> dict:
-    """Real TradingView-service read; fails closed if upstream catalog is unavailable.
+def sync(limit: int = 30, offset: int = 0, max_sources: int = 5, refresh_live: bool = False) -> dict:
+    """Optionally collect the newest TradingView strategies, then import catalog.
 
-    No synthetic fallback, no automatic eligibility, no source bypass.
+    No synthetic fallback, no automatic eligibility, no source bypass. The
+    refreshing upstream endpoint writes its own cache before the catalog read.
     """
+    live=None
     try:
+        if refresh_live:
+            live=services.scripts_live(page=1,sort="recent_extended",script_type="strategies")
+            if not isinstance(live,dict) or not isinstance(live.get("items"),list):
+                raise ValueError("live TradingView collector did not return items")
         upstream=services.script_catalog(limit=limit,offset=offset,script_type="strategies")
     except (ValueError, RuntimeError, ConnectionError, TimeoutError, OSError) as exc:
         with db(write=True) as con:
@@ -277,7 +283,10 @@ def sync(limit: int = 30, offset: int = 0, max_sources: int = 5) -> dict:
                     (run_id,status,len(items[:limit]),added,len(errors),_utc(),_utc()))
     return {"sync_id":run_id,"state":status,"scanned":len(items[:limit]),"added":added,
             "source_errors":len(errors),"errors":errors[:30],"items":results,
-            "catalog_total":upstream.get("total_count"),"mode":"REAL_UPSTREAM_METADATA"}
+            "catalog_total":upstream.get("total_count"),
+            "live_refreshed":refresh_live,
+            "live_collected_count":len(live["items"]) if live is not None else None,
+            "mode":"REAL_UPSTREAM_LIVE_REFRESH" if refresh_live else "REAL_UPSTREAM_METADATA"}
 
 
 def approve(version_id: str, reviewer: str, evidence: dict) -> dict:
