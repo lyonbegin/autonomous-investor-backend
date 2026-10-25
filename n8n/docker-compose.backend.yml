@@ -6,6 +6,9 @@ services:
       context: ..
       dockerfile: n8n/Dockerfile.backend
     restart: unless-stopped
+    # Local React admin proxy only; never expose without an authenticated gateway.
+    ports:
+      - "127.0.0.1:8000:8000"
     environment:
       ALPHA_NODE_API_KEY: ${ALPHA_NODE_API_KEY:?Set ALPHA_NODE_API_KEY}
       SCENARIO_DB_PATH: /data/scenario_runs.sqlite3
