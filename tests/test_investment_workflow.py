@@ -50,6 +50,9 @@ def create_and_run(definition, mode="dry_run"):
     created = post("/workflows", definition)
     assert created.status_code == 201, created.text
     ident = created.json()["workflow_id"]
+    if mode == "research":
+        publish_response = post(f"/workflows/{ident}/versions/1/publish")
+        assert publish_response.status_code == 200, publish_response.text
     out = post(f"/workflows/{ident}/runs", {"mode": mode})
     assert out.status_code == 200, out.text
     return ident, out.json()
@@ -232,6 +235,7 @@ def test_actual_Nautilus_trade_node_is_restricted_even_if_human_approves():
     assert assessment.status_code == 200
     assert assessment.json()["warnings"][0]["state"] == "restricted"
     created = post("/workflows", g).json()
+    post(f'/workflows/{created["workflow_id"]}/versions/1/publish')
     research = post(f'/workflows/{created["workflow_id"]}/runs', {"mode": "research"})
     assert research.status_code == 403
     assert "submit_market_intent" in str(research.json())
@@ -278,3 +282,11 @@ def test_execution_metadata_and_authentication():
     path = BASE + f'/runs/{r["run_id"]}/events'
     response = client.get(path, headers=AUTH)
     assert response.status_code == 200 and response.json()["count"] > 0
+
+
+
+def test_native_research_requires_published_workflow():
+    wid = post("/workflows", definition()).json()["workflow_id"]
+    result = post(f"/workflows/{wid}/runs", {"mode": "research"})
+    assert result.status_code == 403
+    assert "published" in result.text.lower()
