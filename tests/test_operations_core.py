@@ -21,6 +21,7 @@ HEAD = {"Authorization": "Bearer ops-internal-integration-key"}
 def isolate(monkeypatch, tmp_path):
     monkeypatch.setenv("ALPHA_NODE_API_KEY", "ops-internal-integration-key")
     monkeypatch.setenv("STRATEGY_OPERATIONS_DB_PATH", str(tmp_path / "operations.db"))
+    monkeypatch.setenv("ALPHA_TRADINGVIEW_BASE", "http://127.0.0.1:8001")
 
 
 def seed(version="1", title="Public sample TradingView strategy"):
