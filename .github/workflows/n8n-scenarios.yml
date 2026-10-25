@@ -123,3 +123,50 @@ jobs:
           assert payload['scenarios'][0]['mode']=='SYNTHETIC_SIMULATION'
           print('DOCKERIZED_PYTHON_BACKEND_SCENARIOS',payload['count'])
           PY
+
+  chromium-click-through:
+    runs-on: ubuntu-latest
+    timeout-minutes: 17
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.13"}
+      - uses: actions/setup-node@v4
+        with: {node-version: "22"}
+      - name: Install backend and React test dependencies
+        run: |
+          python -m pip install -e ".[dev]" numpy pandas
+          cd investment_studio && npm install --no-audit --no-fund
+      - name: Install Chromium browser
+        working-directory: investment_studio
+        run: npx playwright install --with-deps chromium
+      - name: Click and inspect all 10 scenarios in actual Chromium
+        run: |
+          export ALPHA_NODE_API_KEY=ci-playwright-browser-token
+          export SCENARIO_DB_PATH=/tmp/ci-browser-scenarios.sqlite3
+          python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 > /tmp/browser-backend.log 2>&1 &
+          BACKEND_PID=$!
+          trap 'kill "$BACKEND_PID" 2>/dev/null || true' EXIT
+          cd investment_studio
+          INVESTMENT_STUDIO_BACKEND_URL=http://127.0.0.1:8000 \
+          INVESTMENT_STUDIO_API_TOKEN="$ALPHA_NODE_API_KEY" \
+          npm run dev -- --host 127.0.0.1 --port 5177 > /tmp/browser-vite.log 2>&1 &
+          VITE_PID=$!
+          trap 'kill "$VITE_PID" "$BACKEND_PID" 2>/dev/null || true' EXIT
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:5177/ >/dev/null 2>&1 &&
+               curl -fsS -H "Authorization: Bearer $ALPHA_NODE_API_KEY" \
+                 http://127.0.0.1:8000/api/v1/alpha/scenarios >/dev/null 2>&1; then break; fi
+            sleep 2
+          done
+          npx playwright test --project=chromium
+      - name: Save actual UI progress screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: chromium-ten-scenario-screenshots
+          path: |
+            investment_studio/test-results/
+            /tmp/browser-backend.log
+            /tmp/browser-vite.log
+          if-no-files-found: ignore
