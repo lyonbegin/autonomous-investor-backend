@@ -83,7 +83,8 @@ test "$WEBHOOKS" -ge 10
 
 python n8n/scripts/verify_real_worker.py
 python n8n/scripts/verify_operational_flows.py
-OPERATIONS_COUNT="$(docker compose -f "$COMPOSE" exec -T postgres psql -U n8n -d n8n -Atc   'SELECT count(*) FROM execution_entity WHERE status=\'success\' AND "workflowId" IN (\'aiOperationF01\',\'aiOperationF03\',\'aiOperationF05\');' | tr -d '\r')"
+OPERATIONS_COUNT="$(docker compose -f "$COMPOSE" exec -T postgres psql -U n8n -d n8n -Atc \
+  "SELECT count(*) FROM execution_entity WHERE status='success' AND \"workflowId\" IN ('aiOperationF01','aiOperationF03','aiOperationF05');" | tr -d '\r')"
 echo "N8N_POSTGRES_SUCCESSFUL_OPERATIONS=$OPERATIONS_COUNT"
 test "$OPERATIONS_COUNT" -ge 3
 
