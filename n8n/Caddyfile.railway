@@ -2,10 +2,7 @@
   encode gzip
   @health path /health
   respond @health "ok" 200
-  @protected not path /health
-  basic_auth @protected {
-    {$INVESTMENT_ADMIN_USER} {$INVESTMENT_ADMIN_PASSWORD_HASH}
-  }
+  # Public test UI: no username/password login challenge.
   @api path /studio-api/*
   handle @api {
     uri strip_prefix /studio-api
