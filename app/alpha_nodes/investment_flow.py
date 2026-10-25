@@ -599,6 +599,8 @@ def _execute(run_id: str) -> None:
 def start_run(workflow_id: str, request: ExecuteFlow) -> dict:
     wf = get_workflow(workflow_id, request.version)
     defn = FlowDefinition.model_validate(wf["definition"])
+    if request.mode == "research" and wf["published_version"] != wf["version"]:
+        raise HTTPException(status_code=403, detail="research execution requires a published immutable workflow version")
     plan = validate(defn)
     if request.mode == "research" and plan["warnings"]:
         raise HTTPException(status_code=403, detail={"execution_unavailable": plan["warnings"]})
