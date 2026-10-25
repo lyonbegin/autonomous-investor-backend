@@ -1,0 +1,5 @@
+# Explicit ENTRYPOINT is required: Railway's startCommand passed to the upstream
+# n8n image does not override the bundled entrypoint reliably.
+FROM docker.n8n.io/n8nio/n8n:2.44.5
+USER node
+ENTRYPOINT ["n8n", "worker", "--concurrency=5"]
