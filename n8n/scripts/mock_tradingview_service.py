@@ -13,7 +13,12 @@ from urllib.parse import urlsplit
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         path=urlsplit(self.path).path
-        if path=="/api/v1/tradingview/scripts/catalog":
+        if path=="/api/v1/tradingview/scripts/live":
+            payload={"source":"CI ONLY HTTP TradingView collector fixture",
+                "script_type":"strategies","sort":"recent_extended","page":1,
+                "count":1,"items":[{"script_id_part":"CI-REAL-HTTP-PINE-1","name":"CI Public Pine Strategy",
+                     "author":"ci-fixture","script_type":"strategy","script_access":"open","version":"1"}]}
+        elif path=="/api/v1/tradingview/scripts/catalog":
             payload={
                 "count":2,"total_count":2,"has_more":False,
                 "script_type":"strategies",
