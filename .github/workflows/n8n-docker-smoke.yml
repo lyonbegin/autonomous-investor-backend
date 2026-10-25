@@ -1,0 +1,100 @@
+name: n8n Docker Webhook End-to-End Smoke
+
+on:
+  push:
+    branches: [feature/n8n-scenario-control-plane]
+    paths:
+      - "n8n_scenarios/**"
+      - "scripts/smoke_n8n_scenarios.py"
+      - ".github/workflows/n8n-docker-smoke.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  n8n-docker-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Generate internal test secrets and ten workflows
+        run: |
+          python n8n_scenarios/build_workflows.py
+          python - <<'PY'
+          import secrets
+          from pathlib import Path
+          fields = ["POSTGRES_PASSWORD", "N8N_ENCRYPTION_KEY",
+                    "ALPHA_NODE_API_KEY", "INVESTMENT_SCENARIO_CALLBACK_KEY"]
+          Path("n8n_scenarios/.env").write_text(
+              "".join(f"{key}={secrets.token_urlsafe(48)}\n" for key in fields)
+              + "N8N_VERSION=2.45.0\n")
+          PY
+      - name: Validate Docker Compose
+        run: docker compose -f n8n_scenarios/compose.yml --env-file n8n_scenarios/.env config --quiet
+      - name: Launch local API, n8n queue mode, Redis, Postgres
+        run: |
+          docker compose -f n8n_scenarios/compose.yml --env-file n8n_scenarios/.env up -d --build postgres redis api n8n n8n-worker
+          for i in $(seq 1 80); do
+            if curl -fsS http://127.0.0.1:8000/health >/dev/null &&
+               curl -fsS http://127.0.0.1:5678/healthz >/dev/null; then
+              echo "Local n8n and API are healthy"
+              break
+            fi
+            if [ "$i" -eq 80 ]; then exit 1; fi
+            sleep 3
+          done
+      - name: Import and publish 10 n8n production webhook workflows
+        run: |
+          docker compose -f n8n_scenarios/compose.yml --env-file n8n_scenarios/.env stop n8n n8n-worker
+          docker compose -f n8n_scenarios/compose.yml --env-file n8n_scenarios/.env --profile bootstrap run --rm n8n-import
+          docker compose -f n8n_scenarios/compose.yml --env-file n8n_scenarios/.env up -d n8n n8n-worker
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:5678/healthz >/dev/null; then
+              echo "Published n8n webhooks are responding"
+              break
+            fi
+            if [ "$i" -eq 60 ]; then exit 1; fi
+            sleep 3
+          done
+      - name: Wait for actual webhook registration after n8n startup
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 90); do
+            registered="$(docker compose -f n8n_scenarios/compose.yml --env-file n8n_scenarios/.env exec -T postgres \
+              psql -U invest_n8n -d invest_n8n -Atc 'SELECT count(*) FROM webhook_entity;' | tr -d '\r')"
+            echo "n8n published Webhook registrations: $registered/10"
+            if [ "$registered" = "10" ]; then break; fi
+            if [ "$attempt" -eq 90 ]; then
+              echo "n8n published but webhooks were not activated."
+              exit 1
+            fi
+            sleep 2
+          done
+      - name: Verify published workflow and production webhook database records
+        run: |
+          docker compose -f n8n_scenarios/compose.yml --env-file n8n_scenarios/.env exec -T postgres \
+            psql -U invest_n8n -d invest_n8n -c 'SELECT id, active, "activeVersionId" FROM workflow_entity ORDER BY id LIMIT 12;'
+          docker compose -f n8n_scenarios/compose.yml --env-file n8n_scenarios/.env exec -T postgres \
+            psql -U invest_n8n -d invest_n8n -c 'SELECT * FROM webhook_entity LIMIT 3;'
+          echo "Webhook HTTP status (without user data):"
+          curl -sS -o /dev/null -w 'HTTP %{http_code}\n' -X POST \
+            -H 'Content-Type: application/json' -d '{"run_id":"health-only-invalid-test"}' \
+            http://127.0.0.1:5678/webhook/ai-investment-scenario-01 || true
+      - name: Exercise every n8n node callback and synthetic invariant
+        env:
+          SCENARIO_SMOKE_MODE: n8n
+          SCENARIO_SMOKE_TIMEOUT: "120"
+        run: |
+          export ALPHA_NODE_API_KEY="$(grep '^ALPHA_NODE_API_KEY=' n8n_scenarios/.env | cut -d= -f2-)"
+          python scripts/smoke_n8n_scenarios.py
+      - name: Attach n8n and worker error logs on failure
+        if: failure()
+        run: |
+          docker compose -f n8n_scenarios/compose.yml --env-file n8n_scenarios/.env logs --tail=120 n8n n8n-worker api || true
+      - name: Shutdown isolated test stack
+        if: always()
+        run: docker compose -f n8n_scenarios/compose.yml --env-file n8n_scenarios/.env down -v --remove-orphans || true
