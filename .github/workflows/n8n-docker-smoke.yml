@@ -60,6 +60,20 @@ jobs:
             if [ "$i" -eq 60 ]; then exit 1; fi
             sleep 3
           done
+      - name: Wait for actual webhook registration after n8n startup
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 90); do
+            registered="$(docker compose -f n8n_scenarios/compose.yml --env-file n8n_scenarios/.env exec -T postgres \
+              psql -U invest_n8n -d invest_n8n -Atc 'SELECT count(*) FROM webhook_entity;' | tr -d '\r')"
+            echo "n8n published Webhook registrations: $registered/10"
+            if [ "$registered" = "10" ]; then break; fi
+            if [ "$attempt" -eq 90 ]; then
+              echo "n8n published but webhooks were not activated."
+              exit 1
+            fi
+            sleep 2
+          done
       - name: Verify published workflow and production webhook database records
         run: |
           docker compose -f n8n_scenarios/compose.yml --env-file n8n_scenarios/.env exec -T postgres \
