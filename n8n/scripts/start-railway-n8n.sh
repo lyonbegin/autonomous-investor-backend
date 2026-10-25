@@ -15,4 +15,7 @@ else
   for flow in aiOperationF01 aiOperationF03 aiOperationF05; do n8n publish:workflow "--id=$flow"; done
   echo "n8n: 13 workflows imported/published with shared encrypted HTTP Header Auth."
 fi
+if [ "${N8N_VERIFY_ON_STARTUP:-false}" = "true" ]; then
+  node /home/node/verify-railway-n8n.mjs &
+fi
 exec n8n start
