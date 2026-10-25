@@ -74,7 +74,7 @@ def test_twelve_engines_and_137_function_nodes_preserved():
 
 def test_parallel_analysts_join_with_real_data_bindings():
     _, result = create_and_run(definition())
-    assert result["state"] == "completed", result
+    assert result["state"] == "completed", json.dumps(result, ensure_ascii=False)
     assert node_states(result) == {"a": "success", "b": "success", "c": "success"}
     join = next(n for n in result["nodes"] if n["node_id"] == "c")
     assert join["inputs"] == {"first": 10, "second": 20}
