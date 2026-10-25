@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres:16-alpine
+    image: postgres:17-alpine
     restart: unless-stopped
     environment:
       POSTGRES_USER: n8n
@@ -26,6 +26,9 @@ services:
     depends_on:
       postgres: {condition: service_healthy}
       redis: {condition: service_started}
+    # Internal-only web access. Publishing an internet-facing webhook needs a gateway.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - "127.0.0.1:5678:5678"
     environment: &n8n_env
@@ -35,6 +38,7 @@ services:
       DB_POSTGRESDB_USER: n8n
       DB_POSTGRESDB_PASSWORD: ${N8N_DB_PASSWORD:?Set N8N_DB_PASSWORD}
       EXECUTIONS_MODE: queue
+      OFFLOAD_MANUAL_EXECUTIONS_TO_WORKERS: "true"
       QUEUE_BULL_REDIS_HOST: redis
       QUEUE_BULL_REDIS_PASSWORD: ${N8N_REDIS_PASSWORD:?Set N8N_REDIS_PASSWORD}
       N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY:?Set N8N_ENCRYPTION_KEY}
@@ -49,11 +53,14 @@ services:
       TZ: Asia/Seoul
     volumes:
       - n8n_state:/home/node/.n8n
+      - ./workflows/scenarios:/srv/n8n-workflows:ro
 
   worker:
     image: docker.n8n.io/n8nio/n8n:2.44.5
     restart: unless-stopped
-    command: worker --concurrency=3
+    command: worker --concurrency=5
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       postgres: {condition: service_healthy}
       redis: {condition: service_started}

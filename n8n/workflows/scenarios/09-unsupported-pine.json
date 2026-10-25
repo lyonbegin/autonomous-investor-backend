@@ -2,6 +2,24 @@
   "name": "AI-09 | 지원하지 않는 Pine 최신 전략 격리",
   "nodes": [
     {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ai-scenario-09-unsupported-pine",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-9",
+      "name": "시나리오 Webhook 접수",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "webhookId": "ai-scenario-09-unsupported-pine",
+      "position": [
+        220,
+        90
+      ],
+      "notes": "내부 전용 webhook. n8n 공개 인그레스 금지; API 내부 인증 필수."
+    },
+    {
       "parameters": {},
       "id": "manual-09",
       "name": "수동 실행 - 지원하지 않는 Pine 최신 전략 격리",
@@ -73,6 +91,23 @@
         320
       ],
       "notes": "Actual progression can be monitored live through React UI or GET /runs/{id} while n8n awaits completion."
+    },
+    {
+      "parameters": {
+        "respondWith": "firstIncomingItem",
+        "options": {
+          "responseCode": 202
+        }
+      },
+      "id": "respond-9",
+      "name": "run_id 즉시 응답",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        750,
+        90
+      ],
+      "notes": "Python API가 반환한 run_id를 화면에 즉시 전달; 백그라운드 시뮬레이션 계속 실행."
     }
   ],
   "connections": {
@@ -91,7 +126,7 @@
       "main": [
         [
           {
-            "node": "시뮬레이션 실행 대기",
+            "node": "run_id 즉시 응답",
             "type": "main",
             "index": 0
           }
@@ -103,6 +138,28 @@
         [
           {
             "node": "상태·노드 실행 결과 조회",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "시나리오 Webhook 접수": {
+      "main": [
+        [
+          {
+            "node": "내부 시나리오 API 시작",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "run_id 즉시 응답": {
+      "main": [
+        [
+          {
+            "node": "시뮬레이션 실행 대기",
             "type": "main",
             "index": 0
           }
@@ -120,5 +177,6 @@
   "meta": {
     "templateCredsSetupCompleted": false
   },
-  "tags": []
+  "tags": [],
+  "id": "autonomousScenario09"
 }
