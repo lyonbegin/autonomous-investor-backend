@@ -6,7 +6,7 @@ const token=process.env.ALPHA_NODE_API_KEY;
 const upstream=(process.env.INVESTMENT_N8N_BACKEND_API||'http://investment-n8n-ops-api.railway.internal:8000').replace(/\/$/,'');
 if (!token || token.length < 20) throw Error('ALPHA_NODE_API_KEY is required (20+ chars)');
 if (!upstream.startsWith('http://investment-n8n-ops-api.railway.internal:') && !upstream.startsWith('http://invest-backend:')) throw Error('Backend must be Railway-private or Docker-private');
-const credId='autonomous-investor-backend-header-2026';
+const credId='inv-hdr-2026';
 const credName='Autonomous Investor Internal API';
 const target='/tmp/ai-n8n-railway-workflows';
 fs.mkdirSync(target,{recursive:true});
