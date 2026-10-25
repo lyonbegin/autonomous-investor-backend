@@ -46,7 +46,7 @@ def workflow(scenario_id: int) -> dict:
     for i, step in enumerate(spec["steps"]):
         name = f'{i + 1:02d} {step["flow"]} · {step["label"]}'
         # n8n uses expression syntax for node parameters; workflow JSON is not code execution.
-        url = (f"{API_BASE}/runs/{RUN_ID_EXPRESSION}/steps/{step['id']}")
+        url = ("=" + f"{API_BASE}/runs/{RUN_ID_EXPRESSION}/steps/{step['id']}")
         nodes.append({
             "id": node_id(scenario_id, step["id"]),
             "name": name,
