@@ -4,6 +4,7 @@ COPY --chown=node:node n8n/workflows/scenarios/ /home/node/import/scenarios/
 COPY --chown=node:node n8n/workflows/operations/ /home/node/import/operations/
 COPY --chown=node:node n8n/scripts/prepare-railway-import.mjs /home/node/prepare-railway-import.mjs
 COPY --chown=node:node n8n/scripts/start-railway-n8n.sh /home/node/start-railway-n8n.sh
+COPY --chown=node:node n8n/scripts/verify-railway-n8n.mjs /home/node/verify-railway-n8n.mjs
 RUN chmod +x /home/node/start-railway-n8n.sh
 USER node
 ENTRYPOINT ["/bin/sh","/home/node/start-railway-n8n.sh"]
