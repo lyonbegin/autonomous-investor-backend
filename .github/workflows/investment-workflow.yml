@@ -1,0 +1,52 @@
+name: Investment Twelve Engine Workflow
+on:
+  push:
+    branches:
+      - feature/investment-12-engine-workflow
+    paths:
+      - "app/**"
+      - "tests/**"
+      - ".github/workflows/investment-workflow.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  investment-dag:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install Python backend tests
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]" numpy pandas
+      - name: Test original function API and investment DAG
+        run: |
+          python -m pytest -q \
+            tests/test_investment_workflow.py \
+            tests/test_alpha_engine_api.py \
+            tests/test_alpha_graph.py \
+            tests/test_alpha_services.py \
+            tests/test_alpha_palette.py \
+            tests/test_orchestration.py tests/test_api.py
+      - name: Verify native function and workflow route counts
+        run: |
+          python - <<'PY'
+          from app.main import app
+          from app.alpha_nodes.inventory import ENGINES, OPERATIONS
+          from app.alpha_nodes.investment_flow import palette
+          paths = app.openapi()["paths"]
+          assert len(ENGINES) == 12
+          assert len(OPERATIONS) == 137
+          for operation in OPERATIONS:
+              assert operation["endpoint"] in paths
+          assert "/api/v1/alpha/investment/node-types" in paths
+          assert "/api/v1/alpha/investment/workflows/{workflow_id}/runs" in paths
+          assert "/api/v1/alpha/investment/runs/{run_id}/nodes/{node_id}/approve" in paths
+          print("ENGINE_COUNT",len(ENGINES))
+          print("FUNCTION_ENDPOINTS",len(OPERATIONS))
+          print("PALETTE_NODES",len(palette()["nodes"]))
+          PY
