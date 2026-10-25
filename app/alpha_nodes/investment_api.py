@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 
 from app.alpha_nodes.api import require_auth
 from app.alpha_nodes.investment_flow import (
-    ExecuteFlow, FlowDefinition, approve, create_workflow, events, get_run,
+    ExecuteFlow, FlowDefinition, approve, create_workflow, delete_workflow, events, get_run,
     get_workflow, list_workflows, palette, publish, start_run, update_workflow,
     validate,
 )
@@ -59,6 +59,11 @@ def workflows() -> dict:
 @router.get("/workflows/{workflow_id}")
 def workflow(workflow_id: str, version: int | None = Query(None, ge=1)) -> dict:
     return get_workflow(workflow_id, version)
+
+
+@router.delete("/workflows/{workflow_id}")
+def remove(workflow_id: str) -> dict:
+    return delete_workflow(workflow_id)
 
 
 @router.put("/workflows/{workflow_id}")
