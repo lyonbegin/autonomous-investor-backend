@@ -1,0 +1,61 @@
+name: n8n Ten Scenario Console
+on:
+  push:
+    branches: [feature/n8n-ten-scenario-console]
+    paths:
+      - "app/**"
+      - "tests/**"
+      - "investment_studio/**"
+      - "n8n/**"
+      - ".github/workflows/n8n-scenarios.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  python-api:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.13"}
+      - run: python -m pip install -e ".[dev]" numpy pandas
+      - name: Ten scenario API executions and old native DAG regression
+        run: |
+          python -m pytest -q tests/test_n8n_scenarios.py tests/test_investment_workflow.py tests/test_alpha_engine_api.py tests/test_alpha_graph.py tests/test_alpha_services.py tests/test_alpha_palette.py tests/test_orchestration.py tests/test_api.py
+      - name: Verify n8n workflows and operation safety
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from app.main import app
+          from app.alpha_nodes.scenario_simulator import SCENARIOS
+          files=list(Path('n8n/workflows/scenarios').glob('*.json'))
+          assert len(files)==len(SCENARIOS)==10
+          for path in files:
+              doc=json.loads(path.read_text())
+              assert path.stem in SCENARIOS
+              assert len(doc['nodes'])==4
+              assert doc['nodes'][0]['type']=='n8n-nodes-base.manualTrigger'
+              assert doc['nodes'][1]['type']=='n8n-nodes-base.httpRequest'
+              assert SCENARIOS[path.stem]['title']
+              assert doc['nodes'][1]['parameters']['method']=='POST'
+              assert doc['nodes'][1]['parameters']['authentication']=='genericCredentialType'
+              assert doc['nodes'][3]['type']=='n8n-nodes-base.httpRequest'
+          paths=app.openapi()['paths']
+          assert '/api/v1/alpha/scenarios/{scenario_id}/runs' in paths
+          assert '/api/v1/alpha/scenarios/runs/{run_id}' in paths
+          print('TEN_N8N_WORKFLOWS_VALIDATED',len(files))
+          PY
+  react-console:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: "22"}
+      - working-directory: investment_studio
+        run: npm install --no-audit --no-fund
+      - name: TypeScript and Vite production bundle
+        working-directory: investment_studio
+        run: npm run build
