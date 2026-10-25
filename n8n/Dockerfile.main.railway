@@ -1,4 +1,4 @@
-FROM docker.n8n.io/n8nio/n8n:2.44.5
+FROM n8nio/n8n:2.44.5
 USER root
 COPY --chown=node:node n8n/workflows/scenarios/ /home/node/import/scenarios/
 COPY --chown=node:node n8n/workflows/operations/ /home/node/import/operations/
