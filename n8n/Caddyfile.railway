@@ -1,6 +1,9 @@
 :{$PORT:3000} {
   encode gzip
-  basic_auth {
+  @health path /health
+  respond @health "ok" 200
+  @protected not path /health
+  basic_auth @protected {
     {$INVESTMENT_ADMIN_USER} {$INVESTMENT_ADMIN_PASSWORD_HASH}
   }
   @api path /studio-api/*
