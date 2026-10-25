@@ -70,6 +70,10 @@ def db(*, write: bool = False) -> Iterator[sqlite3.Connection]:
             created_at TEXT NOT NULL, source_available INTEGER NOT NULL,
             FOREIGN KEY(strategy_id) REFERENCES strategy_registry(strategy_id));
         CREATE INDEX IF NOT EXISTS idx_version_strategy ON strategy_versions(strategy_id);
+        CREATE TABLE IF NOT EXISTS strategy_source_artifacts(
+            version_id TEXT PRIMARY KEY, source_text TEXT NOT NULL,
+            sha256 TEXT NOT NULL,
+            FOREIGN KEY(version_id) REFERENCES strategy_versions(version_id));
         CREATE TABLE IF NOT EXISTS agents(
             agent_id TEXT PRIMARY KEY, status TEXT NOT NULL,
             execution_mode TEXT NOT NULL, market_scope TEXT NOT NULL,
@@ -214,6 +218,9 @@ def ingest(item: dict, source_detail: dict | None = None) -> dict:
                VALUES(?,?,?,?,?,?,?,?,?)""",
                (version_id,sid,upstream_version,source_sha,metadata_hash,access,
                 eligible_status,now,int(source is not None)))
+            if source is not None:
+                con.execute("INSERT INTO strategy_source_artifacts(version_id,source_text,sha256) VALUES(?,?,?)",
+                            (version_id,source,source_sha))
             con.execute("UPDATE strategy_registry SET latest_version_id=? WHERE strategy_id=?",
                         (version_id,sid))
             _emit(con,"StrategyVersionCreated","F01",{
