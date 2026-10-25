@@ -3,6 +3,25 @@
   "name": "F03 유휴 PAPER 에이전트 원자적 할당",
   "nodes": [
     {
+      "id": "hook-f03",
+      "name": "내부 검증 Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        210,
+        55
+      ],
+      "webhookId": "ai-ops-f03",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ai-ops-f03",
+        "responseMode": "lastNode",
+        "responseData": "firstEntryJson",
+        "options": {}
+      },
+      "notes": "내부 CI 또는 관리 도구 전용 Webhook. 외부 인터넷 노출 금지."
+    },
+    {
       "parameters": {
         "rule": {
           "interval": [
@@ -109,6 +128,17 @@
         [
           {
             "node": "상태와 결과 조회",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "내부 검증 Webhook": {
+      "main": [
+        [
+          {
+            "node": "운영 서비스 실행",
             "type": "main",
             "index": 0
           }
