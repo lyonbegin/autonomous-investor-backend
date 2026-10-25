@@ -9,8 +9,8 @@ test('F01 실제 HTTP 기반 전략 조회 → 검토 승인 → F03 PAPER 배�
   await page.locator('.ops-task').nth(0).getByRole('button',{name:'F01 실행'}).click();
   await expect(page.locator('.ops-table-wrap tbody b').getByText('CI Public Pine Strategy')).toBeVisible({timeout:15000});
   await expect(page.getByText('CI protected Pine')).toBeVisible();
-  await expect(page.getByText('PENDING_REVIEW')).toBeVisible();
-  await expect(page.getByText('INELIGIBLE')).toBeVisible();
+  await expect(page.locator('.ops-status.PENDING_REVIEW').first()).toBeVisible();
+  await expect(page.locator('.ops-status.INELIGIBLE').first()).toBeVisible();
 
   await page.getByLabel('승인할 전략 버전').selectOption({index:1});
   await page.getByLabel('검토자').fill('ci-browser-reviewer');
@@ -19,11 +19,11 @@ test('F01 실제 HTTP 기반 전략 조회 → 검토 승인 → F03 PAPER 배�
   await page.getByLabel('Pine 변환·동등성 검증 완료').check();
   await page.getByLabel('독립 백테스트 검증 완료').check();
   await page.getByRole('button',{name:'증거와 함께 승인 기록'}).click();
-  await expect(page.getByText('APPROVED')).toBeVisible({timeout:12000});
+  await expect(page.locator('.ops-status.APPROVED').first()).toBeVisible({timeout:12000});
 
   await page.getByLabel('신규 PAPER 에이전트 ID').fill('ci-chromium-agent');
   await page.getByRole('button',{name:'유휴 에이전트 등록'}).click();
-  await expect(page.getByText('ci-chromium-agent')).toBeVisible();
+  await expect(page.locator('.ops-table-wrap tbody b').getByText('ci-chromium-agent')).toBeVisible();
 
   await page.locator('.ops-task').nth(1).getByRole('button',{name:'F03 실행'}).click();
   await expect(page.locator('.ops-table-wrap')).toContainText('ACTIVE',{timeout:12000});
@@ -44,7 +44,7 @@ test('F01 실제 HTTP 기반 전략 조회 → 검토 승인 → F03 PAPER 배�
   expect(audit.ok()).toBeTruthy();
   const finding=await audit.json();
   expect(finding.assignment_state).toBe('HALTED');
-  await expect(page.getByText('unapproved_order').first()).toBeVisible({timeout:12000});
+  await expect(page.locator('.ops-table-wrap tbody b').getByText('unapproved_order')).toBeVisible({timeout:12000});
   await expect(page.locator('.ops-table-wrap')).toContainText('HALTED');
 
   await page.screenshot({path:'test-results/f01-f03-f05-real-db-dashboard.png',fullPage:true});
