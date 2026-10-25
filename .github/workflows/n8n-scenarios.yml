@@ -100,3 +100,26 @@ jobs:
             /tmp/n8n-e2e-evidence.json
             /tmp/n8n-ci-backend.log
           if-no-files-found: ignore
+
+  python-backend-image-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build non-root self-hosted backend image
+        run: docker build -f n8n/Dockerfile.backend -t investment-sim-backend:ci .
+      - name: Run and query authenticated Python API in real container
+        run: |
+          docker run -d --name investment-smoke             -p 127.0.0.1:8013:8000             -e ALPHA_NODE_API_KEY=ci-backend-smoke-key             investment-sim-backend:ci
+          trap 'docker logs investment-smoke; docker rm -f investment-smoke || true' EXIT
+          for i in $(seq 1 50); do
+            if curl -fsS -H "Authorization: Bearer ci-backend-smoke-key"               http://127.0.0.1:8013/api/v1/alpha/scenarios > /tmp/backend-smoke.json; then break; fi
+            sleep 2
+          done
+          python - <<'PY'
+          import json
+          payload=json.load(open('/tmp/backend-smoke.json'))
+          assert payload['count']==10
+          assert payload['scenarios'][0]['mode']=='SYNTHETIC_SIMULATION'
+          print('DOCKERIZED_PYTHON_BACKEND_SCENARIOS',payload['count'])
+          PY
