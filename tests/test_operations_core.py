@@ -239,3 +239,45 @@ def test_api_all_requires_bearer_and_never_exposes_order_submission():
     assert BASE+"/assignments/allocate-one" in openapi
     assert BASE+"/audit/observations" in openapi
     assert not any("place-order" in x or "submit-live" in x for x in openapi if x.startswith(BASE))
+
+
+def test_live_refresh_prioritizes_latest_and_bypasses_stale_last_cache(monkeypatch):
+    calls=[]
+    def live(page,sort,script_type):
+        assert (page,sort,script_type)==(1,"recent_extended","strategies")
+        calls.append("live")
+        return {"items":[{"script_id_part":"new-strategy","name":"Latest New",
+                           "script_type":"strategy","script_access":"open","version":"9"}]}
+    def catalog(limit,offset,script_type):
+        calls.append("catalog")
+        return {"items":[{"script_id_part":"old-popular","name":"Old Featured",
+                          "script_type":"strategy","script_access":"open","version":"3"}],
+                "total_count":400}
+    def source(script_id_part,version):
+        calls.append(("source",script_id_part,version))
+        return {"ok":True,"source":"//@version=6\nstrategy('test')"}
+    monkeypatch.setattr(ops.services,"scripts_live",live)
+    monkeypatch.setattr(ops.services,"script_catalog",catalog)
+    monkeypatch.setattr(ops.services,"script_source",source)
+    result=CLIENT.post(BASE+"/strategies/sync?limit=1&max_sources=1&refresh_live=true",headers=HEAD)
+    assert result.status_code==200,result.text
+    data=result.json()
+    assert data["live_refreshed"] is True
+    assert data["live_collected_count"]==1
+    assert data["mode"]=="REAL_UPSTREAM_LIVE_REFRESH"
+    assert data["scanned"]==1 and data["added"]==1
+    assert data["items"][0]["strategy_id"]=="new-strategy"
+    assert calls==["live","catalog",("source","new-strategy","9")]
+
+
+def test_live_refresh_failure_never_falls_back_to_stale_strategy_pool(monkeypatch):
+    def no_live(**kwargs):
+        raise ConnectionError("TradingView refused connection")
+    def stale_catalog(**kwargs):
+        raise AssertionError("must not read stale catalog after failed live refresh")
+    monkeypatch.setattr(ops.services,"scripts_live",no_live)
+    monkeypatch.setattr(ops.services,"script_catalog",stale_catalog)
+    result=CLIENT.post(BASE+"/strategies/sync?refresh_live=true",headers=HEAD)
+    assert result.status_code==502
+    assert CLIENT.get(BASE+"/strategies",headers=HEAD).json()["count"]==0
+
