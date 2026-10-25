@@ -15,7 +15,7 @@ def test_palette_has_actual_function_ports_and_risk_gate(monkeypatch):
     monkeypatch.setenv("ALPHA_NODE_API_KEY", "node-palette-test")
     r = client.get("/api/v1/alpha/palette", headers=AUTH)
     assert r.status_code == 200, r.text
-    assert r.json()["count"] == len(OPERATIONS) == 137
+    assert r.json()["count"] == len(OPERATIONS) == 138
     node = next(x for x in r.json()["nodes"] if x["id"] == "orchestration.orchestration.runtime.plan_rebalance")
     ports = {p["id"]: p for p in node["ports"]}
     assert ports["target"]["direction"] == "input"
@@ -32,7 +32,7 @@ def test_palette_filters_and_graph_templates_have_valid_native_operation_ids(mon
     monkeypatch.setenv("ALPHA_NODE_API_KEY", "node-palette-test")
     r = client.get("/api/v1/alpha/palette?engine=tradingview", headers=AUTH)
     assert r.status_code == 200
-    assert r.json()["count"] == 10
+    assert r.json()["count"] == 11
     assert all(n["role"] == "source" for n in r.json()["nodes"])
     r = client.get("/api/v1/alpha/graphs/templates", headers=AUTH)
     assert r.status_code == 200, r.text
