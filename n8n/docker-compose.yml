@@ -21,7 +21,7 @@ services:
       - n8n_redis:/data
 
   n8n:
-    image: docker.n8n.io/n8nio/n8n:2.45.0
+    image: docker.n8n.io/n8nio/n8n:2.44.5
     restart: unless-stopped
     depends_on:
       postgres: {condition: service_healthy}
@@ -51,7 +51,7 @@ services:
       - n8n_state:/home/node/.n8n
 
   worker:
-    image: docker.n8n.io/n8nio/n8n:2.45.0
+    image: docker.n8n.io/n8nio/n8n:2.44.5
     restart: unless-stopped
     command: worker --concurrency=3
     depends_on:
