@@ -162,6 +162,11 @@ function Editor(){
     setNodes([]);setEdges([]);setSettings({});setWfId(null);setVersion(null);setPublished(null);
     setName('새 주식 투자 워크플로');setDescription('');setRun(null);setSelNode(null);setSelEdge(null);
   };
+  const removeWorkflow=async()=>{
+    if(!wfId||!window.confirm('워크플로 정의와 저장 버전을 삭제합니다. 기존 실행 로그는 보존됩니다. 계속하시겠습니까?'))return;
+    try{await request('/workflows/'+wfId,'DELETE');newWorkflow();await refresh();setStatus('워크플로 정의 삭제 완료. 과거 실행 기록은 보존됩니다.')}
+    catch(error){setStatus('워크플로 삭제 실패: '+String(error))}
+  };
   const save=async():Promise<{workflow_id:string;version:number}|null>=>{
     setBusy(true);
     try{
@@ -222,6 +227,7 @@ function Editor(){
       <div className="invest-top-actions">
         <button onClick={()=>setListOpen(x=>!x)}>불러오기</button>
         <button onClick={newWorkflow}>새 워크플로</button>
+        <button disabled={!wfId||busy} onClick={()=>void removeWorkflow()}>삭제</button>
         <button onClick={()=>void validate()}>검증</button>
         <button disabled={busy} onClick={()=>void save()}>저장</button>
         <button disabled={busy||!nodes.length} onClick={()=>void publish()}>버전 게시</button>
