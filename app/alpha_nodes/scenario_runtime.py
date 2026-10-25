@@ -364,7 +364,7 @@ def _scenario_assertions(scenario_id: int, state: dict) -> list[dict]:
             ("transaction_continued", a["A"]["positions"] == 10),
             ("audit_continued", len(state["audits"]) == 1)],
         6: [("old_suspended", st["S101/v1"]["state"] == "SUSPENDED"),
-            ("replacement_only_candidate", st["S101/v2"]["state"] == "AVAILABLE" and
+            ("replacement_only_candidate", st.get("S101/v2", {}).get("state") == "AVAILABLE" and
              "S101/v2" not in state["approved_versions"]),
             ("old_agent_not_replaced", a["B"]["strategy"] == "S101/v1")],
         7: [("no_duplicate_order", len(orders) == 1),
@@ -372,7 +372,7 @@ def _scenario_assertions(scenario_id: int, state: dict) -> list[dict]:
         8: [("old_worker_fenced", a["A"]["status"] == "FENCED"),
             ("new_assignment", a["C"]["strategy"] == "S100/v2"),
             ("epoch_advanced", a["C"]["epoch"] > a["A"]["epoch"])],
-        9: [("unsupported_version_rejected", st["S100/v3"]["state"] == "REJECTED"),
+        9: [("unsupported_version_rejected", st.get("S100/v3", {}).get("state") == "REJECTED"),
             ("old_version_unchanged", a["A"]["strategy"] == "S100/v2"),
             ("old_version_order_allowed", len(orders) == 1)],
         10: [("strategy_retired", st["S101/v1"]["state"] == "RETIRED"),
