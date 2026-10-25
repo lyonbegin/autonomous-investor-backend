@@ -81,6 +81,11 @@ services:
       - "127.0.0.1:5678:5678"
     volumes:
       - n8n_data:/home/node/.n8n
+    healthcheck:
+      test: ["CMD","wget","--spider","-q","http://127.0.0.1:5678/healthz"]
+      interval: 5s
+      timeout: 4s
+      retries: 40
     depends_on:
       postgres:
         condition: service_healthy
@@ -94,7 +99,7 @@ services:
     environment: *n8n-env
     depends_on:
       n8n:
-        condition: service_started
+        condition: service_healthy
 
   n8n-import:
     profiles: ["bootstrap"]
