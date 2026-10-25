@@ -12,6 +12,7 @@ type Assignments={agents:Agent[];active_assignments:Assignment[]};
 type Findings={count:number;items:AuditFinding[]};
 type Timeline={events:BusinessEvent[];last_seq:number};
 const api='/studio-api/api/v1/ops';
+const publicDemo=import.meta.env.VITE_PUBLIC_DEMO === 'true';
 async function request<T>(url:string,method='GET',body?:unknown):Promise<T>{
   const response=await fetch(api+url,{method,headers:{'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body)});
   let data:unknown;
@@ -86,12 +87,12 @@ export default function OperationsConsole(){
       <div><small>활성 PAPER 할당</small><strong>{overview?.active_assignments??'—'}</strong></div>
       <div><small>독립 감사 발견</small><strong>{overview?.counts.audit_findings??'—'}</strong></div>
     </section>
-    <section className="ops-controls">
+    {!publicDemo&&<section className="ops-controls">
       {statuses.map(s=><div key={s.id} className="ops-task">
         <span>{s.id}</span><h3>{s.label}</h3><p>{s.description}</p>
         <button disabled={!!busy} onClick={s.act}>{busy===s.id?'실행 중…':s.id+' 실행'}</button>
       </div>)}
-    </section>
+    </section>}
     {notice&&<p className="ops-notice" role="status">{notice}</p>}
     {error&&<p className="ops-error" role="alert">{error}</p>}
     <div className="ops-grid">
@@ -102,7 +103,7 @@ export default function OperationsConsole(){
           {registry.items.map(s=><tr key={s.strategy_id}><td><b>{s.title}</b><small>{s.author} · {s.strategy_id}</small></td><td>{s.source_available?'Pine 있음':'원본 없음'}</td><td>{s.source_version}</td><td><span className={'ops-status '+s.eligibility}>{s.eligibility}</span></td></tr>)}
           {registry.count===0&&<tr><td colSpan={4}>전략 없음 — F01을 실행하거나 수집 서비스 연결을 확인하세요.</td></tr>}
         </tbody></table></div>
-        <div className="ops-form">
+        {!publicDemo&&<div className="ops-form">
           <h3>전략 버전 수동 승인 (기본 자동 승인 금지)</h3>
           <select aria-label="승인할 전략 버전" value={versionToApprove} onChange={e=>setVersionToApprove(e.target.value)}>
             <option value="">전략 버전 선택</option>
@@ -115,11 +116,11 @@ export default function OperationsConsole(){
           <label><input type="checkbox" checked={backtest} onChange={e=>setBacktest(e.target.checked)}/> 독립 백테스트 검증 완료</label>
           <button disabled={!!busy||!versionToApprove||!license||!pine||!backtest} onClick={review}>증거와 함께 승인 기록</button>
           <p>승인은 검토자의 확인 기록이며 시스템이 백테스트 통과 사실을 독립 검증한 것으로 표시하지 않습니다.</p>
-        </div>
+        </div>}
       </section>
       <section className="ops-panel">
         <h2>에이전트 할당 <span>{agents.active_assignments.length}개 활성/차단</span></h2>
-        <div className="ops-inline"><input aria-label="신규 PAPER 에이전트 ID" placeholder="PAPER 에이전트 ID (예: agent-A)" value={agentId} onChange={e=>setAgentId(e.target.value)}/><button disabled={!!busy||!agentId} onClick={addAgent}>유휴 에이전트 등록</button></div>
+        {!publicDemo&&<div className="ops-inline"><input aria-label="신규 PAPER 에이전트 ID" placeholder="PAPER 에이전트 ID (예: agent-A)" value={agentId} onChange={e=>setAgentId(e.target.value)}/><button disabled={!!busy||!agentId} onClick={addAgent}>유휴 에이전트 등록</button></div>}
         <div className="ops-table-wrap"><table><thead><tr><th>에이전트</th><th>상태</th><th>전략 버전·Fencing</th></tr></thead><tbody>
           {agents.agents.map(a=>{const assigned=agents.active_assignments.find(x=>x.agent_id===a.agent_id);return <tr key={a.agent_id}><td><b>{a.agent_id}</b><small>{a.execution_mode} / {a.market_scope}</small></td><td>{assigned?.state||a.status}</td><td>{assigned?<><small>{format(assigned.version_id)}</small><small>epoch {assigned.epoch}</small></>:'미할당'}</td></tr>})}
           {!agents.agents.length&&<tr><td colSpan={3}>등록된 PAPER 에이전트가 없습니다.</td></tr>}
