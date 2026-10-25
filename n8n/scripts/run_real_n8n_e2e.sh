@@ -12,9 +12,14 @@ export CI_SCENARIO_TOKEN
 CI_SCENARIO_TOKEN="$(openssl rand -hex 24)"
 export ALPHA_NODE_API_KEY="$CI_SCENARIO_TOKEN"
 export SCENARIO_DB_PATH="/tmp/n8n-e2e-scenarios.sqlite3"
+export STRATEGY_OPERATIONS_DB_PATH="/tmp/n8n-e2e-ops.sqlite3"
+export ALPHA_TRADINGVIEW_BASE="http://127.0.0.1:8001"
 export N8N_INTERNAL_WEBHOOK_BASE="http://127.0.0.1:5678"
 mkdir -p /tmp/n8n-ci-import
 python n8n/scripts/render_ci_workflows.py --output /tmp/n8n-ci-import
+python n8n/scripts/render_ci_workflows.py --source n8n/workflows/operations --expected 3 --output /tmp/n8n-ci-operations
+python n8n/scripts/mock_tradingview_service.py > /tmp/n8n-mock-tradingview.log 2>&1 &
+FIXTURE_PID=$!
 
 python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 \
   > /tmp/n8n-ci-backend.log 2>&1 &
@@ -22,7 +27,7 @@ BACKEND_PID=$!
 cleanup() {
   docker compose -f "$COMPOSE" logs --tail=60 n8n worker || true
   docker compose -f "$COMPOSE" down --volumes --remove-orphans || true
-  kill "$BACKEND_PID" 2>/dev/null || true
+  kill "$BACKEND_PID" "$FIXTURE_PID" 2>/dev/null || true
 }
 trap cleanup EXIT
 
@@ -45,9 +50,16 @@ N8N_CONTAINER="$(docker compose -f "$COMPOSE" ps -q n8n)"
 docker exec "$N8N_CONTAINER" mkdir -p /tmp/ci_workflows
 docker cp /tmp/n8n-ci-import/. "$N8N_CONTAINER:/tmp/ci_workflows/"
 docker exec "$N8N_CONTAINER" n8n import:workflow --separate --input=/tmp/ci_workflows
+docker exec "$N8N_CONTAINER" mkdir -p /tmp/ci_ops
+docker cp /tmp/n8n-ci-operations/. "$N8N_CONTAINER:/tmp/ci_ops/"
+docker exec "$N8N_CONTAINER" n8n import:workflow --separate --input=/tmp/ci_ops
 for n in $(seq -w 1 10); do
   echo "PUBLISH autonomousScenario$n"
   docker exec "$N8N_CONTAINER" n8n publish:workflow "--id=autonomousScenario$n"
+done
+for workflow in aiOperationF01 aiOperationF03 aiOperationF05; do
+  echo "PUBLISH $workflow"
+  docker exec "$N8N_CONTAINER" n8n publish:workflow "--id=$workflow"
 done
 # CLI changes take effect when n8n main process restarts.
 docker compose -f "$COMPOSE" restart n8n worker
@@ -70,6 +82,10 @@ echo "REGISTERED_N8N_WEBHOOKS=$WEBHOOKS"
 test "$WEBHOOKS" -ge 10
 
 python n8n/scripts/verify_real_worker.py
+python n8n/scripts/verify_operational_flows.py
+OPERATIONS_COUNT="$(docker compose -f "$COMPOSE" exec -T postgres psql -U n8n -d n8n -Atc   'SELECT count(*) FROM execution_entity WHERE status=\'success\' AND "workflowId" IN (\'aiOperationF01\',\'aiOperationF03\',\'aiOperationF05\');' | tr -d '\r')"
+echo "N8N_POSTGRES_SUCCESSFUL_OPERATIONS=$OPERATIONS_COUNT"
+test "$OPERATIONS_COUNT" -ge 3
 
 # Verify actual n8n execution history in *its own PostgreSQL*, not only Python.
 for i in $(seq 1 60); do
