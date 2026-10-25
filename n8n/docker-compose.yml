@@ -53,6 +53,7 @@ services:
       TZ: Asia/Seoul
     volumes:
       - n8n_state:/home/node/.n8n
+      - ./workflows/scenarios:/srv/n8n-workflows:ro
 
   worker:
     image: docker.n8n.io/n8nio/n8n:2.44.5
