@@ -17,6 +17,15 @@ jobs:
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
+      - name: Validate deploy script rejects missing VPS configuration
+        run: |
+          bash -n n8n/scripts/deploy_selfhost.sh
+          if bash n8n/scripts/deploy_selfhost.sh > /tmp/blocked-deployment.log 2>&1; then
+            echo "FAILED: deployment script ran without server-only secrets"
+            exit 1
+          fi
+          grep -q "BLOCKED: n8n/.env is absent" /tmp/blocked-deployment.log
+          echo "DEPLOYMENT_FAILS_CLOSED_WITHOUT_REAL_VPS_CONFIG"
       - name: Start n8n + worker + Redis + PostgreSQL + FastAPI + production React gateway
         shell: bash
         run: |
