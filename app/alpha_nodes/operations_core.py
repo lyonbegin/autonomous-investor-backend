@@ -241,6 +241,10 @@ def sync(limit: int = 30, offset: int = 0, max_sources: int = 5, refresh_live: b
     refreshing upstream endpoint writes its own cache before the catalog read.
     """
     live=None
+    if refresh_live and not os.getenv("ALPHA_TRADINGVIEW_BASE", "").strip():
+        with db(write=True) as con:
+            _emit(con,"SourceSyncFailed","F01",{"error_type":"TRADINGVIEW_SERVICE_NOT_CONFIGURED"})
+        raise HTTPException(status_code=503,detail="ALPHA_TRADINGVIEW_BASE must explicitly point to your own TradingView collector")
     try:
         if refresh_live:
             live=services.scripts_live(page=1,sort="recent_extended",script_type="strategies")
