@@ -322,6 +322,24 @@ def publish(workflow_id: str, version: int) -> dict:
     return {"workflow_id": workflow_id, "published_version": version}
 
 
+def delete_workflow(workflow_id: str) -> dict:
+    """Delete editable definition and versions, retain historical run audit."""
+    with _FN_LOCK, _db() as db:
+        row = db.execute("SELECT id FROM investment_workflows WHERE id=?", (workflow_id,)).fetchone()
+        if not row:
+            raise _not_found("workflow")
+        active = db.execute(
+            "SELECT COUNT(*) FROM investment_runs WHERE workflow_id=? AND state IN ('queued','running','waiting_approval')",
+            (workflow_id,)
+        ).fetchone()[0]
+        if active:
+            raise HTTPException(status_code=409, detail="cannot delete a workflow with an active or approval-pending run")
+        db.execute("DELETE FROM investment_versions WHERE workflow_id=?", (workflow_id,))
+        db.execute("DELETE FROM investment_workflows WHERE id=?", (workflow_id,))
+    return {"workflow_id": workflow_id, "deleted": True,
+            "historical_run_audit_preserved": True}
+
+
 def _event(db: sqlite3.Connection, run_id: str, node_id: str | None, kind: str, payload: Any) -> None:
     db.execute("INSERT INTO investment_events(run_id,node_id,kind,payload,created_at) VALUES(?,?,?,?,?)",
                (run_id, node_id, kind, _json(_scrub(payload)), _now()))
