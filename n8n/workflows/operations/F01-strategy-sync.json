@@ -55,7 +55,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "http://invest-backend:8000/api/v1/ops/strategies/sync?limit=30&max_sources=5",
+        "url": "http://invest-backend:8000/api/v1/ops/strategies/sync?limit=30&max_sources=5&refresh_live=true",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "options": {
