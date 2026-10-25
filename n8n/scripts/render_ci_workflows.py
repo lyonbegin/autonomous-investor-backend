@@ -46,7 +46,7 @@ def main() -> None:
             }
         rendered = dest / file.name
         rendered.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n")
-        rendered.chmod(0o600)
+        rendered.chmod(0o644)  # n8n container runs as uid 1000; temp CI files only
     print(f"RENDERED_TEST_WORKFLOWS={len(files)}")
     print("Temporary secret not printed. Rendered files must not be committed.")
 
