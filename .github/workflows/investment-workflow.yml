@@ -7,6 +7,7 @@ on:
       - "app/**"
       - "tests/**"
       - ".github/workflows/investment-workflow.yml"
+      - "investment_studio/**"
   workflow_dispatch:
 permissions:
   contents: read
@@ -50,3 +51,29 @@ jobs:
           print("FUNCTION_ENDPOINTS",len(OPERATIONS))
           print("PALETTE_NODES",len(palette()["nodes"]))
           PY
+
+  react-node-studio:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install React Flow studio
+        working-directory: investment_studio
+        run: npm install --no-audit --no-fund
+      - name: Type-check and bundle
+        working-directory: investment_studio
+        run: npm run build
+      - name: Confirm actual API-backed editor
+        run: |
+          node - <<'JS'
+          const fs=require('fs');
+          const ui=fs.readFileSync('investment_studio/src/InvestmentStudio.tsx','utf8');
+          for(const name of ['/node-types','/workflows','/runs','ReactFlow','target_input','output_path','QUORUM','ALL_SETTLED','waiting_approval']) {
+             if(!ui.includes(name))throw new Error('Missing node studio feature: '+name);
+          }
+          if(ui.includes('exampleData(')||ui.includes('sampleRun('))throw new Error('Found fabricated demo market-data runner');
+          console.log('Real API-backed investment editor verified');
+          JS
