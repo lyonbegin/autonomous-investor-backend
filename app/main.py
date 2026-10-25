@@ -7,6 +7,7 @@ from app.api.routes import router
 from app.api.tradingview_routes import router as tradingview_router
 from app.alpha_nodes.api import router as alpha_router
 from app.alpha_nodes.investment_api import router as investment_router
+from app.alpha_nodes.scenario_api import router as scenario_router
 
 app = FastAPI(
     title="Autonomous Investor Backend",
@@ -25,3 +26,4 @@ app.include_router(demo_router)
 app.include_router(tradingview_router)
 app.include_router(alpha_router)
 app.include_router(investment_router)
+app.include_router(scenario_router)
