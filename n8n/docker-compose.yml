@@ -26,6 +26,9 @@ services:
     depends_on:
       postgres: {condition: service_healthy}
       redis: {condition: service_started}
+    # Internal-only web access. Publishing an internet-facing webhook needs a gateway.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - "127.0.0.1:5678:5678"
     environment: &n8n_env
@@ -54,6 +57,8 @@ services:
     image: docker.n8n.io/n8nio/n8n:2.44.5
     restart: unless-stopped
     command: worker --concurrency=3
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       postgres: {condition: service_healthy}
       redis: {condition: service_started}
