@@ -65,8 +65,9 @@ def get_overview() -> dict:
 @router.post("/strategies/sync")
 def sync_catalog(limit: int = Query(30,ge=1,le=100),
                  offset: int = Query(0,ge=0,le=100000),
-                 max_sources: int = Query(5,ge=0,le=10)) -> dict:
-    return core.sync(limit=limit,offset=offset,max_sources=max_sources)
+                 max_sources: int = Query(5,ge=0,le=10),
+                 refresh_live: bool = Query(False)) -> dict:
+    return core.sync(limit=limit,offset=offset,max_sources=max_sources,refresh_live=refresh_live)
 
 
 @router.get("/strategies")
