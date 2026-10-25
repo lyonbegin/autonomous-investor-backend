@@ -38,12 +38,13 @@ jobs:
               assert len(doc['nodes'])==6
               assert any(n['type']=='n8n-nodes-base.webhook' for n in doc['nodes'])
               assert any(n['type']=='n8n-nodes-base.respondToWebhook' for n in doc['nodes'])
-              assert doc['nodes'][0]['type']=='n8n-nodes-base.manualTrigger'
-              assert doc['nodes'][1]['type']=='n8n-nodes-base.httpRequest'
+              assert any(n['type']=='n8n-nodes-base.manualTrigger' for n in doc['nodes'])
               assert SCENARIOS[path.stem]['title']
-              assert doc['nodes'][1]['parameters']['method']=='POST'
-              assert doc['nodes'][1]['parameters']['authentication']=='genericCredentialType'
-              assert doc['nodes'][3]['type']=='n8n-nodes-base.httpRequest'
+              http = [n for n in doc['nodes'] if n['type']=='n8n-nodes-base.httpRequest']
+              assert len(http)==2
+              assert http[0]['parameters']['method']=='POST'
+              assert http[0]['parameters']['authentication']=='genericCredentialType'
+              assert http[1]['parameters']['method']=='GET'
           paths=app.openapi()['paths']
           assert '/api/v1/alpha/scenarios/{scenario_id}/runs' in paths
           assert '/api/v1/alpha/scenarios/runs/{run_id}' in paths
