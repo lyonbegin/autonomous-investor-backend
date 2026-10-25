@@ -60,6 +60,16 @@ jobs:
             if [ "$i" -eq 60 ]; then exit 1; fi
             sleep 3
           done
+      - name: Verify published workflow and production webhook database records
+        run: |
+          docker compose -f n8n_scenarios/compose.yml --env-file n8n_scenarios/.env exec -T postgres \
+            psql -U invest_n8n -d invest_n8n -c 'SELECT id, active, "activeVersionId" FROM workflow_entity ORDER BY id LIMIT 12;'
+          docker compose -f n8n_scenarios/compose.yml --env-file n8n_scenarios/.env exec -T postgres \
+            psql -U invest_n8n -d invest_n8n -c 'SELECT * FROM webhook_entity LIMIT 3;'
+          echo "Webhook HTTP status (without user data):"
+          curl -sS -o /dev/null -w 'HTTP %{http_code}\n' -X POST \
+            -H 'Content-Type: application/json' -d '{"run_id":"health-only-invalid-test"}' \
+            http://127.0.0.1:5678/webhook/ai-investment-scenario-01 || true
       - name: Exercise every n8n node callback and synthetic invariant
         env:
           SCENARIO_SMOKE_MODE: n8n
