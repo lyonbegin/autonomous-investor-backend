@@ -1,0 +1,130 @@
+{
+  "id": "aiOperationF03",
+  "name": "F03 유휴 PAPER 에이전트 원자적 할당",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 1
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "id": "aiOperationF03schedule",
+      "name": "정기 실행",
+      "position": [
+        220,
+        220
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "aiOperationF03manual",
+      "name": "관리자 수동 실행",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        220,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://invest-backend:8000/api/v1/ops/assignments/allocate-one",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "aiOperationF03post",
+      "name": "운영 서비스 실행",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        520,
+        300
+      ],
+      "notes": "신규 유휴 에이전트와 사람이 승인한 전략 버전만 원자적으로 할당. 실시간 주문을 실행하지 않습니다."
+    },
+    {
+      "parameters": {
+        "url": "http://invest-backend:8000/api/v1/ops/agents",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "aiOperationF03get",
+      "name": "상태와 결과 조회",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        820,
+        300
+      ],
+      "notes": "read-only authenticated /api/v1/ops operation state"
+    }
+  ],
+  "connections": {
+    "정기 실행": {
+      "main": [
+        [
+          {
+            "node": "운영 서비스 실행",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "관리자 수동 실행": {
+      "main": [
+        [
+          {
+            "node": "운영 서비스 실행",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "운영 서비스 실행": {
+      "main": [
+        [
+          {
+            "node": "상태와 결과 조회",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveExecutionProgress": true,
+    "saveManualExecutions": true
+  },
+  "active": false,
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}
