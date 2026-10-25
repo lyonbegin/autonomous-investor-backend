@@ -12,6 +12,9 @@ services:
     environment:
       ALPHA_NODE_API_KEY: ${ALPHA_NODE_API_KEY:?Set ALPHA_NODE_API_KEY}
       SCENARIO_DB_PATH: /data/scenario_runs.sqlite3
+      STRATEGY_OPERATIONS_DB_PATH: /data/strategy_operations.sqlite3
+      ALPHA_TRADINGVIEW_BASE: ${ALPHA_TRADINGVIEW_BASE:-https://autonomous-investor-tradingview-production.up.railway.app}
+      ALPHA_TRADINGVIEW_TOKEN: ${ALPHA_TRADINGVIEW_TOKEN:-}
       INVESTMENT_FLOW_DB_PATH: /data/investment_flows.sqlite3
       N8N_INTERNAL_WEBHOOK_BASE: http://n8n:5678
     volumes:
