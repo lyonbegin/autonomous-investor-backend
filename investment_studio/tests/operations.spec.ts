@@ -7,7 +7,7 @@ test('F01 실제 HTTP 기반 전략 조회 → 검토 승인 → F03 PAPER 배�
 
   // This Chromium test runs against the explicit CI-only mock HTTP upstream.
   await page.locator('.ops-task').nth(0).getByRole('button',{name:'F01 실행'}).click();
-  await expect(page.getByText('CI Public Pine Strategy')).toBeVisible({timeout:15000});
+  await expect(page.locator('.ops-table-wrap tbody b').getByText('CI Public Pine Strategy')).toBeVisible({timeout:15000});
   await expect(page.getByText('CI protected Pine')).toBeVisible();
   await expect(page.getByText('PENDING_REVIEW')).toBeVisible();
   await expect(page.getByText('INELIGIBLE')).toBeVisible();
