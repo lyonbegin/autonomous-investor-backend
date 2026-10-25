@@ -1,0 +1,124 @@
+{
+  "name": "AI-05 | 병렬 장시간 백테스트와 거래 지속",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "manual-05",
+      "name": "수동 실행 - 병렬 장시간 백테스트와 거래 지속",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        240,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://invest-backend:8000/api/v1/alpha/scenarios/05-long-backtest/runs?interval_ms=160",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "start-05",
+      "name": "내부 시나리오 API 시작",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        510,
+        320
+      ],
+      "notes": "HTTP Header Auth credential: Authorization = Bearer <ALPHA_NODE_API_KEY>. No real trading."
+    },
+    {
+      "parameters": {
+        "amount": 3,
+        "unit": "seconds"
+      },
+      "id": "wait-05",
+      "name": "시뮬레이션 실행 대기",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        770,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=http://invest-backend:8000/api/v1/alpha/scenarios/runs/{{ $('내부 시나리오 API 시작').first().json.run_id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "result-05",
+      "name": "상태·노드 실행 결과 조회",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1040,
+        320
+      ],
+      "notes": "Actual progression can be monitored live through React UI or GET /runs/{id} while n8n awaits completion."
+    }
+  ],
+  "connections": {
+    "수동 실행 - 병렬 장시간 백테스트와 거래 지속": {
+      "main": [
+        [
+          {
+            "node": "내부 시나리오 API 시작",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "내부 시나리오 API 시작": {
+      "main": [
+        [
+          {
+            "node": "시뮬레이션 실행 대기",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "시뮬레이션 실행 대기": {
+      "main": [
+        [
+          {
+            "node": "상태·노드 실행 결과 조회",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveExecutionProgress": true,
+    "saveManualExecutions": true
+  },
+  "active": false,
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}
