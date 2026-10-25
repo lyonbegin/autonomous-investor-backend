@@ -1,0 +1,26 @@
+# Add to docker-compose.yml + docker-compose.backend.yml on a NON-Railway VPS.
+# DNS for INVESTMENT_DOMAIN must resolve to this server. Caddy provisions TLS.
+services:
+  invest-web:
+    build:
+      context: ..
+      dockerfile: n8n/Dockerfile.web
+    restart: unless-stopped
+    depends_on:
+      invest-backend:
+        condition: service_healthy
+    environment:
+      INVESTMENT_DOMAIN: ${INVESTMENT_DOMAIN:?Set your public domain}
+      INVESTMENT_ADMIN_USER: ${INVESTMENT_ADMIN_USER:?Set a private admin username}
+      INVESTMENT_ADMIN_PASSWORD_HASH: ${INVESTMENT_ADMIN_PASSWORD_HASH:?Provide Caddy bcrypt hash}
+      ALPHA_NODE_API_KEY: ${ALPHA_NODE_API_KEY:?Set server-side secret}
+    ports:
+      - "${INVESTMENT_HTTP_PORT:-80}:80"
+      - "${INVESTMENT_HTTPS_PORT:-443}:443"
+      - "${INVESTMENT_HTTPS_PORT:-443}:443/udp"
+    volumes:
+      - investment_caddy_data:/data
+      - investment_caddy_config:/config
+volumes:
+  investment_caddy_data:
+  investment_caddy_config:
