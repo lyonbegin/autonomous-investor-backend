@@ -247,14 +247,14 @@ def validate(definition: FlowDefinition) -> dict:
     for node in definition.nodes:
         state, reason = _operation_status(node.operation_id)
         if state != "ready":
-            warnings.append({"node": node.id, "state": state, "reason": reason})
+            warnings.append({"node": node.id, "operation_id": node.operation_id, "state": state, "reason": reason})
         n_in = len([e for e in definition.edges if e.target == node.id and not e.optional])
         if node.join == "QUORUM" and node.quorum > n_in:
             raise ValueError(f"{node.id}: quorum exceeds incoming required edges")
     return {"valid": True, "order": order, "edges": [e.model_dump() for e in definition.edges],
             "parallel_roots": [n.id for n in definition.nodes if not parent[n.id]],
             "warnings": warnings, "node_count": len(indexed),
-            "naitulus_execution": "disabled", "live_trading": False}
+            "nautilus_execution": "disabled", "live_trading": False}
 
 
 def _not_found(what: str) -> HTTPException:
@@ -517,8 +517,9 @@ def _execute(run_id: str) -> None:
         outcomes: dict[str, dict] = {}
         for r in old:
             if r["state"] in ("success", "failed", "skipped"):
-                outcomes[r["node_id"]] = {
-                    "state": r["state"], "result": json.loads(r["output_json"]) if r["output_json"] else None,
+                stored = json.loads(r["output_json"]) if r["output_json"] else None
+                outcomes[r["node_id"]] = stored if isinstance(stored, dict) and stored.get("state") in ("success", "failed", "skipped") else {
+                    "state": r["state"], "result": stored,
                     "error": json.loads(r["error_json"]) if r["error_json"] else None,
                 }
         if mode == "research":
@@ -562,6 +563,7 @@ def _execute(run_id: str) -> None:
                     done, _ = wait(tuple(pending), timeout=0.5, return_when=FIRST_COMPLETED)
                     for future in done:
                         node_id, _ = pending.pop(future)
+                        launched = True  # completed parents may unlock ready downstream DAG nodes
                         try:
                             value, attempts = future.result()
                             state[node_id] = "success"
