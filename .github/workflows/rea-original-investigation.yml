@@ -1,0 +1,80 @@
+name: REA Original Site Evidence
+on:
+  push:
+    branches: [feature/alphaforge-react-clone-phase1]
+    paths:
+      - ".github/workflows/rea-original-investigation.yml"
+  workflow_dispatch:
+    inputs:
+      target_url:
+        description: "Authorized original AlphaForge website HTTPS URL; leave blank for installation verification only"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  rea:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Install official REA CLI
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --version
+          npm install --global rea-agents
+          rea --help | head -70
+      - name: Inspect original via Chromium CDP + REA
+        if: github.event_name == 'workflow_dispatch' && inputs.target_url != ''
+        env:
+          TARGET_URL: ${{ inputs.target_url }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os
+          from urllib.parse import urlparse
+          u=urlparse(os.environ["TARGET_URL"])
+          if u.scheme!="https" or not u.hostname or u.username or u.password:
+              raise SystemExit("Provide authorized https URL with no embedded credentials")
+          PY
+          mkdir -p rea-evidence
+          BROWSER="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"
+          "$BROWSER" --headless --no-sandbox --disable-gpu \
+            --user-data-dir=/tmp/rea-alpha-profile --remote-debugging-port=9222 \
+            "$TARGET_URL" >rea-evidence/chrome.log 2>&1 &
+          CHROME_PID=$!
+          trap 'kill "$CHROME_PID" 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:9222/json/list >rea-evidence/targets.json; then break; fi
+            sleep 1
+          done
+          rea list-browser-targets http://127.0.0.1:9222 --json > rea-evidence/rea-targets.json
+          python3 - <<'PY'
+          import json
+          x=json.load(open("rea-evidence/targets.json"))
+          pages=[v for v in x if v.get("type")=="page"]
+          if not pages: raise SystemExit("No Chrome page target discovered")
+          open("rea-evidence/target-id.txt","w").write(pages[0]["id"])
+          PY
+          TARGET_ID="$(cat rea-evidence/target-id.txt)"
+          rea inspect-web-page http://127.0.0.1:9222 "$TARGET_ID" \
+            --observation-ms 1000 --include-json-body-shapes --json \
+            >rea-evidence/dom-network.json
+          rea analyze-web-bundle http://127.0.0.1:9222 "$TARGET_ID" \
+            --json >rea-evidence/bundle-routes.json
+          rea capture-web-screenshot http://127.0.0.1:9222 "$TARGET_ID" \
+            --json >rea-evidence/screenshot.json
+      - name: Upload REA evidence
+        if: always() && github.event_name == 'workflow_dispatch' && inputs.target_url != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: rea-alpha-original-evidence
+          path: rea-evidence/
+          retention-days: 7
