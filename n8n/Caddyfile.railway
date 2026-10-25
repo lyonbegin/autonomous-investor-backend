@@ -46,15 +46,9 @@
                     header_up -Cookie
                 }
             }
+            # All mutating trading/admin actions are unavailable in the public demo.
             handle {
-                basic_auth {
-                    {$INVESTMENT_ADMIN_USER} {$INVESTMENT_ADMIN_PASSWORD_HASH}
-                }
-                uri strip_prefix /studio-api
-                reverse_proxy {$INVESTMENT_BACKEND_UPSTREAM} {
-                    header_up Authorization "Bearer {$ALPHA_NODE_API_KEY}"
-                    header_up -Cookie
-                }
+                respond "Forbidden: demo endpoints only" 403
             }
         }
     }
