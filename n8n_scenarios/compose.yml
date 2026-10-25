@@ -110,7 +110,7 @@ services:
         set -eu
         n8n import:workflow --separate --input=/workflows
         for number in 01 02 03 04 05 06 07 08 09 10; do
-          n8n publish:workflow --id="INVESTSCENARIO$number"
+          n8n publish:workflow --id="INVESTSCENARIO$$number"
         done
         echo "Imported and published 10 synthetic investment n8n workflows."
     environment: *n8n-env
