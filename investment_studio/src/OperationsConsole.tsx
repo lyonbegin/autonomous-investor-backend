@@ -56,7 +56,7 @@ export default function OperationsConsole(){
     try{const result=await fn();setNotice(title+' 완료: '+JSON.stringify(result).slice(0,260));await refresh()}catch(e){setError(String(e))}
     finally{setBusy('')}
   };
-  const sync=()=>void action('F01 TradingView 카탈로그 실제 조회',()=>request('/strategies/sync?limit=30&max_sources=5','POST'));
+  const sync=()=>void action('F01 TradingView 카탈로그 실제 조회',()=>request('/strategies/sync?limit=30&max_sources=5&refresh_live=true','POST'));
   const allocate=()=>void action('F03 PAPER 할당',()=>request('/assignments/allocate-one','POST'));
   const audit=()=>void action('F05 감사 재대조',()=>request('/audit/reconcile','POST'));
   const addAgent=()=>void action('PAPER 에이전트 등록',()=>request('/agents','POST',{agent_id:agentId,execution_mode:'paper',market_scope:'US'}));
