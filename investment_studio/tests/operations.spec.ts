@@ -26,7 +26,7 @@ test('F01 실제 HTTP 기반 전략 조회 → 검토 승인 → F03 PAPER 배�
   await expect(page.locator('.ops-table-wrap tbody b').getByText('ci-chromium-agent')).toBeVisible();
 
   await page.locator('.ops-task').nth(1).getByRole('button',{name:'F03 실행'}).click();
-  await expect(page.locator('.ops-table-wrap')).toContainText('ACTIVE',{timeout:12000});
+  await expect(page.locator('.ops-table-wrap').nth(1)).toContainText('ACTIVE',{timeout:12000});
 
   const assignments=await page.request.get('/studio-api/api/v1/ops/agents');
   expect(assignments.ok()).toBeTruthy();
@@ -45,7 +45,7 @@ test('F01 실제 HTTP 기반 전략 조회 → 검토 승인 → F03 PAPER 배�
   const finding=await audit.json();
   expect(finding.assignment_state).toBe('HALTED');
   await expect(page.locator('.ops-table-wrap tbody b').getByText('unapproved_order')).toBeVisible({timeout:12000});
-  await expect(page.locator('.ops-table-wrap')).toContainText('HALTED');
+  await expect(page.locator('.ops-table-wrap').nth(1)).toContainText('HALTED');
 
   await page.screenshot({path:'test-results/f01-f03-f05-real-db-dashboard.png',fullPage:true});
 });
