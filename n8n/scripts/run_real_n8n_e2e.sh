@@ -74,12 +74,12 @@ docker compose -f "$COMPOSE" exec -T postgres psql -U n8n -d n8n -Atc \
   'SELECT id, active, "activeVersionId" FROM workflow_entity ORDER BY id;'
 for i in $(seq 1 70); do
   WEBHOOKS="$(docker compose -f "$COMPOSE" exec -T postgres psql -U n8n -d n8n -Atc \
-    "SELECT count(*) FROM webhook_entity WHERE \"workflowId\" LIKE 'autonomousScenario%';" | tr -d '\\r')"
-  if [ "$WEBHOOKS" -ge 10 ]; then break; fi
+    "SELECT count(*) FROM webhook_entity WHERE \"workflowId\" LIKE 'autonomousScenario%' OR \"workflowId\" LIKE 'aiOperationF0%';" | tr -d '\\r')"
+  if [ "$WEBHOOKS" -ge 13 ]; then break; fi
   sleep 2
 done
 echo "REGISTERED_N8N_WEBHOOKS=$WEBHOOKS"
-test "$WEBHOOKS" -ge 10
+test "$WEBHOOKS" -ge 13
 
 python n8n/scripts/verify_real_worker.py
 python n8n/scripts/verify_operational_flows.py
