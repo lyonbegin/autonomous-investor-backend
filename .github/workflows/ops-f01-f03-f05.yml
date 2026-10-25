@@ -85,3 +85,26 @@ jobs:
           assert s['n8n_workflows']==['F01','F03','F05']
           print('OPS_DOCKER_API_READY')
           PY
+
+  actual-n8n-ops-worker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.13"}
+      - name: Install FastAPI test/runtime dependencies
+        run: python -m pip install -e ".[dev]" numpy pandas
+      - name: Real n8n queue main and Redis worker - ten scenarios plus F01 F03 F05
+        run: bash n8n/scripts/run_real_n8n_e2e.sh
+      - name: Save real execution evidence and backend/mock logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ops-n8n-e2e-evidence
+          path: |
+            /tmp/n8n-operational-e2e.json
+            /tmp/n8n-e2e-evidence.json
+            /tmp/n8n-ci-backend.log
+            /tmp/n8n-mock-tradingview.log
+          if-no-files-found: ignore
