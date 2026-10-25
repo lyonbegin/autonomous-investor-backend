@@ -3,6 +3,7 @@ WORKDIR /build
 COPY investment_studio/package.json ./
 RUN npm install --no-audit --no-fund
 COPY investment_studio/ ./
+RUN test -f .env.production && grep -qx 'VITE_PUBLIC_DEMO=true' .env.production
 RUN npm run build
 FROM caddy:2.10-alpine
 COPY n8n/Caddyfile.railway /etc/caddy/Caddyfile
