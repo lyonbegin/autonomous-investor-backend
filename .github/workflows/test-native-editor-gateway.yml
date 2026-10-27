@@ -1,4 +1,4 @@
-name: Test native n8n editor gateway
+name: Test no-login n8n gateway landing
 on:
   push:
     branches: [feature/public-demo-readonly-20261025]
@@ -14,19 +14,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Build native editor gateway
+      - name: Build gateway Caddy image
         run: docker build -f n8n/Dockerfile.native-editor-gateway -t native-n8n-proxy:ci .
-      - name: Require login before proxying to private n8n
+      - name: Verify no browser-auth prompt and deny administrative endpoints
         run: |
-          HASH=$(docker run --rm caddy:2.10-alpine caddy hash-password --plaintext test-only-ci-password)
-          docker run -d --name native-n8n-proxy -p 38081:3000 -e PORT=3000 -e N8N_GATEWAY_USER=tester -e N8N_GATEWAY_PASSWORD_HASH="$HASH" native-n8n-proxy:ci
+          docker run -d --name native-n8n-proxy -p 38081:3000 -e PORT=3000 native-n8n-proxy:ci
           trap 'docker rm -f native-n8n-proxy >/dev/null 2>&1 || true' EXIT
-          for i in $(seq 1 20); do curl -fsS http://localhost:38081/health && break || sleep 1; done
-          for path in / /setup /rest/settings /rest/workflows /api/v1/workflows; do
-            STATUS=$(curl -sS -o /dev/null -w '%{http_code}' "http://localhost:38081$path")
-            test "$STATUS" = 401 || { echo "UNPROTECTED $path $STATUS"; exit 1; }
-            echo "SECURED $path status 401"
+          for i in $(seq 1 30); do if curl -fsS http://localhost:38081/health >/dev/null; then break; fi; sleep 1; done
+          curl -fsS http://localhost:38081/health
+          curl -sSD /tmp/home-headers -o /dev/null http://localhost:38081/
+          grep -q '^HTTP/1.1 302' /tmp/home-headers
+          grep -qi '^Location: https://investment-n8n-operations-ui-production.up.railway.app/' /tmp/home-headers
+          if grep -qi '^WWW-Authenticate:' /tmp/home-headers; then echo 'Browser auth challenge is still present'; exit 1; fi
+          for path in /setup /rest/settings /rest/workflows /api/v1/workflows /workflow/aiOperationF01; do
+            code=$(curl -sS -o /dev/null -w '%{http_code}' "http://localhost:38081$path")
+            test "$code" = 403 || { echo "Unexpected $path $code"; exit 1; }
           done
-          STATUS=$(curl -sS -u tester:test-only-ci-password -o /dev/null -w '%{http_code}' http://localhost:38081/)
-          test "$STATUS" = 502 || { echo "Unexpected valid auth proxy response $STATUS"; exit 1; }
-          echo "PASS: original n8n upstream only available after Basic Auth"
+          code=$(curl -sS -X POST -o /dev/null -w '%{http_code}' http://localhost:38081/)
+          test "$code" = 403
+          echo 'PASS: no login challenge; n8n administration not exposed'
