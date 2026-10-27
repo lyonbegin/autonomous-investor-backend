@@ -1,0 +1,22 @@
+name: Check operations UI original n8n canvas navigation
+on:
+  push:
+    branches: [feature/n8n-upstream-source-railway-20261027]
+    paths: ['.github/workflows/verify-source-n8n-public-nav.yml']
+  workflow_dispatch:
+permissions: {contents: read}
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: Build current production React console with n8n source canvas link
+        working-directory: investment_studio
+        run: |
+          npm install --no-audit --no-fund
+          npm run build
+          grep -l '원본 n8n 노드 캔버스' dist/assets/*.js
+      - name: Build production Railway image
+        run: docker build -f n8n/Dockerfile.web.railway -t investmentsourceui:test .
