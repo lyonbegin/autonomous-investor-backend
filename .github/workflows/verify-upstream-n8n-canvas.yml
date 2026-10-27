@@ -1,0 +1,42 @@
+name: Test original upstream n8n canvas gateway
+on:
+  push:
+    branches: [feature/n8n-upstream-source-railway-20261027]
+    paths:
+      - 'n8n/Caddyfile.native-editor-gateway'
+      - 'n8n/Dockerfile.native-editor-gateway'
+      - 'n8n/preview/native-portal.html'
+      - '.github/workflows/verify-upstream-n8n-canvas.yml'
+  workflow_dispatch:
+permissions: {contents: read}
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build Caddy gateway that proxies ORIGINAL upstream editor
+        run: docker build -f n8n/Dockerfile.native-editor-gateway -t upstream-n8n-canvas:ci .
+      - name: Check portal, all 13 workflows and original Vue proxy
+        run: |
+          docker run -d --name native -p 39087:3000 -e PORT=3000 upstream-n8n-canvas:ci
+          trap 'docker rm -f native >/dev/null 2>&1 || true' EXIT
+          for attempt in $(seq 1 30); do if curl -fsS http://localhost:39087/health; then break; fi; sleep 1; done
+          curl -fsS http://localhost:39087/ > /tmp/portal.html
+          grep -q 'n8n 원본 노드 플로우' /tmp/portal.html
+          grep -q "command:'openWorkflow'" /tmp/portal.html
+          grep -q '/workflows/demo?canExecute=false' /tmp/portal.html
+          for file in n8n/workflows/{operations,scenarios}/*.json; do
+            section=$(basename "$(dirname "$file")")
+            filename=$(basename "$file")
+            curl -fsS "http://localhost:39087/demo-data/$section/$filename" | python3 -c "import json,sys;obj=json.load(sys.stdin);assert len(obj['nodes'])>=2;assert isinstance(obj['connections'],dict)"
+            echo "VALID_WORKFLOW $section/$filename"
+          done
+          # n8n upstream is not attached in this CI container. 502 shows
+          # the demo route is proxied rather than silently rewritten to React.
+          code=$(curl -sS -o /dev/null -w '%{http_code}' http://localhost:39087/workflows/demo)
+          test "$code" = 502 || { echo "wrong native proxy $code";exit 1; }
+          code=$(curl -sS -o /dev/null -w '%{http_code}' -X POST http://localhost:39087/rest/workflows)
+          test "$code" = 403 || { echo "anonymous mutation not denied $code";exit 1; }
+          curl -sSD /tmp/head -o /dev/null http://localhost:39087/
+          ! grep -qi '^WWW-Authenticate:' /tmp/head
+          echo 'PASS ORIGINAL N8N CANVAS PORTAL AND 13 JSON WORKFLOWS'
