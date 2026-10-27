@@ -1,0 +1,46 @@
+name: Login-free real n8n synthetic scenario gateway
+on:
+  push:
+    branches: [feature/loginless-n8n-simulation-20261027]
+    paths:
+      - 'investment_studio/**'
+      - 'n8n/Caddyfile.railway'
+      - '.github/workflows/loginless-n8n-sim.yml'
+  workflow_dispatch:
+permissions: {contents: read}
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: Build React UI
+        working-directory: investment_studio
+        run: |
+          npm install --no-audit --no-fund
+          npm run build
+          grep -l 'n8n 실제 워크플로 경유' dist/assets/*.js
+      - name: Build exact Railway UI image
+        run: |
+          docker build -f n8n/Dockerfile.web.railway -t investment-n8n-simulation:ci .
+          docker run --rm --entrypoint sh investment-n8n-simulation:ci -c 'grep -l "n8n 워크플로 실행 테스트" /srv/assets/*.js'
+      - name: Verify Caddy no-login 10 scenario route and block other actions
+        run: |
+          docker run -d --name n8n-test-ui -p 39080:3000 \
+            -e PORT=3000 -e INVESTMENT_BACKEND_UPSTREAM=http://127.0.0.1:65535 \
+            -e ALPHA_NODE_API_KEY=ci-test-only \
+            investment-n8n-simulation:ci
+          trap 'docker rm -f n8n-test-ui >/dev/null 2>&1 || true' EXIT
+          for i in $(seq 1 30); do curl -fsS http://localhost:39080/health && break || sleep 1; done
+          code=$(curl -sS -o /dev/null -w '%{http_code}' http://localhost:39080/)
+          test "$code" = 200
+          # Real webhook dispatch reaches the mock absent upstream: 502 confirms routing;
+          # the backend itself remains the source of truth for allowed scenario IDs.
+          code=$(curl -sS -X POST -o /dev/null -w '%{http_code}' "http://localhost:39080/studio-api/api/v1/alpha/scenarios/01-new-strategy/dispatch?interval_ms=0")
+          test "$code" = 502 || { echo "Expected mocked n8n dispatch route 502, got $code"; exit 1; }
+          for path in /studio-api/api/v1/alpha/scenarios/other/dispatch /studio-api/api/v1/ops/strategies/sync /studio-api/api/v1/alpha/graphs/run; do
+            code=$(curl -sS -X POST -o /dev/null -w '%{http_code}' "http://localhost:39080$path")
+            test "$code" = 403 || { echo "$path returned $code, expected 403"; exit 1; }
+          done
+          echo 'PASS: no-login scenario dispatch is routed, unrelated commands not routed'
