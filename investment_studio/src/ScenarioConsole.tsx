@@ -32,7 +32,7 @@ export default function ScenarioConsole(){
     void Promise.all([
       get<{scenarios:Item[];flows:Record<string,string>}>(''),
       get<{configured:boolean}>('/infra')
-    ]).then(([r,infra])=>{setItems(r.scenarios);setFlows(r.flows);setN8nAvailable(infra.configured&&!publicDemo);if(!infra.configured)setExecutor('direct')})
+    ]).then(([r,infra])=>{setItems(r.scenarios);setFlows(r.flows);setN8nAvailable(infra.configured);if(!infra.configured)setExecutor('direct')})
       .catch(e=>setError(String(e)));
   },[]);
   useEffect(()=>{let active=true;void get<Details>('/'+selected).then(v=>{if(active)setDetails(v)}).catch(e=>{if(active)setError(String(e))});return()=>{active=false}},[selected]);
@@ -47,7 +47,7 @@ export default function ScenarioConsole(){
   const play=async()=>{
     setLaunching(true);setError('');setRun(null);setFocused(null);
     try{
-      const endpoint=executor==='n8n'&&!publicDemo?'/'+selected+'/dispatch?interval_ms='+intervalMs:'/'+selected+'/runs?interval_ms='+intervalMs;
+      const endpoint=executor==='n8n'?'/'+selected+'/dispatch?interval_ms='+intervalMs:'/'+selected+'/runs?interval_ms='+intervalMs;
       const started=await get<{run_id:string}>(endpoint,'POST');
       setRun(await get<Run>('/runs/'+started.run_id));
     }catch(e){setError(String(e))}
@@ -65,8 +65,8 @@ export default function ScenarioConsole(){
     <header className="scenario-header"><div><strong>운영 시나리오 검사 센터</strong><small>10개 플로우 · 서버 실행 상태 · 노드 입출력</small></div><span>SYNTHETIC / LIVE OFF</span></header>
     <aside className="scenario-menu"><h3>상황 10개 선택</h3>{items.map((x,i)=><button key={x.id} className={selected===x.id?'selected':''} onClick={()=>{setSelected(x.id);setFocused(null);setRun(null);setError('')}}><b>{String(i+1).padStart(2,'0')}. {x.title}</b><small>{x.steps}단계 · {x.flows.length}개 플로우</small></button>)}</aside>
     <main className="scenario-main">
-      <div className="scenario-toolbar"><div><h2>{details?.title||'선택한 시나리오'}</h2><p>{details?.purpose}</p><small>실행 경로: {executor==='n8n'?'실제 n8n Webhook → Worker → 백엔드 시뮬레이션':'Python API 직접 시뮬레이션'}</small></div><div><select aria-label="실행 엔진 선택" value={executor} onChange={e=>setExecutor(e.target.value as 'direct'|'n8n')}><option value="direct">직접 API 검사</option><option value="n8n" disabled={!n8nAvailable||publicDemo}>n8n Worker 경유{n8nAvailable?'':' (미연결)'}</option></select><select value={intervalMs} aria-label="실행 속도" onChange={e=>setIntervalMs(Number(e.target.value))}><option value={0}>즉시</option><option value={100}>빠르게</option><option value={240}>보통</option><option value={700}>느리게</option></select><button className="run" disabled={launching||!details||Boolean(run&&!finished(run.status))} onClick={()=>void play()}>▶ {run&&!finished(run.status)?'실행 중':'시나리오 실행'}</button></div></div>
-      <div className="scenario-progress"><b>{run?run.status.toUpperCase():'READY'}</b><span>{executor==='n8n'?'n8n 실경로':'직접 API 경로'}</span><span>{run?run.completed_steps+' / '+run.total_steps+' 단계 · '+run.progress_pct+'%':'실행 전'}</span><div><i style={{width:(run?.progress_pct||0)+'%'}}/></div>{run&&<small>run_id: {run.run_id}</small>}</div>
+      <div className="scenario-toolbar"><div><h2>{details?.title||'선택한 시나리오'}</h2><p>{details?.purpose}</p><small>실행 경로: {executor==='n8n'?'n8n 실제 Webhook → Worker → Python 합성 시뮬레이션':'Python API 직접 시뮬레이션'}</small></div><div><select aria-label="실행 엔진 선택" value={executor} onChange={e=>setExecutor(e.target.value as 'direct'|'n8n')}><option value="direct">직접 API 검사</option><option value="n8n" disabled={!n8nAvailable}>n8n 실제 워크플로 경유 (합성 테스트){n8nAvailable?'':' (미연결)'}</option></select><select value={intervalMs} aria-label="실행 속도" onChange={e=>setIntervalMs(Number(e.target.value))}><option value={0}>즉시</option><option value={100}>빠르게</option><option value={240}>보통</option><option value={700}>느리게</option></select><button className="run" disabled={launching||!details||Boolean(run&&!finished(run.status))} onClick={()=>void play()}>▶ {run&&!finished(run.status)?'실행 중':'시나리오 실행'}</button></div></div>
+      <div className="scenario-progress"><b>{run?run.status.toUpperCase():'READY'}</b><span>{executor==='n8n'?'n8n 실경로(합성 실행)':'직접 API 경로'}</span><span>{run?run.completed_steps+' / '+run.total_steps+' 단계 · '+run.progress_pct+'%':'실행 전'}</span><div><i style={{width:(run?.progress_pct||0)+'%'}}/></div>{run&&<small>run_id: {run.run_id}</small>}</div>
       <div className="scenario-content"><h3>독립 플로우 가동 상태</h3><div className="scenario-flows">{flowIds.map(f=>{const e=latestByFlow[f],involved=details?.steps.some(s=>s.flow===f);return <div key={f} className={'flow '+(involved?'involved ':'')+(e?.status||'waiting')}><strong>{f}</strong><b>{flows[f]}</b><small>{e?e.action+' · '+e.status:involved?'대기':'비관련'}</small></div>})}</div>
         <h3>실행 단계 및 데이터 전달</h3><div className="scenario-steps">{details?.steps.map((s,i)=>{const ev=current.get(i),state=ev?.status||'waiting';return <button className={'step '+state+(focused===i?' active':'')} key={i} onClick={()=>setFocused(i)}><span>{i+1}</span><strong>{s.flow}</strong><div><b>{s.action}</b><small>{s.details}</small></div><em>{state==='success'?'✓ 완료':state==='running'?'● 진행 중':'대기'}</em></button>})}</div>
       </div>
