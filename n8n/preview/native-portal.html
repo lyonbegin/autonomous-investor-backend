@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>투자 자동화 · n8n 원본 노드 플로우</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#0c1825;color:#e8f1fa;font:14px system-ui,"Malgun Gothic",sans-serif}
+header{height:76px;background:#152b3d;padding:13px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #36506a;gap:14px}
+h1{margin:0;font-size:17px}p{margin:4px 0 0;color:#acc5d3;font-size:12px}a{color:#abe5ff;text-decoration:none}
+main{display:flex;height:calc(100vh - 76px)}aside{width:320px;min-width:250px;background:#112538;padding:15px 12px;overflow:auto;border-right:1px solid #36506a}
+aside h2{font-size:13px;margin:12px 8px;color:#9ddcc6}button.flow{color:#c8ddeb;display:block;width:100%;padding:12px;border:0;border-radius:7px;background:transparent;text-align:left;cursor:pointer;margin:4px 0;font:inherit}
+button.flow:hover{background:#234254}button.flow.active{background:#235d61;color:#fff;border-left:3px solid #54d6b0}
+button.flow small{color:#9ab4c2;display:block;margin-top:4px}section{flex:1;min-width:0;display:flex;flex-direction:column}
+.toolbar{padding:11px 17px;display:flex;align-items:center;justify-content:space-between;gap:8px;border-bottom:1px solid #36506a}
+#status{font-size:12px;color:#e8c584}iframe{width:100%;flex:1;border:0;background:#f5f5f5}
+@media(max-width:700px){aside{width:130px;min-width:130px;padding:7px}button.flow{font-size:12px;padding:8px}header{height:auto;min-height:75px}main{height:calc(100vh - 80px)}} 
+</style></head><body>
+<header><div><h1>n8n 원본 노드 플로우 · 투자 자동화</h1><p>공식 n8n Vue 캔버스 · 13개 실제 워크플로 JSON · 로그인 없는 테스트 미리보기</p></div>
+<a href="https://investment-n8n-operations-ui-production.up.railway.app/" target="_blank" rel="noopener">실제 n8n Webhook 시나리오 실행 결과 보기</a></header>
+<main><aside><h2>운영 플로우 (3)</h2><div id="operations"></div><h2>합성 테스트 플로우 (10)</h2><div id="scenarios"></div></aside>
+<section><div class="toolbar"><strong id="title">원본 n8n 편집기 캔버스</strong><span id="status">초기화 중…</span></div>
+<iframe id="n8n-canvas" title="n8n 공식 Vue 노드 캔버스" src="/workflows/demo?canExecute=false" referrerpolicy="same-origin"></iframe></section></main>
+<script>
+const flows=[
+['operations/F01-strategy-sync.json','F01 전략 풀 증분 수집'],
+['operations/F03-agent-allocation.json','F03 에이전트 할당'],
+['operations/F05-independent-audit.json','F05 독립 감사'],
+['scenarios/01-new-strategy.json','01 신규 전략 수집'],
+['scenarios/02-version-update.json','02 전략 버전 변경'],
+['scenarios/03-capital-race.json','03 자본 배분 경쟁'],
+['scenarios/04-partial-fill.json','04 부분 체결'],
+['scenarios/05-long-backtest.json','05 장기 백테스트'],
+['scenarios/06-strategy-drift.json','06 전략 드리프트'],
+['scenarios/07-broker-timeout.json','07 브로커 타임아웃'],
+['scenarios/08-agent-crash.json','08 에이전트 중단'],
+['scenarios/09-unsupported-pine.json','09 지원 불가 Pine'],
+['scenarios/10-strategy-retire.json','10 전략 폐기']
+];
+const frame=document.getElementById('n8n-canvas'),status=document.getElementById('status'),title=document.getElementById('title');
+let ready=false,chosen=0;
+const buttons=flows.map(([file,label],i)=>{
+ const b=document.createElement('button');b.type='button';b.className='flow';b.textContent=label;b.dataset.workflow=file;
+ b.onclick=()=>select(i);
+ (i<3?document.getElementById('operations'):document.getElementById('scenarios')).appendChild(b);
+ return b;
+});
+async function select(i){
+ chosen=i;
+ buttons.forEach((b,j)=>b.classList.toggle('active',j===i));
+ title.textContent=flows[i][1];
+ status.textContent='워크플로 JSON 가져오는 중…';
+ try{
+  const response=await fetch('/demo-data/'+flows[i][0],{cache:'no-store'});
+  if(!response.ok)throw Error('HTTP '+response.status);
+  const workflow=await response.json();
+  if(!Array.isArray(workflow.nodes)||typeof workflow.connections!=='object')throw Error('JSON 노드 데이터가 올바르지 않음');
+  if(!ready){status.textContent='공식 n8n 캔버스 준비 중…';return;}
+  frame.contentWindow.postMessage(JSON.stringify({command:'openWorkflow',workflow:{...workflow,active:false},canOpenNDV:true,suppressNotifications:true}),location.origin);
+  status.textContent='원본 노드 '+workflow.nodes.length+'개 로드 요청 · 실제 거래 실행 없음';
+ }catch(error){status.textContent='불러오기 오류: '+error.message;}
+}
+window.addEventListener('message',e=>{
+ if(e.origin!==location.origin||e.source!==frame.contentWindow||typeof e.data!=='string')return;
+ let data;try{data=JSON.parse(e.data);}catch{return;}
+ if(data.command==='n8nReady'){ready=true;select(chosen);}
+ else if(data.command==='error'){status.textContent='n8n 원본 캔버스 오류: '+data.message;}
+});
+select(0);
+</script></body></html>
