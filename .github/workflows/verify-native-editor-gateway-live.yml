@@ -1,0 +1,34 @@
+name: Verify protected native n8n access
+on:
+  push:
+    branches: [feature/public-demo-readonly-20261025]
+    paths: ['.github/workflows/verify-native-editor-gateway-live.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  access:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Native n8n gateway rejects anonymous graph, setup and API access
+        run: |
+          python3 - <<'PY'
+          import urllib.request,urllib.error,time
+          base="https://investment-n8n-native-editor-production.up.railway.app"
+          def test(path):
+            req=urllib.request.Request(base+path,headers={"User-Agent":"native-n8n-gateway-security-check/1.0"})
+            try:
+              with urllib.request.urlopen(req,timeout=15) as r:return r.status
+            except urllib.error.HTTPError as e:return e.code
+          for i in range(15):
+            try:
+              if test("/health")==200: break
+            except Exception as e:print("health retry",type(e).__name__)
+            time.sleep(4)
+          assert test("/health")==200, "gateway health failed"
+          for path in ["/","/setup","/workflow/aiOperationF01","/workflow/autonomousScenario01","/rest/settings","/rest/workflows","/api/v1/workflows"]:
+            status=test(path)
+            print(path,"HTTP",status)
+            assert status==401,(path,status)
+          print("NATIVE_N8N_GATEWAY_ANONYMOUS_ACCESS_BLOCKED")
+          PY

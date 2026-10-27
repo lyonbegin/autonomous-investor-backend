@@ -1,0 +1,11 @@
+# Lean isolated TEST backend: never connects to a broker.
+FROM python:3.13-slim-bookworm
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
+WORKDIR /srv
+COPY pyproject.toml /srv/pyproject.toml
+COPY app /srv/app
+COPY lab /srv/lab
+RUN pip install --no-cache-dir "fastapi>=0.115,<1.0" "uvicorn>=0.34,<1.0" \
+    "pydantic>=2.12,<3.0" "pydantic-settings>=2.1" numpy pandas httpx
+ENV ALPHA_ALLOW_RESEARCH=false ALPHA_ALLOW_TRAINING=false ALPHA_ALLOW_QUANT_WRITES=false
+CMD ["uvicorn","app.main:app","--host","0.0.0.0","--port","8000"]

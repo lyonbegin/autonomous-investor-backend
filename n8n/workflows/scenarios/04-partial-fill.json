@@ -1,0 +1,182 @@
+{
+  "name": "AI-04 | 부분체결과 중복 주문 방지",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ai-scenario-04-partial-fill",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-4",
+      "name": "시나리오 Webhook 접수",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "webhookId": "ai-scenario-04-partial-fill",
+      "position": [
+        220,
+        90
+      ],
+      "notes": "내부 전용 webhook. n8n 공개 인그레스 금지; API 내부 인증 필수."
+    },
+    {
+      "parameters": {},
+      "id": "manual-04",
+      "name": "수동 실행 - 부분체결과 중복 주문 방지",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        240,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://invest-backend:8000/api/v1/alpha/scenarios/04-partial-fill/runs?interval_ms=160",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "start-04",
+      "name": "내부 시나리오 API 시작",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        510,
+        320
+      ],
+      "notes": "HTTP Header Auth credential: Authorization = Bearer <ALPHA_NODE_API_KEY>. No real trading."
+    },
+    {
+      "parameters": {
+        "amount": 3,
+        "unit": "seconds"
+      },
+      "id": "wait-04",
+      "name": "시뮬레이션 실행 대기",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        770,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=http://invest-backend:8000/api/v1/alpha/scenarios/runs/{{ $('내부 시나리오 API 시작').first().json.run_id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "result-04",
+      "name": "상태·노드 실행 결과 조회",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1040,
+        320
+      ],
+      "notes": "Actual progression can be monitored live through React UI or GET /runs/{id} while n8n awaits completion."
+    },
+    {
+      "parameters": {
+        "respondWith": "firstIncomingItem",
+        "options": {
+          "responseCode": 202
+        }
+      },
+      "id": "respond-4",
+      "name": "run_id 즉시 응답",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        750,
+        90
+      ],
+      "notes": "Python API가 반환한 run_id를 화면에 즉시 전달; 백그라운드 시뮬레이션 계속 실행."
+    }
+  ],
+  "connections": {
+    "수동 실행 - 부분체결과 중복 주문 방지": {
+      "main": [
+        [
+          {
+            "node": "내부 시나리오 API 시작",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "내부 시나리오 API 시작": {
+      "main": [
+        [
+          {
+            "node": "run_id 즉시 응답",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "시뮬레이션 실행 대기": {
+      "main": [
+        [
+          {
+            "node": "상태·노드 실행 결과 조회",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "시나리오 Webhook 접수": {
+      "main": [
+        [
+          {
+            "node": "내부 시나리오 API 시작",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "run_id 즉시 응답": {
+      "main": [
+        [
+          {
+            "node": "시뮬레이션 실행 대기",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveExecutionProgress": true,
+    "saveManualExecutions": true
+  },
+  "active": false,
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": [],
+  "id": "autonomousScenario04"
+}

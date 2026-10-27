@@ -49,13 +49,45 @@ class ExperimentResult(BaseModel):
     observations: list[str] = Field(default_factory=list)
 
 
+class ModelScore(BaseModel):
+    instrument: str
+    timestamp: datetime
+    model_id: str
+    score: float
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class ForecastQuantile(BaseModel):
+    quantile: float = Field(gt=0.0, lt=1.0)
+    value: float
+
+
+class Forecast(BaseModel):
+    instrument: str
+    timestamp: datetime
+    model_id: str
+    horizon: str
+    target: str
+    point_forecast: float | None = None
+    quantiles: list[ForecastQuantile] = Field(default_factory=list)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class PolicyAction(BaseModel):
+    policy_id: str
+    timestamp: datetime
+    action: Any
+    instrument_scope: list[str] = Field(default_factory=list)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
 class Signal(BaseModel):
     instrument: str
     timestamp: datetime
     horizon: str
     direction: Literal[-1, 0, 1]
     expected_return: float | None = None
-    confidence: float = Field(ge=0.0, le=1.0)
+    confidence: float | None = Field(default=None, ge=0.0, le=1.0)
     uncertainty: float | None = Field(default=None, ge=0.0, le=1.0)
     model_id: str
     evidence: list[str] = Field(default_factory=list)
@@ -88,6 +120,18 @@ class TargetPortfolio(BaseModel):
     @property
     def net_exposure(self) -> float:
         return sum(x.weight for x in self.weights)
+
+
+class OrderIntent(BaseModel):
+    instrument: str
+    side: Literal["buy", "sell"]
+    quantity: float = Field(gt=0.0)
+    target_weight: float
+    current_quantity: float
+    target_quantity: float
+    reference_price: float = Field(gt=0.0)
+    notional_delta: float
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class RiskDecision(BaseModel):

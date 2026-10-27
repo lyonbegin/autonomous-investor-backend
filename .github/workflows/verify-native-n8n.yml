@@ -1,0 +1,52 @@
+name: Verify native n8n editor access
+on:
+  push:
+    branches: [feature/public-demo-readonly-20261025]
+    paths: ['.github/workflows/verify-native-n8n.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  native-n8n:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check native n8n editor and instance owner status (never print secrets)
+        env:
+          N8N_URL: https://investment-n8n-main-production.up.railway.app
+        run: |
+          python3 - <<'PY'
+          import json,os,time,urllib.request,urllib.error
+          base=os.environ['N8N_URL']
+          def read(path):
+            req=urllib.request.Request(base+path,headers={'User-Agent':'Autonomous-Investor-n8n-native-verify/1.0'})
+            try:
+              with urllib.request.urlopen(req,timeout=18) as res: return res.status,res.read(1000000),res.headers.get('content-type','')
+            except urllib.error.HTTPError as err: return err.code,err.read(1500),err.headers.get('content-type','')
+          for n in range(12):
+            try:
+              status,data,ct=read('/')
+              if status==200:break
+              print('EDITOR_RETRY',n,status,flush=True)
+            except Exception as e: print('EDITOR_RETRY',n,type(e).__name__,flush=True)
+            time.sleep(5)
+          assert status==200 and b'<html' in data.lower(),('editor unavailable',status,ct)
+          print('N8N_NATIVE_EDITOR_HTTP',status)
+          status,data,ct=read('/rest/settings')
+          print('N8N_SETTINGS_HTTP',status)
+          assert status==200,('settings unavailable',status)
+          obj=json.loads(data).get('data',{})
+          um=obj.get('userManagement',{})
+          owner=um.get('isInstanceOwnerSetUp')
+          print('N8N_INSTANCE_OWNER_SETUP',owner)
+          print('PUBLIC_SETTINGS_KEYS',sorted(obj.keys()))
+          print('PUBLIC_USER_MANAGEMENT_KEYS',sorted(um.keys()))
+          print('N8N_SHOW_SETUP_ON_FIRST_LOAD',um.get('showSetupOnFirstLoad'))
+          assert um.get('showSetupOnFirstLoad') is False,'Instance may allow unauthenticated owner setup'
+          status,_,_=read('/rest/workflows')
+          print('UNAUTHENTICATED_WORKFLOWS_STATUS',status)
+          assert status in (401,403),('workflows could be accessed unauthenticated',status)
+          status,_,_=read('/api/v1/workflows')
+          print('UNAUTHENTICATED_API_WORKFLOWS_STATUS',status)
+          assert status in (401,403),('API workflows could be accessed without key',status)
+          print('NATIVE_N8N_EDITOR_ACCESS_SECURITY_PASS')
+          PY

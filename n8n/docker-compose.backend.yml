@@ -1,0 +1,31 @@
+# Run with: docker compose -f docker-compose.yml -f docker-compose.backend.yml up -d --build
+# No actual Nautilus order executor or exchange credentials are included.
+services:
+  invest-backend:
+    build:
+      context: ..
+      dockerfile: n8n/Dockerfile.backend
+    restart: unless-stopped
+    # Local React admin proxy only; never expose without an authenticated gateway.
+    ports:
+      - "127.0.0.1:8000:8000"
+    environment:
+      ALPHA_NODE_API_KEY: ${ALPHA_NODE_API_KEY:?Set ALPHA_NODE_API_KEY}
+      SCENARIO_DB_PATH: /data/scenario_runs.sqlite3
+      STRATEGY_OPERATIONS_DB_PATH: /data/strategy_operations.sqlite3
+      ALPHA_TRADINGVIEW_BASE: ${ALPHA_TRADINGVIEW_BASE:-}
+      ALPHA_TRADINGVIEW_TOKEN: ${ALPHA_TRADINGVIEW_TOKEN:-}
+      INVESTMENT_FLOW_DB_PATH: /data/investment_flows.sqlite3
+      N8N_INTERNAL_WEBHOOK_BASE: http://n8n:5678
+    volumes:
+      - invest_sim_state:/data
+    depends_on:
+      n8n: {condition: service_started}
+    healthcheck:
+      test: ["CMD","python","-c","import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/openapi.json', timeout=2).read(16)"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
+volumes:
+  invest_sim_state:

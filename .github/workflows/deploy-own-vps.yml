@@ -1,0 +1,82 @@
+name: Deploy to OWN VPS (NON-Railway, manual approval)
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_deploy:
+        description: "Type DEPLOY to deploy to YOUR registered VPS"
+        type: string
+        required: true
+      public_https_url:
+        description: "Actual HTTPS URL, such as https://invest.example.com"
+        type: string
+        required: true
+permissions:
+  contents: read
+jobs:
+  deploy-vps:
+    if: github.event.inputs.confirm_deploy == 'DEPLOY'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: selfhost-production
+    steps:
+      - name: Confirm connected VPS SSH target (no Railway)
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_SSH_PRIVATE_KEY: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
+          VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          for key in VPS_HOST VPS_USER VPS_SSH_PRIVATE_KEY VPS_KNOWN_HOSTS; do
+            test -n "$(printenv "$key")" || { echo "MISSING VPS SECRET: $key"; exit 12; }
+          done
+          mkdir -p "$HOME/.ssh"
+          chmod 700 "$HOME/.ssh"
+          printf '%s\n' "$VPS_SSH_PRIVATE_KEY" > "$HOME/.ssh/id_ed25519"
+          printf '%s\n' "$VPS_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/id_ed25519"
+          chmod 600 "$HOME/.ssh/known_hosts"
+          echo "SSH secrets present; host key is pinned (StrictHostKeyChecking enabled)."
+      - name: Deploy pinned git commit to server-local Docker Compose
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+        run: |
+          set -euo pipefail
+          REV="$GITHUB_SHA"
+          ssh -i "$HOME/.ssh/id_ed25519" \
+            -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o BatchMode=yes \
+            "$VPS_USER@$VPS_HOST" "bash -s -- '$REV'" <<'REMOTE'
+          set -euo pipefail
+          REV="$1"
+          PROJECT="$HOME/apps/autonomous-investor-backend"
+          if [ ! -d "$PROJECT/.git" ]; then
+            mkdir -p "$HOME/apps"
+            git clone https://github.com/lyonbegin/autonomous-investor-backend.git "$PROJECT"
+          fi
+          cd "$PROJECT"
+          git diff --quiet || { echo 'FAILED: server repo has local tracked changes'; exit 30; }
+          git diff --cached --quiet || { echo 'FAILED: server repo has staged changes'; exit 31; }
+          git fetch --no-tags origin "$REV"
+          git checkout --detach "$REV"
+          test -f n8n/.env || { echo 'FAILED: private n8n/.env must be configured ON SERVER first'; exit 32; }
+          bash n8n/scripts/deploy_selfhost.sh
+          REMOTE
+      - name: Independently verify real public HTTPS TLS and login gate
+        env:
+          PUBLIC_URL: ${{ inputs.public_https_url }}
+        run: |
+          set -euo pipefail
+          case "$PUBLIC_URL" in
+            https://*) ;;
+            *) echo "INVALID public HTTPS URL"; exit 40 ;;
+          esac
+          HTTP_CODE=000
+          for i in $(seq 1 45); do
+            HTTP_CODE="$(curl --silent --max-time 8 --output /dev/null --write-out '%{http_code}' "$PUBLIC_URL/" || true)"
+            if [ "$HTTP_CODE" = 401 ]; then break; fi
+            sleep 5
+          done
+          test "$HTTP_CODE" = 401 || { echo "FAILED: PUBLIC HTTPS AUTH CHECK returned HTTP $HTTP_CODE"; exit 41; }
+          echo "ACTUAL_PUBLIC_HTTPS_TLS_AND_AUTHENTICATION_CHECK_PASSED"
+          echo "The site is deployed, but this proof does not authorize real broker trades."

@@ -1,0 +1,11 @@
+# Validated in the 12-engine Python 3.13 integration environment.
+pydantic-ai==1.70.0
+pydantic-ai-slim==1.70.0
+pandas==3.0.6
+numpy>=2.4.6,<3
+mlflow<3.13
+filelock>=3.16,<3.30
+packaging>=25,<26
+torch>=2.8,<3
+gymnasium==1.2.2
+ray==2.59.0

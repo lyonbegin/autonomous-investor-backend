@@ -1,0 +1,89 @@
+python = "3.13"
+
+[[projects]]
+name = "TradingAgents"
+repo = "TauricResearch/TradingAgents"
+ref = "e8f5503e9b86d5c2710b0c76b1f686703968c9df"
+install_path = "."
+status = "validated"
+
+[[projects]]
+name = "FinRobot V2"
+repo = "AI4Finance-Foundation/FinRobot"
+ref = "2717499b8e30f242640af08c4ad9afd1113c2d45"
+install_path = "finrobot_desktop"
+status = "validated"
+
+[[projects]]
+name = "RD-Agent"
+repo = "microsoft/RD-Agent"
+ref = "484776c211e4fbbeef03e0ec00d6bbee7362a4f4"
+install_path = "."
+status = "validated-with-dependency-overlay"
+dependency_overlay = "pydantic-ai-slim[mcp,openai,prefect]==1.66.0 -> ==1.70.0"
+
+[[projects]]
+name = "Qlib"
+repo = "microsoft/qlib"
+ref = "54355232463878d2eebb91fe0ee5fa7fa1f5976c"
+install_path = "."
+status = "validated"
+
+[[projects]]
+name = "Chronos"
+repo = "amazon-science/chronos-forecasting"
+ref = "1224fafa91e1ecd6674f5204066b159e40b5e4a1"
+install_path = "."
+status = "validated"
+
+[[projects]]
+name = "Stable-Baselines3"
+repo = "DLR-RM/stable-baselines3"
+ref = "b2878f4b83e21f16a53c54a62def628e05fd2e96"
+install_path = "."
+status = "validated"
+
+[[projects]]
+name = "Ray RLlib"
+repo = "ray-project/ray"
+ref = "ray-2.59.0"
+install = "ray[rllib]==2.59.0"
+status = "validated"
+
+[[projects]]
+name = "vectorbt"
+repo = "polakowo/vectorbt"
+ref = "v1.2.0"
+install_path = "."
+status = "validated"
+
+[[projects]]
+name = "FinRL-Trading"
+repo = "AI4Finance-Foundation/FinRL-Trading"
+ref = "4409abe925c904e570be78ebfb5e77ac3491dff8"
+install_path = "."
+status = "validated-with-dependency-overlay"
+dependency_overlay = "finnhub>=2.4.19 -> finnhub-python>=2.4.19"
+
+[[projects]]
+name = "Riskfolio-Lib"
+repo = "dcajasn/Riskfolio-Lib"
+ref = "7b1b26ac9760974c12ecefe290a9d3bd37b66b7a"
+install_path = "."
+status = "validated"
+
+[[projects]]
+name = "PyPortfolioOpt"
+repo = "PyPortfolio/PyPortfolioOpt"
+ref = "a6638d2e06dae6f444fd022cfd4b3c528902a85b"
+install_path = "."
+status = "validated"
+
+[[projects]]
+name = "NautilusTrader"
+repo = "nautechsystems/nautilus_trader"
+ref = "69aa8a283c8735cee4a536084078e3b19ac9a1be"
+install = "captured official develop wheel"
+version = "2.0.0rc8.dev20261022+19732"
+wheel_sha256 = "e77ef52d9c5593e1c420c60cc1bb4e7c1af13c7515729475064a679e46bbab50"
+status = "validated"

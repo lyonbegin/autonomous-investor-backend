@@ -1,0 +1,13 @@
+# Validated shared constraints for the cumulative Python 3.13 integration lab.
+# This file grows only after a combination passes pip check + native imports.
+pydantic-ai==1.70.0
+pydantic-ai-slim==1.70.0
+pandas==3.0.6
+mlflow<3.13
+filelock>=3.16,<3.30
+packaging>=25,<26
+torch>=2.8,<3
+gymnasium==1.2.2
+ray==2.59.0
+numpy>=2.4.6,<3
+nautilus-trader==2.0.0rc8.dev20261022+19732

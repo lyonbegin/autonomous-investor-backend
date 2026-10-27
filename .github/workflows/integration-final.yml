@@ -1,0 +1,278 @@
+name: Final Twelve Engine Integration
+
+on:
+  push:
+    branches: [integration-lab]
+    paths:
+      - ".github/workflows/integration-final.yml"
+
+jobs:
+  final-twelve:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: "pip"
+          cache-dependency-path: "lab/pip-cache-key.txt"
+
+      - name: Checkout exact upstream sources
+        run: |
+          set -euxo pipefail
+          git clone --filter=blob:none https://github.com/TauricResearch/TradingAgents.git ta
+          git -C ta checkout e8f5503e9b86d5c2710b0c76b1f686703968c9df
+          git clone --filter=blob:none https://github.com/AI4Finance-Foundation/FinRobot.git fr
+          git -C fr checkout 2717499b8e30f242640af08c4ad9afd1113c2d45
+          git clone --filter=blob:none https://github.com/microsoft/RD-Agent.git rd
+          git -C rd checkout 484776c211e4fbbeef03e0ec00d6bbee7362a4f4
+          git clone --filter=blob:none https://github.com/microsoft/qlib.git qlib-src
+          git -C qlib-src checkout 54355232463878d2eebb91fe0ee5fa7fa1f5976c
+          git clone --filter=blob:none https://github.com/amazon-science/chronos-forecasting.git chronos-src
+          git -C chronos-src checkout 1224fafa91e1ecd6674f5204066b159e40b5e4a1
+          git clone --filter=blob:none https://github.com/DLR-RM/stable-baselines3.git sb3-src
+          git -C sb3-src checkout b2878f4b83e21f16a53c54a62def628e05fd2e96
+          git clone --depth 1 --branch ray-2.59.0 --filter=blob:none --sparse https://github.com/ray-project/ray.git ray-src
+          git -C ray-src sparse-checkout set rllib python
+          git clone --depth 1 --branch v1.2.0 --filter=blob:none https://github.com/polakowo/vectorbt.git vectorbt-src
+          git clone --filter=blob:none https://github.com/AI4Finance-Foundation/FinRL-Trading.git finrl-src
+          git -C finrl-src checkout 4409abe925c904e570be78ebfb5e77ac3491dff8
+          git clone --filter=blob:none https://github.com/dcajasn/Riskfolio-Lib.git riskfolio-src
+          git -C riskfolio-src checkout 7b1b26ac9760974c12ecefe290a9d3bd37b66b7a
+          git clone --filter=blob:none https://github.com/PyPortfolio/PyPortfolioOpt.git pypfopt-src
+          git -C pypfopt-src checkout a6638d2e06dae6f444fd022cfd4b3c528902a85b
+          git clone --filter=blob:none https://github.com/nautechsystems/nautilus_trader.git nautilus-src
+          git -C nautilus-src checkout 69aa8a283c8735cee4a536084078e3b19ac9a1be
+
+      - name: Verify Nautilus source identity
+        run: |
+          set -euxo pipefail
+          test "$(git -C nautilus-src rev-parse HEAD)" = "69aa8a283c8735cee4a536084078e3b19ac9a1be"
+          python - <<'PY'
+          import tomllib
+          with open("nautilus-src/python/pyproject.toml","rb") as f:
+              p=tomllib.load(f)
+          assert p["project"]["version"]=="2.0.0rc8"
+          assert p["project"]["requires-python"]==">=3.13,<3.15"
+          print("NAUTILUS_SOURCE_IDENTITY_OK", p["project"]["version"])
+          PY
+
+      - name: Apply compatibility overlays
+        run: |
+          set -euxo pipefail
+          cp rd/requirements.txt rd/requirements.upstream.txt
+          cp finrl-src/requirements.txt finrl-src/requirements.upstream.txt
+          python - <<'PY'
+          from pathlib import Path
+          p=Path("rd/requirements.txt")
+          s=p.read_text()
+          old="pydantic-ai-slim[mcp,openai,prefect]==1.66.0"
+          new="pydantic-ai-slim[mcp,openai,prefect]==1.70.0"
+          assert old in s
+          p.write_text(s.replace(old,new))
+
+          p=Path("finrl-src/requirements.txt")
+          s=p.read_text()
+          old="finnhub>=2.4.19"
+          new="finnhub-python>=2.4.19"
+          assert old in s
+          p.write_text(s.replace(old,new))
+          PY
+          diff -u rd/requirements.upstream.txt rd/requirements.txt > rdagent-dependency-compat.patch || true
+          diff -u finrl-src/requirements.upstream.txt finrl-src/requirements.txt > finrl-dependency-compat.patch || true
+
+      - name: Shared constraints
+        run: |
+          cat > constraints.txt <<'EOF'
+          pydantic-ai==1.70.0
+          pydantic-ai-slim==1.70.0
+          pandas==3.0.6
+          numpy>=2.4.6,<3
+          mlflow<3.13
+          filelock>=3.16,<3.30
+          packaging>=25,<26
+          torch>=2.8,<3
+          gymnasium==1.2.2
+          ray==2.59.0
+          EOF
+
+      - name: Create shared Python 3.13 environment
+        run: |
+          python -m venv env
+          source env/bin/activate
+          python -m pip install -U pip setuptools wheel cython
+
+      - name: Install validated eleven-engine stack
+        run: |
+          set -euxo pipefail
+          source env/bin/activate
+          python -m pip install -c constraints.txt ./ta ./fr/finrobot_desktop ./rd ./qlib-src ./chronos-src ./sb3-src
+          python -m pip install -c constraints.txt "ray[rllib]==2.59.0"
+          python -m pip install -c constraints.txt ./vectorbt-src
+          python -m pip install -c constraints.txt ./finrl-src
+          python -m pip install -c constraints.txt ./riskfolio-src
+          python -m pip install -c constraints.txt ./pypfopt-src
+          python -m pip check
+
+      - name: Download captured exact Nautilus wheel
+        uses: actions/download-artifact@v4
+        with:
+          name: nautilus-19732-exact-wheel
+          path: captured-nautilus
+          github-token: ${{ github.token }}
+          repository: lyonbegin/autonomous-investor-backend
+          run-id: 39773534982
+
+      - name: Install captured exact Nautilus wheel as twelfth engine
+        run: |
+          set -euxo pipefail
+          source env/bin/activate
+          wheel_file="$(find captured-nautilus -name 'nautilus_trader-2.0.0rc8.dev20261022+19732-cp313-cp313-manylinux_2_34_x86_64.whl' -print -quit)"
+          test -n "$wheel_file"
+          echo "e77ef52d9c5593e1c420c60cc1bb4e7c1af13c7515729475064a679e46bbab50  $wheel_file" | sha256sum -c -
+          python -m pip install --no-deps "$wheel_file"
+          python -m pip check
+          python - <<'PY'
+          import nautilus_trader
+          assert nautilus_trader.__version__ == "2.0.0rc8.dev20261022+19732"
+          print("TWELVE_INSTALL_OK", nautilus_trader.__version__)
+          PY
+
+      - name: Verify all twelve native surfaces together
+        run: |
+          set -euxo pipefail
+          source env/bin/activate
+          python - <<'PY'
+          import tradingagents, finrobot, rdagent, qlib, chronos, stable_baselines3
+          import ray, vectorbt, riskfolio, pypfopt, nautilus_trader
+          from tradingagents.graph.trading_graph import TradingAgentsGraph
+          from finrobot import FinRobot
+          from rdagent.app.qlib_rd_loop.quant import QuantRDLoop
+          from qlib.model.base import BaseModel
+          from chronos import Chronos2Pipeline
+          from stable_baselines3 import PPO
+          from ray.rllib.algorithms.ppo import PPOConfig
+          from vectorbt.portfolio.base import Portfolio
+          from strategies.base_strategy import StrategyResult
+          from riskfolio import Portfolio as RiskfolioPortfolio
+          from pypfopt import EfficientFrontier
+          from nautilus_trader.trading import Strategy, StrategyConfig
+          from nautilus_trader.backtest import BacktestEngineConfig, BacktestNode
+          from nautilus_trader.risk import RiskEngineConfig
+          from nautilus_trader.execution import ExecutionEngineConfig
+          print("ALL_TWELVE_NATIVE_IMPORTS_OK")
+          print(
+              TradingAgentsGraph, FinRobot, QuantRDLoop, BaseModel, Chronos2Pipeline,
+              PPO, PPOConfig, Portfolio, StrategyResult, RiskfolioPortfolio,
+              EfficientFrontier, Strategy, StrategyConfig, BacktestNode,
+              BacktestEngineConfig, RiskEngineConfig, ExecutionEngineConfig,
+          )
+          PY
+
+      - name: Verify our thin bridge layer
+        run: |
+          set -euxo pipefail
+          source env/bin/activate
+          python - <<'PY'
+          import numpy as np
+          import pandas as pd
+
+          from lab.bridges.tradingagents_bridge import TradingAgentsBridge
+          from lab.bridges.finrobot_bridge import FinRobotBridge
+          from lab.bridges.rdagent_bridge import RDAgentQuantBridge
+          from lab.bridges.qlib_bridge import QlibBridge
+          from lab.bridges.chronos_bridge import ChronosBridge
+          from lab.bridges.sb3_bridge import StableBaselinesBridge
+          from lab.bridges.rllib_bridge import RLlibBridge
+          from lab.bridges.vectorbt_bridge import VectorBTBridge
+          from lab.bridges.finrl_bridge import FinRLBridge
+          from lab.bridges.riskfolio_bridge import RiskfolioBridge
+          from lab.bridges.pypfopt_bridge import PyPortfolioOptBridge
+          from lab.bridges.nautilus_bridge import NautilusBridge
+
+          # vectorbt bridge
+          close=pd.Series([1.0,2.0,1.5,3.0])
+          pf=VectorBTBridge.from_signals(
+              close,
+              pd.Series([True,False,True,False]),
+              pd.Series([False,True,False,True]),
+          )
+          assert float(pf.total_return()) == 3.0
+
+          # FinRL bridge
+          strategy=FinRLBridge.equal_weight("eq")
+          result=FinRLBridge.generate_weights(
+              strategy,
+              {"fundamentals":pd.DataFrame({"gvkey":["A","B","C"]})},
+          )
+          assert result.weights.shape[0] == 3
+
+          # Riskfolio bridge
+          returns=pd.DataFrame({
+              "A":[0.01,-0.01,0.02,0.00,0.01],
+              "B":[0.00,0.01,-0.01,0.02,0.01],
+              "C":[0.02,0.00,0.01,-0.01,0.00],
+          })
+          rp=RiskfolioBridge.portfolio(returns)
+          RiskfolioBridge.estimate(rp, method_mu="hist", method_cov="hist")
+          rw=RiskfolioBridge.optimize(rp, model="Classic", rm="MV", obj="MinRisk", hist=True)
+          assert rw is not None
+
+          # PyPortfolioOpt bridge
+          mu=pd.Series([0.10,0.12,0.08], index=["A","B","C"])
+          cov=pd.DataFrame(np.diag([0.04,0.05,0.03]), index=mu.index, columns=mu.index)
+          ef=PyPortfolioOptBridge.efficient_frontier(mu,cov)
+          PyPortfolioOptBridge.min_volatility(ef)
+          assert abs(sum(PyPortfolioOptBridge.clean_weights(ef).values()) - 1.0) < 1e-6
+
+          # Nautilus bridge: native Rust/PyO3 config construction
+          risk=NautilusBridge.risk_config()
+          execution=NautilusBridge.execution_config()
+          backtest=NautilusBridge.backtest_engine_config(
+              risk_engine=risk,
+              exec_engine=execution,
+          )
+          assert backtest.risk_engine is not None
+          assert backtest.exec_engine is not None
+
+          # Verify remaining bridges import without instantiating network/credential-dependent engines.
+          assert all([
+              TradingAgentsBridge, FinRobotBridge, RDAgentQuantBridge, QlibBridge,
+              ChronosBridge, StableBaselinesBridge, RLlibBridge,
+          ])
+          print("ALL_BRIDGES_OK")
+          PY
+
+      - name: Freeze final environment
+        run: |
+          source env/bin/activate
+          python -m pip freeze | sort > resolved-twelve.txt
+          python -m pip check > pip-check-twelve.txt
+          python - <<'PY' > final-versions.txt
+          import numpy, pandas, torch, ray, vectorbt, riskfolio, pypfopt, nautilus_trader, qlib, chronos, stable_baselines3
+          print("numpy", numpy.__version__)
+          print("pandas", pandas.__version__)
+          print("torch", torch.__version__)
+          print("ray", ray.__version__)
+          print("vectorbt", vectorbt.__version__)
+          print("riskfolio", riskfolio.__version__)
+          print("pypfopt", pypfopt.__version__)
+          print("nautilus_trader", nautilus_trader.__version__)
+          print("qlib", qlib.__version__)
+          print("chronos", chronos.__version__)
+          print("stable_baselines3", stable_baselines3.__version__)
+          PY
+
+      - name: Upload final evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: final-twelve-engine-integration-evidence
+          path: |
+            constraints.txt
+            rdagent-dependency-compat.patch
+            finrl-dependency-compat.patch
+            resolved-twelve.txt
+            pip-check-twelve.txt
+            final-versions.txt
+          retention-days: 3

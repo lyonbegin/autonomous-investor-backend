@@ -24,7 +24,7 @@ def test_integration_catalog_contains_core_projects():
     r = client.get("/api/v1/integrations?probe_runtime=false")
     assert r.status_code == 200
     keys = {x["key"] for x in r.json()["integrations"]}
-    assert {"tradingagents", "finrobot", "rdagent", "qlib", "finrlx", "nautilus"} <= keys
+    assert {"tradingagents", "finrobot", "rdagent", "qlib", "finrl", "nautilus"} <= keys
 
 
 def test_contract_schema():
@@ -32,5 +32,9 @@ def test_contract_schema():
     assert r.status_code == 200
     body = r.json()
     assert "ResearchBundle" in body
+    assert "PolicyAction" in body
+    assert "Forecast" in body
+    assert "ModelScore" in body
     assert "TargetPortfolio" in body
+    assert "OrderIntent" in body
     assert "ExecutionReport" in body

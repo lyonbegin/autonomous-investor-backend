@@ -1,0 +1,45 @@
+name: Alpha Engine Module Endpoint Tests
+
+on:
+  push:
+    branches:
+      - feature/alpha-node-api-first
+    paths:
+      - "app/**"
+      - "tests/**"
+      - ".github/workflows/alpha-node-api-tests.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  api-contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install API test dependencies
+        run: |
+          python -m pip install -U pip
+          python -m pip install -e ".[dev]" numpy pandas
+          python -m pip check
+      - name: Validate module inventory and endpoints
+        run: |
+          python -m pytest -q tests/test_alpha_engine_api.py tests/test_alpha_graph.py tests/test_alpha_services.py tests/test_alpha_palette.py tests/test_orchestration.py tests/test_api.py
+      - name: Summarize generated native function routes
+        run: |
+          python - <<'PY'
+          from app.alpha_nodes.inventory import OPERATIONS, module_inventory, ENGINES
+          from app.main import app
+          paths = set(app.openapi()["paths"])
+          assert all(op["endpoint"] in paths for op in OPERATIONS)
+          assert len(ENGINES) == 12
+          print("ALPHA_PROJECTS", len(ENGINES))
+          print("ALPHA_MODULES", len(module_inventory()))
+          print("ALPHA_FUNCTION_ENDPOINTS", len(OPERATIONS))
+          for e in ENGINES:
+              print("ENGINE", e, sum(op["engine"] == e for op in OPERATIONS))
+          PY

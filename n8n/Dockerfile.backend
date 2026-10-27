@@ -1,0 +1,16 @@
+FROM python:3.13-slim
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+WORKDIR /srv/invest
+COPY pyproject.toml ./
+COPY app/ ./app/
+COPY lab/ ./lab/
+RUN python -m pip install --no-cache-dir -e . numpy pandas \
+  && mkdir -p /data && chown 10001:10001 /data
+COPY n8n/scripts/railway_start_backend.py /srv/invest/railway_start_backend.py
+# Container starts as root only for the mounted volume ownership fix.
+# Python immediately drops to uid/gid 10001 before uvicorn exec.
+USER root
+EXPOSE 8000
+CMD ["python","/srv/invest/railway_start_backend.py"]

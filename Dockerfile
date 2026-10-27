@@ -1,8 +1,69 @@
-FROM python:3.12-slim-bookworm
+# Fast deployment image using the exact validated NautilusTrader wheel.
+FROM python:3.13-slim-bookworm AS builder
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_NO_CACHE_DIR=1 \
+    VIRTUAL_ENV=/opt/venv \
+    PATH=/opt/venv/bin:$PATH
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      build-essential \
+      ca-certificates \
+      curl \
+      git \
+      patchelf \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN python -m venv "$VIRTUAL_ENV"
+
+# Heavy Python dependencies are isolated in a cacheable layer.
+COPY requirements/ /app/requirements/
+COPY scripts/install_integrated_stack.py /app/scripts/install_integrated_stack.py
+
+RUN python -m pip install --upgrade pip setuptools wheel cython \
+    && python scripts/install_integrated_stack.py --source-dir /tmp/autonomous-investor-upstreams --skip-nautilus \
+    && python -m pip check
+
+ARG NAUTILUS_WHEEL_URL="https://github.com/lyonbegin/autonomous-investor-backend/releases/download/nautilus-wheel-2.0.0rc8.dev20261022-19732/nautilus_trader-2.0.0rc8.dev20261022%2B19732-cp313-cp313-manylinux_2_34_x86_64.whl"
+ARG NAUTILUS_WHEEL_SHA256="e77ef52d9c5593e1c420c60cc1bb4e7c1af13c7515729475064a679e46bbab50"
+
+RUN curl -fL "$NAUTILUS_WHEEL_URL" -o /tmp/nautilus_trader-2.0.0rc8.dev20261022+19732-cp313-cp313-manylinux_2_34_x86_64.whl \
+    && echo "$NAUTILUS_WHEEL_SHA256  /tmp/nautilus_trader-2.0.0rc8.dev20261022+19732-cp313-cp313-manylinux_2_34_x86_64.whl" | sha256sum -c - \
+    && python -m pip install --no-deps /tmp/nautilus_trader-2.0.0rc8.dev20261022+19732-cp313-cp313-manylinux_2_34_x86_64.whl \
+    && python -m pip check \
+    && rm -f /tmp/nautilus_trader-2.0.0rc8.dev20261022+19732-cp313-cp313-manylinux_2_34_x86_64.whl \
+    && rm -rf /tmp/autonomous-investor-upstreams /root/.cache/pip
+
 COPY . .
-CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+
+RUN python scripts/verify_integrated_stack.py \
+    && python -m pip check
+
+FROM python:3.13-slim-bookworm AS runtime
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    VIRTUAL_ENV=/opt/venv \
+    PATH=/opt/venv/bin:$PATH \
+    PORT=8080
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      ca-certificates \
+      libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+COPY --from=builder /opt/venv /opt/venv
+COPY --from=builder /app /app
+
+EXPOSE 8080
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+  CMD python -c "import os,urllib.request; urllib.request.urlopen('http://127.0.0.1:'+os.environ.get('PORT','8080')+'/health', timeout=5).read()" || exit 1
+
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8080}"]

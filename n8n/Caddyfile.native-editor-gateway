@@ -1,0 +1,26 @@
+:{$PORT:3000} {
+    encode zstd gzip
+
+    @health path /health
+    handle @health {
+        respond "ok" 200
+    }
+
+    # Proxy the ORIGINAL n8n editor; never reimplement its graph or workflow UI.
+    # n8n has no configured owner yet; protect setup, REST and websocket endpoints.
+    handle {
+        basic_auth {
+            {$N8N_GATEWAY_USER} {$N8N_GATEWAY_PASSWORD_HASH}
+        }
+        reverse_proxy http://investment-n8n-main.railway.internal:5678 {
+            header_up X-Forwarded-Proto https
+            header_up X-Forwarded-Host {host}
+        }
+    }
+    header {
+        X-Content-Type-Options nosniff
+        Referrer-Policy no-referrer
+        Cache-Control "no-store"
+        -Server
+    }
+}

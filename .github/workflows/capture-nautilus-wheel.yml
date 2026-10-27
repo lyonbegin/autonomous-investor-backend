@@ -1,0 +1,44 @@
+name: Capture Exact Nautilus Wheel
+
+on:
+  push:
+    branches: [integration-lab]
+    paths:
+      - ".github/workflows/capture-nautilus-wheel.yml"
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Capture exact upstream develop wheel
+        run: |
+          set -euxo pipefail
+          mkdir -p wheel
+          python -m pip download --no-deps             --index-url=https://packages.nautechsystems.io/simple             --dest wheel             "nautilus-trader==2.0.0rc8.dev20261022+19732"
+          ls -lh wheel
+          sha256sum wheel/*.whl | tee nautilus-wheel-sha256.txt
+
+      - name: Verify wheel filename and metadata
+        run: |
+          set -euxo pipefail
+          python -m venv env
+          source env/bin/activate
+          python -m pip install --no-deps wheel/*.whl
+          python - <<'PY'
+          import nautilus_trader
+          assert nautilus_trader.__version__ == "2.0.0rc8.dev20261022+19732"
+          print("CAPTURED_NAUTILUS_OK", nautilus_trader.__version__)
+          PY
+
+      - name: Upload captured exact wheel
+        uses: actions/upload-artifact@v4
+        with:
+          name: nautilus-19732-exact-wheel
+          path: |
+            wheel/*.whl
+            nautilus-wheel-sha256.txt
+          retention-days: 3

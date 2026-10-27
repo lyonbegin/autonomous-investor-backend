@@ -1,0 +1,60 @@
+name: Integrated Review Regression
+
+on:
+  push:
+    branches: [codex/full-system-integration-20261027]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: integrated-review-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Install API and test dependencies
+        run: python -m pip install -e '.[dev]' numpy pandas
+      - name: Install checksum-verified native Nautilus test wheel
+        shell: bash
+        run: |
+          set -euo pipefail
+          wheel='/tmp/nautilus_trader-2.0.0rc8.dev20261022+19732-cp313-cp313-manylinux_2_34_x86_64.whl'
+          curl --fail --location 'https://github.com/lyonbegin/autonomous-investor-backend/releases/download/nautilus-wheel-2.0.0rc8.dev20261022-19732/nautilus_trader-2.0.0rc8.dev20261022%2B19732-cp313-cp313-manylinux_2_34_x86_64.whl' --output "$wheel"
+          printf '%s  %s\n' 'e77ef52d9c5593e1c420c60cc1bb4e7c1af13c7515729475064a679e46bbab50' "$wheel" | sha256sum --check -
+          python -m pip install --no-deps "$wheel"
+          python -m pip check
+      - name: Run full repository regression with actual native process test
+        run: python -m pytest -q -p no:cacheprovider
+      - name: Check collection routing and integration script syntax
+        run: |
+          python scripts/audit_external_egress.py
+          python app/core/egress_audit.py
+          bash -n n8n/scripts/run_real_n8n_e2e.sh
+
+  frontend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    strategy:
+      matrix:
+        directory: [investment_studio, public_frontend, frontend, public-frontend]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install and build existing UI
+        working-directory: ${{ matrix.directory }}
+        run: |
+          npm install --no-audit --no-fund --package-lock=false
+          npm run build

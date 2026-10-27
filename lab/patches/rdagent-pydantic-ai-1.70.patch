@@ -1,0 +1,5 @@
+--- a/requirements.txt
++++ b/requirements.txt
+@@
+-pydantic-ai-slim[mcp,openai,prefect]==1.66.0
++pydantic-ai-slim[mcp,openai,prefect]==1.70.0

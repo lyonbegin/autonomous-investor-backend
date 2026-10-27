@@ -1,0 +1,12 @@
+# Exact upstream revisions. RD-Agent and FinRL-Trading are installed by
+# scripts/install_upstreams.sh because they require packaging-only patches.
+tradingagents @ git+https://github.com/TauricResearch/TradingAgents.git@e8f5503e9b86d5c2710b0c76b1f686703968c9df
+finrobot @ git+https://github.com/AI4Finance-Foundation/FinRobot.git@2717499b8e30f242640af08c4ad9afd1113c2d45#subdirectory=finrobot_desktop
+pyqlib @ git+https://github.com/microsoft/qlib.git@54355232463878d2eebb91fe0ee5fa7fa1f5976c
+chronos-forecasting @ git+https://github.com/amazon-science/chronos-forecasting.git@1224fafa91e1ecd6674f5204066b159e40b5e4a1
+stable-baselines3 @ git+https://github.com/DLR-RM/stable-baselines3.git@b2878f4b83e21f16a53c54a62def628e05fd2e96
+vectorbt @ git+https://github.com/polakowo/vectorbt.git@dd8eb3a3fe9ed918b1cdaf177455759ae4ac68cb
+riskfolio-lib @ git+https://github.com/dcajasn/Riskfolio-Lib.git@7b1b26ac9760974c12ecefe290a9d3bd37b66b7a
+pyportfolioopt @ git+https://github.com/PyPortfolio/PyPortfolioOpt.git@a6638d2e06dae6f444fd022cfd4b3c528902a85b
+ray[rllib]==2.59.0
+nautilus-trader==2.0.0rc7

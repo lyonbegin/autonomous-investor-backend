@@ -1,0 +1,63 @@
+name: Browser test live public investment dashboard
+on:
+  push:
+    branches: [feature/public-demo-readonly-20261025]
+    paths: ['.github/workflows/verify-browser-public-demo.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Chromium and Playwright
+        working-directory: investment_studio
+        run: |
+          npm install --no-audit --no-fund
+          npx playwright install --with-deps chromium
+      - name: Verify clickable scenario progress and public operations
+        working-directory: investment_studio
+        run: |
+          mkdir -p browser-artifacts
+          node --input-type=module <<'NODE'
+          import {chromium,expect} from '@playwright/test';
+          const browser=await chromium.launch({headless:true});
+          const page=await browser.newPage({viewport:{width:1440,height:900}});
+          const errors=[];
+          page.on('pageerror',err=>errors.push(String(err)));
+          try {
+            await page.goto('https://investment-n8n-operations-ui-production.up.railway.app/',{waitUntil:'domcontentloaded',timeout:60000});
+            await expect(page.locator('.scenario-header')).toBeVisible({timeout:30000});
+            const originalN8n=page.getByRole('link',{name:/n8n 원본 노드 플로우/});
+            await expect(originalN8n).toBeVisible();
+            await expect(originalN8n).toHaveAttribute('href','https://investment-n8n-native-editor-production.up.railway.app/');
+            await expect(page.locator('.scenario-menu button')).toHaveCount(10,{timeout:30000});
+            await page.screenshot({path:'browser-artifacts/01-scenario-ready.png',fullPage:true});
+            await page.locator('.scenario-toolbar button.run').click();
+            await expect(page.locator('.scenario-progress b')).toHaveText('COMPLETED',{timeout:30000});
+            await expect(page.locator('.scenario-progress')).toContainText('100%');
+            await page.locator('.scenario-steps button.step').last().click();
+            await expect(page.locator('.scenario-inspector pre')).toHaveCount(2);
+            await page.screenshot({path:'browser-artifacts/02-scenario-complete.png',fullPage:true});
+            console.log('PASS: UI click -> 7/7 synthetic steps complete -> progress 100% and step I/O');
+            await page.getByRole('button',{name:/전략 풀/}).click();
+            await expect(page.locator('.ops-stats')).toBeVisible({timeout:30000});
+            await expect(page.locator('.ops-table-wrap').first()).toBeVisible();
+            await expect(page.getByText('유휴 에이전트 등록')).toHaveCount(0);
+            await expect(page.getByRole('button',{name:/12개 엔진/})).toHaveCount(0);
+            await page.screenshot({path:'browser-artifacts/03-read-only-operations.png',fullPage:true});
+            console.log('PASS: Public operations renders without admin edit controls');
+            if(errors.length)throw Error('Page errors: '+errors.join('; '));
+          } finally {await browser.close();}
+          NODE
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: public-investment-dashboard-browser-screenshots
+          path: investment_studio/browser-artifacts/
+          if-no-files-found: ignore

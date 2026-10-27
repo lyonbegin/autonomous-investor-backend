@@ -1,0 +1,70 @@
+:{$PORT:3000} {
+    encode gzip
+
+    @health path /health
+    handle @health {
+        respond "ok" 200
+    }
+
+    # Public TEST dashboard: only specifically enumerated read-only endpoints.
+    # Authorization stays on the server; never expose the upstream bearer token.
+    @publicOps {
+        method GET
+        path /studio-api/api/v1/ops/overview /studio-api/api/v1/ops/strategies /studio-api/api/v1/ops/agents /studio-api/api/v1/ops/audit/findings /studio-api/api/v1/ops/events /studio-api/api/v1/ops/engines
+    }
+    @publicScenarioRead {
+        method GET
+        path /studio-api/api/v1/alpha/scenarios /studio-api/api/v1/alpha/scenarios/infra /studio-api/api/v1/alpha/scenarios/*
+    }
+    @publicScenarioSimulation {
+        method POST
+        path_regexp synthetic ^/studio-api/api/v1/alpha/scenarios/[^/]+/runs$
+    }
+
+    @api path /studio-api/*
+    handle @api {
+        route {
+            # Evaluate the explicit matchers before the authenticated fallback.
+            handle @publicOps {
+                uri strip_prefix /studio-api
+                reverse_proxy {$INVESTMENT_BACKEND_UPSTREAM} {
+                    header_up Authorization "Bearer {$ALPHA_NODE_API_KEY}"
+                    header_up -Cookie
+                }
+            }
+            handle @publicScenarioRead {
+                uri strip_prefix /studio-api
+                reverse_proxy {$INVESTMENT_BACKEND_UPSTREAM} {
+                    header_up Authorization "Bearer {$ALPHA_NODE_API_KEY}"
+                    header_up -Cookie
+                }
+            }
+            handle @publicScenarioSimulation {
+                uri strip_prefix /studio-api
+                reverse_proxy {$INVESTMENT_BACKEND_UPSTREAM} {
+                    header_up Authorization "Bearer {$ALPHA_NODE_API_KEY}"
+                    header_up -Cookie
+                }
+            }
+            # All mutating trading/admin actions are unavailable in the public demo.
+            handle {
+                respond "Forbidden: demo endpoints only" 403
+            }
+        }
+    }
+
+    # Web application is visible without the test-stage username/password.
+    handle {
+        root * /srv
+        try_files {path} /index.html
+        file_server
+    }
+
+    header {
+        X-Content-Type-Options nosniff
+        X-Frame-Options DENY
+        Referrer-Policy no-referrer
+        -Server
+        Cache-Control "no-store"
+    }
+}

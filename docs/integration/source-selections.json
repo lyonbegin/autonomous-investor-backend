@@ -1,0 +1,484 @@
+{
+  "observed_at": "2026-10-27T21:32:36+09:00",
+  "base_commit": "6c1cbc457f8f0ccfece5b6adc355af56d7e1da1f",
+  "files": [
+    {
+      "branch": "tradingview-service",
+      "path": "app/core/tradingview.py"
+    },
+    {
+      "branch": "tradingview-service",
+      "path": "app/core/browser_http.py"
+    },
+    {
+      "branch": "tradingview-service",
+      "path": "app/core/corporate_bonds.py"
+    },
+    {
+      "branch": "tradingview-service",
+      "path": "app/core/source_registry.py"
+    },
+    {
+      "branch": "tradingview-service",
+      "path": "app/api/tradingview_routes.py"
+    },
+    {
+      "branch": "tradingview-service",
+      "path": "app/api/source_registry_routes.py"
+    },
+    {
+      "branch": "tradingview-service",
+      "path": "app/api/public_routes.py"
+    },
+    {
+      "branch": "tradingview-service",
+      "path": "app/main_tradingview.py"
+    },
+    {
+      "branch": "tradingview-service",
+      "path": "browser_worker/main.py"
+    },
+    {
+      "branch": "tradingview-service",
+      "path": "browser_worker/requirements.txt"
+    },
+    {
+      "branch": "tradingview-service",
+      "path": "browser_worker/Dockerfile"
+    },
+    {
+      "branch": "quant-lab-control",
+      "path": "app/core/internal_http.py"
+    },
+    {
+      "branch": "quant-lab-control",
+      "path": "app/core/macro_data.py"
+    },
+    {
+      "branch": "quant-lab-control",
+      "path": "app/core/market_history.py"
+    },
+    {
+      "branch": "quant-lab-control",
+      "path": "app/core/pine_visual.py"
+    },
+    {
+      "branch": "quant-lab-control",
+      "path": "app/core/quant_lab.py"
+    },
+    {
+      "branch": "quant-lab-control",
+      "path": "app/core/strategy_spec.py"
+    },
+    {
+      "branch": "quant-lab-control",
+      "path": "app/core/toss_market.py"
+    },
+    {
+      "branch": "quant-lab-control",
+      "path": "app/api/quant_routes.py"
+    },
+    {
+      "branch": "quant-lab-control",
+      "path": "app/main_quant_lab.py"
+    },
+    {
+      "branch": "frontend-vite",
+      "path": "frontend/tsconfig.json"
+    },
+    {
+      "branch": "frontend-vite",
+      "path": "frontend/package.json"
+    },
+    {
+      "branch": "frontend-vite",
+      "path": "frontend/index.html"
+    },
+    {
+      "branch": "frontend-vite",
+      "path": "frontend/Dockerfile"
+    },
+    {
+      "branch": "frontend-vite",
+      "path": "frontend/vite.config.ts"
+    },
+    {
+      "branch": "frontend-vite",
+      "path": "frontend/src/styles.css"
+    },
+    {
+      "branch": "frontend-vite",
+      "path": "frontend/src/main.tsx"
+    },
+    {
+      "branch": "frontend-vite",
+      "path": "frontend/src/App.tsx"
+    },
+    {
+      "branch": "public-frontend-react",
+      "path": "public_frontend/tsconfig.json"
+    },
+    {
+      "branch": "public-frontend-react",
+      "path": "public_frontend/package.json"
+    },
+    {
+      "branch": "public-frontend-react",
+      "path": "public_frontend/index.html"
+    },
+    {
+      "branch": "public-frontend-react",
+      "path": "public_frontend/Dockerfile"
+    },
+    {
+      "branch": "public-frontend-react",
+      "path": "public_frontend/vite.config.ts"
+    },
+    {
+      "branch": "public-frontend-react",
+      "path": "public_frontend/src/styles.css"
+    },
+    {
+      "branch": "public-frontend-react",
+      "path": "public_frontend/src/types.ts"
+    },
+    {
+      "branch": "public-frontend-react",
+      "path": "public_frontend/src/main.tsx"
+    },
+    {
+      "branch": "public-frontend-react",
+      "path": "public_frontend/src/api.ts"
+    },
+    {
+      "branch": "public-frontend-react",
+      "path": "public_frontend/src/App.tsx"
+    },
+    {
+      "branch": "public-frontend-react",
+      "path": "public_frontend/src/components/AgentCard.tsx"
+    },
+    {
+      "branch": "public-frontend-react",
+      "path": "public_frontend/src/components/PineChartControl.tsx"
+    },
+    {
+      "branch": "public-frontend-react",
+      "path": "public_frontend/src/components/StrategyCard.tsx"
+    },
+    {
+      "branch": "public-frontend-react",
+      "path": "public_frontend/src/components/TradingViewAdvancedChart.tsx"
+    },
+    {
+      "branch": "public-frontend-react",
+      "path": "public_frontend/src/components/StatusBadge.tsx"
+    },
+    {
+      "branch": "public-frontend-react",
+      "path": "public_frontend/src/components/Header.tsx"
+    },
+    {
+      "branch": "public-frontend-react",
+      "path": "public_frontend/src/components/NativePineChartControl.tsx"
+    },
+    {
+      "branch": "public-frontend-react",
+      "path": "public_frontend/src/pages/scripts/ScriptsPage.tsx"
+    },
+    {
+      "branch": "public-frontend-react",
+      "path": "public_frontend/src/pages/scripts/ScriptDetailPage.tsx"
+    },
+    {
+      "branch": "public-frontend-react",
+      "path": "public_frontend/src/pages/ideas/IdeaDetailPage.tsx"
+    },
+    {
+      "branch": "public-frontend-react",
+      "path": "public_frontend/src/pages/ideas/IdeasPage.tsx"
+    },
+    {
+      "branch": "public-frontend-react",
+      "path": "public_frontend/src/pages/agents/AgentsPage.tsx"
+    },
+    {
+      "branch": "public-frontend-react",
+      "path": "public_frontend/src/pages/agents/AgentDetailPage.tsx"
+    },
+    {
+      "branch": "public-frontend-react",
+      "path": "public_frontend/src/pages/strategies/StrategiesPage.tsx"
+    },
+    {
+      "branch": "public-frontend-react",
+      "path": "public_frontend/src/pages/strategies/StrategyDetailPage.tsx"
+    },
+    {
+      "branch": "public-frontend-react",
+      "path": "public_frontend/src/pages/markets/MarketsPage.tsx"
+    },
+    {
+      "branch": "public-frontend-react",
+      "path": "public_frontend/src/pages/performance/PerformancePage.tsx"
+    },
+    {
+      "branch": "public-platform",
+      "path": "public_api/main.py"
+    },
+    {
+      "branch": "public-platform",
+      "path": "public_api/requirements.txt"
+    },
+    {
+      "branch": "public-platform",
+      "path": "public_api/Dockerfile"
+    },
+    {
+      "branch": "public-platform",
+      "path": "public-frontend/tsconfig.json"
+    },
+    {
+      "branch": "public-platform",
+      "path": "public-frontend/package.json"
+    },
+    {
+      "branch": "public-platform",
+      "path": "public-frontend/index.html"
+    },
+    {
+      "branch": "public-platform",
+      "path": "public-frontend/Dockerfile"
+    },
+    {
+      "branch": "public-platform",
+      "path": "public-frontend/vite.config.ts"
+    },
+    {
+      "branch": "public-platform",
+      "path": "public-frontend/src/styles.css"
+    },
+    {
+      "branch": "public-platform",
+      "path": "public-frontend/src/types.ts"
+    },
+    {
+      "branch": "public-platform",
+      "path": "public-frontend/src/main.tsx"
+    },
+    {
+      "branch": "public-platform",
+      "path": "public-frontend/src/App.tsx"
+    },
+    {
+      "branch": "public-platform",
+      "path": "public-frontend/src/vite-env.d.ts"
+    },
+    {
+      "branch": "public-platform",
+      "path": "public-frontend/src/components/AgentCard.tsx"
+    },
+    {
+      "branch": "public-platform",
+      "path": "public-frontend/src/components/Metric.tsx"
+    },
+    {
+      "branch": "public-platform",
+      "path": "public-frontend/src/components/StrategyCard.tsx"
+    },
+    {
+      "branch": "public-platform",
+      "path": "public-frontend/src/components/Header.tsx"
+    },
+    {
+      "branch": "public-platform",
+      "path": "public-frontend/src/lib/api.ts"
+    },
+    {
+      "branch": "public-platform",
+      "path": "public-frontend/src/pages/StrategiesPage.tsx"
+    },
+    {
+      "branch": "public-platform",
+      "path": "public-frontend/src/pages/AgentsPage.tsx"
+    },
+    {
+      "branch": "public-platform",
+      "path": "public-frontend/src/pages/IdeasPage.tsx"
+    },
+    {
+      "branch": "public-platform",
+      "path": "public-frontend/src/pages/PerformancePage.tsx"
+    },
+    {
+      "branch": "public-platform",
+      "path": "public-frontend/src/pages/MarketsPage.tsx"
+    },
+    {
+      "branch": "public-platform",
+      "path": "public-frontend/src/pages/StrategyDetailPage.tsx"
+    },
+    {
+      "branch": "public-platform",
+      "path": "public-frontend/src/pages/AgentDetailPage.tsx"
+    },
+    {
+      "branch": "dependency-lab",
+      "path": "app/adapters/nautilus.py"
+    },
+    {
+      "branch": "dependency-lab",
+      "path": "app/adapters/portfolio.py"
+    },
+    {
+      "branch": "dependency-lab",
+      "path": "app/adapters/qlib.py"
+    },
+    {
+      "branch": "dependency-lab",
+      "path": "app/adapters/chronos.py"
+    },
+    {
+      "branch": "dependency-lab",
+      "path": "app/adapters/rllib.py"
+    },
+    {
+      "branch": "dependency-lab",
+      "path": "app/adapters/finrobot.py"
+    },
+    {
+      "branch": "dependency-lab",
+      "path": "app/adapters/tradingagents.py"
+    },
+    {
+      "branch": "dependency-lab",
+      "path": "app/adapters/__init__.py"
+    },
+    {
+      "branch": "dependency-lab",
+      "path": "app/adapters/finrl.py"
+    },
+    {
+      "branch": "dependency-lab",
+      "path": "app/adapters/sb3.py"
+    },
+    {
+      "branch": "dependency-lab",
+      "path": "app/adapters/rdagent.py"
+    },
+    {
+      "branch": "dependency-lab",
+      "path": "scripts/dependency_probe.py"
+    },
+    {
+      "branch": "dependency-lab",
+      "path": "scripts/upstream_smoke.py"
+    },
+    {
+      "branch": "dependency-lab",
+      "path": "scripts/install_upstreams.sh"
+    },
+    {
+      "branch": "dependency-lab",
+      "path": "patches/finrl-remove-invalid-finnhub.patch"
+    },
+    {
+      "branch": "dependency-lab",
+      "path": "patches/rdagent-pydantic-ai-1.70.patch"
+    },
+    {
+      "branch": "dependency-lab",
+      "path": "requirements/UPSTREAMS.md"
+    },
+    {
+      "branch": "dependency-lab",
+      "path": "requirements/integrated-constraints.txt"
+    },
+    {
+      "branch": "dependency-lab",
+      "path": "requirements/upstream-sources.txt"
+    },
+    {
+      "branch": "feature/n8n-scenario-control-plane",
+      "path": "app/alpha_nodes/scenario_catalog.py"
+    },
+    {
+      "branch": "feature/n8n-scenario-control-plane",
+      "path": "app/alpha_nodes/scenario_runtime.py"
+    },
+    {
+      "branch": "feature/n8n-scenario-control-plane",
+      "path": "n8n_scenarios/Dockerfile.api"
+    },
+    {
+      "branch": "feature/n8n-scenario-control-plane",
+      "path": "n8n_scenarios/.env.example"
+    },
+    {
+      "branch": "feature/n8n-scenario-control-plane",
+      "path": "n8n_scenarios/build_workflows.py"
+    },
+    {
+      "branch": "feature/n8n-scenario-control-plane",
+      "path": "n8n_scenarios/.gitignore"
+    },
+    {
+      "branch": "feature/n8n-scenario-control-plane",
+      "path": "n8n_scenarios/compose.yml"
+    },
+    {
+      "branch": "feature/n8n-scenario-control-plane",
+      "path": "n8n_scenarios/workflows/.gitkeep"
+    },
+    {
+      "branch": "feature/n8n-scenario-control-plane",
+      "path": "scripts/smoke_n8n_scenarios.py"
+    },
+    {
+      "branch": "feature/n8n-scenario-control-plane",
+      "path": "docs/N8N_SCENARIO_RUNBOOK.md"
+    },
+    {
+      "branch": "feature/n8n-scenario-control-plane",
+      "path": "app/alpha_nodes/scenario_control_api.py",
+      "source_path": "app/alpha_nodes/scenario_api.py"
+    },
+    {
+      "branch": "feature/n8n-scenario-control-plane",
+      "path": "tests/test_n8n_control_plane.py",
+      "source_path": "tests/test_n8n_scenarios.py"
+    },
+    {
+      "branch": "feature/alphaforge-react-clone-phase1",
+      "path": "public_frontend/src/pages/AlphaForgeStudio.tsx"
+    },
+    {
+      "branch": "feature/alphaforge-react-clone-phase1",
+      "path": "public_frontend/src/pages/AlphaForgeStudio.css"
+    },
+    {
+      "branch": "tradingview-service",
+      "path": "Dockerfile.tradingview",
+      "source_path": "Dockerfile"
+    },
+    {
+      "branch": "quant-lab-control",
+      "path": "Dockerfile.quant-lab",
+      "source_path": "Dockerfile"
+    },
+    {
+      "branch": "predeploy-verify",
+      "path": "Dockerfile.release-wheel",
+      "source_path": "Dockerfile.release-wheel"
+    },
+    {
+      "branch": "railway-deploy",
+      "path": "Dockerfile.railway-legacy",
+      "source_path": "Dockerfile"
+    },
+    {
+      "branch": "sqlite-recovery-temp",
+      "path": "recovery/recover.sh"
+    }
+  ]
+}

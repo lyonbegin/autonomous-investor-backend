@@ -1,0 +1,80 @@
+name: Reproducible Integrated Stack
+
+concurrency:
+  group: reproducible-integrated-stack-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  push:
+    branches: [integration-lab]
+    paths:
+      - ".github/workflows/integration-reproducible.yml"
+      - "scripts/install_integrated_stack.py"
+      - "scripts/verify_integrated_stack.py"
+      - "app/**"
+      - "requirements/integration-*.txt"
+
+jobs:
+  reproduce:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: "pip"
+          cache-dependency-path: "lab/pip-cache-key.txt"
+
+      - name: Create one Python 3.13 environment
+        run: |
+          python -m venv env
+          source env/bin/activate
+          python -m pip install -U pip setuptools wheel cython
+
+      - name: Install eleven engines through repository installer
+        run: |
+          set -euxo pipefail
+          source env/bin/activate
+          python scripts/install_integrated_stack.py --skip-nautilus
+          python -m pip check
+
+      - name: Download exact validated Nautilus wheel
+        uses: actions/download-artifact@v4
+        with:
+          name: nautilus-19732-exact-wheel
+          path: captured-nautilus
+          github-token: ${{ github.token }}
+          repository: lyonbegin/autonomous-investor-backend
+          run-id: 39773534982
+
+      - name: Add exact Nautilus twelfth engine
+        run: |
+          set -euxo pipefail
+          source env/bin/activate
+          wheel_file="$(find captured-nautilus -name 'nautilus_trader-2.0.0rc8.dev20261022+19732-cp313-cp313-manylinux_2_34_x86_64.whl' -print -quit)"
+          test -n "$wheel_file"
+          echo "e77ef52d9c5593e1c420c60cc1bb4e7c1af13c7515729475064a679e46bbab50  $wheel_file" | sha256sum -c -
+          python -m pip install --no-deps "$wheel_file"
+          python -m pip check
+
+      - name: Run repository integration verifier
+        run: |
+          set -euxo pipefail
+          source env/bin/activate
+          python scripts/verify_integrated_stack.py
+
+      - name: Freeze reproducible environment
+        run: |
+          source env/bin/activate
+          python -m pip freeze | sort > reproducible-twelve.txt
+          python -m pip check > reproducible-pip-check.txt
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reproducible-twelve-stack-evidence
+          path: |
+            reproducible-twelve.txt
+            reproducible-pip-check.txt
+          retention-days: 3

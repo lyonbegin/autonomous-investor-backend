@@ -1,0 +1,32 @@
+name: Extract Final Integration Lock
+
+on:
+  push:
+    branches: [integration-lab]
+    paths:
+      - ".github/workflows/extract-integration-lock.yml"
+
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download final evidence
+        uses: actions/download-artifact@v4
+        with:
+          name: final-twelve-engine-integration-evidence
+          path: evidence
+          github-token: ${{ github.token }}
+          repository: lyonbegin/autonomous-investor-backend
+          run-id: 39773808554
+
+      - name: Print exact validated lock
+        run: |
+          echo "=== RESOLVED_TWELVE_BEGIN ==="
+          cat evidence/resolved-twelve.txt
+          echo "=== RESOLVED_TWELVE_END ==="
+          echo "=== FINAL_VERSIONS_BEGIN ==="
+          cat evidence/final-versions.txt
+          echo "=== FINAL_VERSIONS_END ==="
+          echo "=== PIP_CHECK_BEGIN ==="
+          cat evidence/pip-check-twelve.txt
+          echo "=== PIP_CHECK_END ==="
