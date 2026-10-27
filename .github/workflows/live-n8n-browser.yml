@@ -1,0 +1,58 @@
+name: Chromium verify no-login n8n scenario UI
+on:
+  push:
+    branches: [feature/loginless-n8n-simulation-20261027]
+    paths: ['.github/workflows/live-n8n-browser.yml']
+  workflow_dispatch:
+permissions: {contents: read}
+jobs:
+  playwright:
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: Install Playwright and Chromium
+        working-directory: investment_studio
+        run: |
+          npm install --no-audit --no-fund
+          npx playwright install --with-deps chromium
+      - name: Click n8n Webhook mode and verify complete progress
+        working-directory: investment_studio
+        run: |
+          mkdir -p browser-artifacts
+          node --input-type=module <<'NODE'
+          import {chromium,expect} from '@playwright/test';
+          const browser=await chromium.launch({headless:true});
+          const page=await browser.newPage({viewport:{width:1440,height:900}});
+          const errors=[];
+          page.on('pageerror',e=>errors.push(String(e)));
+          try {
+            await page.goto('https://investment-n8n-operations-ui-production.up.railway.app/',{waitUntil:'domcontentloaded',timeout:60000});
+            await expect(page.locator('.scenario-header')).toBeVisible({timeout:25000});
+            await expect(page.getByRole('button',{name:'n8n 워크플로 실행 테스트'})).toBeVisible();
+            await expect(page.locator('.scenario-menu button')).toHaveCount(10,{timeout:20000});
+            const select=page.getByLabel('실행 엔진 선택');
+            await expect(select.locator('option[value="n8n"]')).toBeEnabled({timeout:20000});
+            await select.selectOption('n8n');
+            await expect(page.locator('.scenario-toolbar')).toContainText('n8n 실제 Webhook');
+            await page.getByLabel('실행 속도').selectOption('100');
+            await page.screenshot({path:'browser-artifacts/01-n8n-execution-selected.png',fullPage:true});
+            await page.locator('.scenario-toolbar button.run').click();
+            await expect(page.locator('.scenario-progress b')).toHaveText('COMPLETED',{timeout:45000});
+            await expect(page.locator('.scenario-progress')).toContainText('100%');
+            await expect(page.locator('.scenario-progress')).toContainText('n8n 실경로');
+            await page.locator('.scenario-steps button.step').last().click();
+            await expect(page.locator('.scenario-inspector pre')).toHaveCount(2);
+            await page.screenshot({path:'browser-artifacts/02-n8n-execution-completed.png',fullPage:true});
+            if(errors.length) throw Error('JavaScript errors '+errors.join('; '));
+            console.log('LIVE_N8N_BROWSER_UI_PASS: webhook selected and 100% synthetic progress displayed');
+          } finally {await browser.close();}
+          NODE
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: no-login-n8n-execution-browser-screenshots
+          path: investment_studio/browser-artifacts/
+          if-no-files-found: ignore
