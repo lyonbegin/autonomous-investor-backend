@@ -25,7 +25,7 @@ python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 \
   > /tmp/n8n-ci-backend.log 2>&1 &
 BACKEND_PID=$!
 cleanup() {
-  docker compose -f "$COMPOSE" logs --tail=60 n8n worker || true
+  docker compose -f "$COMPOSE" logs --tail=60 postgres redis n8n worker || true
   docker compose -f "$COMPOSE" down --volumes --remove-orphans || true
   kill "$BACKEND_PID" "$FIXTURE_PID" 2>/dev/null || true
 }

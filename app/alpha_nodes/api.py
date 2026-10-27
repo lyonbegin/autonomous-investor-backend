@@ -11,8 +11,6 @@ and unsupported calls return real errors. Native live order submission is gated.
 """
 from __future__ import annotations
 
-import hmac
-import os
 from collections import defaultdict
 from typing import Any
 
@@ -23,18 +21,9 @@ from app.alpha_nodes.inventory import ENGINES, OPERATIONS, OPERATION_MAP, module
 from app.alpha_nodes.runtime import ExecuteRequest, get_job, handle_info, submit_invocation
 from app.alpha_nodes.graph import GraphSpec, compile_graph, create_graph_run, get_graph_run, get_graph_node, list_graph_runs
 from app.alpha_nodes.palette import node_palette, node_palette_entry, template_graphs
+from app.core.auth import require_auth
 
 router = APIRouter(prefix="/api/v1/alpha", tags=["AlphaForge engine function nodes"])
-
-
-def require_auth(authorization: str | None = Header(None)) -> None:
-    expected = os.environ.get("ALPHA_NODE_API_KEY", "")
-    if not expected:
-        raise HTTPException(status_code=503, detail="ALPHA_NODE_API_KEY not configured; execution API disabled")
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Bearer token required")
-    if not hmac.compare_digest(authorization.removeprefix("Bearer "), expected):
-        raise HTTPException(status_code=401, detail="incorrect bearer token")
 
 
 @router.get("/projects", dependencies=[Depends(require_auth)])

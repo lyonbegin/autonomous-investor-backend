@@ -12,6 +12,7 @@ from urllib import error, parse, request
 from fastapi import HTTPException
 
 from app.alpha_nodes.scenario_simulator import SCENARIOS
+from app.core.internal_http import internal_json_request
 
 
 def state() -> dict:
@@ -41,21 +42,17 @@ def dispatch(scenario_id: str, interval_ms: int = 160) -> dict:
         raise HTTPException(status_code=503, detail="n8n base URL must be HTTPS or loopback/internal n8n host")
     # A fixed path per already defined scenario, not arbitrary SSRF input.
     target = base + "/webhook/ai-scenario-" + scenario_id
-    body = json.dumps({"scenario_id": scenario_id, "interval_ms": interval_ms}).encode()
     extra_token = os.getenv("N8N_WEBHOOK_AUTH_TOKEN", "").strip()
     headers = {"Content-Type": "application/json"}
     if extra_token:
         headers["X-Autonomous-Webhook-Token"] = extra_token
-    http_request = request.Request(target, data=body, headers=headers, method="POST")
     try:
-        with request.urlopen(http_request, timeout=14) as response:
-            if response.status not in (200, 201, 202):
-                raise HTTPException(status_code=502, detail="n8n webhook returned unsuccessful status")
-            raw = response.read(131073)
-            if len(raw) > 131072:
-                raise HTTPException(status_code=502, detail="n8n webhook response too large")
-            result = json.loads(raw.decode())
-    except (error.URLError, OSError, ValueError, UnicodeError) as exc:
+        result = internal_json_request(
+            target, method="POST",
+            payload={"scenario_id": scenario_id, "interval_ms": interval_ms},
+            headers=headers, timeout=14, max_response_bytes=131072,
+        )
+    except (error.URLError, OSError, ValueError, UnicodeError, RuntimeError) as exc:
         raise HTTPException(status_code=502, detail="n8n webhook unavailable or returned invalid JSON") from exc
     if not isinstance(result, dict) or not isinstance(result.get("run_id"), str):
         raise HTTPException(status_code=502, detail="n8n did not return a scenario run_id")

@@ -16,6 +16,10 @@ def browser_base_url() -> str:
     ).rstrip("/")
 
 
+def _strict() -> bool:
+    return os.getenv("DATA_BROWSER_STRICT", "1").strip().lower() not in {"0", "false", "no", "off"}
+
+
 def _gateway_fetch(
     url: str,
     *,
@@ -26,17 +30,18 @@ def _gateway_fetch(
     warmup_url: str | None = None,
     timeout: int = 40,
 ) -> dict[str, Any]:
+    payload = {
+        "url": url,
+        "method": method,
+        "headers": headers or {},
+        "json_body": json_body,
+        "body": body,
+        "warmup_url": warmup_url,
+        "timeout_ms": max(1000, min(int(timeout * 1000), 120000)),
+    }
     req = request.Request(
         browser_base_url() + "/v1/http/fetch",
-        data=json.dumps({
-            "url": url,
-            "method": method,
-            "headers": headers or {},
-            "json_body": json_body,
-            "body": body,
-            "warmup_url": warmup_url,
-            "timeout_ms": max(1000, min(int(timeout * 1000), 120000)),
-        }, ensure_ascii=False).encode("utf-8"),
+        data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
         headers={
             "Content-Type": "application/json",
             "Accept": "application/json",
@@ -44,16 +49,22 @@ def _gateway_fetch(
         },
         method="POST",
     )
-    with request.urlopen(req, timeout=timeout + 10) as response:
-        wrapper = json.loads(response.read().decode("utf-8"))
+    try:
+        with request.urlopen(req, timeout=timeout + 10) as response:
+            wrapper = json.loads(response.read().decode("utf-8"))
+    except Exception:
+        if _strict():
+            raise
+        raise
 
     status = int(wrapper.get("status") or 0)
     if status >= 400:
+        hdrs = wrapper.get("headers") or {}
         raise error.HTTPError(
             url,
             status,
             f"Upstream HTTP {status} via Chromium worker",
-            wrapper.get("headers") or {},
+            hdrs,
             None,
         )
     return wrapper
@@ -80,7 +91,9 @@ def browser_json(
     )
     if wrapper.get("json") is not None:
         return wrapper["json"]
-    text = wrapper.get("text") or wrapper.get("text_preview") or ""
+    text = wrapper.get("text")
+    if text is None:
+        text = wrapper.get("text_preview") or ""
     return json.loads(text)
 
 
@@ -108,3 +121,21 @@ def browser_text(
     if wrapper.get("json") is not None:
         return json.dumps(wrapper["json"], ensure_ascii=False)
     return str(wrapper.get("text_preview") or "")
+
+
+def browser_render_detail(url: str, *, wait_ms: int = 2500, timeout: int = 45) -> dict[str, Any]:
+    req = request.Request(
+        browser_base_url() + "/v1/source/detail",
+        data=json.dumps({"url": url, "wait_ms": wait_ms}, ensure_ascii=False).encode("utf-8"),
+        headers={
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "User-Agent": "AUTONOMOUS-INVESTOR/DataBrowserClient/2.0",
+        },
+        method="POST",
+    )
+    with request.urlopen(req, timeout=timeout) as response:
+        payload = json.loads(response.read().decode("utf-8"))
+    if not payload.get("ok"):
+        raise RuntimeError(f"rendered detail failed: {payload}")
+    return payload

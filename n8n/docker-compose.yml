@@ -21,7 +21,7 @@ services:
       - n8n_redis:/data
 
   n8n:
-    image: docker.n8n.io/n8nio/n8n:2.44.5
+    image: n8nio/n8n:2.44.5
     restart: unless-stopped
     depends_on:
       postgres: {condition: service_healthy}
@@ -51,13 +51,16 @@ services:
       N8N_VERSION_NOTIFICATIONS_ENABLED: "false"
       GENERIC_TIMEZONE: Asia/Seoul
       TZ: Asia/Seoul
+      # Service-to-service traffic stays on the local Compose network.
+      NO_PROXY: localhost,127.0.0.1,host.docker.internal,n8n,worker,postgres,redis
+      no_proxy: localhost,127.0.0.1,host.docker.internal,n8n,worker,postgres,redis
     volumes:
       - n8n_state:/home/node/.n8n
       - ./workflows/scenarios:/srv/n8n-workflows:ro
       - ./workflows/operations:/srv/n8n-operation-flows:ro
 
   worker:
-    image: docker.n8n.io/n8nio/n8n:2.44.5
+    image: n8nio/n8n:2.44.5
     restart: unless-stopped
     command: worker --concurrency=5
     extra_hosts:

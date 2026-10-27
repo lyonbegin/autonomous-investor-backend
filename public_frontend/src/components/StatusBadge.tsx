@@ -1,0 +1,1 @@
+export function StatusBadge({value}:{value:string}){const v=(value||'UNKNOWN').toUpperCase();const tone=/LIVE|ACTIVE|PASS/.test(v)?'good':/PAPER|SHADOW|RESEARCH|BACKTEST/.test(v)?'info':/PAUSE|CUT|RETIRED/.test(v)?'bad':'muted';return <span className={'status '+tone}>{v}</span>}
