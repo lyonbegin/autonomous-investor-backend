@@ -29,3 +29,5 @@
 로컬 큐 검증 결과 및 실패 이력은 TEST_AND_DEPLOYMENT_PLAN을 참조한다. 로컬 성공을 운영 성공으로 바꾸어 기록하지 않는다.
 
 로컬 실제 검증 최종 결과: n8n 2.44.5 Main+Worker / Redis / PostgreSQL에서 webhook 13개 등록, autonomousScenario01~10 각 1건 success, aiOperationF01/F03/F05 각 1건 success를 DB로 확인했다. 운영 DB와 owner 상태는 여전히 미검증이다.
+
+후속 브라우저 검증: 격리된 로컬 n8n 소유자 설정·로그인 후 원본 에디터의 6노드/연결선, 성공 실행 이력, 노드별 실제 run_id 입력 및 completed 출력을 확인했다. 연결 설정은 캡처에서 마스킹했다. 운영 owner를 변경하거나 조사한 결과는 아니다.

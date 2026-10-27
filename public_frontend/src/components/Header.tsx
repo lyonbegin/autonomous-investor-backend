@@ -5,9 +5,9 @@ export function Header({path,go}:Props){
     <header className="topbar">
       <div className="brand" onClick={()=>go('/strategies')}>AUTONOMOUS <b>INVESTOR</b></div>
       <nav>{items.map(([p,l])=><button key={p} className={path.startsWith(p)?'active':''} onClick={()=>go(p)}>{l}</button>)}</nav>
-      <a href="https://investment-n8n-operations-ui-production.up.railway.app/" target="_blank" rel="noopener noreferrer">운영 화면</a>
-      <a href="https://investment-n8n-native-editor-production.up.railway.app/" target="_blank" rel="noopener noreferrer">n8n 원본 편집기 (인증 필요)</a>
-      <div className="top-actions"><span className="live-dot"/>LIVE DATA</div>
+      <a style={{marginLeft:12,fontSize:12}} href="https://investment-n8n-operations-ui-production.up.railway.app/" target="_blank" rel="noopener noreferrer">운영 화면</a>
+      <a style={{marginLeft:12,fontSize:12}} href="https://investment-n8n-native-editor-production.up.railway.app/" target="_blank" rel="noopener noreferrer">n8n 원본 편집기 (인증 필요)</a>
+      <div className="top-actions"><span className="live-dot"/>{import.meta.env.VITE_REVIEW_MODE==='true'?'SYNTHETIC 검증':'LIVE DATA'}</div>
     </header>
     <div className="subbar">
       <span>TradingView Pine Source</span><span>전략 후보</span><span>고정 시간축 Agent</span><span>Walk-forward · Holdout</span><span>Paper · Live</span>

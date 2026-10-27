@@ -31,5 +31,5 @@ export default function App(){
   else if(path==='/agents') page=<AgentsPage go={go}/>;
   else if(path.startsWith('/agents/')) page=<AgentDetailPage id={decodeURIComponent(path.split('/')[2]||'')} go={go}/>;
   else if(path==='/performance') page=<PerformancePage/>;
-  return <div className="app"><Header path={path} go={go}/>{page}<footer>Autonomous Investor · TradingView Pine Source × Fixed Horizon × Market Universe</footer></div>
+  return <div className="app"><Header path={path} go={go}/>{import.meta.env.VITE_REVIEW_MODE==='true'&&<div role="note" style={{padding:'12px 24px',background:'#fff2d5',color:'#684c1e',fontWeight:600}}>로컬 통합 검증 · 표시 데이터는 SYNTHETIC 테스트 자료입니다 · 실제 시장·실거래 결과가 아닙니다</div>}{page}<footer>Autonomous Investor · TradingView Pine Source × Fixed Horizon × Market Universe</footer></div>
 }

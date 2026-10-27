@@ -49,3 +49,5 @@
 - 연구: TradingAgents/FinRobot/RD-Agent, 예측: Chronos, ML: Qlib, RL: SB3/RLlib, screening: vectorbt, 전략: FinRL, 배분: Riskfolio/PyPortfolioOpt, 단일 실행 계약: Nautilus.
 - API: `/api/v1/integrations`의 probe, `/api/v1/demo` 계열 native demo, 인증된 `/api/v1/alpha/modules/...` 함수 실행과 기존 DAG를 유지한다.
 - 전체 학습/다운로드 모델/LLM 추론/실시장 데이터/실거래 검증은 하지 않았다. 엔진별 독립 subprocess 기동·정지/CPU·메모리 제한은 미완료이며 전체 시스템 완료로 보고하지 않는다.
+
+후속 lifecycle 검증: app/engine_runtime에서 기존 probe/DEMOS를 별도 native worker로 재사용한다. 12개 각각 실제 시작·import·소규모 demo·정지·새 PID 재시작을 확인했다. 전역 연구 DAG 실행은 기존 handle 계약을 유지하며 이 worker로 이전하지 않았다. REVIEW_READY.md 참조.

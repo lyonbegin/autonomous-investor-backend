@@ -7,7 +7,7 @@
 | 구분 | 확인된 구현·경로 | 원본 브랜치 | 현재 증거·실행 여부 | 통합 조치·남은 일 |
 |---|---|---|---|---|
 | 12개 투자 엔진 | app/integrations, lab/bridges, core/integrations.py | integration-lab / investment-12-engine-workflow | 12개 설치/import/소규모 native demo 성공 L2 | lifecycle 격리·전체 시장 DAG 미완료 |
-| Python 백엔드 | app/main.py, 서비스별 entrypoint | public-demo / TradingView / Quant | 117 tests 통과, 두 서비스 Docker 200/401/200 | 서버 인증 보존, 운영 바인딩 필요 |
+| Python 백엔드 | app/main.py, 서비스별 entrypoint | public-demo / TradingView / Quant | 122 tests 통과, 두 서비스 Docker 200/401/200 | 서버 인증 보존, 운영 바인딩 필요 |
 | TradingView | core/tradingview.py, source_registry.py, browser_worker | tradingview-service | 소스 복원·Docker/API 검증; 운영 수집 미실행 | 실제 수집량·품질·증분 검증 필요 |
 | Pine Script | strategy_spec.py, pine_visual.py, NativePineChartControl | quant-lab-control / public-frontend-react | 소스·프론트 빌드 성공 | 전체 라이선스·신호 동등성 미검증 |
 | n8n 워크플로 | n8n/workflows 운영3+시나리오10 | real-worker / secure-selfhost / public-demo | 로컬 원본 n8n 큐 13건 DB 성공 L2 | 운영 DB·owner·native editor E2E 미검증 |
@@ -33,4 +33,8 @@
 - RAILWAY_SERVICE_INVENTORY.md: 과거 19개 서비스 단서와 현재 미검증 범위.
 - KNOWN_ISSUES.md: 외부 접근·기존 시스템 미완료 사항.
 
-다음 단계는 Railway 읽기 연결·네트워크 적용 이후 서비스/DB/workflow/cron을 재조회하고 staging E2E를 검증하는 것이다. 엔진 lifecycle 격리, 출처·라이선스·Pine 동등성, 수집 안정성, 실행 ID 상관관계는 후속 구현 범위다. 로컬 통합 검증 성공을 전체 시스템 완료·운영 정상·실거래 준비로 보고하지 않는다. Production 배포·DB 변경·자격증명 회전·외부 알림·실거래는 이번 작업에서 실행하지 않았다.
+다음 단계는 Railway 읽기 연결·네트워크 적용 이후 서비스/DB/workflow/cron을 재조회하고 staging E2E를 검증하는 것이다. 연구 DAG의 분산 lifecycle, 출처·라이선스·Pine 동등성, 수집 안정성, 실행 ID 상관관계는 후속 구현 범위다. 로컬 통합 검증 성공을 전체 시스템 완료·운영 정상·실거래 준비로 보고하지 않는다. Production 배포·DB 변경·자격증명 회전·외부 알림·실거래는 이번 작업에서 실행하지 않았다.
+
+## 추가 구현·사용자 확인 결과
+
+로컬 사용자 확인 단계는 `docs/REVIEW_READY.md`와 `/workspace/review/AUTONOMOUS_INVESTOR_REVIEW.pdf`를 참조한다. 12개 엔진의 소규모 검증용 독립 프로세스 lifecycle, 기존 공개/운영 UI 연결, 원본 n8n 입력·출력 브라우저 확인, 122개 Python 테스트와 13개 브라우저 항목을 완료했다. 기존 운영 화면 HTTP 접근도 재확인했다.

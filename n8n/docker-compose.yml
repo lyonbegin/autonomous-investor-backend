@@ -70,6 +70,7 @@ services:
       redis: {condition: service_started}
     environment:
       <<: *n8n_env
+      QUEUE_HEALTH_CHECK_ACTIVE: "true"
     volumes:
       - n8n_state:/home/node/.n8n
 

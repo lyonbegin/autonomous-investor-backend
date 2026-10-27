@@ -280,6 +280,11 @@ async def ideas(
     page: int = Query(default=1, ge=1),
     sort: str = Query(default="recent"),
 ) -> dict[str, Any]:
+    if os.getenv("PUBLIC_SOURCE_MODE") == "stored":
+        stored = await _get(TV_API, "/api/v1/tradingview/ideas?limit=500")
+        rows = stored.get("items") or []
+        return {"items": rows[(page - 1) * 50:page * 50], "page_count": max(1, (len(rows) + 49) // 50),
+                "total_count": len(rows), "source": "stored"}
     return await _get(TV_API, f"/api/v1/tradingview/ideas/live?page={page}&sort={sort}&lang=ko")
 
 
@@ -510,9 +515,12 @@ async def market(
     sort_by: str = Query(default="volume"),
     sort_order: str = Query(default="desc"),
 ) -> dict[str, Any]:
+    path = f"/api/v1/tradingview/markets/{quote(market, safe='')}"
+    if os.getenv("PUBLIC_SOURCE_MODE") == "stored":
+        path += "/stored"
     return await _get(
         TV_API,
-        f"/api/v1/tradingview/markets/{market}?limit={limit}&offset={offset}&sort_by={sort_by}&sort_order={sort_order}",
+        f"{path}?limit={limit}&offset={offset}&sort_by={quote(sort_by, safe='')}&sort_order={quote(sort_order, safe='')}",
     )
 
 

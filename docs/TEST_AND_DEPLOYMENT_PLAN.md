@@ -59,3 +59,7 @@ export LOG_TRACE_PATH=/workspace/.onboarding/rdagent/log
 Railway live 19개 재조회, 최신 Horizon·macro·회사채 cron 결과와 데이터 적재, 운영 n8n owner/credentials/DB workflow 대조·인증 후 native editor 브라우저 E2E, 완전한 L3 staging·L4 production, 실거래 L5. 새 task에서 snapshot 복원은 미검증이다.
 
 원본 보존 참고: `patches/rdagent-pydantic-ai-1.70.patch`의 빈 context 행은 유효한 unified diff의 공백 한 글자다. git whitespace 검사는 이를 경고하지만 원본 패치 형식을 보존했다.
+
+## 사용자 확인 단계 추가 검증
+
+122개 Python 테스트, 12개 엔진 실제 worker lifecycle/demo, 실제 API 응답을 사용하는 브라우저 13개 항목, n8n 노드별 입력/출력, Caddy 설정 검증을 완료했다. n8n repeated-test DB 재사용 및 worker readiness를 보완했다. 기존 Compose 프로젝트 재사용 차단도 실제로 확인했고 기존 실행 세션을 보존했다. 테스트와 캡처·실행 경계·실패 이력은 REVIEW_READY.md를 참조한다.

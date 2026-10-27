@@ -14,6 +14,7 @@ from app.alpha_nodes.scenario_control_api import router as scenario_control_rout
 from app.api.source_registry_routes import router as source_registry_router
 from app.api.quant_routes import router as quant_router
 from app.api.public_routes import router as public_router
+from app.engine_runtime.api import router as engine_runtime_router
 
 app = FastAPI(
     title="Autonomous Investor Backend",
@@ -40,3 +41,4 @@ app.include_router(investment_router)
 app.include_router(scenario_router)
 app.include_router(operations_router)
 app.include_router(scenario_control_router)
+app.include_router(engine_runtime_router)

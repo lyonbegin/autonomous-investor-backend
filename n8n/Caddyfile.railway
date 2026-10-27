@@ -10,7 +10,7 @@
     # Authorization stays on the server; never expose the upstream bearer token.
     @publicOps {
         method GET
-        path /studio-api/api/v1/ops/overview /studio-api/api/v1/ops/strategies /studio-api/api/v1/ops/agents /studio-api/api/v1/ops/audit/findings /studio-api/api/v1/ops/events
+        path /studio-api/api/v1/ops/overview /studio-api/api/v1/ops/strategies /studio-api/api/v1/ops/agents /studio-api/api/v1/ops/audit/findings /studio-api/api/v1/ops/events /studio-api/api/v1/ops/engines
     }
     @publicScenarioRead {
         method GET
