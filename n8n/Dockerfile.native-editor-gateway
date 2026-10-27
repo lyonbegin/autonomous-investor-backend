@@ -1,3 +1,5 @@
 FROM caddy:2.10-alpine
 COPY n8n/Caddyfile.native-editor-gateway /etc/caddy/Caddyfile
+COPY n8n/preview/native-portal.html /srv/site/index.html
+COPY n8n/workflows/ /srv/data/
 EXPOSE 3000
