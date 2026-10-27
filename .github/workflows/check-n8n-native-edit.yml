@@ -1,0 +1,41 @@
+name: Verify source patch for native n8n user editing
+on:
+  push:
+    branches: [feature/n8n-native-editable-test-20261028]
+    paths:
+      - 'n8n/patches/enable-native-editable-test.py'
+      - 'n8n/preview/native-portal.html'
+      - 'n8n/Dockerfile.upstream-source.railway'
+      - '.github/workflows/check-n8n-native-edit.yml'
+  workflow_dispatch:
+permissions: {contents: read}
+jobs:
+  static:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Get pinned upstream Vue editor only
+        run: |
+          git clone --depth 1 --filter=blob:none --sparse --branch 'n8n@2.44.5' https://github.com/n8n-io/n8n.git /tmp/n8n-source
+          cd /tmp/n8n-source
+          git sparse-checkout set packages/frontend/editor-ui/src/app/views/NodeView.vue packages/frontend/editor-ui/src/app/router.ts packages/frontend/editor-ui/src/app/composables/usePostMessageHandler.ts
+          test -f packages/frontend/editor-ui/src/app/views/NodeView.vue
+      - name: Apply source code modifications with exact anchored assertions
+        run: |
+          cp n8n/patches/enable-native-editable-test.py /tmp/patch-editable.py
+          sed -i 's@Path("/src/packages/frontend/editor-ui/src")@Path("/tmp/n8n-source/packages/frontend/editor-ui/src")@' /tmp/patch-editable.py
+          python3 /tmp/patch-editable.py
+          grep -q 'const isNativeEditableTest = computed' /tmp/n8n-source/packages/frontend/editor-ui/src/app/views/NodeView.vue
+          grep -q "command: 'testWorkflowSnapshot'" /tmp/n8n-source/packages/frontend/editor-ui/src/app/views/NodeView.vue
+          grep -q "command: 'testWorkflowSnapshot'" /tmp/n8n-source/packages/frontend/editor-ui/src/app/composables/usePostMessageHandler.ts
+      - name: Validate portal edit and persistence controls
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('n8n/preview/native-portal.html').read_text()
+          for s in ('editable=true','saveDraft','exportDraft','resetDraft','localStorage.setItem','localStorage.getItem','testWorkflowSnapshot','saveTestWorkflow'):
+            assert s in p,s
+          assert 'canExecute=false' in p
+          print('PASS: original n8n editable controls and browser-local save wired')
+          PY
