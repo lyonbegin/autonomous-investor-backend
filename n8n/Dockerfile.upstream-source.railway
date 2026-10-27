@@ -11,6 +11,9 @@ RUN git clone --depth 1 --branch 'n8n@2.44.5' https://github.com/n8n-io/n8n.git 
     && test -f packages/frontend/editor-ui/package.json \
     && test -f packages/cli/package.json \
     && echo "UPSTREAM_N8N_SOURCE_VERIFIED"
+# Apply narrowly-scoped source patch before compiling Vue.
+COPY n8n/patches/enable-native-editable-test.py /tmp/enable-native-editable-test.py
+RUN python3 /tmp/enable-native-editable-test.py
 ENV CI=true
 ENV NODE_OPTIONS="--max-old-space-size=4096"
 RUN pnpm install --frozen-lockfile --trust-lockfile
