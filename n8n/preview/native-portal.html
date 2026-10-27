@@ -10,14 +10,14 @@ aside h2{font-size:13px;margin:12px 8px;color:#9ddcc6}button.flow{color:#c8ddeb;
 button.flow:hover{background:#234254}button.flow.active{background:#235d61;color:#fff;border-left:3px solid #54d6b0}
 button.flow small{color:#9ab4c2;display:block;margin-top:4px}section{flex:1;min-width:0;display:flex;flex-direction:column}
 .toolbar{padding:11px 17px;display:flex;align-items:center;justify-content:space-between;gap:8px;border-bottom:1px solid #36506a}
-#status{font-size:12px;color:#e8c584}iframe{width:100%;flex:1;border:0;background:#f5f5f5}
+#status{font-size:12px;color:#e8c584}.toolbar button{border:0;border-radius:6px;padding:9px 12px;font-weight:700;cursor:pointer;background:#a3edd0;color:#073d2b}.toolbar button.secondary{background:#2e465b;color:#e8f1fa}.toolbar .actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}iframe{width:100%;flex:1;border:0;background:#f5f5f5}
 @media(max-width:700px){aside{width:130px;min-width:130px;padding:7px}button.flow{font-size:12px;padding:8px}header{height:auto;min-height:75px}main{height:calc(100vh - 80px)}} 
 </style></head><body>
-<header><div><h1>n8n 원본 노드 플로우 · 투자 자동화</h1><p>공식 n8n Vue 캔버스 · 13개 실제 워크플로 JSON · 로그인 없는 테스트 미리보기</p></div>
+<header><div><h1>n8n 원본 노드 플로우 · 투자 자동화</h1><p>공식 n8n Vue 편집기 · 노드 추가·이동·설정·연결 테스트 · 브라우저에 초안 저장</p></div>
 <a href="https://investment-n8n-operations-ui-production.up.railway.app/" target="_blank" rel="noopener">실제 n8n Webhook 시나리오 실행 결과 보기</a></header>
 <main><aside><h2>운영 플로우 (3)</h2><div id="operations"></div><h2>합성 테스트 플로우 (10)</h2><div id="scenarios"></div></aside>
-<section><div class="toolbar"><strong id="title">원본 n8n 편집기 캔버스</strong><span id="status">초기화 중…</span></div>
-<iframe id="n8n-canvas" title="n8n 공식 Vue 노드 캔버스" src="/workflows/demo?canExecute=false" referrerpolicy="same-origin"></iframe></section></main>
+<section><div class="toolbar"><div><strong id="title">원본 n8n 편집기 캔버스</strong><p id="status" aria-live="polite">초기화 중…</p></div><div class="actions"><button id="saveDraft" type="button">변경 저장</button><button id="exportDraft" class="secondary" type="button">JSON 내보내기</button><button id="resetDraft" class="secondary" type="button">원본 복원</button></div></div>
+<iframe id="n8n-canvas" title="n8n 공식 Vue 노드 캔버스" src="/workflows/demo?canExecute=false&editable=true" referrerpolicy="same-origin"></iframe></section></main>
 <script>
 const flows=[
 ['operations/F01-strategy-sync.json','F01 전략 풀 증분 수집'],
@@ -34,34 +34,82 @@ const flows=[
 ['scenarios/09-unsupported-pine.json','09 지원 불가 Pine'],
 ['scenarios/10-strategy-retire.json','10 전략 폐기']
 ];
-const frame=document.getElementById('n8n-canvas'),status=document.getElementById('status'),title=document.getElementById('title');
-let ready=false,chosen=0;
+const frame=document.getElementById('n8n-canvas'),
+  status=document.getElementById('status'),title=document.getElementById('title');
+const draftKey=file=>'n8n-native-editable-test:v1:'+file;
+let ready=false,chosen=0,pendingExport=false;
 const buttons=flows.map(([file,label],i)=>{
  const b=document.createElement('button');b.type='button';b.className='flow';b.textContent=label;b.dataset.workflow=file;
  b.onclick=()=>select(i);
  (i<3?document.getElementById('operations'):document.getElementById('scenarios')).appendChild(b);
  return b;
 });
+function requestSnapshot(exportMode=false){
+ if(!ready){status.textContent='n8n 편집기 초기화 중입니다.';return;}
+ pendingExport=exportMode;
+ status.textContent=exportMode?'현재 노드 데이터를 내보내는 중…':'수정된 원본 노드 데이터를 저장하는 중…';
+ frame.contentWindow.postMessage(JSON.stringify({command:'saveTestWorkflow'}),location.origin);
+}
+document.getElementById('saveDraft').onclick=()=>requestSnapshot();
+document.getElementById('exportDraft').onclick=()=>requestSnapshot(true);
+document.getElementById('resetDraft').onclick=()=>{
+ if(!confirm('현재 테스트 초안을 삭제하고 GitHub 워크플로 원본을 다시 불러옵니까?'))return;
+ localStorage.removeItem(draftKey(flows[chosen][0]));
+ select(chosen);
+};
 async function select(i){
  chosen=i;
  buttons.forEach((b,j)=>b.classList.toggle('active',j===i));
  title.textContent=flows[i][1];
- status.textContent='워크플로 JSON 가져오는 중…';
+ status.textContent='워크플로 불러오는 중…';
  try{
-  const response=await fetch('/demo-data/'+flows[i][0],{cache:'no-store'});
-  if(!response.ok)throw Error('HTTP '+response.status);
-  const workflow=await response.json();
-  if(!Array.isArray(workflow.nodes)||typeof workflow.connections!=='object')throw Error('JSON 노드 데이터가 올바르지 않음');
-  if(!ready){status.textContent='공식 n8n 캔버스 준비 중…';return;}
-  frame.contentWindow.postMessage(JSON.stringify({command:'openWorkflow',workflow:{...workflow,active:false},canOpenNDV:true,suppressNotifications:true}),location.origin);
-  status.textContent='원본 노드 '+workflow.nodes.length+'개 로드 요청 · 실제 거래 실행 없음';
+  let workflow;
+  const draft=localStorage.getItem(draftKey(flows[i][0]));
+  if(draft){
+    workflow=JSON.parse(draft);
+  }else{
+    const response=await fetch('/demo-data/'+flows[i][0],{cache:'no-store'});
+    if(!response.ok)throw Error('HTTP '+response.status);
+    workflow=await response.json();
+  }
+  if(!Array.isArray(workflow.nodes)||!workflow.connections||typeof workflow.connections!=='object')throw Error('노드/연결 데이터 형식 오류');
+  if(chosen!==i)return;
+  if(!ready){status.textContent='n8n 원본 편집기 준비 중…';return;}
+  frame.contentWindow.postMessage(JSON.stringify({
+    command:'openWorkflow',
+    workflow:{...workflow,active:false},
+    canOpenNDV:true,
+    suppressNotifications:true
+  }),location.origin);
+  status.textContent=(draft?'저장된 초안 복원 완료 요청 · ':'원본 JSON 로드 요청 · ')+
+      '노드 '+workflow.nodes.length+'개 · 변경 저장은 이 브라우저에서 유지되며 실제 매매는 실행되지 않습니다.';
  }catch(error){status.textContent='불러오기 오류: '+error.message;}
 }
 window.addEventListener('message',e=>{
  if(e.origin!==location.origin||e.source!==frame.contentWindow||typeof e.data!=='string')return;
  let data;try{data=JSON.parse(e.data);}catch{return;}
  if(data.command==='n8nReady'){ready=true;select(chosen);}
- else if(data.command==='error'){status.textContent='n8n 원본 캔버스 오류: '+data.message;}
+ else if(data.command==='testWorkflowSnapshot'){
+   if(!Array.isArray(data.workflow?.nodes)||!data.workflow?.connections){
+      status.textContent='저장 오류: 노드 데이터를 받지 못했습니다.';return;
+   }
+   const workflow={...data.workflow,active:false};
+   const filename=flows[chosen][0],json=JSON.stringify(workflow,null,2);
+   try {
+     if(pendingExport){
+       const blob=new Blob([json],{type:'application/json'});
+       const url=URL.createObjectURL(blob),a=document.createElement('a');
+       a.href=url;a.download=filename.split('/').pop();a.click();
+       setTimeout(()=>URL.revokeObjectURL(url),500);
+       pendingExport=false;
+       status.textContent='JSON 파일을 내보냈습니다. 서버에는 저장되지 않았습니다.';
+     }else{
+       localStorage.setItem(draftKey(filename),json);
+       status.textContent='초안 저장 성공 · 노드 '+workflow.nodes.length+
+       '개 · 이 브라우저에서 새로고침 후에도 유지됩니다.';
+     }
+   }catch(error){status.textContent='저장 실패: '+error.message;}
+ }else if(data.command==='error'){status.textContent='원본 n8n 편집기 오류: '+data.message;}
 });
 select(0);
 </script></body></html>
