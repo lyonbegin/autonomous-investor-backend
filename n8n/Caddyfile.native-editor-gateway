@@ -1,33 +1,42 @@
 :{$PORT:3000} {
     encode zstd gzip
-
     @health path /health
     handle @health {
         respond "ok" 200
     }
 
-    # Login-free public landing only. Never expose the uninitialized n8n owner's
-    # setup, credentials, workflows, execution history or management endpoints.
-    @landing {
-        method GET HEAD
-        path / /index.html
-    }
+    @landing path / /index.html
     handle @landing {
-        redir https://investment-n8n-operations-ui-production.up.railway.app/ 302
+        root * /srv/site
+        rewrite * /index.html
+        file_server
     }
 
-    # Deliberately no basic_auth and no WWW-Authenticate challenges.
-    # The original n8n server remains private inside Railway until owner
-    # setup is completed. This endpoint is not a public n8n editor.
+    handle_path /demo-data/* {
+        root * /srv/data
+        file_server
+    }
+
+    # Original Vue editor assets and API for the isolated preview-only n8n.
+    # No separate React graph, no Basic Auth, no n8n owner setup endpoints.
+    @originalN8n {
+        method GET HEAD
+        path /workflows/demo /assets/* /static/* /types/* /rest/* /favicon.ico /favicon.png /icons/* /node-icons/*
+    }
+    handle @originalN8n {
+        reverse_proxy http://investment-n8n-source-editor.railway.internal:5678 {
+            header_up X-Forwarded-Proto https
+            header_up X-Forwarded-Host {host}
+        }
+    }
+
     handle {
-        respond "Native n8n administration is private. Open the public simulation dashboard." 403
+        respond "이 주소는 원본 n8n 노드 캔버스 조회 및 합성 테스트 전용입니다." 403
     }
-
     header {
         X-Content-Type-Options nosniff
         Referrer-Policy no-referrer
         Cache-Control "no-store"
-        -Server
         -WWW-Authenticate
     }
 }
