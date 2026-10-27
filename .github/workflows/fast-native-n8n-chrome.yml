@@ -1,0 +1,49 @@
+name: Fast Chrome check of n8n original node canvas
+on:
+  push:
+    branches: [feature/n8n-upstream-source-railway-20261027]
+    paths: ['.github/workflows/fast-native-n8n-chrome.yml']
+  workflow_dispatch:
+permissions: {contents: read}
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: Install JS only; use system Google Chrome
+        working-directory: investment_studio
+        run: |
+          npm install --no-audit --no-fund
+          command -v google-chrome
+          google-chrome --version
+      - name: Check n8n Vue editor nodes and connections
+        working-directory: investment_studio
+        run: |
+          node --input-type=module <<'NODE'
+          import {chromium,expect} from '@playwright/test';
+          const b=await chromium.launch({headless:true,executablePath:'/usr/bin/google-chrome',args:['--no-sandbox']});
+          const p=await b.newPage({viewport:{width:1600,height:1000}});
+          try{
+            p.on('pageerror',e=>console.log('PAGE_ERROR',String(e).slice(0,250)));
+            await p.goto('https://investment-n8n-native-editor-production.up.railway.app/',{timeout:45000});
+            await expect(p.locator('button.flow')).toHaveCount(13,{timeout:20000});
+            const frame=p.frameLocator('#n8n-canvas');
+            await expect(frame.locator('.vue-flow__node').first()).toBeVisible({timeout:60000});
+            console.log('NATIVE_GRAPH_F01_NODES',await frame.locator('.vue-flow__node').count());
+            console.log('NATIVE_GRAPH_F01_EDGES',await frame.locator('.vue-flow__edge').count());
+            await p.screenshot({path:'original-n8n-source-f01.png',fullPage:true});
+            await p.locator('button.flow').nth(3).click();
+            await expect(frame.locator('.vue-flow__node').first()).toBeVisible({timeout:25000});
+            console.log('NATIVE_GRAPH_SCENARIO_NODES',await frame.locator('.vue-flow__node').count());
+            await p.screenshot({path:'original-n8n-source-scenario01.png',fullPage:true});
+          }finally{await b.close();}
+          NODE
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: original-n8n-chrome-fast-proof
+          path: investment_studio/original-n8n-source-*.png
+          if-no-files-found: ignore
