@@ -6,21 +6,28 @@
         respond "ok" 200
     }
 
-    # Proxy the ORIGINAL n8n editor; never reimplement its graph or workflow UI.
-    # n8n has no configured owner yet; protect setup, REST and websocket endpoints.
-    handle {
-        basic_auth {
-            {$N8N_GATEWAY_USER} {$N8N_GATEWAY_PASSWORD_HASH}
-        }
-        reverse_proxy http://investment-n8n-main.railway.internal:5678 {
-            header_up X-Forwarded-Proto https
-            header_up X-Forwarded-Host {host}
-        }
+    # Login-free public landing only. Never expose the uninitialized n8n owner's
+    # setup, credentials, workflows, execution history or management endpoints.
+    @landing {
+        method GET HEAD
+        path / /index.html
     }
+    handle @landing {
+        redir https://investment-n8n-operations-ui-production.up.railway.app/ 302
+    }
+
+    # Deliberately no basic_auth and no WWW-Authenticate challenges.
+    # The original n8n server remains private inside Railway until owner
+    # setup is completed. This endpoint is not a public n8n editor.
+    handle {
+        respond "Native n8n administration is private. Open the public simulation dashboard." 403
+    }
+
     header {
         X-Content-Type-Options nosniff
         Referrer-Policy no-referrer
         Cache-Control "no-store"
         -Server
+        -WWW-Authenticate
     }
 }
