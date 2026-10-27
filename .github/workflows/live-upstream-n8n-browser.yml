@@ -1,0 +1,69 @@
+name: Browser test real source-built n8n node canvas (13 flows)
+on:
+  push:
+    branches: [feature/n8n-upstream-source-railway-20261027]
+    paths: ['.github/workflows/live-upstream-n8n-browser.yml']
+  workflow_dispatch:
+permissions: {contents: read}
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 19
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: Install Playwright
+        working-directory: investment_studio
+        run: |
+          npm install --no-audit --no-fund
+          npx playwright install --with-deps chromium
+      - name: Verify original Vue n8n nodes and edges in real browser
+        working-directory: investment_studio
+        run: |
+          mkdir -p original-n8n-screenshots
+          node --input-type=module <<'NODE'
+          import {chromium,expect} from '@playwright/test';
+          const base='https://investment-n8n-native-editor-production.up.railway.app/';
+          const browser=await chromium.launch({headless:true});
+          const page=await browser.newPage({viewport:{width:1660,height:1000}});
+          const consoleErrors=[];page.on('pageerror',e=>consoleErrors.push(String(e)));
+          try {
+            let ready=false;
+            for(let i=0;i<80;i++){
+              try {
+                const r=await page.request.get(base+'rest/settings',{timeout:15000});
+                if(r.ok()){
+                  const j=await r.json();
+                  if(j?.data?.previewMode===true){ready=true;break;}
+                }
+              }catch(e){console.log('RETRY',i,e.message.slice(0,100));}
+              await new Promise(r=>setTimeout(r,5000));
+            }
+            if(!ready)throw Error('Original source-built n8n preview server not ready after 80 checks');
+            await page.goto(base,{waitUntil:'domcontentloaded',timeout:45000});
+            await expect(page.getByRole('heading',{name:/n8n 원본 노드 플로우/})).toBeVisible();
+            await expect(page.locator('button.flow')).toHaveCount(13);
+            const demo=page.frameLocator('#n8n-canvas');
+            await expect(demo.locator('.vue-flow__node').first()).toBeVisible({timeout:60000});
+            const n=await demo.locator('.vue-flow__node').count();
+            const e=await demo.locator('.vue-flow__edge').count();
+            if(n<2||e<1)throw Error('no original n8n nodes/edges: '+n+' / '+e);
+            console.log('ORIGINAL_F01_VUE_NODES',n,'EDGES',e);
+            await page.screenshot({path:'original-n8n-screenshots/01-original-f01.png',fullPage:true});
+            await page.locator('button.flow').nth(3).click();
+            await expect(demo.locator('.vue-flow__node').first()).toBeVisible({timeout:45000});
+            const count=await demo.locator('.vue-flow__node').count();
+            if(count<4)throw Error('Scenario 01 original node count '+count);
+            console.log('ORIGINAL_SCENARIO_01_NODES',count);
+            await page.screenshot({path:'original-n8n-screenshots/02-original-scenario.png',fullPage:true});
+            const b=await page.locator('button.flow').count();
+            console.log('PASS_REAL_SOURCE_N8N_VUE_CANVAS',b,'workflows with no login');
+          } finally {await browser.close();}
+          NODE
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: actual-n8n-source-vue-canvas-screenshots
+          path: investment_studio/original-n8n-screenshots/
+          if-no-files-found: ignore
