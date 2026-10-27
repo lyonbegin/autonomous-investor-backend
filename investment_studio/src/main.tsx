@@ -10,6 +10,7 @@ function Workspace(){
  const [page,setPage]=useState<'studio'|'scenarios'|'operations'>(publicDemo?'scenarios':'operations');
  return <div style={{height:'100%',display:'flex',flexDirection:'column'}}>
    <nav style={{display:'flex',gap:8,padding:'7px 12px',background:'#193b49',zIndex:20}}>
+     <a href="https://investment-n8n-native-editor-production.up.railway.app/" target="_blank" rel="noopener noreferrer" style={{padding:'6px 14px',borderRadius:5,background:'#a9f0cf',color:'#0b4f39',fontWeight:750,textDecoration:'none'}}>원본 n8n 노드 캔버스 (13개)</a>
      <button onClick={()=>setPage('scenarios')} style={{padding:'6px 14px',border:0,borderRadius:5,background:page==='scenarios'?'#d3f5df':'#45616e',color:page==='scenarios'?'#14573d':'white',fontWeight:750,cursor:'pointer'}}>n8n 워크플로 실행 테스트</button>
      <button onClick={()=>setPage('operations')} style={{padding:'6px 14px',border:0,borderRadius:5,background:page==='operations'?'#effcff':'#45616e',color:page==='operations'?'#1e5867':'white',cursor:'pointer'}}>전략 풀 · 에이전트 · 독립 감사</button>
      <button onClick={()=>setPage('scenarios')} style={{padding:'6px 14px',border:0,borderRadius:5,background:page==='scenarios'?'#effcff':'#45616e',color:page==='scenarios'?'#1e5867':'white',cursor:'pointer'}}>10개 운영 시나리오 실행</button>
