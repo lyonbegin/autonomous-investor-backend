@@ -21,6 +21,13 @@
         path_regexp synthetic ^/studio-api/api/v1/alpha/scenarios/[^/]+/runs$
     }
 
+    # Exactly the ten synthetic scenarios may be dispatched via the REAL private
+    # n8n webhook. The backend validates the scenario ID and never places orders.
+    @publicN8nSimulation {
+        method POST
+        path_regexp n8nsim ^/studio-api/api/v1/alpha/scenarios/(01-new-strategy|02-version-update|03-capital-race|04-partial-fill|05-long-backtest|06-strategy-drift|07-broker-timeout|08-agent-crash|09-unsupported-pine|10-strategy-retire)/dispatch$
+    }
+
     @api path /studio-api/*
     handle @api {
         route {
@@ -40,6 +47,13 @@
                 }
             }
             handle @publicScenarioSimulation {
+                uri strip_prefix /studio-api
+                reverse_proxy {$INVESTMENT_BACKEND_UPSTREAM} {
+                    header_up Authorization "Bearer {$ALPHA_NODE_API_KEY}"
+                    header_up -Cookie
+                }
+            }
+            handle @publicN8nSimulation {
                 uri strip_prefix /studio-api
                 reverse_proxy {$INVESTMENT_BACKEND_UPSTREAM} {
                     header_up Authorization "Bearer {$ALPHA_NODE_API_KEY}"
