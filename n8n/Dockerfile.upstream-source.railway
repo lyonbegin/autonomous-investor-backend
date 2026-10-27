@@ -16,6 +16,19 @@ ENV NODE_OPTIONS="--max-old-space-size=4096"
 RUN pnpm install --frozen-lockfile --trust-lockfile
 RUN pnpm build:deploy
 
+# n8n's official release Dockerfile rebuilds isolated-vm natively for this
+# Node/Alpine combination. Without that step the editor server health check
+# may succeed briefly but the expression engine crashes at startup.
+RUN set -eux; \
+    ISOLATED_VM="$(find /src/compiled/node_modules/.pnpm -maxdepth 4 -type d -name 'isolated-vm' | head -n 1)"; \
+    test -n "$ISOLATED_VM"; \
+    cd "$ISOLATED_VM"; \
+    rm -rf prebuilds; \
+    node /usr/local/lib/node_modules/npm/node_modules/node-gyp/bin/node-gyp.js rebuild --release -j 2; \
+    test -f build/Release/isolated_vm.node; \
+    echo "UPSTREAM_NATIVE_ISOLATED_VM_BUILT"
+
+
 # Runtime contains code actually compiled above from official GitHub source.
 # It does not depend on n8nio/n8n prebuilt application images.
 FROM node:26.10.0-alpine3.24 AS runtime
