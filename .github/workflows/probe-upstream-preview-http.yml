@@ -1,0 +1,23 @@
+name: Probe live n8n original preview HTTP responses
+on:
+  push:
+    branches: [feature/n8n-upstream-source-railway-20261027]
+    paths: ['.github/workflows/probe-upstream-preview-http.yml']
+  workflow_dispatch:
+permissions: {contents: read}
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check live original n8n Vue editor gateway routes
+        run: |
+          python3 - <<'PY'
+          import urllib.request,urllib.error
+          base='https://investment-n8n-native-editor-production.up.railway.app'
+          for path in ['/','/health','/demo-data/operations/F01-strategy-sync.json','/rest/settings','/workflows/demo','/types/nodes.json']:
+            try:
+              with urllib.request.urlopen(urllib.request.Request(base+path),timeout=25) as r:
+                raw=r.read(600); print('CHECK',path,'HTTP',r.status,'TYPE',r.headers.get('content-type'),'PREFIX',repr(raw[:220]),flush=True)
+            except urllib.error.HTTPError as e:print('CHECK',path,'HTTP_ERROR',e.code,'PREFIX',repr(e.read(220)),flush=True)
+            except Exception as e:print('CHECK',path,'ERROR',type(e).__name__,str(e)[:160],flush=True)
+          PY
