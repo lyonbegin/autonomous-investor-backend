@@ -1,0 +1,64 @@
+name: Verify 10 real n8n webhook synthetic runs without login
+on:
+  push:
+    branches: [feature/loginless-n8n-simulation-20261027]
+    paths: ['.github/workflows/live-n8n-dispatch-test.yml']
+  workflow_dispatch:
+permissions: {contents: read}
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Verify live n8n webhooks and progress from public login-free API
+        env:
+          UI: https://investment-n8n-operations-ui-production.up.railway.app
+        run: |
+          python3 - <<'PY'
+          import json,os,time,urllib.request,urllib.error
+          base=os.environ['UI']
+          scenarios=['01-new-strategy','02-version-update','03-capital-race','04-partial-fill','05-long-backtest','06-strategy-drift','07-broker-timeout','08-agent-crash','09-unsupported-pine','10-strategy-retire']
+          def call(method,path):
+            req=urllib.request.Request(base+path,method=method,headers={'Accept':'application/json','User-Agent':'AutonomousInvestor-N8n-E2E/1.0'})
+            try:
+              with urllib.request.urlopen(req,timeout=24) as r:return r.status,r.read(200000)
+            except urllib.error.HTTPError as e:return e.code,e.read(4000)
+          # Wait until the new frontend build is live (not the old direct-only artifact).
+          import re
+          ready=False
+          for attempt in range(60):
+            status,home=call('GET','/')
+            if status==200:
+              assets=re.findall(rb'/assets/[^"\s]+\.js',home)
+              if assets:
+                status,js=call('GET',assets[0].decode())
+                if status==200 and b'n8n' in js and b'Webhook' in js and b'Worker' in js:
+                  ready=True
+                  break
+            time.sleep(5)
+          assert ready,'New n8n UI did not become accessible'
+          status,raw=call('GET','/studio-api/api/v1/alpha/scenarios/infra')
+          assert status==200,(status,raw[:500])
+          infra=json.loads(raw)
+          print('N8N_INFRA_CONFIGURED',infra.get('configured'),'MODE',infra.get('mode'))
+          assert infra.get('configured') is True,'n8n backend webhook integration not configured'
+          status,raw=call('GET','/studio-api/api/v1/alpha/scenarios')
+          assert status==200 and len(json.loads(raw).get('scenarios',[]))==10
+          for scenario in scenarios:
+            status,raw=call('POST',f'/studio-api/api/v1/alpha/scenarios/{scenario}/dispatch?interval_ms=0')
+            assert status==202,(scenario,'DISPATCH_HTTP',status,raw[:400])
+            data=json.loads(raw)
+            assert data.get('started_via')=='real_n8n_webhook',(scenario,'not actual webhook',data)
+            rid=data['run_id']
+            result=None
+            for _ in range(40):
+              status,raw=call('GET',f'/studio-api/api/v1/alpha/scenarios/runs/{rid}')
+              assert status==200,(scenario,'POLL_HTTP',status,raw[:300])
+              result=json.loads(raw)
+              if result.get('status') in ('completed','failed','interrupted'):break
+              time.sleep(0.35)
+            assert result and result.get('status')=='completed',(scenario,result)
+            assert result['completed_steps']==result['total_steps'],(scenario,result)
+            print('N8N_REAL_WEBHOOK_SYNTHETIC_COMPLETE',scenario,result['completed_steps'],'/',result['total_steps'],flush=True)
+          print('ALL_10_REAL_N8N_WEBHOOK_SYNTHETIC_RUNS_PASS')
+          PY
