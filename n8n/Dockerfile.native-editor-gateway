@@ -16,14 +16,16 @@ RUN npm --prefix /app/shared/playground run build
 # Persistent, isolated per-browser SQLite drafts. Public demo write operations
 # cannot trigger any n8n workflow, backend Python engine or broker.
 FROM python:3.12-alpine
+RUN apk add --no-cache su-exec
 WORKDIR /app
 COPY --from=build /app/shared/playground/dist /app/dist
 COPY --from=build /app/shared/server/studio_server.py /app/studio_server.py
 RUN mkdir -p /data && addgroup -S studio && adduser -S studio -G studio \
     && chown -R studio:studio /data /app
-USER studio
+# The Railway volume is mounted after image build as root-owned /data.
+# Fix only the dedicated draft directory before dropping to the studio user.
 ENV PORT=3000
 ENV STUDIO_STATIC_ROOT=/app/dist
 ENV STUDIO_DB_PATH=/data/studio.sqlite3
 EXPOSE 3000
-CMD ["python3", "-u", "/app/studio_server.py"]
+CMD ["sh", "-c", "chown -R studio:studio /data && exec su-exec studio python3 -u /app/studio_server.py"]
