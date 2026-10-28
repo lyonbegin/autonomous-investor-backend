@@ -1,0 +1,99 @@
+name: E2E n8n native duplicate rename and edge deletion
+on:
+  push:
+    branches: [feature/n8n-native-editable-test-20261028]
+    paths: ['.github/workflows/test-native-n8n-rename-duplicate.yml']
+  workflow_dispatch:
+permissions: {contents: read}
+jobs:
+  chrome:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: Install Playwright
+        working-directory: investment_studio
+        run: npm install --no-audit --no-fund
+      - name: Native real-user shortcuts and connection deletion
+        working-directory: investment_studio
+        run: |
+          node --input-type=module <<'NODE'
+          import {chromium,expect} from '@playwright/test';
+          import fs from 'node:fs';
+          const browser=await chromium.launch({headless:true,executablePath:'/usr/bin/google-chrome',args:['--no-sandbox']});
+          const p=await browser.newPage({viewport:{width:1800,height:1080}});
+          const results=[];
+          const record=(step,ok,detail)=>{const item={step,result:ok?'PASS':'FAIL',detail};results.push(item);console.log('NATIVE_USABILITY_STEP',JSON.stringify(item));};
+          try {
+            await p.goto('https://investment-n8n-native-editor-production.up.railway.app/',{waitUntil:'domcontentloaded'});
+            await p.locator('button.flow').nth(3).click();
+            const c=p.frameLocator('#n8n-canvas'),nodes=c.locator('.vue-flow__node'),edges=c.locator('.vue-flow__edge');
+            await expect(nodes).toHaveCount(6,{timeout:60000});
+            await p.locator('#addSafeNoOp').click();
+            await expect(nodes).toHaveCount(7,{timeout:25000});
+            const added=nodes.filter({hasText:'No Operation'}).last();
+            await added.click();
+            await c.locator('.vue-flow').press('Control+d');
+            await p.waitForTimeout(900);
+            const dupCount=await nodes.count();
+            record('duplicate-ctrl-d',dupCount===8,{expected:8,actual:dupCount});
+            const duplicate=nodes.filter({hasText:'No Operation'}).last();
+            await duplicate.click();
+            await c.locator('.vue-flow').press('Space');
+            await p.waitForTimeout(300);
+            const modal=c.locator('.rename-prompt .el-input__inner');
+            const renameVisible=await modal.isVisible().catch(()=>false);
+            record('rename-modal-space',renameVisible,{visible:renameVisible});
+            if(renameVisible){
+              await modal.fill('NoOp UX renamed');
+              await modal.press('Enter');
+              await p.waitForTimeout(700);
+              record('rename-value',await nodes.filter({hasText:'NoOp UX renamed'}).count()===1,{visibleNames:await nodes.allTextContents()});
+            }
+            // Add a real new edge through mouse events between original nodes.
+            const source=nodes.filter({hasText:'시뮬레이션 실행 대기'});
+            const target=nodes.filter({hasText:'No Operation'}).first();
+            const ob=await source.locator('.vue-flow__handle.source').last().boundingBox();
+            const ib=await target.locator('.vue-flow__handle.target').first().boundingBox();
+            const before=await edges.count();
+            if(ob&&ib){
+              await p.mouse.move(ob.x+ob.width/2,ob.y+ob.height/2);
+              await p.mouse.down();
+              await p.mouse.move(ib.x+ib.width/2,ib.y+ib.height/2,{steps:25});
+              await p.mouse.up();
+              await p.waitForTimeout(900);
+            }
+            const after=await edges.count();
+            record('create-connection',after>before,{before,after});
+            if(after>before){
+              const edge=edges.last();
+              await edge.click({force:true});
+              await c.locator('.vue-flow').press('Delete');
+              await p.waitForTimeout(900);
+              const final=await edges.count();
+              record('delete-new-connection',final<after,{after,final});
+            }
+            await p.screenshot({path:'native-n8n-rename-duplicate-edge.png',fullPage:true});
+            await p.locator('#saveDraft').click();
+            await expect(p.locator('#status')).toContainText('초안 저장 성공');
+            const saved=await p.evaluate(()=>JSON.parse(localStorage.getItem('n8n-native-editable-test:v1:scenarios/01-new-strategy.json')||'{}'));
+            record('serialized-duplicate',saved.nodes?.length>=8,{nodes:saved.nodes?.length,renamed:saved.nodes?.some(x=>x.name==='NoOp UX renamed')});
+            fs.writeFileSync('native-n8n-rename-results.json',JSON.stringify(results,null,2));
+            if(results.some(x=>x.result!=='PASS'))throw Error('Native UX failed steps: '+JSON.stringify(results.filter(x=>x.result!=='PASS')));
+            console.log('PASS_NATIVE_DUPLICATE_RENAME_EDGE_DELETE');
+          }finally{
+            if(!fs.existsSync('native-n8n-rename-results.json'))fs.writeFileSync('native-n8n-rename-results.json',JSON.stringify(results,null,2));
+            await p.evaluate(()=>localStorage.removeItem('n8n-native-editable-test:v1:scenarios/01-new-strategy.json')).catch(()=>{});
+            await browser.close();
+          }
+          NODE
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: native-n8n-rename-duplicate-connection
+          path: |
+            investment_studio/native-n8n-rename-duplicate-edge.png
+            investment_studio/native-n8n-rename-results.json
+          if-no-files-found: ignore
