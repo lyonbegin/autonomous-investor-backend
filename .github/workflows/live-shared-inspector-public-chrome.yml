@@ -1,0 +1,42 @@
+name: Public investor shared n8n runData inspector Chrome acceptance
+on:
+  push:
+    branches: [feature/engine-run-inspector-20261029]
+    paths: [".github/workflows/live-shared-inspector-public-chrome.yml"]
+  workflow_dispatch:
+permissions: {contents: read}
+jobs:
+  public-editor-chrome:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: "22"}
+      - name: Install Chromium
+        working-directory: investment_studio
+        run: |
+          npm install --no-audit --no-fund
+          npx playwright install --with-deps chromium
+      - name: Verify safe public editor and persistent storage backend
+        run: |
+          python3 - <<'PY'
+          import json,urllib.request
+          url='https://investment-n8n-native-editor-production.up.railway.app/api/studio/health'
+          response=json.load(urllib.request.urlopen(url,timeout=30))
+          assert response['storage']=='sqlite' and response['executionEnabled'] is False
+          print('SAFE_PUBLIC_N8N_STUDIO_PASS')
+          PY
+      - name: Real Chrome 13 workflows Pan Save History Imported Execution JSON
+        env:
+          STOCK_SHARED_URL: https://investment-n8n-native-editor-production.up.railway.app/
+        run: node n8n/tests/stock-shared-editor-chrome.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: public-investor-shared-run-inspector-proof
+          path: |
+            n8n/tests/artifacts/stock-shared-editor-final.png
+            n8n/tests/artifacts/stock-shared-editor-failure.png
+            n8n/tests/artifacts/stock-shared-editor-results.json
+          if-no-files-found: warn
