@@ -1,0 +1,42 @@
+name: Live staging Chrome n8n imported execution inspector
+on:
+  push:
+    branches: [feature/engine-run-inspector-20261029]
+    paths: [".github/workflows/live-shared-inspector-chrome.yml"]
+  workflow_dispatch:
+permissions: {contents: read}
+jobs:
+  real-browser-staging:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: "22"}
+      - name: Install Playwright Chromium
+        working-directory: investment_studio
+        run: |
+          npm install --no-audit --no-fund
+          npx playwright install --with-deps chromium
+      - name: Confirm staging editor cannot execute live workflows
+        run: |
+          python3 - <<'PY'
+          import json,urllib.request
+          url='https://investment-shared-n8n-studio-production.up.railway.app/api/studio/health'
+          data=json.load(urllib.request.urlopen(url,timeout=30))
+          assert data['executionEnabled'] is False and data['storage']=='sqlite'
+          print('SAFE_STAGING_NO_EXECUTION_PASS')
+          PY
+      - name: Chrome full original workflow and imported runData acceptance
+        env:
+          STOCK_SHARED_URL: https://investment-shared-n8n-studio-production.up.railway.app/
+        run: node n8n/tests/stock-shared-editor-chrome.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: staging-n8n-run-inspector-browser-proof
+          path: |
+            n8n/tests/artifacts/stock-shared-editor-final.png
+            n8n/tests/artifacts/stock-shared-editor-failure.png
+            n8n/tests/artifacts/stock-shared-editor-results.json
+          if-no-files-found: warn
