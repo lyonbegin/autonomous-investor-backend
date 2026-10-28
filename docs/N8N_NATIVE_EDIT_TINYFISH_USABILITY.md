@@ -33,3 +33,30 @@
 '변경 저장'은 브라우저 localStorage에 초안을 저장하고 재접속 후 재로딩한다.
 현재 방식은 네이티브 n8n 서버 DB에 저장하는 기능과 다르다.
 실제 거래/서버 데이터베이스 저장 기능과 혼동하지 않는다.
+
+
+## 2026-10-28 실제 사용성 테스트 및 배포 검증 결과
+
+### 적용한 수정 코드
+- `n8n/patches/enable-native-editable-test.py`: upstream `n8n@2.44.5`의 Vue NodeView 원본에서 별도 `?editable=true` 미리보기 사용성 테스트용 잠금 해제
+- 원본 n8n `nodeCreatorStore.openNodeCreatorForRegularNodes`로 검색형 노드 추가 패널 호출
+- 원본 `onAddNodesAndConnections`로 `n8n-nodes-base.noOp` 추가
+- `n8n/preview/native-portal.html`: 원본 NodeCreator 호출 버튼, NoOp 직접 추가, 저장·JSON 내보내기·원본 복원, 마지막 시나리오 선택 복원
+- 기존 독립 테스트 인스턴스 `investment-n8n-source-editor` 와 게이트웨이 `investment-n8n-native-editor`에만 배포
+- 운영 n8n 13개 저장된 워크플로 및 실제 브로커 자격 증명은 변경하지 않음
+
+### 실제 검증
+- TinyFish 원본 Vue 편집기 사용자 조작 녹화: https://agent.tinyfish.ai/runs/65b34bf1-b7c9-44a0-9a03-fd787b93aab5
+- TinyFish 합성 시나리오 01: 기존 노드 6개, 연결선 5개
+- NoOp 버튼으로 실제 노드 +1 (6 -> 7), 원본 n8n 검색 창에서 NoOp 선택 후 7 -> 8
+- 출력·입력 포트 연결 조작 후 연결선 5 -> 6
+- 노드 드래그, NDV 열기, 원본 메뉴 표시, 저장 메시지, 새로고침 후 노드 8개와 엣지 6개, JSON 내보내기, 원본 복원 확인 보고
+- GitHub Actions 실 Chrome 테스트 https://github.com/lyonbegin/autonomous-investor-backend/actions/runs/40635658392
+- 이 검사에서 실제 NoOp 노드가 6 -> 7, serialize된 JSON에 `n8n-nodes-base.noOp` 포함, 수동으로 시나리오 재선택 후 동일 노드 재확인, 원본 노드 검색 패널 실제 표시를 확인
+- CI에서 새로고침 직후 다른 F01을 열어 놓는 현상을 확인하여 초기 화면의 `select(0)`을 `select(chosen)`으로 수정. 자동 마지막 선택 복원은 별도 Chrome 테스트에서 확인해야 함.
+
+### 미검증·제약
+- 실 Node 선택 후 이름 변경·복제·삭제·Ctrl+Z 등 각 조작의 *전후 상태를 정량 검증하는 독립 브라우저 테스트*는 추가 필요. TinyFish는 메뉴와 일부 조작 가능을 보고했지만, 완료를 단정하지 않는다.
+- 저장은 브라우저 `localStorage`에 저장하는 테스트 초안이다. **원본 n8n 서버 DB에 영구 저장되는 기능이 아니다.**
+- 테스트 인스턴스에서 외부 웹훅·브로커 주문·실제 노드 실행은 의도적으로 금지했다.
+- 전체 13개 워크플로의 실제 실행 로그를 원본 노드 UI 안에 표시하는 기능은 아직 별도 구현 대상이다.
