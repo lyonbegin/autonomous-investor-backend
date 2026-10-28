@@ -23,7 +23,7 @@ services:
   n8n-pan-test-gateway:
     build:
       context: ..
-      dockerfile: n8n/Dockerfile.native-editor-gateway
+      dockerfile: n8n/Dockerfile.shared-pan-gateway
     volumes:
       - ./Caddyfile.shared-pan-sandbox:/etc/caddy/Caddyfile:ro
     ports: ["127.0.0.1:39087:3000"]
