@@ -178,5 +178,21 @@ async function onNativeEditTestMessage(event: MessageEvent) {
     ),
 ]);
 
+# n8n's global Ctrl+Z handler checks getNodeViewTab(route). The original
+# demo route does not have meta.nodeView, therefore a test editor can delete
+# nodes but undo/redo never receives history events. Treat ONLY editable demo
+# routes as workflow views for keyboard history.
+edit("app/utils/nodeViewUtils.ts", [
+    (
+        """if (route.meta?.nodeView) {
+		return MAIN_HEADER_TABS.WORKFLOW;""",
+        """if (
+        route.meta?.nodeView ||
+        (route.name === VIEWS.DEMO && route.query.editable === 'true')
+    ) {
+		return MAIN_HEADER_TABS.WORKFLOW;""",
+    ),
+]);
+
 print("\n".join(changes))
 print("NATIVE_N8N_EDIT_PATCH_OK")
