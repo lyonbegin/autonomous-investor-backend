@@ -39,7 +39,9 @@ jobs:
             await p.keyboard.press('Delete');
             await expect(nodes).toHaveCount(before,{timeout:16000});
             console.log('DELETE_NODE_COUNT',before);
-            // Shortcut is handled inside the original n8n iframe, not by the parent portal.\n            await iframe.locator('.vue-flow').focus();\n            await iframe.locator('.vue-flow').press('Control+z');
+            // Shortcut is handled inside the original n8n iframe, not by the parent portal.
+            await iframe.locator('.vue-flow').focus();
+            await iframe.locator('.vue-flow').press('Control+z');
             await expect(nodes).toHaveCount(before+1,{timeout:16000});
             console.log('UNDO_NODE_COUNT',before+1);
             await iframe.locator('.vue-flow').press('Control+Shift+z');
