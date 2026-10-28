@@ -95,9 +95,22 @@ try{
   const afterMiddle=await viewportState(frame);
   mark('middle_blank_pan',Math.abs(afterMiddle.x-beforeMiddle.x)>20&&Math.abs(afterMiddle.y-beforeMiddle.y)>15,{before:beforeMiddle,after:afterMiddle});
   const at3=await blank(frame,iframe),beforeShift=await viewportState(frame);
+  let selectionRects=[];
   await page.keyboard.down('Shift');
-  try{await drag(at3,{x:at3.x-70,y:at3.y-40});}finally{await page.keyboard.up('Shift');}
+  try{
+    await page.mouse.move(at3.x,at3.y);
+    await page.mouse.down({button:'left'});
+    await page.mouse.move(at3.x-70,at3.y-40,{steps:18});
+    // Capture the actual VueFlow marquee while the user is still dragging.
+    selectionRects=await frame.evaluate(()=>[...document.querySelectorAll('.vue-flow__selection')].map(el=>{
+      const r=el.getBoundingClientRect();
+      return {width:r.width,height:r.height,cls:el.className};
+    }));
+    await page.mouse.up({button:'left'});
+    await page.waitForTimeout(450);
+  }finally{await page.keyboard.up('Shift');}
   const afterShift=await viewportState(frame);
+  mark('shift_marquee_area_visible',selectionRects.some(r=>r.width>15&&r.height>15),{selectionRects});
   mark('shift_marquee_does_not_pan',Math.abs(afterShift.x-beforeShift.x)<4&&Math.abs(afterShift.y-beforeShift.y)<4,{before:beforeShift,after:afterShift});
   const beforeZoom=await viewportState(frame);
   const at4=await blank(frame,iframe);await page.mouse.move(at4.x,at4.y);
