@@ -57,6 +57,11 @@ jobs:
             console.log('SAVED_TYPE',saved.nodes[saved.nodes.length-1].type);
             await page.reload({waitUntil:'domcontentloaded'});
             await expect(page.locator('#addSafeNoOp')).toBeVisible();
+            console.log('LAST_SELECTED',await page.evaluate(()=>localStorage.getItem('n8n-native-editable-test:last-flow')));
+            // Always explicitly reselect scenario 01 to verify persisted JSON.
+            // Do not mistake F01's initial node count for scenario 01.
+            await page.locator('button.flow').nth(3).click();
+            await expect(page.locator('#status')).toContainText('저장된 초안 복원',{timeout:30000});
             await expect(nodes).toHaveCount(before+1,{timeout:60000});
             console.log('RELOADED_NATIVE_NOOP',await nodes.count());
             await page.screenshot({path:'native-noop-after-reload.png',fullPage:true});
