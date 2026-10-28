@@ -7,6 +7,10 @@ on:
       - "n8n/Caddyfile.shared-pan-sandbox"
       - "n8n/docker-compose.shared-pan-sandbox.yml"
       - "n8n/tests/official-pan-chrome.mjs"
+      - "n8n/tests/official-db-editor-chrome.mjs"
+      - "n8n/Dockerfile.shared-pan-gateway"
+      - "n8n/preview/native-portal.shared-pan.html"
+      - "n8n/tests/enable-native-editable-test.py"
       - ".github/workflows/shared-n8n-official-pan.yml"
   workflow_dispatch:
 permissions: {contents: read}
@@ -44,6 +48,14 @@ jobs:
           curl -fsS http://127.0.0.1:39087/health
       - name: Chrome real gestures against patched official n8n Vue DOM
         run: node n8n/tests/official-pan-chrome.mjs
+      - name: Authenticated official n8n editor DB persistence and safe manual execution
+        run: |
+          for try in $(seq 1 100); do
+            if curl -fsS http://127.0.0.1:39088/rest/settings >/dev/null; then break; fi
+            sleep 3
+          done
+          curl -fsS http://127.0.0.1:39088/rest/settings > /dev/null
+          node n8n/tests/official-db-editor-chrome.mjs
       - name: Preserve isolated n8n logs and evidence
         if: always()
         run: |
@@ -58,4 +70,4 @@ jobs:
           if-no-files-found: warn
       - name: Tear down test containers
         if: always()
-        run: docker compose -f n8n/docker-compose.shared-pan-sandbox.yml down --remove-orphans || true
+        run: docker compose -f n8n/docker-compose.shared-pan-sandbox.yml down --volumes --remove-orphans || true
