@@ -28,7 +28,14 @@ try{
    await button.click();
    await expect(frame.locator('.vue-flow__node')).toHaveCount(expectedNodes,{timeout:30000});
    await expect(frame.locator('.vue-flow__edge')).toHaveCount(expectedEdges,{timeout:30000});
-   const row={index:i+1,file,nodes:expectedNodes,edges:expectedEdges,status:'PASS'};
+   // Most flows have the same number of nodes and edges. Verify the exact
+   // identities so a stale graph from the previously selected flow cannot pass.
+   const expectedIds=json.nodes.map(n=>String(n.id)).sort();
+   await expect.poll(
+     async()=>await frame.locator('.vue-flow__node').evaluateAll(els=>els.map(n=>n.getAttribute('data-id')).sort()),
+     {timeout:30000,intervals:[200,500,1000]}
+   ).toEqual(expectedIds);
+   const row={index:i+1,file,nodes:expectedNodes,edges:expectedEdges,nodeIds:expectedIds,status:'PASS'};
    report.flows.push(row);console.log('OFFICIAL_N8N_FLOW',JSON.stringify(row));
  }
  await page.screenshot({path:path.join(dir,'13-original-n8n-workflows.png'),fullPage:true});
