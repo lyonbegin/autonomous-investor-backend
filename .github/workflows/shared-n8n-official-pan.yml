@@ -27,6 +27,7 @@ jobs:
         working-directory: investment_studio
         run: |
           npm install --no-audit --no-fund
+          npm install --no-audit --no-fund --no-save --no-package-lock flatted@3.3.3
           npx playwright install --with-deps chromium
       - name: Verify isolated compose configuration and unchanged operational entrypoint
         run: |
