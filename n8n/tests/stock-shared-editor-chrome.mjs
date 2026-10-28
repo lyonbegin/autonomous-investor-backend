@@ -21,8 +21,12 @@ try{
  await expect(page.locator('.vue-flow__edge')).toHaveCount(4,{timeout:20000});
  pass('shared_not_legacy_iframe',{flows:13,nodes:5,edges:4});
  if(await page.locator('iframe#n8n-canvas').count())throw Error('legacy iframe remains in shared UI');
+ await expect.poll(
+  async()=>await page.locator('.vue-flow__node').evaluateAll(els=>els.map(el=>el.getAttribute('data-id'))),
+  {timeout:30000,intervals:[250,500,1000]}
+ ).toContain('aiOperationF01post');
  const originalIdList=await page.locator('.vue-flow__node').evaluateAll(els=>els.map(el=>el.getAttribute('data-id')));
- if(!originalIdList.includes('aiOperationF01post'))throw Error('Original F01 n8n node IDs not loaded '+JSON.stringify(originalIdList));
+ if(originalIdList.some(id=>id?.startsWith('demo_common_')))throw Error('Synthetic common template remained visible after stock hydration');
  pass('real_workflow_original_node_ids',{originalIdList});
  // All 13 real stock workflows: validate exact original native node identities,
  // not just counts. No synthetic template may substitute the real graph.
