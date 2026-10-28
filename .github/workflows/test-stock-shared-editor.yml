@@ -1,0 +1,51 @@
+name: Replace legacy investor n8n UI with common module Chrome E2E
+on:
+  push:
+    branches: [feature/use-shared-n8n-studio-20261029]
+    paths:
+      - "n8n/Dockerfile.native-editor-gateway"
+      - "n8n/tests/stock-shared-editor-chrome.mjs"
+      - "n8n/workflows/**"
+      - ".github/workflows/test-stock-shared-editor.yml"
+  workflow_dispatch:
+permissions: {contents: read}
+jobs:
+  real-shared-editor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: "22"}
+      - name: Prepare real Chrome
+        working-directory: investment_studio
+        run: |
+          npm install --no-audit --no-fund
+          npx playwright install --with-deps chromium
+      - name: Build actual shared module using stock workflow JSON inputs
+        run: docker build -f n8n/Dockerfile.native-editor-gateway -t stock-shared-editor:ci .
+      - name: Start real integrated shared editor container
+        run: |
+          docker run -d --name stock-shared-editor -p 127.0.0.1:39089:3000 stock-shared-editor:ci
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:39089/health; then break; fi
+            sleep 2
+          done
+          curl -fsS http://127.0.0.1:39089/stock-workflows/scenarios/01-new-strategy.json > /dev/null
+      - name: Real Chrome stock common module UI and n8n JSON roundtrip
+        run: node n8n/tests/stock-shared-editor-chrome.mjs
+      - name: Save evidence and container logs
+        if: always()
+        run: docker logs stock-shared-editor > n8n/stock-shared-editor-docker.log 2>&1 || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: stock-shared-n8n-module-proof
+          path: |
+            n8n/tests/artifacts/stock-shared-editor*.png
+            n8n/tests/artifacts/stock-shared-editor-results.json
+            n8n/stock-shared-editor-docker.log
+          if-no-files-found: warn
+      - name: Stop isolated container
+        if: always()
+        run: docker rm -f stock-shared-editor || true

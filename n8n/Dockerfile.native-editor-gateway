@@ -1,5 +1,21 @@
-FROM caddy:2.10-alpine
-COPY n8n/Caddyfile.native-editor-gateway /etc/caddy/Caddyfile
-COPY n8n/preview/native-portal.html /srv/site/index.html
-COPY n8n/workflows/ /srv/data/
+# Stock-facing editor now uses the ONE common shared-n8n-studio Vue module.
+# Original stock n8n workflow JSONs are input data, not a second editor implementation.
+# This image exposes no broker/credential/investment-run endpoints.
+FROM node:22-alpine AS build
+RUN apk add --no-cache git
+WORKDIR /app
+ARG SHARED_STUDIO_COMMIT=6d00cee17bc82b576cfa6efb89548342e874bc67
+RUN git clone https://github.com/lyonbegin/shared-n8n-studio.git /app/shared \
+    && git -C /app/shared checkout --detach "$SHARED_STUDIO_COMMIT" \
+    && test "$(git -C /app/shared rev-parse HEAD)" = "$SHARED_STUDIO_COMMIT"
+RUN npm install --prefix /app/shared/playground --no-audit --no-fund
+COPY n8n/workflows/ /app/shared/playground/public/stock-workflows/
+ENV VITE_EDITOR_PROJECT=investment
+RUN npm --prefix /app/shared/playground run build
+FROM node:22-alpine
+WORKDIR /app
+COPY --from=build /app/shared/playground/dist ./dist
+COPY --from=build /app/shared/playground/server.mjs ./server.mjs
+ENV PORT=3000
 EXPOSE 3000
+CMD ["node","server.mjs"]
