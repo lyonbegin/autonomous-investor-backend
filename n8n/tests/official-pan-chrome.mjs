@@ -42,7 +42,13 @@ async function drag(a,b,button='left'){
   await page.waitForTimeout(450);
 }
 try{
-  const settings=await page.request.get(new URL('rest/settings',base).toString(),{timeout:20000});
+  let settings;
+  for(let attempt=0;attempt<75;attempt++){
+    settings=await page.request.get(new URL('rest/settings',base).toString(),{timeout:20000});
+    if(settings.status()===200)break;
+    if(attempt===74){const body=(await settings.text()).slice(0,800);throw Error('Official n8n settings not ready, HTTP '+settings.status()+' body='+body);}
+    await page.waitForTimeout(1000);
+  }
   mark('sandbox_settings_available',settings.status()===200,{status:settings.status()});
   const json=await settings.json();
   mark('n8n_preview_mode',json?.data?.previewMode===true,{previewMode:json?.data?.previewMode});
