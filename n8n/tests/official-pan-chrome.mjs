@@ -56,6 +56,7 @@ try{
   mark('original_s01_nodes_edges',true,{nodes:await nodes.count(),edges:await edges.count()});
   const frame=page.frames().find(f=>f.url().includes('/workflows/demo'));
   if(!frame)throw Error('Original n8n editor iframe missing');
+  mark('actual_editable_official_preview',frame.url().includes('editable=true'),{url:frame.url()});
   const initialNodeStyles=await nodes.evaluateAll(all=>all.map(x=>x.getAttribute('style')));
   const start=await viewportState(frame);
   const at=await blank(frame,iframe);
@@ -82,7 +83,35 @@ try{
   const afterZoom=await viewportState(frame);
   mark('ctrl_wheel_zoom',Math.abs(afterZoom.zoom-beforeZoom.zoom)>.015,{before:beforeZoom,after:afterZoom});
   mark('graph_kept_after_pan_zoom',(await nodes.count())===6&&(await edges.count())===5);
-  report.results['node_edit_server_save']={status:'NOT_TESTED',reason:'Read-only preview; separate authenticated sandbox required'};
+  // User gestures on native n8n: verify nodes move independently of viewport.
+  const node=nodes.filter({hasText:'시나리오 Webhook 접수'});
+  await expect(node).toHaveCount(1);
+  const beforeStyle=await node.getAttribute('style');
+  const box=await node.boundingBox();
+  if(!box)throw Error('Native node has no DOM bounding box');
+  const nodeStart={x:box.x+box.width/2,y:box.y+box.height/2};
+  const beforeNodeDragViewport=await viewportState(frame);
+  await drag(nodeStart,{x:nodeStart.x+112,y:nodeStart.y+76});
+  const afterStyle=await node.getAttribute('style');
+  const afterNodeDragViewport=await viewportState(frame);
+  mark('native_node_drag',beforeStyle!==afterStyle,{beforeStyle,afterStyle});
+  mark('node_drag_does_not_pan',Math.abs(afterNodeDragViewport.x-beforeNodeDragViewport.x)<3&&Math.abs(afterNodeDragViewport.y-beforeNodeDragViewport.y)<3);
+  // Test only: official native NoOp creator, browser-local saved snapshot.
+  await page.locator('#addSafeNoOp').click();
+  await expect(nodes).toHaveCount(7,{timeout:30000});
+  mark('native_add_noop',true,{nodes:await nodes.count()});
+  await page.locator('#saveDraft').click();
+  await expect(page.locator('#status')).toContainText('초안 저장 성공',{timeout:18000});
+  const draftKey='n8n-native-editable-test:v1:scenarios/01-new-strategy.json';
+  const snapshot=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)||'null'),draftKey);
+  mark('native_local_snapshot',snapshot?.nodes?.length===7&&snapshot.nodes.some(n=>n.type==='n8n-nodes-base.noOp'),{nodes:snapshot?.nodes?.length});
+  await page.reload({waitUntil:'domcontentloaded'});
+  await expect(page.locator('#status')).toContainText('저장된 초안 복원',{timeout:70000});
+  await expect(nodes).toHaveCount(7,{timeout:70000});
+  mark('native_reload_restore',true,{nodes:await nodes.count()});
+  await page.evaluate(key=>localStorage.removeItem(key),draftKey);
+
+  report.results['node_edit_server_save']={status:'NOT_TESTED',reason:'Local snapshot only; authenticated n8n server DB is a separate gate'};
   report.results['actual_node_execution']={status:'NOT_TESTED',reason:'No execution permitted on preview'};
   await page.screenshot({path:path.join(dest,'official-n8n-post-zoom.png'),fullPage:true});
   console.log('OFFICIAL_N8N_PAN_PREVIEW_PASS');
