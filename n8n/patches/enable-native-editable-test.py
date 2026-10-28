@@ -108,5 +108,75 @@ edit("app/composables/usePostMessageHandler.ts", [
 				resetWorkspace();""",
     ),
 ]);
+# Provide a visible portal button which opens the official n8n NodeCreator.
+# No replacement graph or synthetic Vue nodes: everything is delegated to
+# upstream NodeView / useCanvasOperations. Test node is specifically NoOp.
+edit("app/views/NodeView.vue", [
+    (
+        """function onOpenNodeCreatorFromCanvas(source: NodeCreatorOpenSource) {
+	onToggleNodeCreator({ createNodeActive: true, source });
+}""",
+        """function onOpenNodeCreatorFromCanvas(source: NodeCreatorOpenSource) {
+	onToggleNodeCreator({ createNodeActive: true, source });
+}
+
+// Dedicated parent-initiated controls for the isolated native edit test.
+async function onNativeEditTestMessage(event: MessageEvent) {
+    if (!isNativeEditableTest.value || event.origin !== window.location.origin ||
+        event.source !== window.parent || typeof event.data !== 'string') return;
+
+    let command: string | undefined;
+    try {
+        const message = JSON.parse(event.data) as { command?: string };
+        command = message.command;
+    } catch { return; }
+
+    if (command !== 'openNativeNodeCreator' && command !== 'addNativeTestNode') return;
+
+    try {
+        if (command === 'openNativeNodeCreator') {
+            // Show the ORIGINAL n8n searchable node list, not a custom picker.
+            nodeCreatorStore.openNodeCreatorForRegularNodes(
+                workflowId.value, NODE_CREATOR_OPEN_SOURCES.NODE_SHORTCUT,
+            );
+        } else {
+            // Use the original n8n insertion method so the node participates in
+            // VueFlow rendering, native history, NDV editing and serialization.
+            await onAddNodesAndConnections({
+                nodes: [{ type: 'n8n-nodes-base.noOp', openDetail: false }],
+                connections: [],
+            });
+        }
+        window.parent.postMessage(JSON.stringify({
+            command: 'nativeTestUiResult',
+            action: command,
+            nodes: workflowDocumentStore.value.allNodes.length,
+            nodeCreatorOpen: nodeCreatorStore.isCreateNodeActive,
+        }), window.location.origin);
+    } catch (err) {
+        window.parent.postMessage(JSON.stringify({
+            command: 'nativeTestUiResult',
+            action: command,
+            error: err instanceof Error ? err.message : String(err),
+        }), window.location.origin);
+    }
+}""",
+    ),
+    (
+        """onMounted(async () => {
+	// Register callback for collaboration store to refresh canvas when workflow updates arrive""",
+        """onMounted(async () => {
+    window.addEventListener('message', onNativeEditTestMessage);
+	// Register callback for collaboration store to refresh canvas when workflow updates arrive""",
+    ),
+    (
+        """onBeforeUnmount(() => {
+	isUnmounted = true;""",
+        """onBeforeUnmount(() => {
+    window.removeEventListener('message', onNativeEditTestMessage);
+	isUnmounted = true;""",
+    ),
+]);
+
 print("\n".join(changes))
 print("NATIVE_N8N_EDIT_PATCH_OK")
