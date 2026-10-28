@@ -1,0 +1,73 @@
+name: E2E native n8n node add, save, restore
+on:
+  push:
+    branches: [feature/n8n-native-editable-test-20261028]
+    paths: ['.github/workflows/test-native-n8n-noop-ux.yml']
+  workflow_dispatch:
+permissions: {contents: read}
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: Install existing app test dependencies
+        working-directory: investment_studio
+        run: |
+          npm install --no-audit --no-fund
+          google-chrome --version
+      - name: Test 13 flows and actual upstream n8n Vue node insertion
+        working-directory: investment_studio
+        run: |
+          node --input-type=module <<'NODE'
+          import { chromium, expect } from '@playwright/test';
+          const base='https://investment-n8n-native-editor-production.up.railway.app/';
+          const browser=await chromium.launch({headless:true,executablePath:'/usr/bin/google-chrome',args:['--no-sandbox']});
+          const context=await browser.newContext({viewport:{width:1800,height:1050},acceptDownloads:true});
+          const page=await context.newPage();
+          try {
+            page.on('pageerror',error=>console.log('PAGE_ERROR',String(error).slice(0,300)));
+            await page.goto(base,{waitUntil:'domcontentloaded',timeout:60000});
+            await expect(page.locator('button.flow')).toHaveCount(13,{timeout:30000});
+            await expect(page.locator('#addSafeNoOp')).toBeVisible({timeout:30000});
+            await page.locator('button.flow').nth(3).click();
+            const iframe=page.frameLocator('#n8n-canvas');
+            const nodes=iframe.locator('.vue-flow__node');
+            await expect(nodes.first()).toBeVisible({timeout:75000});
+            const before=await nodes.count();
+            const edges=await iframe.locator('.vue-flow__edge').count();
+            console.log('BEFORE',before,edges);
+            // Click portal control; actual creation runs original upstream
+            // onAddNodesAndConnections, never modifies operational n8n.
+            await page.locator('#addSafeNoOp').click();
+            await expect(nodes).toHaveCount(before+1,{timeout:30000});
+            console.log('ADDED_NATIVE_NOOP',await nodes.count());
+            await expect(page.locator('#status')).toContainText('추가 호출 성공');
+            await page.locator('#saveDraft').click();
+            await expect(page.locator('#status')).toContainText('초안 저장 성공',{timeout:20000});
+            const saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('n8n-native-editable-test:v1:scenarios/01-new-strategy.json')||'{}'));
+            if(saved.nodes?.length!==before+1||!saved.nodes.some(n=>n.type==='n8n-nodes-base.noOp'))
+              throw Error('Actual original n8n node missing from serialized browser draft');
+            console.log('SAVED_TYPE',saved.nodes[saved.nodes.length-1].type);
+            await page.reload({waitUntil:'domcontentloaded'});
+            await expect(page.locator('#addSafeNoOp')).toBeVisible();
+            await expect(nodes).toHaveCount(before+1,{timeout:60000});
+            console.log('RELOADED_NATIVE_NOOP',await nodes.count());
+            await page.screenshot({path:'native-noop-after-reload.png',fullPage:true});
+            // Use the actual upstream node-creator panel (not React recreation).
+            await page.locator('#openNativeCreator').click();
+            await expect(iframe.locator('[data-test-id="node-creator"]')).toBeVisible({timeout:15000});
+            console.log('NATIVE_CREATOR_VISIBLE');
+            // After verification clean test data to avoid affecting other runs.
+            await page.evaluate(()=>localStorage.removeItem('n8n-native-editable-test:v1:scenarios/01-new-strategy.json'));
+            console.log('PASS_ADD_SAVE_RELOAD_NODE_CREATOR');
+          } finally {await browser.close();}
+          NODE
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: actual-native-n8n-noop-ux
+          path: investment_studio/native-noop-after-reload.png
+          if-no-files-found: ignore
