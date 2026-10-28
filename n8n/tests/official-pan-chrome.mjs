@@ -58,10 +58,28 @@ try{
   if(!frame)throw Error('Original n8n editor iframe missing');
   mark('actual_editable_official_preview',frame.url().includes('editable=true'),{url:frame.url()});
   const initialNodeStyles=await nodes.evaluateAll(all=>all.map(x=>x.getAttribute('style')));
+  const probe=async()=>frame.evaluate(()=>{
+    const els=[...document.querySelectorAll('.vue-flow__viewport,.vue-flow__pane,.vue-flow,.vue-flow__transformationpane')];
+    const root=document.querySelector('[data-test-id="canvas"]');
+    return {url:location.href, rootClass:root?.className, elements:els.slice(0,15).map(el=>({tag:el.tagName,cls:typeof el.className==='string'?el.className:String(el.className?.baseVal),style:el.getAttribute('style'),transform:getComputedStyle(el).transform,pointerEvents:getComputedStyle(el).pointerEvents,bounds:el.getBoundingClientRect().toJSON()})),events:window.__panProbeEvents||[]};
+  });
+  await frame.evaluate(()=>{
+    window.__panProbeEvents=[];
+    for(const kind of ['pointerdown','mousedown','mousemove','pointermove','mouseup']){
+      document.addEventListener(kind,e=>{
+        if(window.__panProbeEvents.length>=32)return;
+        window.__panProbeEvents.push({kind,button:e.button,target:e.target?.className?.baseVal||e.target?.className||e.target?.tagName,x:e.clientX,y:e.clientY,shift:e.shiftKey});
+      },{capture:true,passive:true});
+    }
+  });
   const start=await viewportState(frame);
+  const beforeProbe=await probe();
   const at=await blank(frame,iframe);
   await drag(at,{x:at.x+155,y:at.y+105});
   const afterLeft=await viewportState(frame);
+  const afterProbe=await probe();
+  console.log('OFFICIAL_N8N_PAN_DEBUG',JSON.stringify({at,start,afterLeft,beforeProbe,afterProbe}).slice(0,18000));
+  report.panProbe={at,start,afterLeft,beforeProbe,afterProbe};
   mark('left_blank_pan',Math.abs(afterLeft.x-start.x)>25&&Math.abs(afterLeft.y-start.y)>20,{start,after:afterLeft});
   const afterNodeStyles=await nodes.evaluateAll(all=>all.map(x=>x.getAttribute('style')));
   mark('pan_does_not_edit_node_coordinates',JSON.stringify(initialNodeStyles)===JSON.stringify(afterNodeStyles));
