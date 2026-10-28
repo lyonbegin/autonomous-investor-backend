@@ -6,6 +6,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 const require=createRequire(new URL('../../investment_studio/package.json', import.meta.url));
 const {chromium,expect}=require('@playwright/test');
+const {parse:parseFlatted}=require('flatted'); // n8n server uses flatted.stringify for execution.data
 const base=process.env.N8N_AUTH_SANDBOX_URL || 'http://127.0.0.1:39088/';
 if(!/^http:\/\/127\.0\.0\.1:39088\/?$/.test(base))throw Error('Only loopback:39088 ephemeral sandbox is allowed');
 const dir=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'artifacts');
@@ -85,7 +86,7 @@ try{
    }
    record('n8n_execution_record_readable',!!detail?.id,{id:detail?.id,status:detail?.status});
    record('safe_manual_execution_completed',detail.status==='success'&&detail.finished===true,{status:detail.status,finished:detail.finished});
-   const executionData=typeof detail.data==='string'?JSON.parse(detail.data):detail.data;
+   const executionData=typeof detail.data==='string'?parseFlatted(detail.data):detail.data;
    const runData=executionData?.resultData?.runData||{};
    record('node_input_output_results_present',Array.isArray(runData['Safe Manual Trigger'])&&Array.isArray(runData['Safe NoOp']),{nodes:Object.keys(runData)});
  }
