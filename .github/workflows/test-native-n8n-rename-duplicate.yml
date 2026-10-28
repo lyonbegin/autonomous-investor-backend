@@ -39,6 +39,10 @@ jobs:
             await p.waitForTimeout(900);
             const dupCount=await nodes.count();
             record('duplicate-ctrl-d',dupCount===8,{expected:8,actual:dupCount});
+            await p.locator('#saveDraft').click();
+            await expect(p.locator('#status')).toContainText('초안 저장 성공');
+            const afterDuplicate=await p.evaluate(()=>JSON.parse(localStorage.getItem('n8n-native-editable-test:v1:scenarios/01-new-strategy.json')||'{}'));
+            record('duplicate-native-json',afterDuplicate.nodes?.length===8,{count:afterDuplicate.nodes?.length,names:afterDuplicate.nodes?.map(x=>x.name)});
             const duplicate=nodes.filter({hasText:'No Operation'}).last();
             await duplicate.click();
             await c.locator('.vue-flow').press('Space');
@@ -51,6 +55,10 @@ jobs:
               await modal.press('Enter');
               await p.waitForTimeout(700);
               record('rename-value',await nodes.filter({hasText:'NoOp UX renamed'}).count()===1,{visibleNames:await nodes.allTextContents()});
+              await p.locator('#saveDraft').click();
+              await expect(p.locator('#status')).toContainText('초안 저장 성공');
+              const afterRename=await p.evaluate(()=>JSON.parse(localStorage.getItem('n8n-native-editable-test:v1:scenarios/01-new-strategy.json')||'{}'));
+              record('rename-native-json',afterRename.nodes?.some(x=>x.name==='NoOp UX renamed'),{count:afterRename.nodes?.length,names:afterRename.nodes?.map(x=>x.name)});
             }
             // Add a real new edge through mouse events between original nodes.
             const source=nodes.filter({hasText:'시뮬레이션 실행 대기'});
@@ -69,8 +77,11 @@ jobs:
             record('create-connection',after>before,{before,after});
             if(after>before){
               const edge=edges.last();
-              await edge.click({force:true});
-              await c.locator('.vue-flow').press('Delete');
+              await edge.hover({force:true});
+              const deleteButton=c.locator('[data-test-id="delete-connection-button"]').last();
+              const toolbarVisible=await deleteButton.isVisible().catch(()=>false);
+              record('edge-hover-delete-control',toolbarVisible,{visible:toolbarVisible});
+              if(toolbarVisible) await deleteButton.click({force:true});
               await p.waitForTimeout(900);
               const final=await edges.count();
               record('delete-new-connection',final<after,{after,final});
@@ -79,7 +90,7 @@ jobs:
             await p.locator('#saveDraft').click();
             await expect(p.locator('#status')).toContainText('초안 저장 성공');
             const saved=await p.evaluate(()=>JSON.parse(localStorage.getItem('n8n-native-editable-test:v1:scenarios/01-new-strategy.json')||'{}'));
-            record('serialized-duplicate',saved.nodes?.length>=8,{nodes:saved.nodes?.length,renamed:saved.nodes?.some(x=>x.name==='NoOp UX renamed')});
+            record('serialized-duplicate',saved.nodes?.length>=8 && saved.nodes?.some(x=>x.name==='NoOp UX renamed'),{nodes:saved.nodes?.length,renamed:saved.nodes?.some(x=>x.name==='NoOp UX renamed'),names:saved.nodes?.map(x=>x.name)});
             fs.writeFileSync('native-n8n-rename-results.json',JSON.stringify(results,null,2));
             if(results.some(x=>x.result!=='PASS'))throw Error('Native UX failed steps: '+JSON.stringify(results.filter(x=>x.result!=='PASS')));
             console.log('PASS_NATIVE_DUPLICATE_RENAME_EDGE_DELETE');
