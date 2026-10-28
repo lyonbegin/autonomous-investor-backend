@@ -1,6 +1,7 @@
 # TEST ONLY — no production volumes, database, workers, credentials or brokerage.
 services:
   n8n-pan-source-sandbox:
+    image: shared-n8n-studio-issue9:ci
     build:
       context: ..
       dockerfile: n8n/Dockerfile.shared-pan-sandbox
@@ -12,6 +13,28 @@ services:
       N8N_SECURE_COOKIE: "false"
       N8N_USER_FOLDER: /home/node/.n8n
       N8N_LOG_LEVEL: info
+    networks: [pan-sandbox]
+    restart: "no"
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://127.0.0.1:5678/rest/settings',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 30
+      start_period: 75s
+  n8n-pan-auth-sandbox:
+    # Independent official n8n instance with disposable SQLite + local owner;
+    # no preview mode, external connection, credentials, or operational volumes.
+    image: shared-n8n-studio-issue9:ci
+    environment:
+      N8N_PREVIEW_MODE: "false"
+      N8N_DIAGNOSTICS_ENABLED: "false"
+      N8N_TEMPLATES_ENABLED: "false"
+      N8N_VERSION_NOTIFICATIONS_ENABLED: "false"
+      N8N_SECURE_COOKIE: "false"
+      N8N_USER_FOLDER: /home/node/.n8n
+      N8N_LOG_LEVEL: warn
+    ports: ["127.0.0.1:39088:5678"]
+    volumes: [pan-auth-test-only:/home/node/.n8n]
     networks: [pan-sandbox]
     restart: "no"
     healthcheck:
@@ -33,3 +56,5 @@ services:
     restart: "no"
 networks:
   pan-sandbox: {}
+volumes:
+  pan-auth-test-only: {}
