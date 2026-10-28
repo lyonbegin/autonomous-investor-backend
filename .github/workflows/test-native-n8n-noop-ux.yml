@@ -36,6 +36,10 @@ jobs:
             const iframe=page.frameLocator('#n8n-canvas');
             const nodes=iframe.locator('.vue-flow__node');
             await expect(nodes.first()).toBeVisible({timeout:75000});
+            // Do not count n8n's transient 'Add first step' placeholder.
+            // Wait for the imported scenario's real native nodes to settle.
+            await expect.poll(async()=>nodes.count(),{timeout:75000}).toBeGreaterThanOrEqual(5);
+            await expect(page.locator('#status')).toContainText('노드 ',{timeout:15000});
             const before=await nodes.count();
             const edges=await iframe.locator('.vue-flow__edge').count();
             console.log('BEFORE',before,edges);
