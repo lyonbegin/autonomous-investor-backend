@@ -1,0 +1,39 @@
+name: Actual PUBLIC Railway Chrome stock shared editor full acceptance
+on:
+  push:
+    branches: [feature/shared-studio-remote-acceptance-20261029]
+    paths:
+      - ".github/workflows/live-stock-shared-chrome.yml"
+      - "n8n/tests/stock-shared-editor-chrome.mjs"
+  workflow_dispatch:
+permissions: {contents: read}
+jobs:
+  public-url-real-chrome:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: "22"}
+      - name: Install official Chrome browser
+        working-directory: investment_studio
+        run: |
+          npm install --no-audit --no-fund
+          npx playwright install --with-deps chromium
+      - name: Confirm public editor is safely isolated before browser test
+        run: |
+          curl --fail --silent --show-error --retry 8 --retry-delay 3 --retry-connrefused https://investment-n8n-native-editor-production.up.railway.app/api/studio/health > /tmp/shared-editor-health.json
+          python3 -c "import json; d=json.load(open('/tmp/shared-editor-health.json')); assert d['storage']=='sqlite' and d['executionEnabled'] is False"
+      - name: Real Chrome public Railway user gestures and server version restore
+        env:
+          STOCK_SHARED_URL: https://investment-n8n-native-editor-production.up.railway.app/
+        run: node n8n/tests/stock-shared-editor-chrome.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: public-railway-real-chrome-shared-studio
+          path: |
+            n8n/tests/artifacts/stock-shared-editor-final.png
+            n8n/tests/artifacts/stock-shared-editor-failure.png
+            n8n/tests/artifacts/stock-shared-editor-results.json
+          if-no-files-found: warn
