@@ -1,0 +1,27 @@
+:3000 {
+    encode zstd gzip
+    handle /health { respond "ok" 200 }
+    handle_path /demo-data/* {
+        root * /srv/data
+        file_server
+    }
+    @landing path / /index.html
+    handle @landing {
+        root * /srv/site
+        rewrite * /index.html
+        file_server
+    }
+    @upstream {
+        method GET HEAD
+        path /workflows/demo /assets/* /static/* /types/* /rest/* /favicon.ico /favicon.png /icons/* /node-icons/* /fonts/*
+    }
+    handle @upstream {
+        reverse_proxy n8n-pan-source-sandbox:5678
+    }
+    handle { respond "Only isolated n8n demo UI is allowed" 403 }
+    header {
+        X-Content-Type-Options nosniff
+        Referrer-Policy no-referrer
+        Cache-Control "no-store"
+    }
+}
