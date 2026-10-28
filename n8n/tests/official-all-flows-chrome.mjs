@@ -35,7 +35,26 @@ try{
      async()=>await frame.locator('.vue-flow__node').evaluateAll(els=>els.map(n=>n.getAttribute('data-id')).sort()),
      {timeout:30000,intervals:[200,500,1000]}
    ).toEqual(expectedIds);
-   const row={index:i+1,file,nodes:expectedNodes,edges:expectedEdges,nodeIds:expectedIds,status:'PASS'};
+   // Ask the patched ORIGINAL n8n editor for its serialized document, then
+   // compare the full connection graph, not only the visible edge count.
+   const actual=await page.evaluate(()=>new Promise((resolve,reject)=>{
+     const timer=setTimeout(()=>{window.removeEventListener('message',receive);reject(new Error('Official editor snapshot timeout'));},15000);
+     function receive(event){
+       if(event.origin!==location.origin||event.source!==document.getElementById('n8n-canvas')?.contentWindow)return;
+       let message;try{message=JSON.parse(event.data)}catch{return}
+       if(message.command!=='testWorkflowSnapshot')return;
+       clearTimeout(timer);window.removeEventListener('message',receive);resolve(message.workflow);
+     }
+     window.addEventListener('message',receive);
+     document.getElementById('n8n-canvas').contentWindow.postMessage(JSON.stringify({command:'saveTestWorkflow'}),location.origin);
+   }));
+   const canonical=value=>Array.isArray(value)?value.map(canonical):value&&typeof value==='object'
+     ?Object.fromEntries(Object.keys(value).sort().map(key=>[key,canonical(value[key])])):value;
+   const actualNodes=(actual.nodes||[]).map(n=>({id:n.id,name:n.name,type:n.type,position:n.position})).sort((a,b)=>a.id.localeCompare(b.id));
+   const originalNodes=json.nodes.map(n=>({id:n.id,name:n.name,type:n.type,position:n.position})).sort((a,b)=>a.id.localeCompare(b.id));
+   if(JSON.stringify(canonical(actualNodes))!==JSON.stringify(canonical(originalNodes)))throw Error('Node identity/name/type/position mismatch '+file);
+   if(JSON.stringify(canonical(actual.connections||{}))!==JSON.stringify(canonical(json.connections||{})))throw Error('Exact connection endpoints/handles mismatch '+file);
+   const row={index:i+1,file,nodes:expectedNodes,edges:expectedEdges,nodeIds:expectedIds,exactNodes:true,exactConnections:true,status:'PASS'};
    report.flows.push(row);console.log('OFFICIAL_N8N_FLOW',JSON.stringify(row));
  }
  await page.screenshot({path:path.join(dir,'13-original-n8n-workflows.png'),fullPage:true});
