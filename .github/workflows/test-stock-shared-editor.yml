@@ -1,7 +1,7 @@
 name: Replace legacy investor n8n UI with common module Chrome E2E
 on:
   push:
-    branches: [feature/use-shared-n8n-studio-20261029]
+    branches: [feature/use-shared-n8n-studio-20261029, feature/shared-studio-server-db-20261029]
     paths:
       - "n8n/Dockerfile.native-editor-gateway"
       - "n8n/tests/stock-shared-editor-chrome.mjs"
