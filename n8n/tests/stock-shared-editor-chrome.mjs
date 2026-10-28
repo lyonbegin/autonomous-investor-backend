@@ -41,12 +41,35 @@ try{
  pass('all_13_original_stock_workflows',{flows:13});
  await buttons.first().click();
  await expect(page.locator('.vue-flow__node')).toHaveCount(5,{timeout:12000});
- const a=page.locator('.vue-flow__node').first();
- const before=await a.boundingBox(),pane=await page.locator('.vue-flow__pane').boundingBox();
- const p={x:pane.x+pane.width*.78,y:pane.y+pane.height*.82};
- await page.mouse.move(p.x,p.y);await page.mouse.down();await page.mouse.move(p.x+135,p.y-55,{steps:18});await page.mouse.up();
- await expect.poll(async()=>(await a.boundingBox()).x,{timeout:12000}).toBeGreaterThan(before.x+60);
- pass('canvas_left_blank_pan');
+ // The shared editor fits the view with a 150ms animation after loading.
+ // Settle before evaluating user gesture deltas in the REAL remote browser.
+ await page.waitForTimeout(1100);
+ // Choose a verified EMPTY canvas point. A fixed percentage can overlap
+ // a node after the browser restores a saved viewport on a real deployment.
+ const getTransform=async()=>page.locator('.vue-flow__transformationpane').evaluate(el=>{
+   const m=new DOMMatrixReadOnly(getComputedStyle(el).transform);
+   return {x:m.m41,y:m.m42};
+ });
+ const blank=await page.evaluate(()=>{
+   const pane=document.querySelector('.vue-flow__pane');
+   if(!pane)throw Error('Missing real Vue Flow pane');
+   const b=pane.getBoundingClientRect();
+   for(const [fx,fy] of [[.58,.80],[.42,.76],[.72,.64],[.3,.6],[.48,.48],[.2,.8]]){
+     const x=b.left+b.width*fx,y=b.top+b.height*fy;
+     const el=document.elementFromPoint(x,y);
+     if(el&&el.closest('.vue-flow__pane')&&!el.closest('.vue-flow__node,.vue-flow__controls,.vue-flow__minimap,.canvas-watermark,.canvas-controls-hint,.vue-flow__edge'))return {x,y,element:el.className?.baseVal||el.className};
+   }
+   throw Error('No safe blank canvas coordinate found in actual browser');
+ });
+ const beforePan=await getTransform();
+ await page.mouse.move(blank.x,blank.y);
+ await page.mouse.down();
+ await page.mouse.move(blank.x+135,blank.y-55,{steps:24});
+ await page.mouse.up();
+ await expect.poll(async()=>await getTransform(),{timeout:12000,intervals:[200,500,1000]}).toMatchObject({x:expect.any(Number),y:expect.any(Number)});
+ const afterPan=await getTransform();
+ if(afterPan.x-beforePan.x<65||afterPan.y-beforePan.y>-20)throw Error('Blank pan did not move correctly: '+JSON.stringify({blank,beforePan,afterPan}));
+ pass('canvas_left_blank_pan',{blank,beforePan,afterPan});
  await page.getByRole('button',{name:'확대',exact:true}).first().click();
  const zoomed=await page.locator('.vue-flow__node').first().boundingBox();
  await page.getByRole('button',{name:/Fit/}).click();
@@ -114,6 +137,35 @@ try{
  const restored=await restoredRes.json();
  if(restored.version!==3||restored.workflow.nodes.find(n=>n.id==='webhook-1')?.name!=='시나리오 Webhook 접수 테스트')throw Error('Historical server revision was not restored as a new current version');
  pass('shared_history_ui_restores_as_new_version',{restoredFrom:1,currentVersion:3});
+ // Imported result is a SYNTHETIC E2E fixture with the genuine official n8n
+ // execution resultData.runData shape. This does not perform an engine run.
+ const resultFile={
+   id:'synthetic-inspector-test-1',status:'error',finished:false,
+   data:{resultData:{runData:{
+     [restored.workflow.nodes[0].name]:[{startTime:1000,executionTime:3,data:{main:[[{json:{password:'synthetic-secret',ok:true}}]]}}],
+     [restored.workflow.nodes[1].name]:[{startTime:1005,executionTime:8,error:{message:'Synthetic n8n node failure',headers:{authorization:'Bearer TEST_SECRET'}},data:{main:[]}}]
+   }}}
+ };
+ await page.locator('input[aria-label="n8n 실행 JSON 파일"]').setInputFiles({
+   name:'synthetic-n8n-execution-fixture.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(resultFile))
+ });
+ await expect(page.locator('[data-testid="imported-run-status"]')).toContainText('error',{timeout:12000});
+ await expect(page.locator('.node-status-dot.error')).toHaveCount(1);
+ const failedNode=page.locator('.vue-flow__node[data-id="'+restored.workflow.nodes[1].id+'"]');
+ await failedNode.click();
+ const inspectorPanel=page.locator('[data-testid="n8n-node-execution-inspector"]');
+ await expect(inspectorPanel).toContainText('Synthetic n8n node failure');
+ await expect(inspectorPanel).not.toContainText('TEST_SECRET');
+ const successNode=page.locator('.vue-flow__node[data-id="'+restored.workflow.nodes[0].id+'"]');
+ await successNode.click();
+ await expect(inspectorPanel).toContainText('[REDACTED]');
+ await expect(inspectorPanel).not.toContainText('synthetic-secret');
+ pass('imported_n8n_run_per_node_status_error_output_and_redaction',{nodes:2,source:'synthetic_e2e_fixture'});
+ await page.reload({waitUntil:'domcontentloaded'});
+ await expect(page.locator('.vue-flow__node')).toHaveCount(6,{timeout:20000});
+ await expect(page.locator('[data-testid="n8n-execution-file-panel"]')).toContainText('공식 n8n에서 내보낸 실행 JSON');
+ await expect(page.locator('.node-status-dot.error')).toHaveCount(0);
+ pass('uploaded_execution_not_persisted_as_authoritative_run');
  const downloading=page.waitForEvent('download',{timeout:18000});
  await page.locator('button[title="JSON 내보내기"]').click();
  await page.waitForTimeout(550);
