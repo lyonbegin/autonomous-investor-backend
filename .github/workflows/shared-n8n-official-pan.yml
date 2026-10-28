@@ -1,0 +1,61 @@
+name: Shared n8n official Vue Pan sandbox verification (issue 9)
+on:
+  push:
+    branches: [feature/shared-n8n-pan-integration]
+    paths:
+      - "n8n/Dockerfile.shared-pan-sandbox"
+      - "n8n/Caddyfile.shared-pan-sandbox"
+      - "n8n/docker-compose.shared-pan-sandbox.yml"
+      - "n8n/tests/official-pan-chrome.mjs"
+      - ".github/workflows/shared-n8n-official-pan.yml"
+  workflow_dispatch:
+permissions: {contents: read}
+jobs:
+  source-and-real-chrome:
+    runs-on: ubuntu-latest
+    timeout-minutes: 85
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: "22"}
+      - name: Install actual browser test dependency
+        working-directory: investment_studio
+        run: |
+          npm install --no-audit --no-fund
+          npx playwright install --with-deps chromium
+      - name: Verify isolated compose configuration and unchanged operational entrypoint
+        run: |
+          docker compose -f n8n/docker-compose.shared-pan-sandbox.yml config --quiet
+          test -f n8n/Dockerfile.upstream-source.railway
+          grep -Fq 'SHARED_N8N_STUDIO_COMMIT=999062f1676bdffafa852a36e6c986ef5ce7589f' n8n/Dockerfile.shared-pan-sandbox
+          grep -Fq "n8n@2.44.5" n8n/Dockerfile.shared-pan-sandbox
+          if grep -Eq 'railway.internal|broker|live-trading|N8N_ENCRYPTION_KEY|G2B|redis' n8n/docker-compose.shared-pan-sandbox.yml; then
+            echo 'Forbidden environment reference in sandbox compose' >&2; exit 1
+          fi
+      - name: Build patched real upstream n8n (no prebuilt app image)
+        run: docker compose -f n8n/docker-compose.shared-pan-sandbox.yml build --progress plain
+      - name: Run isolated n8n and local GET-only portal
+        run: |
+          docker compose -f n8n/docker-compose.shared-pan-sandbox.yml up -d --no-build
+          for try in $(seq 1 100); do
+            if curl -fsS http://127.0.0.1:39087/health >/dev/null; then break; fi
+            sleep 3
+          done
+          curl -fsS http://127.0.0.1:39087/health
+      - name: Chrome real gestures against patched official n8n Vue DOM
+        run: node n8n/tests/official-pan-chrome.mjs
+      - name: Preserve isolated n8n logs and evidence
+        if: always()
+        run: |
+          docker compose -f n8n/docker-compose.shared-pan-sandbox.yml logs --no-color > n8n/sandbox-docker.log 2>&1 || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: official-n8n-vue-pan-chrome-issue-9
+          path: |
+            n8n/tests/artifacts/
+            n8n/sandbox-docker.log
+          if-no-files-found: warn
+      - name: Tear down test containers
+        if: always()
+        run: docker compose -f n8n/docker-compose.shared-pan-sandbox.yml down --remove-orphans || true
