@@ -114,6 +114,35 @@ try{
  const restored=await restoredRes.json();
  if(restored.version!==3||restored.workflow.nodes.find(n=>n.id==='webhook-1')?.name!=='시나리오 Webhook 접수 테스트')throw Error('Historical server revision was not restored as a new current version');
  pass('shared_history_ui_restores_as_new_version',{restoredFrom:1,currentVersion:3});
+ // Imported result is a SYNTHETIC E2E fixture with the genuine official n8n
+ // execution resultData.runData shape. This does not perform an engine run.
+ const resultFile={
+   id:'synthetic-inspector-test-1',status:'error',finished:false,
+   data:{resultData:{runData:{
+     [restored.workflow.nodes[0].name]:[{startTime:1000,executionTime:3,data:{main:[[{json:{password:'synthetic-secret',ok:true}}]]}}],
+     [restored.workflow.nodes[1].name]:[{startTime:1005,executionTime:8,error:{message:'Synthetic n8n node failure',headers:{authorization:'Bearer TEST_SECRET'}},data:{main:[]}}]
+   }}}
+ };
+ await page.locator('input[aria-label="n8n 실행 JSON 파일"]').setInputFiles({
+   name:'synthetic-n8n-execution-fixture.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(resultFile))
+ });
+ await expect(page.locator('[data-testid="imported-run-status"]')).toContainText('error',{timeout:12000});
+ await expect(page.locator('.node-status-dot.error')).toHaveCount(1);
+ const failedNode=page.locator('.vue-flow__node[data-id="'+restored.workflow.nodes[1].id+'"]');
+ await failedNode.click();
+ const inspectorPanel=page.locator('[data-testid="n8n-node-execution-inspector"]');
+ await expect(inspectorPanel).toContainText('Synthetic n8n node failure');
+ await expect(inspectorPanel).not.toContainText('TEST_SECRET');
+ const successNode=page.locator('.vue-flow__node[data-id="'+restored.workflow.nodes[0].id+'"]');
+ await successNode.click();
+ await expect(inspectorPanel).toContainText('[REDACTED]');
+ await expect(inspectorPanel).not.toContainText('synthetic-secret');
+ pass('imported_n8n_run_per_node_status_error_output_and_redaction',{nodes:2,source:'synthetic_e2e_fixture'});
+ await page.reload({waitUntil:'domcontentloaded'});
+ await expect(page.locator('.vue-flow__node')).toHaveCount(6,{timeout:20000});
+ await expect(page.locator('[data-testid="n8n-execution-file-panel"]')).toContainText('공식 n8n에서 내보낸 실행 JSON');
+ await expect(page.locator('.node-status-dot.error')).toHaveCount(0);
+ pass('uploaded_execution_not_persisted_as_authoritative_run');
  const downloading=page.waitForEvent('download',{timeout:18000});
  await page.locator('button[title="JSON 내보내기"]').click();
  await page.waitForTimeout(550);
