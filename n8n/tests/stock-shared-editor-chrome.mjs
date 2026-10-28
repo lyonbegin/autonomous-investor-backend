@@ -94,6 +94,26 @@ try{
  const afterJson=await remoteAfterReload.json();
  if(afterJson.version!==1||afterJson.workflow.nodes.find(n=>n.id==='webhook-1')?.name!=='시나리오 Webhook 접수 테스트')throw Error('Server DB reload lost saved node');
  pass('stock_server_db_reload_restore',{persistedName:true,version:afterJson.version});
+ // Real Chrome version history: change again, save as v2, then restore v1
+ // through the common editor's user-visible history controls as v3.
+ const historyBefore=page.locator('[data-testid="stock-version-history"]');
+ await expect(historyBefore.locator('[data-restore-version="1"]')).toBeVisible({timeout:15000});
+ const n=page.locator('.vue-flow__node[data-id="webhook-1"]');
+ await n.click();
+ const rename=page.getByRole('textbox',{name:'노드 이름'});
+ await rename.fill('두 번째 수정 버전');
+ await rename.blur();
+ await page.getByRole('button',{name:'서버 저장'}).click();
+ await expect(page.getByText(/서버 DB 저장 성공 · v2/)).toBeVisible({timeout:15000});
+ await expect(historyBefore.locator('[data-restore-version="2"]')).toBeVisible({timeout:10000});
+ page.once('dialog',d=>d.accept());
+ await historyBefore.locator('[data-restore-version="1"]').click();
+ await expect(page.locator('.vue-flow__node[data-id="webhook-1"]')).toContainText('시나리오 Webhook 접수 테스트',{timeout:22000});
+ await expect(page.getByText(/이전 버전 v1을 서버 v3으로 복원했습니다/)).toBeVisible({timeout:12000});
+ const restoredRes=await page.request.get(apiPath);
+ const restored=await restoredRes.json();
+ if(restored.version!==3||restored.workflow.nodes.find(n=>n.id==='webhook-1')?.name!=='시나리오 Webhook 접수 테스트')throw Error('Historical server revision was not restored as a new current version');
+ pass('shared_history_ui_restores_as_new_version',{restoredFrom:1,currentVersion:3});
  const downloading=page.waitForEvent('download',{timeout:18000});
  await page.locator('button[title="JSON 내보내기"]').click();
  await page.waitForTimeout(550);
