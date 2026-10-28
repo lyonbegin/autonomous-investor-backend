@@ -89,6 +89,17 @@ try{
    const executionData=typeof detail.data==='string'?parseFlatted(detail.data):detail.data;
    const runData=executionData?.resultData?.runData||{};
    record('node_input_output_results_present',Array.isArray(runData['Safe Manual Trigger'])&&Array.isArray(runData['Safe NoOp']),{nodes:Object.keys(runData)});
+   const triggerRun=runData['Safe Manual Trigger']?.[0];
+   const noopRun=runData['Safe NoOp']?.[0];
+   const triggerItems=triggerRun?.data?.main?.[0];
+   const noopItems=noopRun?.data?.main?.[0];
+   record('node_input_output_payloads_verified',
+     Array.isArray(triggerItems)&&triggerItems.length>0&&Array.isArray(noopItems)&&noopItems.length===triggerItems.length
+       &&triggerItems.every((item,i)=>item?.json&&JSON.stringify(item.json)===JSON.stringify(noopItems[i]?.json))
+       &&!triggerRun?.error&&!noopRun?.error,
+     {manualOutputCount:triggerItems?.length??null,noopOutputCount:noopItems?.length??null,
+       manualJson:triggerItems?.[0]?.json??null,noopJson:noopItems?.[0]?.json??null,
+       manualError:triggerRun?.error??null,noopError:noopRun?.error??null});
  }
  record('no_live_trade_or_bid_nodes',loaded.nodes.every(n=>['n8n-nodes-base.manualTrigger','n8n-nodes-base.noOp'].includes(n.type)));
 }catch(error){log.error=String(error?.stack||error);console.error(log.error);process.exitCode=1;await page.screenshot({path:path.join(dir,'authenticated-n8n-failure.png'),fullPage:true}).catch(()=>{});}
