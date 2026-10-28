@@ -9,6 +9,7 @@ on:
       - "n8n/tests/official-pan-chrome.mjs"
       - "n8n/tests/official-db-editor-chrome.mjs"
       - "n8n/tests/official-all-flows-chrome.mjs"
+      - "n8n/tests/official-native-ux-chrome.mjs"
       - "n8n/Dockerfile.shared-pan-gateway"
       - "n8n/preview/native-portal.shared-pan.html"
       - "n8n/tests/enable-native-editable-test.py"
@@ -50,6 +51,8 @@ jobs:
           curl -fsS http://127.0.0.1:39087/health
       - name: Chrome real gestures against patched official n8n Vue DOM
         run: node n8n/tests/official-pan-chrome.mjs
+      - name: Real Chrome native add, handle connect, delete, undo, redo and reload
+        run: node n8n/tests/official-native-ux-chrome.mjs
       - name: Verify all 13 stock n8n workflow graphs with real Chrome
         run: node n8n/tests/official-all-flows-chrome.mjs
       - name: Authenticated official n8n editor DB persistence and safe manual execution
