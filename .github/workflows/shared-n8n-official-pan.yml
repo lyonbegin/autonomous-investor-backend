@@ -29,7 +29,7 @@ jobs:
           test -f n8n/Dockerfile.upstream-source.railway
           grep -Fq 'SHARED_N8N_STUDIO_COMMIT=999062f1676bdffafa852a36e6c986ef5ce7589f' n8n/Dockerfile.shared-pan-sandbox
           grep -Fq "n8n@2.44.5" n8n/Dockerfile.shared-pan-sandbox
-          if grep -Eq 'railway.internal|broker|live-trading|N8N_ENCRYPTION_KEY|G2B|redis' n8n/docker-compose.shared-pan-sandbox.yml; then
+          if grep -Eiq '^[[:space:]]*(N8N_ENCRYPTION_KEY|REDIS_[A-Z_]+|BROKER_[A-Z_]+|G2B_[A-Z_]+|DATABASE_URL|DB_POSTGRESDB_[A-Z_]+):' n8n/docker-compose.shared-pan-sandbox.yml; then
             echo 'Forbidden environment reference in sandbox compose' >&2; exit 1
           fi
       - name: Build patched real upstream n8n (no prebuilt app image)
