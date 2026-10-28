@@ -9,13 +9,13 @@ const { chromium, expect } = require('@playwright/test');
 const base = process.env.N8N_PAN_GATEWAY_URL || 'http://127.0.0.1:39087/';
 const dest = path.resolve(path.dirname(fileURLToPath(import.meta.url)), 'artifacts');
 await fs.mkdir(dest,{recursive:true});
-const report={target:base, official_n8n:true, note:'Read-only official Vue preview. No production credentials or execution.', results:{}};
+const report={target:base, official_n8n:true, note:'Editable official Vue preview with local-only draft; no production credentials or execution.', results:{}};
 const browser=await chromium.launch({headless:true});
 const page=await browser.newPage({viewport:{width:1800,height:1050},deviceScaleFactor:1});
-const mark=(name,passed,data={})=>{report.results[name]={status:passed?'PASS':'FAIL',...data};console.log('OFFICIAL_N8N_CHROME',JSON.stringify({name,...report.results[name]}));if(!passed)throw Error(name+' FAILED '+JSON.stringify(data));};
+const mark=(name,passed,data={})=>{report.results[name]={...data,status:passed?'PASS':'FAIL'};console.log('OFFICIAL_N8N_CHROME',JSON.stringify({name,...report.results[name]}));if(!passed)throw Error(name+' FAILED '+JSON.stringify(data));};
 const viewportState=async frame=>frame.evaluate(()=>{
-  const v=document.querySelector('.vue-flow__viewport');
-  if(!v)throw Error('Missing official VueFlow viewport');
+  const v=document.querySelector('.vue-flow__transformationpane');
+  if(!v)throw Error('Missing official VueFlow transformation pane');
   const css=getComputedStyle(v).transform;
   const m=new DOMMatrix(css==='none'?'matrix(1,0,0,1,0,0)':css);
   return {x:m.m41,y:m.m42,zoom:m.a,css};
