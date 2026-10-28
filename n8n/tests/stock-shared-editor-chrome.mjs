@@ -24,6 +24,23 @@ try{
  const originalIdList=await page.locator('.vue-flow__node').evaluateAll(els=>els.map(el=>el.getAttribute('data-id')));
  if(!originalIdList.includes('aiOperationF01post'))throw Error('Original F01 n8n node IDs not loaded '+JSON.stringify(originalIdList));
  pass('real_workflow_original_node_ids',{originalIdList});
+ // All 13 real stock workflows: validate exact original native node identities,
+ // not just counts. No synthetic template may substitute the real graph.
+ for(let i=0;i<13;i++){
+   const button=buttons.nth(i);
+   const file=await button.getAttribute('data-stock-flow');
+   const response=await page.request.get(new URL('stock-workflows/'+file,base).href);
+   if(!response.ok())throw Error('Missing original workflow '+file);
+   const raw=await response.json();
+   await button.click();
+   await expect(page.locator('.vue-flow__node')).toHaveCount(raw.nodes.length,{timeout:12000});
+   const actual=await page.locator('.vue-flow__node').evaluateAll(els=>els.map(el=>el.getAttribute('data-id')).sort());
+   const expected=raw.nodes.map(n=>n.id).sort();
+   await expect.poll(async()=>await page.locator('.vue-flow__node').evaluateAll(els=>els.map(el=>el.getAttribute('data-id')).sort()),{timeout:12000}).toEqual(expected);
+ }
+ pass('all_13_original_stock_workflows',{flows:13});
+ await buttons.first().click();
+ await expect(page.locator('.vue-flow__node')).toHaveCount(5,{timeout:12000});
  const a=page.locator('.vue-flow__node').first();
  const before=await a.boundingBox(),pane=await page.locator('.vue-flow__pane').boundingBox();
  const p={x:pane.x+pane.width*.78,y:pane.y+pane.height*.82};
