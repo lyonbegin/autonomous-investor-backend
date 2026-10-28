@@ -1,0 +1,54 @@
+name: E2E native n8n node delete and undo UX
+on:
+  push:
+    branches: [feature/n8n-native-editable-test-20261028]
+    paths: ['.github/workflows/test-native-n8n-undo-ux.yml']
+  workflow_dispatch:
+permissions: {contents: read}
+jobs:
+  chrome:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: Install test tooling
+        working-directory: investment_studio
+        run: npm install --no-audit --no-fund
+      - name: Actual n8n VueFlow delete and undo
+        working-directory: investment_studio
+        run: |
+          node --input-type=module <<'NODE'
+          import { chromium, expect } from '@playwright/test';
+          const browser=await chromium.launch({headless:true,executablePath:'/usr/bin/google-chrome',args:['--no-sandbox']});
+          const p=await browser.newPage({viewport:{width:1700,height:1000}});
+          try {
+            await p.goto('https://investment-n8n-native-editor-production.up.railway.app/',{waitUntil:'domcontentloaded'});
+            await p.locator('button.flow').nth(3).click();
+            const iframe=p.frameLocator('#n8n-canvas');
+            const nodes=iframe.locator('.vue-flow__node');
+            await expect.poll(async()=>nodes.count(),{timeout:45000}).toBeGreaterThanOrEqual(5);
+            const before=await nodes.count();
+            await p.locator('#addSafeNoOp').click();
+            await expect(nodes).toHaveCount(before+1,{timeout:30000});
+            console.log('ADD_NODE_COUNT',before+1);
+            const noOp=nodes.filter({hasText:'No Operation'}).last();
+            await expect(noOp).toBeVisible();
+            await noOp.click({force:true});
+            await p.keyboard.press('Delete');
+            await expect(nodes).toHaveCount(before,{timeout:16000});
+            console.log('DELETE_NODE_COUNT',before);
+            await p.keyboard.press('Control+z');
+            await expect(nodes).toHaveCount(before+1,{timeout:16000});
+            console.log('UNDO_NODE_COUNT',before+1);
+            await p.screenshot({path:'original-n8n-undo-proof.png',fullPage:true});
+            console.log('PASS_NATIVE_N8N_DELETE_UNDO');
+          } finally {await browser.close();}
+          NODE
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: native-n8n-delete-undo-visual
+          path: investment_studio/original-n8n-undo-proof.png
+          if-no-files-found: ignore
