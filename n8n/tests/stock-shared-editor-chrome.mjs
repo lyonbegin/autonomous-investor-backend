@@ -75,7 +75,7 @@ try{
  await expect(page.locator('.vue-flow__node[data-id="webhook-1"]')).toContainText('시나리오 Webhook 접수 테스트');
  pass('stock_browser_save_and_reload',{persistedName:true});
  const downloading=page.waitForEvent('download',{timeout:18000});
- await page.getByRole('button',{name:/JSON/}).first().click();
+ await page.locator('button[title="JSON 내보내기"]').click();
  await page.waitForTimeout(550);
  const exportStatus=await page.locator('.bottom-status').innerText();
  console.log('STOCK_SHARED_EXPORT_DEBUG',JSON.stringify({exportStatus,buttons:await page.getByRole('button',{name:/JSON/}).allTextContents(),href:page.url()}));
