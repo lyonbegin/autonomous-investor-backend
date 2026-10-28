@@ -2,7 +2,7 @@ name: Live staging Chrome n8n imported execution inspector
 on:
   push:
     branches: [feature/engine-run-inspector-20261029]
-    paths: [".github/workflows/live-shared-inspector-chrome.yml"]
+    paths: [".github/workflows/live-shared-inspector-chrome.yml", "n8n/tests/stock-shared-editor-chrome.mjs"]
   workflow_dispatch:
 permissions: {contents: read}
 jobs:
