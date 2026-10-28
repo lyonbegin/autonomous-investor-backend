@@ -1,0 +1,78 @@
+// Isolated real-user Chrome gestures on compiled official n8n Vue, not a mock.
+// Add -> handle connect -> delete/undo/redo -> local snapshot -> reload.
+// The authenticated SQLite save gate runs in official-db-editor-chrome.mjs.
+import {createRequire} from 'node:module';
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+const require=createRequire(new URL('../../investment_studio/package.json',import.meta.url));
+const {chromium,expect}=require('@playwright/test');
+const base=process.env.N8N_PAN_GATEWAY_URL||'http://127.0.0.1:39087/';
+if(!/^http:\/\/127\.0\.0\.1:39087\/?$/.test(base))throw Error('Only disposable loopback n8n sandbox allowed');
+const dir=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'artifacts');
+await fs.mkdir(dir,{recursive:true});
+const report={target:base,checks:[]};
+const check=(name,ok,details={})=>{const row={name,status:ok?'PASS':'FAIL',...details};report.checks.push(row);console.log('OFFICIAL_NATIVE_UX',JSON.stringify(row));if(!ok)throw Error(name+' '+JSON.stringify(details));};
+const browser=await chromium.launch({headless:true});
+const page=await browser.newPage({viewport:{width:1800,height:1050}});
+const mid=b=>({x:b.x+b.width/2,y:b.y+b.height/2});
+const drag=async(a,b)=>{await page.mouse.move(a.x,a.y);await page.mouse.down();await page.mouse.move(a.x+6,a.y+6,{steps:3});await page.mouse.move(b.x,b.y,{steps:25});await page.mouse.up();await page.waitForTimeout(650);};
+const key='n8n-native-editable-test:v1:scenarios/01-new-strategy.json';
+try{
+ await page.goto(base,{waitUntil:'domcontentloaded',timeout:45000});
+ await expect(page.locator('button.flow')).toHaveCount(13,{timeout:45000});
+ await page.locator('button.flow').nth(3).click();
+ const frame=page.frameLocator('#n8n-canvas');
+ const nodes=frame.locator('.vue-flow__node'),edges=frame.locator('.vue-flow__edge');
+ await expect(nodes).toHaveCount(6,{timeout:90000});
+ await expect(edges).toHaveCount(5,{timeout:30000});
+ check('original_official_canvas',true,{nodes:6,edges:5});
+ await page.locator('#addSafeNoOp').click();
+ await expect(nodes).toHaveCount(7,{timeout:30000});
+ const noop=nodes.filter({hasText:'No Operation'}).last();
+ await expect(noop).toBeVisible();
+ check('native_node_added',true,{nodes:7});
+ const source=nodes.filter({hasText:'시뮬레이션 실행 대기'});
+ await expect(source).toHaveCount(1);
+ const output=source.locator('.vue-flow__handle.source').last();
+ const input=noop.locator('.vue-flow__handle.target').first();
+ await expect(output).toHaveCount(1);
+ await expect(input).toHaveCount(1);
+ const outbox=await output.boundingBox(),inbox=await input.boundingBox();
+ if(!outbox||!inbox)throw Error('Missing native connection handle bounds');
+ await drag(mid(outbox),mid(inbox));
+ await expect(edges).toHaveCount(6,{timeout:15000});
+ check('native_handle_mouse_connection',true,{edges:6});
+ await page.screenshot({path:path.join(dir,'official-native-connected.png'),fullPage:true});
+ await noop.click({force:true});
+ await page.keyboard.press('Delete');
+ await expect(nodes).toHaveCount(6,{timeout:15000});
+ check('native_node_delete',true,{nodes:6});
+ await frame.locator('.vue-flow').press('Control+z');
+ await expect(nodes).toHaveCount(7,{timeout:15000});
+ check('native_undo_restore',true,{nodes:7});
+ await frame.locator('.vue-flow').press('Control+Shift+z');
+ await expect(nodes).toHaveCount(6,{timeout:15000});
+ check('native_redo_delete',true,{nodes:6});
+ await frame.locator('.vue-flow').press('Control+z');
+ await expect(nodes).toHaveCount(7,{timeout:15000});
+ await expect(edges).toHaveCount(6,{timeout:15000});
+ check('native_undo_restores_connection',true,{nodes:7,edges:6});
+ await page.locator('#saveDraft').click();
+ await expect(page.locator('#status')).toContainText('초안 저장 성공',{timeout:18000});
+ const snapshot=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)||'null'),key);
+ const noopNames=(snapshot?.nodes||[]).filter(n=>n.type==='n8n-nodes-base.noOp').map(n=>n.name);
+ const links=Object.values(snapshot?.connections||{}).flatMap(v=>(v.main||[]).flatMap(a=>a||[]));
+ check('native_connected_graph_serialized',snapshot?.nodes?.length===7&&links.some(e=>noopNames.includes(e.node)),{nodes:snapshot?.nodes?.length,noopNames,linksToNoop:links.filter(e=>noopNames.includes(e.node)).length});
+ await page.reload({waitUntil:'domcontentloaded'});
+ await expect(page.locator('#status')).toContainText('저장된 초안 복원',{timeout:70000});
+ await expect(nodes).toHaveCount(7,{timeout:70000});
+ await expect(edges).toHaveCount(6,{timeout:30000});
+ check('native_connected_graph_reloaded',true,{nodes:7,edges:6});
+ await page.locator('#openNativeCreator').click();
+ await expect(frame.locator('[data-test-id="node-creator"]')).toBeVisible({timeout:15000});
+ check('native_node_creator_search_open',true);
+ await page.screenshot({path:path.join(dir,'official-native-ux-final.png'),fullPage:true});
+ console.log('OFFICIAL_NATIVE_USER_UX_PASS');
+}catch(e){report.error=String(e?.stack||e);console.error(report.error);process.exitCode=1;await page.screenshot({path:path.join(dir,'official-native-ux-failure.png'),fullPage:true}).catch(()=>{});}
+finally{await page.evaluate(key=>localStorage.removeItem(key),key).catch(()=>{});await fs.writeFile(path.join(dir,'official-native-ux-results.json'),JSON.stringify(report,null,2));await browser.close();}

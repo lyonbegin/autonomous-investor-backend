@@ -1,0 +1,61 @@
+# Build the REAL upstream n8n source tree, not the prebuilt n8nio/n8n image.
+# Pinned upstream tag: n8n@2.44.5
+# Pinned upstream commit: e993c789c83dba66030f3b0259b42e452b64c3b9
+FROM node:26.10.0-alpine3.24 AS upstream-source-build
+
+RUN apk add --no-cache git python3 make g++ bash libc6-compat linux-headers
+RUN npm install -g pnpm@12.4.2
+WORKDIR /src
+RUN git clone --depth 1 --branch 'n8n@2.44.5' https://github.com/n8n-io/n8n.git . \
+    && test "$(git rev-parse HEAD)" = "e993c789c83dba66030f3b0259b42e452b64c3b9" \
+    && test -f packages/frontend/editor-ui/package.json \
+    && test -f packages/cli/package.json \
+    && echo "UPSTREAM_N8N_SOURCE_VERIFIED"
+# Restore the previously Chrome-tested native Vue edit/NDV commands ONLY
+# within this disposable demo sandbox. The official n8n runtime auth paths
+# and normal /workflow/* permissions remain unchanged.
+COPY n8n/tests/enable-native-editable-test.py /tmp/enable-native-editable-test.py
+RUN python3 /tmp/enable-native-editable-test.py
+ENV CI=true
+ENV NODE_OPTIONS="--max-old-space-size=4096"
+# Pinned shared source patch; never use floating main. Fail closed on upstream drift.
+ARG SHARED_N8N_STUDIO_COMMIT=999062f1676bdffafa852a36e6c986ef5ce7589f
+RUN git clone https://github.com/lyonbegin/shared-n8n-studio.git /tmp/shared-n8n-studio \
+    && git -C /tmp/shared-n8n-studio checkout --detach "$SHARED_N8N_STUDIO_COMMIT" \
+    && test "$(git -C /tmp/shared-n8n-studio rev-parse HEAD)" = "$SHARED_N8N_STUDIO_COMMIT" \
+    && node /tmp/shared-n8n-studio/scripts/apply-pan-patch.mjs \
+       /src/packages/frontend/editor-ui/src/features/workflows/canvas/components/Canvas.vue \
+    && echo "SHARED_N8N_PAN_APPLIED_COMMIT=$SHARED_N8N_STUDIO_COMMIT"
+RUN pnpm install --frozen-lockfile --trust-lockfile
+RUN pnpm build:deploy
+
+# n8n's official release Dockerfile rebuilds isolated-vm natively for this
+# Node/Alpine combination. Without that step the editor server health check
+# may succeed briefly but the expression engine crashes at startup.
+RUN set -eux; \
+    ISOLATED_VM="$(find /src/compiled/node_modules/.pnpm -maxdepth 4 -type d -name 'isolated-vm' | head -n 1)"; \
+    test -n "$ISOLATED_VM"; \
+    cd "$ISOLATED_VM"; \
+    rm -rf prebuilds; \
+    node /usr/local/lib/node_modules/npm/node_modules/node-gyp/bin/node-gyp.js rebuild --release -j 2; \
+    test -f build/Release/isolated_vm.node; \
+    echo "UPSTREAM_NATIVE_ISOLATED_VM_BUILT"
+
+
+# Runtime contains code actually compiled above from official GitHub source.
+# It does not depend on n8nio/n8n prebuilt application images.
+FROM node:26.10.0-alpine3.24 AS runtime
+RUN apk add --no-cache tini bash libc6-compat sqlite-libs ca-certificates
+ENV NODE_ENV=production N8N_PORT=5678 N8N_HOST=0.0.0.0 \
+    N8N_DIAGNOSTICS_ENABLED=false N8N_TEMPLATES_ENABLED=false \
+    N8N_USER_FOLDER=/home/node/.n8n
+WORKDIR /opt/n8n
+COPY --from=upstream-source-build --chown=node:node /src/compiled /opt/n8n
+RUN test -f /opt/n8n/bin/n8n \
+    && node -p "require('/opt/n8n/package.json').version" \
+    && mkdir -p /home/node/.n8n \
+    && chown -R node:node /home/node/.n8n
+EXPOSE 5678
+USER node
+ENTRYPOINT ["tini","--"]
+CMD ["node","/opt/n8n/bin/n8n","start"]

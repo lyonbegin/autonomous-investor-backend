@@ -1,0 +1,7 @@
+# Isolated official Vue editor gateway. Uses the already-tested stock 13 JSON.
+# No production routes, credential mutation, or upstream backend POST forwarded.
+FROM caddy:2.10-alpine
+COPY n8n/Caddyfile.shared-pan-sandbox /etc/caddy/Caddyfile
+COPY n8n/preview/native-portal.shared-pan.html /srv/site/index.html
+COPY n8n/workflows/ /srv/data/
+EXPOSE 3000
