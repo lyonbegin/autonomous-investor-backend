@@ -1,0 +1,100 @@
+name: E2E native n8n real mouse drag and connect
+on:
+  push:
+    branches: [feature/n8n-native-editable-test-20261028]
+    paths: ['.github/workflows/test-native-n8n-drag-connect.yml']
+  workflow_dispatch:
+permissions: {contents: read}
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: Install existing Playwright
+        working-directory: investment_studio
+        run: npm install --no-audit --no-fund
+      - name: Real user Chrome mouse gestures, not synthetic DOM event
+        working-directory: investment_studio
+        run: |
+          node --input-type=module <<'NODE'
+          import {chromium, expect} from '@playwright/test';
+          import fs from 'node:fs';
+          const browser=await chromium.launch({headless:true,executablePath:'/usr/bin/google-chrome',args:['--no-sandbox']});
+          const p=await browser.newPage({viewport:{width:1800,height:1050},acceptDownloads:true});
+          const base='https://investment-n8n-native-editor-production.up.railway.app/';
+          const detail=[];
+          const report=(step,result,extra={})=>{const x={step,result,...extra};detail.push(x);console.log('USER_GESTURE_RESULT',JSON.stringify(x));};
+          const mid=r=>({x:r.x+r.width/2,y:r.y+r.height/2});
+          async function mouseDrag(a,b){
+            await p.mouse.move(a.x,a.y);
+            await p.mouse.down();
+            await p.mouse.move(a.x+6,a.y+6,{steps:3});
+            await p.mouse.move(b.x,b.y,{steps:25});
+            await p.mouse.up();
+            await p.waitForTimeout(1100);
+          }
+          try {
+            await p.goto(base,{waitUntil:'domcontentloaded',timeout:60000});
+            await expect(p.locator('button.flow')).toHaveCount(13);
+            await p.locator('button.flow').nth(3).click();
+            const c=p.frameLocator('#n8n-canvas');
+            const nodes=c.locator('.vue-flow__node');
+            const edges=c.locator('.vue-flow__edge');
+            await expect(nodes).toHaveCount(6,{timeout:60000});
+            await expect(edges).toHaveCount(5,{timeout:10000});
+            report('original-canvas','PASS',{nodes:6,edges:5});
+            const before=nodes.filter({hasText:'시나리오 Webhook 접수'});
+            await expect(before).toHaveCount(1);
+            const startBox=await before.boundingBox();
+            const initialStyle=await before.getAttribute('style');
+            await mouseDrag(mid(startBox),{x:mid(startBox).x+190,y:mid(startBox).y+120});
+            const finalStyle=await before.getAttribute('style');
+            report('node-move',initialStyle!==finalStyle?'PASS':'FAIL',{initialStyle,finalStyle,startBox,after:await before.boundingBox()});
+            await p.screenshot({path:'native-n8n-mouse-after-drag.png',fullPage:true});
+            await p.locator('#addSafeNoOp').click();
+            await expect(nodes).toHaveCount(7,{timeout:30000});
+            report('native-add-node','PASS',{nodes:7});
+            const newNode=nodes.filter({hasText:'No Operation'}).last();
+            await expect(newNode).toBeVisible();
+            const s=nodes.filter({hasText:'시뮬레이션 실행 대기'});
+            await expect(s).toHaveCount(1);
+            const output=s.locator('.vue-flow__handle.source').last();
+            const input=newNode.locator('.vue-flow__handle.target').first();
+            const oh=await output.count(),ih=await input.count();
+            report('handle-availability',oh===1&&ih===1?'PASS':'FAIL',{sourceHandleCount:oh,targetHandleCount:ih,sourceHandles:await s.locator('.vue-flow__handle').count(),targetHandles:await newNode.locator('.vue-flow__handle').count()});
+            if(oh&&ih){
+              const ob=await output.boundingBox(),ib=await input.boundingBox();
+              if(ob&&ib){
+                await mouseDrag(mid(ob),mid(ib));
+                const ec=await edges.count();
+                report('mouse-connect',ec===6?'PASS':'FAIL',{beforeEdges:5,afterEdges:ec,sourceBox:ob,targetBox:ib});
+              }else report('mouse-connect','FAIL',{reason:'missing handle rect'});
+            }else report('mouse-connect','FAIL',{reason:'missing handles'});
+            await p.screenshot({path:'native-n8n-mouse-after-connect.png',fullPage:true});
+            await p.locator('#saveDraft').click();
+            await expect(p.locator('#status')).toContainText('초안 저장 성공',{timeout:15000});
+            const saved=await p.evaluate(()=>JSON.parse(localStorage.getItem('n8n-native-editable-test:v1:scenarios/01-new-strategy.json')||'{}'));
+            const originalConnections=Object.values(saved.connections||{}).flatMap(v=>(v.main||[]).flatMap(x=>x||[]));
+            report('serialized-state',saved.nodes?.length===7?'PASS':'FAIL',{nodeCount:saved.nodes?.length,edgeLinkCount:originalConnections.length,newNoOpLinks:originalConnections.filter(x=>x.node?.startsWith('No Operation')).length,webhookPosition:saved.nodes?.find(x=>x.name==='시나리오 Webhook 접수')?.position});
+            fs.writeFileSync('native-n8n-gesture-results.json',JSON.stringify(detail,null,2));
+            const failing=detail.filter(x=>x.result==='FAIL');
+            if(failing.length) throw Error('User mouse gestures FAILED: '+JSON.stringify(failing));
+            console.log('PASS_NATIVE_N8N_MOUSE_MOVE_CONNECT_SAVE');
+          }finally{
+            await p.evaluate(()=>localStorage.removeItem('n8n-native-editable-test:v1:scenarios/01-new-strategy.json')).catch(()=>{});
+            if(!fs.existsSync('native-n8n-gesture-results.json')) fs.writeFileSync('native-n8n-gesture-results.json',JSON.stringify(detail,null,2));
+            await browser.close();
+          }
+          NODE
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: native-n8n-real-mouse-evidence
+          path: |
+            investment_studio/native-n8n-mouse-after-drag.png
+            investment_studio/native-n8n-mouse-after-connect.png
+            investment_studio/native-n8n-gesture-results.json
+          if-no-files-found: ignore
