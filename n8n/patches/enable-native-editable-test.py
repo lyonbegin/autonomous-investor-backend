@@ -194,5 +194,62 @@ edit("app/utils/nodeViewUtils.ts", [
     ),
 ]);
 
+# The upstream global history shortcut does not undo deletions on the
+# editable demo route in the real Chrome E2E, despite native history records.
+# Install a scoped capturing handler that invokes the SAME original
+# history-store commands (revert / reverse) used by useHistoryHelper.
+edit("app/views/NodeView.vue", [
+    (
+        "import { AddNodeGroupCommand, historyBus } from '@/app/models/history';",
+        "import { AddNodeGroupCommand, BulkCommand, Command, historyBus } from '@/app/models/history';",
+    ),
+    (
+        "// Dedicated parent-initiated controls for the isolated native edit test.",
+        """// Native keyboard undo/redo on the isolated editable demo only.
+async function onNativeEditTestHistoryKeydown(event: KeyboardEvent) {
+    if (!isNativeEditableTest.value || !event.ctrlKey ||
+        event.key.toLowerCase() !== 'z' || event.repeat) return;
+    const el = event.target;
+    if (el instanceof HTMLElement && (
+        el.isContentEditable || ['INPUT', 'TEXTAREA'].includes(el.tagName)
+    )) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    const undo = !event.shiftKey;
+    const cmd = undo ? historyStore.popUndoableToUndo() : historyStore.popUndoableToRedo();
+    if (!cmd) return;
+    const now = Date.now();
+    if (cmd instanceof BulkCommand) {
+        historyStore.bulkInProgress = true;
+        try {
+            const reversals: Command[] = [];
+            for (let i = cmd.commands.length - 1; i >= 0; i--) {
+                await cmd.commands[i].revert();
+                reversals.push(cmd.commands[i].getReverseCommand(now));
+            }
+            if (undo) historyStore.pushUndoableToRedo(new BulkCommand(reversals));
+            else historyStore.pushBulkCommandToUndo(new BulkCommand(reversals), false);
+            await nextTick();
+        } finally { historyStore.bulkInProgress = false; }
+    } else if (cmd instanceof Command) {
+        await cmd.revert();
+        if (undo) historyStore.pushUndoableToRedo(cmd.getReverseCommand(now));
+        else historyStore.pushCommandToUndo(cmd.getReverseCommand(now), false);
+        uiStore.markStateDirty();
+    }
+}
+
+// Dedicated parent-initiated controls for the isolated native edit test.""",
+    ),
+    (
+        "    window.addEventListener('message', onNativeEditTestMessage);",
+        "    window.addEventListener('message', onNativeEditTestMessage);\n    document.addEventListener('keydown', onNativeEditTestHistoryKeydown, true);",
+    ),
+    (
+        "    window.removeEventListener('message', onNativeEditTestMessage);",
+        "    window.removeEventListener('message', onNativeEditTestMessage);\n    document.removeEventListener('keydown', onNativeEditTestHistoryKeydown, true);",
+    ),
+]);
+
 print("\n".join(changes))
 print("NATIVE_N8N_EDIT_PATCH_OK")
