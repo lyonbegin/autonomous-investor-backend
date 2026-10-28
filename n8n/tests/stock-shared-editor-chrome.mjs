@@ -76,6 +76,10 @@ try{
  pass('stock_browser_save_and_reload',{persistedName:true});
  const downloading=page.waitForEvent('download',{timeout:18000});
  await page.getByRole('button',{name:/JSON/}).first().click();
+ await page.waitForTimeout(550);
+ const exportStatus=await page.locator('.bottom-status').innerText();
+ console.log('STOCK_SHARED_EXPORT_DEBUG',JSON.stringify({exportStatus,buttons:await page.getByRole('button',{name:/JSON/}).allTextContents(),href:page.url()}));
+ if(/실패|오류/.test(exportStatus))throw Error('JSON export actual UI error: '+exportStatus);
  const download=await downloading;
  const raw=JSON.parse(await fs.readFile(await download.path(),'utf-8'));
  if(raw.nodes?.length!==6||raw.nodes[0]?.type!=='n8n-nodes-base.webhook'||!raw.connections?.['시나리오 Webhook 접수 테스트'])throw Error('Original n8n graph roundtrip failed');
