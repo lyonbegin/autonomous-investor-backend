@@ -1,6 +1,8 @@
 :3000 {
     encode zstd gzip
-    handle /health { respond "ok" 200 }
+    handle /health {
+        respond "ok" 200
+    }
     handle_path /demo-data/* {
         root * /srv/data
         file_server
@@ -18,7 +20,9 @@
     handle @upstream {
         reverse_proxy n8n-pan-source-sandbox:5678
     }
-    handle { respond "Only isolated n8n demo UI is allowed" 403 }
+    handle {
+        respond "Only isolated n8n demo UI is allowed" 403
+    }
     header {
         X-Content-Type-Options nosniff
         Referrer-Policy no-referrer
