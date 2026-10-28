@@ -1,0 +1,101 @@
+name: E2E n8n change parameters save refresh and JSON export
+on:
+  push:
+    branches: [feature/n8n-native-editable-test-20261028]
+    paths: ['.github/workflows/test-native-n8n-edit-persistence.yml']
+  workflow_dispatch:
+permissions: {contents: read}
+jobs:
+  chrome:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: Install Playwright
+        working-directory: investment_studio
+        run: npm install --no-audit --no-fund
+      - name: Real input, canvas drag, save, refresh and exported JSON equality
+        working-directory: investment_studio
+        run: |
+          node --input-type=module <<'NODE'
+          import {chromium,expect} from '@playwright/test';
+          import fs from 'node:fs';
+          const browser=await chromium.launch({headless:true,executablePath:'/usr/bin/google-chrome',args:['--no-sandbox']});
+          const page=await browser.newPage({viewport:{width:1840,height:1080},acceptDownloads:true});
+          const newUrl='http://example.invalid/usability-regression-check';
+          const key='n8n-native-editable-test:v1:scenarios/01-new-strategy.json';
+          const info={};
+          try {
+            await page.goto('https://investment-n8n-native-editor-production.up.railway.app/',{waitUntil:'domcontentloaded',timeout:60000});
+            await page.locator('button.flow').nth(3).click();
+            const c=page.frameLocator('#n8n-canvas');
+            const nodes=c.locator('.vue-flow__node');
+            await expect(nodes).toHaveCount(6,{timeout:60000});
+            const moveNode=nodes.filter({hasText:'시나리오 Webhook 접수'});
+            const beforeStyle=await moveNode.getAttribute('style');
+            const box=await moveNode.boundingBox();
+            await page.mouse.move(box.x+box.width/2,box.y+box.height/2);
+            await page.mouse.down();
+            await page.mouse.move(box.x+box.width/2+120,box.y+box.height/2+95,{steps:25});
+            await page.mouse.up();
+            const afterStyle=await moveNode.getAttribute('style');
+            if(beforeStyle===afterStyle)throw Error('mouse drag did not move node');
+            console.log('DRAG_MOVE_SUCCESS',beforeStyle,afterStyle);
+            const apiNode=nodes.filter({hasText:'내부 시나리오 API 시작'});
+            await apiNode.dblclick({force:true});
+            let candidates=await c.locator('input').evaluateAll(all=>all.map((x,i)=>({i,v:x.value||''})).filter(x=>x.v.includes('invest-backend')));
+            info.inputCandidates=candidates;
+            if(!candidates.length) {
+              console.log('INPUTS',JSON.stringify(await c.locator('input').evaluateAll(all=>all.map(x=>({type:x.type,placeholder:x.placeholder,value:x.value?.slice(0,100)})))).slice(0,9000));
+              throw Error('Cannot find HTTP Request URL input in native n8n node details');
+            }
+            const input=c.locator('input').nth(candidates[0].i);
+            await input.fill(newUrl);
+            await input.press('Tab');
+            await expect(input).toHaveValue(newUrl);
+            console.log('NATIVE_NDV_FIELD_CHANGED',newUrl);
+            await page.locator('#saveDraft').click();
+            await expect(page.locator('#status')).toContainText('초안 저장 성공',{timeout:20000});
+            const stored=await page.evaluate(k=>JSON.parse(localStorage.getItem(k)||'{}'),key);
+            const storedNode=stored.nodes.find(x=>x.name==='내부 시나리오 API 시작');
+            const storedMoved=stored.nodes.find(x=>x.name==='시나리오 Webhook 접수');
+            info.storedUrl=storedNode?.parameters?.url;
+            info.savedPosition=storedMoved?.position;
+            if(info.storedUrl!==newUrl)throw Error('URL was not written to actual native n8n serialized workflow: '+info.storedUrl);
+            if(JSON.stringify(info.savedPosition)==='[220,90]')throw Error('Drag position not saved');
+            console.log('SAVE_REAL_NDV_AND_COORDS',JSON.stringify(info));
+            const downloadPromise=page.waitForEvent('download',{timeout:20000});
+            await page.locator('#exportDraft').click();
+            const download=await downloadPromise;
+            const exportJson=JSON.parse(fs.readFileSync(await download.path(),'utf8'));
+            const downloadedNode=exportJson.nodes.find(x=>x.name==='내부 시나리오 API 시작');
+            if(downloadedNode?.parameters?.url!==newUrl)throw Error('JSON download mismatch');
+            console.log('EXPORTED_REAL_WORKFLOW',download.suggestedFilename(),exportJson.nodes.length,downloadedNode.parameters.url);
+            await page.screenshot({path:'native-edited-before-reload.png',fullPage:true});
+            await page.reload({waitUntil:'domcontentloaded'});
+            await expect(page.locator('button.flow').nth(3)).toHaveClass(/active/,{timeout:15000});
+            await expect(page.locator('#status')).toContainText('저장된 초안 복원',{timeout:45000});
+            await expect(nodes).toHaveCount(6,{timeout:45000});
+            const restored=await page.evaluate(k=>JSON.parse(localStorage.getItem(k)||'{}'),key);
+            if(restored.nodes.find(x=>x.name==='내부 시나리오 API 시작')?.parameters?.url!==newUrl)throw Error('URL lost after reload');
+            const restoredPos=restored.nodes.find(x=>x.name==='시나리오 Webhook 접수')?.position;
+            if(JSON.stringify(restoredPos)!==JSON.stringify(info.savedPosition))throw Error('Drag coordinates lost after reload');
+            console.log('PASS_NDV_EDIT_SAVE_RELOAD_JSON_EXPORT',JSON.stringify({url:newUrl,position:restoredPos}));
+            await page.screenshot({path:'native-edited-after-reload.png',fullPage:true});
+          }finally{
+            fs.writeFileSync('native-edit-persist-details.json',JSON.stringify(info,null,2));
+            await page.evaluate(k=>localStorage.removeItem(k),key).catch(()=>{});
+            await browser.close();
+          }
+          NODE
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: n8n-native-edit-persist-proof
+          path: |
+            investment_studio/native-edited-before-reload.png
+            investment_studio/native-edited-after-reload.png
+            investment_studio/native-edit-persist-details.json
+          if-no-files-found: ignore
