@@ -101,6 +101,15 @@ try{
   const afterZoom=await viewportState(frame);
   mark('ctrl_wheel_zoom',Math.abs(afterZoom.zoom-beforeZoom.zoom)>.015,{before:beforeZoom,after:afterZoom});
   mark('graph_kept_after_pan_zoom',(await nodes.count())===6&&(await edges.count())===5);
+  // Fit View is a real native n8n control. After cursor-centered zoom above,
+  // some nodes are legitimately off screen: fit before a user mouse drag.
+  const zoomBeforeFit=await viewportState(frame);
+  const fitControl=inner.locator('[data-test-id="zoom-to-fit"]');
+  await expect(fitControl).toBeVisible({timeout:15000});
+  await fitControl.click();
+  await page.waitForTimeout(850);
+  const zoomAfterFit=await viewportState(frame);
+  mark('official_fit_view',zoomAfterFit.zoom<zoomBeforeFit.zoom,{before:zoomBeforeFit,after:zoomAfterFit});
   // User gestures on native n8n: verify nodes move independently of viewport.
   const node=nodes.filter({hasText:'시나리오 Webhook 접수'});
   await expect(node).toHaveCount(1);
@@ -108,6 +117,8 @@ try{
   const box=await node.boundingBox();
   if(!box)throw Error('Native node has no DOM bounding box');
   const nodeStart={x:box.x+box.width/2,y:box.y+box.height/2};
+  const innerBox=await iframe.boundingBox();
+  mark('node_visible_after_fit',!!innerBox&&nodeStart.x>innerBox.x+3&&nodeStart.x<innerBox.x+innerBox.width-3&&nodeStart.y>innerBox.y+3&&nodeStart.y<innerBox.y+innerBox.height-3,{nodeStart,iframe:innerBox});
   const beforeNodeDragViewport=await viewportState(frame);
   await drag(nodeStart,{x:nodeStart.x+112,y:nodeStart.y+76});
   const afterStyle=await node.getAttribute('style');
