@@ -65,7 +65,12 @@ try{
  await expect(original).toContainText('시나리오 Webhook 접수 테스트');
  await page.getByRole('button',{name:/투자 편집본 저장/}).click();
  await expect(page.getByText(/이 브라우저에 저장했습니다/)).toBeVisible();
+ const beforeReload=await page.evaluate(()=>({url:location.href,selected:localStorage.getItem('shared-n8n-studio:investment:selected'),keys:Object.keys(localStorage).filter(x=>x.includes('investment')),count:JSON.parse(localStorage.getItem('shared-n8n-studio:investment:v1:scenarios/01-new-strategy.json')||'{}')?.nodes?.length}));
+ console.log('SHARED_STOCK_RELOAD_BEFORE',JSON.stringify(beforeReload));
  await page.reload({waitUntil:'domcontentloaded'});
+ await page.waitForTimeout(1200);
+ const afterReload=await page.evaluate(()=>({url:location.href,selected:localStorage.getItem('shared-n8n-studio:investment:selected'),keys:Object.keys(localStorage).filter(x=>x.includes('investment')),count:JSON.parse(localStorage.getItem('shared-n8n-studio:investment:v1:scenarios/01-new-strategy.json')||'{}')?.nodes?.length,active:[...document.querySelectorAll('[data-stock-flow].active')].map(x=>x.getAttribute('data-stock-flow')),status:document.querySelector('.bottom-status')?.textContent,nodes:document.querySelectorAll('.vue-flow__node').length}));
+ console.log('SHARED_STOCK_RELOAD_AFTER',JSON.stringify(afterReload));
  await expect(page.locator('.vue-flow__node')).toHaveCount(6,{timeout:25000});
  await expect(page.locator('.vue-flow__node[data-id="webhook-1"]')).toContainText('시나리오 Webhook 접수 테스트');
  pass('stock_browser_save_and_reload',{persistedName:true});
