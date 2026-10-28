@@ -37,7 +37,7 @@ const flows=[
 const frame=document.getElementById('n8n-canvas'),
   status=document.getElementById('status'),title=document.getElementById('title');
 const draftKey=file=>'n8n-native-editable-test:v1:'+file;
-let ready=false,chosen=0,pendingExport=false;
+let ready=false,chosen=Math.max(0,Math.min(flows.length-1,Number(localStorage.getItem('n8n-native-editable-test:last-flow'))||0)),pendingExport=false;
 const buttons=flows.map(([file,label],i)=>{
  const b=document.createElement('button');b.type='button';b.className='flow';b.textContent=label;b.dataset.workflow=file;
  b.onclick=()=>select(i);
@@ -68,6 +68,7 @@ document.getElementById('resetDraft').onclick=()=>{
 };
 async function select(i){
  chosen=i;
+ localStorage.setItem('n8n-native-editable-test:last-flow',String(i));
  buttons.forEach((b,j)=>b.classList.toggle('active',j===i));
  title.textContent=flows[i][1];
  status.textContent='워크플로 불러오는 중…';
