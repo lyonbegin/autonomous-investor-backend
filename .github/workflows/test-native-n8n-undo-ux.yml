@@ -47,6 +47,12 @@ jobs:
             await iframe.locator('.vue-flow').press('Control+Shift+z');
             await expect(nodes).toHaveCount(before,{timeout:16000});
             console.log('REDO_NODE_COUNT',before);
+            await p.locator('#undoEdit').click();
+            await expect(nodes).toHaveCount(before+1,{timeout:15000});
+            console.log('UNDO_BUTTON_NODE_COUNT',before+1);
+            await p.locator('#redoEdit').click();
+            await expect(nodes).toHaveCount(before,{timeout:15000});
+            console.log('REDO_BUTTON_NODE_COUNT',before);
             await p.screenshot({path:'original-n8n-undo-proof.png',fullPage:true});
             console.log('PASS_NATIVE_N8N_DELETE_UNDO_REDO');
           } finally {await browser.close();}
