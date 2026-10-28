@@ -41,6 +41,9 @@ try{
  pass('all_13_original_stock_workflows',{flows:13});
  await buttons.first().click();
  await expect(page.locator('.vue-flow__node')).toHaveCount(5,{timeout:12000});
+ // The shared editor fits the view with a 150ms animation after loading.
+ // Settle before evaluating user gesture deltas in the REAL remote browser.
+ await page.waitForTimeout(1100);
  // Choose a verified EMPTY canvas point. A fixed percentage can overlap
  // a node after the browser restores a saved viewport on a real deployment.
  const getTransform=async()=>page.locator('.vue-flow__transformationpane').evaluate(el=>{
@@ -65,7 +68,7 @@ try{
  await page.mouse.up();
  await expect.poll(async()=>await getTransform(),{timeout:12000,intervals:[200,500,1000]}).toMatchObject({x:expect.any(Number),y:expect.any(Number)});
  const afterPan=await getTransform();
- if(Math.abs(afterPan.x-beforePan.x)<65||Math.abs(afterPan.y-beforePan.y)<25)throw Error('Blank pan did not move original viewport: '+JSON.stringify({blank,beforePan,afterPan}));
+ if(afterPan.x-beforePan.x<65||afterPan.y-beforePan.y>-20)throw Error('Blank pan did not move correctly: '+JSON.stringify({blank,beforePan,afterPan}));
  pass('canvas_left_blank_pan',{blank,beforePan,afterPan});
  await page.getByRole('button',{name:'확대',exact:true}).first().click();
  const zoomed=await page.locator('.vue-flow__node').first().boundingBox();
