@@ -11,6 +11,11 @@ RUN git clone --depth 1 --branch 'n8n@2.44.5' https://github.com/n8n-io/n8n.git 
     && test -f packages/frontend/editor-ui/package.json \
     && test -f packages/cli/package.json \
     && echo "UPSTREAM_N8N_SOURCE_VERIFIED"
+# Restore the previously Chrome-tested native Vue edit/NDV commands ONLY
+# within this disposable demo sandbox. The official n8n runtime auth paths
+# and normal /workflow/* permissions remain unchanged.
+COPY n8n/tests/enable-native-editable-test.py /tmp/enable-native-editable-test.py
+RUN python3 /tmp/enable-native-editable-test.py
 ENV CI=true
 ENV NODE_OPTIONS="--max-old-space-size=4096"
 # Pinned shared source patch; never use floating main. Fail closed on upstream drift.
