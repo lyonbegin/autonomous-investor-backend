@@ -16,7 +16,7 @@ button.flow small{color:#9ab4c2;display:block;margin-top:4px}section{flex:1;min-
 <header><div><h1>n8n 원본 노드 플로우 · 투자 자동화</h1><p>공식 n8n Vue 편집기 · 노드 추가·이동·설정·연결 테스트 · 브라우저에 초안 저장</p></div>
 <a href="https://investment-n8n-operations-ui-production.up.railway.app/" target="_blank" rel="noopener">실제 n8n Webhook 시나리오 실행 결과 보기</a></header>
 <main><aside><h2>운영 플로우 (3)</h2><div id="operations"></div><h2>합성 테스트 플로우 (10)</h2><div id="scenarios"></div></aside>
-<section><div class="toolbar"><div><strong id="title">원본 n8n 편집기 캔버스</strong><p id="status" aria-live="polite">초기화 중…</p></div><div class="actions"><button id="saveDraft" type="button">변경 저장</button><button id="exportDraft" class="secondary" type="button">JSON 내보내기</button><button id="resetDraft" class="secondary" type="button">원본 복원</button></div></div>
+<section><div class="toolbar"><div><strong id="title">원본 n8n 편집기 캔버스</strong><p id="status" aria-live="polite">초기화 중…</p></div><div class="actions"><button id="openNativeCreator" type="button">+ 노드 선택·추가</button><button id="addSafeNoOp" type="button">+ NoOp 테스트 노드</button><button id="saveDraft" type="button">변경 저장</button><button id="exportDraft" class="secondary" type="button">JSON 내보내기</button><button id="resetDraft" class="secondary" type="button">원본 복원</button></div></div>
 <iframe id="n8n-canvas" title="n8n 공식 Vue 노드 캔버스" src="/workflows/demo?canExecute=false&editable=true" referrerpolicy="same-origin"></iframe></section></main>
 <script>
 const flows=[
@@ -50,6 +50,15 @@ function requestSnapshot(exportMode=false){
  status.textContent=exportMode?'현재 노드 데이터를 내보내는 중…':'수정된 원본 노드 데이터를 저장하는 중…';
  frame.contentWindow.postMessage(JSON.stringify({command:'saveTestWorkflow'}),location.origin);
 }
+function nativeEditCommand(command) {
+  if(!ready){ status.textContent='n8n 원본 편집기 초기화 중입니다.';return; }
+  status.textContent=command==='openNativeNodeCreator'
+    ? 'n8n 원본 노드 검색창을 여는 중…'
+    : '원본 n8n의 노드 추가 함수로 안전한 NoOp 노드 생성 중…';
+  frame.contentWindow.postMessage(JSON.stringify({command}),location.origin);
+}
+document.getElementById('openNativeCreator').onclick=()=>nativeEditCommand('openNativeNodeCreator');
+document.getElementById('addSafeNoOp').onclick=()=>nativeEditCommand('addNativeTestNode');
 document.getElementById('saveDraft').onclick=()=>requestSnapshot();
 document.getElementById('exportDraft').onclick=()=>requestSnapshot(true);
 document.getElementById('resetDraft').onclick=()=>{
@@ -89,6 +98,14 @@ window.addEventListener('message',e=>{
  if(e.origin!==location.origin||e.source!==frame.contentWindow||typeof e.data!=='string')return;
  let data;try{data=JSON.parse(e.data);}catch{return;}
  if(data.command==='n8nReady'){ready=true;select(chosen);}
+ else if(data.command==='nativeTestUiResult'){
+   if(data.error){status.textContent='원본 n8n 노드 추가 실패: '+data.error;}
+   else if(data.action==='openNativeNodeCreator'){
+     status.textContent=data.nodeCreatorOpen?'n8n 원본 노드 검색창이 열렸습니다. 원하는 노드를 선택하세요.':'원본 노드 검색창이 열리지 않았습니다.';
+   }else{
+     status.textContent='원본 n8n 노드 추가 호출 성공 · 현재 '+data.nodes+'개 · 저장하려면 변경 저장을 누르세요.';
+   }
+ }
  else if(data.command==='testWorkflowSnapshot'){
    if(!Array.isArray(data.workflow?.nodes)||!data.workflow?.connections){
       status.textContent='저장 오류: 노드 데이터를 받지 못했습니다.';return;
