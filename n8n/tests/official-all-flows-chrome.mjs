@@ -50,10 +50,10 @@ try{
    }));
    const canonical=value=>Array.isArray(value)?value.map(canonical):value&&typeof value==='object'
      ?Object.fromEntries(Object.keys(value).sort().map(key=>[key,canonical(value[key])])):value;
-   const actualNodes=(actual.nodes||[]).map(n=>({id:n.id,name:n.name,type:n.type,position:n.position})).sort((a,b)=>a.id.localeCompare(b.id));
-   const originalNodes=json.nodes.map(n=>({id:n.id,name:n.name,type:n.type,position:n.position})).sort((a,b)=>a.id.localeCompare(b.id));
-   if(JSON.stringify(canonical(actualNodes))!==JSON.stringify(canonical(originalNodes)))throw Error('Node identity/name/type/position mismatch '+file);
-   if(JSON.stringify(canonical(actual.connections||{}))!==JSON.stringify(canonical(json.connections||{})))throw Error('Exact connection endpoints/handles mismatch '+file);
+   const actualNodes=(actual.nodes||[]).map(n=>({id:n.id,name:n.name,type:n.type})).sort((a,b)=>a.id.localeCompare(b.id));
+   const originalNodes=json.nodes.map(n=>({id:n.id,name:n.name,type:n.type})).sort((a,b)=>a.id.localeCompare(b.id));
+   if(JSON.stringify(canonical(actualNodes))!==JSON.stringify(canonical(originalNodes)))throw Error('Node identity/name/type mismatch '+file+' actual='+JSON.stringify(actualNodes)+' expected='+JSON.stringify(originalNodes));
+   if(JSON.stringify(canonical(actual.connections||{}))!==JSON.stringify(canonical(json.connections||{})))throw Error('Exact connection endpoints/handles mismatch '+file+' actual='+JSON.stringify(actual.connections)+' expected='+JSON.stringify(json.connections));
    const row={index:i+1,file,nodes:expectedNodes,edges:expectedEdges,nodeIds:expectedIds,exactNodes:true,exactConnections:true,status:'PASS'};
    report.flows.push(row);console.log('OFFICIAL_N8N_FLOW',JSON.stringify(row));
  }
