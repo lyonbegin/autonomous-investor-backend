@@ -41,12 +41,32 @@ try{
  pass('all_13_original_stock_workflows',{flows:13});
  await buttons.first().click();
  await expect(page.locator('.vue-flow__node')).toHaveCount(5,{timeout:12000});
- const a=page.locator('.vue-flow__node').first();
- const before=await a.boundingBox(),pane=await page.locator('.vue-flow__pane').boundingBox();
- const p={x:pane.x+pane.width*.78,y:pane.y+pane.height*.82};
- await page.mouse.move(p.x,p.y);await page.mouse.down();await page.mouse.move(p.x+135,p.y-55,{steps:18});await page.mouse.up();
- await expect.poll(async()=>(await a.boundingBox()).x,{timeout:12000}).toBeGreaterThan(before.x+60);
- pass('canvas_left_blank_pan');
+ // Choose a verified EMPTY canvas point. A fixed percentage can overlap
+ // a node after the browser restores a saved viewport on a real deployment.
+ const getTransform=async()=>page.locator('.vue-flow__transformationpane').evaluate(el=>{
+   const m=new DOMMatrixReadOnly(getComputedStyle(el).transform);
+   return {x:m.m41,y:m.m42};
+ });
+ const blank=await page.evaluate(()=>{
+   const pane=document.querySelector('.vue-flow__pane');
+   if(!pane)throw Error('Missing real Vue Flow pane');
+   const b=pane.getBoundingClientRect();
+   for(const [fx,fy] of [[.58,.80],[.42,.76],[.72,.64],[.3,.6],[.48,.48],[.2,.8]]){
+     const x=b.left+b.width*fx,y=b.top+b.height*fy;
+     const el=document.elementFromPoint(x,y);
+     if(el&&el.closest('.vue-flow__pane')&&!el.closest('.vue-flow__node,.vue-flow__controls,.vue-flow__minimap,.canvas-watermark,.canvas-controls-hint,.vue-flow__edge'))return {x,y,element:el.className?.baseVal||el.className};
+   }
+   throw Error('No safe blank canvas coordinate found in actual browser');
+ });
+ const beforePan=await getTransform();
+ await page.mouse.move(blank.x,blank.y);
+ await page.mouse.down();
+ await page.mouse.move(blank.x+135,blank.y-55,{steps:24});
+ await page.mouse.up();
+ await expect.poll(async()=>await getTransform(),{timeout:12000,intervals:[200,500,1000]}).toMatchObject({x:expect.any(Number),y:expect.any(Number)});
+ const afterPan=await getTransform();
+ if(Math.abs(afterPan.x-beforePan.x)<65||Math.abs(afterPan.y-beforePan.y)<25)throw Error('Blank pan did not move original viewport: '+JSON.stringify({blank,beforePan,afterPan}));
+ pass('canvas_left_blank_pan',{blank,beforePan,afterPan});
  await page.getByRole('button',{name:'확대',exact:true}).first().click();
  const zoomed=await page.locator('.vue-flow__node').first().boundingBox();
  await page.getByRole('button',{name:/Fit/}).click();
