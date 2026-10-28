@@ -16,7 +16,7 @@ button.flow small{color:#9ab4c2;display:block;margin-top:4px}section{flex:1;min-
 <header><div><h1>n8n 원본 노드 플로우 · 투자 자동화</h1><p>공식 n8n Vue 편집기 · 노드 추가·이동·설정·연결 테스트 · 브라우저에 초안 저장</p></div>
 <a href="https://investment-n8n-operations-ui-production.up.railway.app/" target="_blank" rel="noopener">실제 n8n Webhook 시나리오 실행 결과 보기</a></header>
 <main><aside><h2>운영 플로우 (3)</h2><div id="operations"></div><h2>합성 테스트 플로우 (10)</h2><div id="scenarios"></div></aside>
-<section><div class="toolbar"><div><strong id="title">원본 n8n 편집기 캔버스</strong><p id="status" aria-live="polite">초기화 중…</p></div><div class="actions"><button id="openNativeCreator" type="button">+ 노드 선택·추가</button><button id="addSafeNoOp" type="button">+ NoOp 테스트 노드</button><button id="saveDraft" type="button">변경 저장</button><button id="exportDraft" class="secondary" type="button">JSON 내보내기</button><button id="resetDraft" class="secondary" type="button">원본 복원</button></div></div>
+<section><div class="toolbar"><div><strong id="title">원본 n8n 편집기 캔버스</strong><p id="status" aria-live="polite">초기화 중…</p></div><div class="actions"><button id="openNativeCreator" type="button">+ 노드 선택·추가</button><button id="addSafeNoOp" type="button">+ NoOp 테스트 노드</button><button id="undoEdit" class="secondary" type="button">↶ 실행 취소</button><button id="redoEdit" class="secondary" type="button">↷ 다시 실행</button><button id="saveDraft" type="button">변경 저장</button><button id="exportDraft" class="secondary" type="button">JSON 내보내기</button><button id="resetDraft" class="secondary" type="button">원본 복원</button></div></div>
 <iframe id="n8n-canvas" title="n8n 공식 Vue 노드 캔버스" src="/workflows/demo?canExecute=false&editable=true" referrerpolicy="same-origin"></iframe></section></main>
 <script>
 const flows=[
@@ -59,6 +59,19 @@ function nativeEditCommand(command) {
 }
 document.getElementById('openNativeCreator').onclick=()=>nativeEditCommand('openNativeNodeCreator');
 document.getElementById('addSafeNoOp').onclick=()=>nativeEditCommand('addNativeTestNode');
+// Dispatch shortcuts inside the original n8n Vue iframe. The history
+// itself remains managed by n8n's own historyStore, not by the portal.
+function n8nHistoryKey(redo=false){
+  if(!ready){status.textContent='원본 n8n 편집기 초기화 중…';return;}
+  const childDocument=frame.contentWindow?.document;
+  if(!childDocument){status.textContent='n8n 편집기 연결이 필요합니다.';return;}
+  childDocument.dispatchEvent(new KeyboardEvent('keydown',{
+    key:'z',code:'KeyZ',ctrlKey:true,shiftKey:redo,bubbles:true,cancelable:true,
+  }));
+  status.textContent=redo?'n8n 원본 다시 실행 요청 완료 · 실제 노드 변화를 확인하세요.':'n8n 원본 실행 취소 요청 완료 · 실제 노드 변화를 확인하세요.';
+}
+document.getElementById('undoEdit').onclick=()=>n8nHistoryKey(false);
+document.getElementById('redoEdit').onclick=()=>n8nHistoryKey(true);
 document.getElementById('saveDraft').onclick=()=>requestSnapshot();
 document.getElementById('exportDraft').onclick=()=>requestSnapshot(true);
 document.getElementById('resetDraft').onclick=()=>{
