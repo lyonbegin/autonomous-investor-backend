@@ -1,10 +1,10 @@
-# Stock-facing editor now uses the ONE common shared-n8n-studio Vue module.
-# Original stock n8n workflow JSONs are input data, not a second editor implementation.
-# This image exposes no broker/credential/investment-run endpoints.
+# ONE shared-n8n-studio editor, imported from its pinned GitHub commit.
+# Project-specific input = original investment workflow JSON data.
+# No trading, brokerage, production n8n credential, or execution API included.
 FROM node:22-alpine AS build
 RUN apk add --no-cache git
 WORKDIR /app
-ARG SHARED_STUDIO_COMMIT=6d00cee17bc82b576cfa6efb89548342e874bc67
+ARG SHARED_STUDIO_COMMIT=7cdbe838d0536292fb6adf59fbbe97553f10e78d
 RUN git clone https://github.com/lyonbegin/shared-n8n-studio.git /app/shared \
     && git -C /app/shared checkout --detach "$SHARED_STUDIO_COMMIT" \
     && test "$(git -C /app/shared rev-parse HEAD)" = "$SHARED_STUDIO_COMMIT"
@@ -12,10 +12,20 @@ RUN npm install --prefix /app/shared/playground --no-audit --no-fund
 COPY n8n/workflows/ /app/shared/playground/public/stock-workflows/
 ENV VITE_EDITOR_PROJECT=investment
 RUN npm --prefix /app/shared/playground run build
-FROM node:22-alpine
+
+# Persistent, isolated per-browser SQLite drafts. Public demo write operations
+# cannot trigger any n8n workflow, backend Python engine or broker.
+FROM python:3.12-alpine
+RUN apk add --no-cache su-exec
 WORKDIR /app
-COPY --from=build /app/shared/playground/dist ./dist
-COPY --from=build /app/shared/playground/server.mjs ./server.mjs
+COPY --from=build /app/shared/playground/dist /app/dist
+COPY --from=build /app/shared/server/studio_server.py /app/studio_server.py
+RUN mkdir -p /data && addgroup -S studio && adduser -S studio -G studio \
+    && chown -R studio:studio /data /app
+# The Railway volume is mounted after image build as root-owned /data.
+# Fix only the dedicated draft directory before dropping to the studio user.
 ENV PORT=3000
+ENV STUDIO_STATIC_ROOT=/app/dist
+ENV STUDIO_DB_PATH=/data/studio.sqlite3
 EXPOSE 3000
-CMD ["node","server.mjs"]
+CMD ["sh", "-c", "chown -R studio:studio /data && exec su-exec studio python3 -u /app/studio_server.py"]
