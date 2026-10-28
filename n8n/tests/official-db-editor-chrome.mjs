@@ -77,8 +77,17 @@ try{
  const result=await api('POST','rest/workflows/'+id+'/run',{triggerToStartFrom:{name:'Safe Manual Trigger'}});
  record('safe_real_n8n_run_started',typeof result?.executionId==='string'||typeof result?.executionId==='number'||typeof result?.waitingForWebhook==='boolean',{executionId:result?.executionId});
  if(result?.executionId){
-   const detail=await api('GET','rest/executions/'+result.executionId);
-   record('n8n_execution_record_readable',!!detail?.id,{id:detail?.id,status:detail?.status||detail?.finished});
+   let detail;
+   for(let attempt=0;attempt<35;attempt++){
+     detail=await api('GET','rest/executions/'+result.executionId);
+     if(['success','error','canceled','crashed','waiting'].includes(detail.status))break;
+     await page.waitForTimeout(350);
+   }
+   record('n8n_execution_record_readable',!!detail?.id,{id:detail?.id,status:detail?.status});
+   record('safe_manual_execution_completed',detail.status==='success'&&detail.finished===true,{status:detail.status,finished:detail.finished});
+   const executionData=typeof detail.data==='string'?JSON.parse(detail.data):detail.data;
+   const runData=executionData?.resultData?.runData||{};
+   record('node_input_output_results_present',Array.isArray(runData['Safe Manual Trigger'])&&Array.isArray(runData['Safe NoOp']),{nodes:Object.keys(runData)});
  }
  record('no_live_trade_or_bid_nodes',loaded.nodes.every(n=>['n8n-nodes-base.manualTrigger','n8n-nodes-base.noOp'].includes(n.type)));
 }catch(error){log.error=String(error?.stack||error);console.error(log.error);process.exitCode=1;await page.screenshot({path:path.join(dir,'authenticated-n8n-failure.png'),fullPage:true}).catch(()=>{});}
