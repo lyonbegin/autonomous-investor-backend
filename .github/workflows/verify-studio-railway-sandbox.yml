@@ -1,7 +1,7 @@
 name: Live Railway shared studio SQLite sandbox HTTP regression
 on:
   push:
-    branches: [feature/shared-studio-server-db-20261029]
+    branches: [feature/shared-studio-server-db-20261029, feature/shared-studio-revision-history-20261029]
     paths:
       - "n8n/tests/verify-studio-railway-sandbox.py"
       - ".github/workflows/verify-studio-railway-sandbox.yml"
@@ -22,3 +22,4 @@ jobs:
             sleep 10
           done
           python n8n/tests/verify-studio-railway-sandbox.py
+          STUDIO_SANDBOX_URL=https://investment-n8n-native-editor-production.up.railway.app/ python n8n/tests/verify-studio-railway-sandbox.py

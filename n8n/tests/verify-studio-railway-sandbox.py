@@ -10,8 +10,12 @@ from urllib.error import HTTPError
 from urllib.parse import urljoin
 
 BASE=os.getenv("STUDIO_SANDBOX_URL","https://investment-shared-n8n-studio-production.up.railway.app/")
-if BASE!="https://investment-shared-n8n-studio-production.up.railway.app/":
-    raise SystemExit("Refusing to test anything except the known disposable studio sandbox")
+ALLOWED={
+ "https://investment-shared-n8n-studio-production.up.railway.app/",
+ "https://investment-n8n-native-editor-production.up.railway.app/",
+}
+if BASE not in ALLOWED:
+    raise SystemExit("Refusing to test unknown or LIVE trading service")
 END=urljoin(BASE,"api/studio/workflows/scenarios/01-new-strategy.json")
 opener=build_opener(HTTPCookieProcessor(http.cookiejar.CookieJar()))
 
