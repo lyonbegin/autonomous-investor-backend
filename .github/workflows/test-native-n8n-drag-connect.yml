@@ -56,7 +56,8 @@ jobs:
             await p.screenshot({path:'native-n8n-mouse-after-drag.png',fullPage:true});
             await p.locator('#addSafeNoOp').click();
             await expect(nodes).toHaveCount(7,{timeout:30000});
-            report('native-add-node','PASS',{nodes:7});
+            const edgesAfterAdd=await edges.count();
+            report('native-add-node','PASS',{nodes:7,edgesAfterAdd});
             const newNode=nodes.filter({hasText:'No Operation'}).last();
             await expect(newNode).toBeVisible();
             const s=nodes.filter({hasText:'시뮬레이션 실행 대기'});
@@ -70,7 +71,7 @@ jobs:
               if(ob&&ib){
                 await mouseDrag(mid(ob),mid(ib));
                 const ec=await edges.count();
-                report('mouse-connect',ec===6?'PASS':'FAIL',{beforeEdges:5,afterEdges:ec,sourceBox:ob,targetBox:ib});
+                report('mouse-connect',ec>edgesAfterAdd?'PASS':'FAIL',{initialEdges:5,afterNodeAdded:edgesAfterAdd,afterUserDrag:ec,sourceBox:ob,targetBox:ib});
               }else report('mouse-connect','FAIL',{reason:'missing handle rect'});
             }else report('mouse-connect','FAIL',{reason:'missing handles'});
             await p.screenshot({path:'native-n8n-mouse-after-connect.png',fullPage:true});
