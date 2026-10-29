@@ -1,0 +1,1507 @@
+{
+  "name": "WF-02 Pine → Python 변환 · 상세 48노드 (설계·편집 전용)",
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "nodes": [
+    {
+      "id": "wf02-01",
+      "name": "02-01 권리 승인 Pine 입력 수신",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        120,
+        240
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "wf02-pine-conversion-request",
+        "authentication": "headerAuth",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "notes": "Protected internal webhook only; header credential required in actual n8n. No public execution or auto-trading."
+    },
+    {
+      "id": "wf02-02",
+      "name": "02-02 소스·버전·SHA pin 추출",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        400,
+        240
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "return $input.all().map(item=>{const v=item.json.body&&typeof item.json.body==='object'?item.json.body:item.json;return {json:{source_id:v.source_id,version:v.version,sha256:v.sha256,request_id:v.request_id||null,market:v.market||null,provenance:'wf01-approved-version-ref'}};});"
+      },
+      "notes": "WF01-28의 고정 원본 manifest만 기대하며 데모 전략 삽입 금지."
+    },
+    {
+      "id": "wf02-03",
+      "name": "02-03 ID·버전·SHA 검증",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        680,
+        240
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "return $input.all().map(({json:p})=>{const valid=/^[A-Za-z0-9_-]{3,80}$/.test(p.source_id||'')&&Number.isInteger(p.version)&&p.version>0&&/^[a-f0-9]{64}$/i.test(p.sha256||'');return {json:{...p,manifest_valid:valid}};});"
+      },
+      "notes": ""
+    },
+    {
+      "id": "wf02-04",
+      "name": "02-04 승인 참조 형식 정합?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        960,
+        240
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "cond-wf02-04",
+              "leftValue": "={{$json.manifest_valid}}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ]
+        }
+      },
+      "notes": ""
+    },
+    {
+      "id": "wf02-05",
+      "name": "02-05 잘못된 참조 격리",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1210,
+        440
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "return $input.all().map(({json:p})=>({json:{state:'INVALID_WF02_MANIFEST',source_id:p.source_id||null,wf02_started:false,paper_allowed:false}}));"
+      },
+      "notes": ""
+    },
+    {
+      "id": "wf02-06",
+      "name": "02-06 WF-01 승인 원본 재조회",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1220,
+        160
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "={{$env.INVESTMENT_API_URL}}/api/v1/alpha/pine/sources/{{$json.source_id}}/versions/{{$json.version}}/conversion-input",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 30000
+        },
+        "sendBody": false
+      },
+      "notes": "WF-02 planned Python service contract. Endpoint implementation, auth and runtime integration not verified. Canvas only; execution disabled."
+    },
+    {
+      "id": "wf02-07",
+      "name": "02-07 원본 SHA·버전 재대조",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1500,
+        160
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const pinned=$('02-03 ID·버전·SHA 검증').first().json;return $input.all().map(({json:p})=>({json:{...p,pinned_source_id:pinned.source_id,pinned_version:pinned.version,pinned_sha256:pinned.sha256,pin_match:p.source_id===pinned.source_id&&p.version===pinned.version&&p.sha256===pinned.sha256&&typeof p.source_code==='string'&&p.source_code.length>=10}}));"
+      },
+      "notes": "Comparison only, not a freshly computed digest. Backend must independently validate source content hash and licensing."
+    },
+    {
+      "id": "wf02-08",
+      "name": "02-08 버전 고정 일치?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1770,
+        160
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "cond-wf02-08",
+              "leftValue": "={{$json.pin_match}}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ]
+        }
+      },
+      "notes": ""
+    },
+    {
+      "id": "wf02-09",
+      "name": "02-09 불일치 격리·HALT",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2030,
+        395
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "return $input.all().map(({json:p})=>({json:{state:'PIN_MISMATCH_HALT',source_id:p.source_id,version:p.version,paper_allowed:false}}));"
+      },
+      "notes": ""
+    },
+    {
+      "id": "wf02-10",
+      "name": "02-10 Pine 원본 보존·정규화 분리",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2040,
+        85
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "return $input.all().map(({json:p})=>({json:{...p,original_source_code:p.source_code,analysis_source_code:p.source_code.replace(/\\r\\n/g,'\\n'),normalization_only:true,paper_allowed:false}}));"
+      },
+      "notes": "원본 sha는 변경하지 않고 분석용 개행만 별도 필드로 생성."
+    },
+    {
+      "id": "wf02-11",
+      "name": "02-11 버전 지시문 및 선언 검사",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2310,
+        85
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "return $input.all().map(({json:p})=>{const src=p.analysis_source_code||'';const version=(src.match(/^\\s*\\/\\/\\s*@version\\s*=\\s*(\\d+)/m)||[])[1];const decl=(src.match(/^\\s*(indicator|strategy|library)\\s*\\(/m)||[])[1];return {json:{...p,declared_version:version?Number(version):null,declared_type:decl||null,directive_ok:Number(version)===p.pine_version&&decl===p.script_type}};});"
+      },
+      "notes": "Heuristic precheck. AST parser validates full Pine syntax."
+    },
+    {
+      "id": "wf02-12",
+      "name": "02-12 버전·선언 매치?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2570,
+        85
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "cond-wf02-12",
+              "leftValue": "={{$json.directive_ok}}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ]
+        }
+      },
+      "notes": ""
+    },
+    {
+      "id": "wf02-13",
+      "name": "02-13 지원 불가 버전 격리",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2840,
+        340
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "return $input.all().map(({json:p})=>({json:{state:'PINE_DIRECTIVE_UNSUPPORTED',pine_version:p.pine_version,paper_allowed:false}}));"
+      },
+      "notes": ""
+    },
+    {
+      "id": "wf02-14",
+      "name": "02-14 import 의존성 후보 추출",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2840,
+        35
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "return $input.all().map(({json:p})=>{const matches=[...String(p.analysis_source_code||'').matchAll(/^\\s*import\\s+([A-Za-z0-9_./-]+)/gm)].map(x=>x[1]);return {json:{...p,dependency_hints:[...new Set(matches)],dependency_scan_is_heuristic:true}};});"
+      },
+      "notes": "Import 후보 수집만 진행. parser resolved imports가 최종 권위."
+    },
+    {
+      "id": "wf02-15",
+      "name": "02-15 Pine 파서 AST 생성",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3100,
+        35
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.INVESTMENT_API_URL}}/api/v1/pine-converter/parse",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 30000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {source_id:$json.source_id,version:$json.version,sha256:$json.sha256,source_code:$json.original_source_code,pine_version:$json.pine_version,script_type:$json.script_type,dependency_hints:$json.dependency_hints} }}"
+      },
+      "notes": "WF-02 planned Python service contract. Endpoint implementation, auth and runtime integration not verified. Canvas only; execution disabled."
+    },
+    {
+      "id": "wf02-16",
+      "name": "02-16 AST 진단·범위 검사",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3370,
+        35
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "return $input.all().map(({json:p})=>({json:{...p,ast_ok:p.status==='ok'&&!!p.ast_id&&Array.isArray(p.diagnostics)&&p.diagnostics.every(d=>d.level!=='error')}}));"
+      },
+      "notes": ""
+    },
+    {
+      "id": "wf02-17",
+      "name": "02-17 AST 파싱 성공?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        3630,
+        35
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "cond-wf02-17",
+              "leftValue": "={{$json.ast_ok}}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ]
+        }
+      },
+      "notes": ""
+    },
+    {
+      "id": "wf02-18",
+      "name": "02-18 구문·지원범위 오류 격리",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3900,
+        270
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "return $input.all().map(({json:p})=>({json:{state:'AST_UNSUPPORTED',diagnostics:p.diagnostics||[],paper_allowed:false}}));"
+      },
+      "notes": ""
+    },
+    {
+      "id": "wf02-19",
+      "name": "02-19 Library 의존성·권리 해석",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3900,
+        -5
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.INVESTMENT_API_URL}}/api/v1/pine-converter/dependencies",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 30000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {ast_id:$json.ast_id, source_id:$json.source_id, version:$json.version} }}"
+      },
+      "notes": "WF-02 planned Python service contract. Endpoint implementation, auth and runtime integration not verified. Canvas only; execution disabled."
+    },
+    {
+      "id": "wf02-20",
+      "name": "02-20 의존성 권한 모두 허용?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        4160,
+        -5
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "cond-wf02-20",
+              "leftValue": "={{$json.all_licenses_approved}}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ]
+        }
+      },
+      "notes": ""
+    },
+    {
+      "id": "wf02-21",
+      "name": "02-21 외부 Library 검토 보류",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4420,
+        215
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "return $input.all().map(({json:p})=>({json:{state:'LIBRARY_RIGHTS_HOLD',diagnostics:p.diagnostics||[],paper_allowed:false}}));"
+      },
+      "notes": ""
+    },
+    {
+      "id": "wf02-22",
+      "name": "02-22 Pine AST → IR 생성",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        4430,
+        -40
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.INVESTMENT_API_URL}}/api/v1/pine-converter/ir",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 30000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {ast_id:$json.ast_id,dependency_lock:$json.dependency_lock||null} }}"
+      },
+      "notes": "WF-02 planned Python service contract. Endpoint implementation, auth and runtime integration not verified. Canvas only; execution disabled."
+    },
+    {
+      "id": "wf02-23",
+      "name": "02-23 IR 스키마·지원 연산 점검",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4700,
+        -40
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "return $input.all().map(({json:p})=>({json:{...p,ir_ok:p.status==='ok'&&typeof p.ir_id==='string'&&p.ir_id.length>0&&(!p.unsupported_features||p.unsupported_features.length===0)}}));"
+      },
+      "notes": ""
+    },
+    {
+      "id": "wf02-24",
+      "name": "02-24 IR 유효하고 미지원 없음?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        4960,
+        -40
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "cond-wf02-24",
+              "leftValue": "={{$json.ir_ok}}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ]
+        }
+      },
+      "notes": ""
+    },
+    {
+      "id": "wf02-25",
+      "name": "02-25 IR 변환 격리",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5230,
+        200
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "return $input.all().map(({json:p})=>({json:{state:'IR_UNSUPPORTED',features:p.unsupported_features||[],paper_allowed:false}}));"
+      },
+      "notes": ""
+    },
+    {
+      "id": "wf02-26",
+      "name": "02-26 시계열·na·히스토리 의미",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        5280,
+        -260
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.INVESTMENT_API_URL}}/api/v1/pine-converter/analyze/series",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 30000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {ir_id:$json.ir_id} }}"
+      },
+      "notes": "WF-02 planned Python service contract. Endpoint implementation, auth and runtime integration not verified. Canvas only; execution disabled."
+    },
+    {
+      "id": "wf02-27",
+      "name": "02-27 var·varip·상태 복원 의미",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        5280,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.INVESTMENT_API_URL}}/api/v1/pine-converter/analyze/state",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 30000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {ir_id:$json.ir_id} }}"
+      },
+      "notes": "WF-02 planned Python service contract. Endpoint implementation, auth and runtime integration not verified. Canvas only; execution disabled."
+    },
+    {
+      "id": "wf02-28",
+      "name": "02-28 request.security·MTF·lookahead",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        5280,
+        270
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.INVESTMENT_API_URL}}/api/v1/pine-converter/analyze/mtf",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 30000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {ir_id:$json.ir_id} }}"
+      },
+      "notes": "WF-02 planned Python service contract. Endpoint implementation, auth and runtime integration not verified. Canvas only; execution disabled."
+    },
+    {
+      "id": "wf02-29",
+      "name": "02-29 시계열＋상태 분석 합류",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        5540,
+        -95
+      ],
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "notes": "두 분기 결과가 모두 필요. n8n 런타임에서 입력 순서 및 merge contract 추가 검증 필요."
+    },
+    {
+      "id": "wf02-30",
+      "name": "02-30 MTF 분석까지 합류",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        5800,
+        45
+      ],
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "notes": "두 분기 결과가 모두 필요. n8n 런타임에서 입력 순서 및 merge contract 추가 검증 필요."
+    },
+    {
+      "id": "wf02-31",
+      "name": "02-31 시계열·상태·MTF 위험 통합",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6090,
+        45
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "return $input.all().map(({json:p})=>({json:{...p,semantics_ok:p.series_ok===true&&p.state_ok===true&&p.mtf_ok===true,parity_required:true,lookahead_allowed:false,paper_allowed:false}}));"
+      },
+      "notes": "세 분석 응답의 키가 series_ok/state_ok/mtf_ok인지 백엔드 계약 검증 필요."
+    },
+    {
+      "id": "wf02-32",
+      "name": "02-32 변환 의미 위험 모두 통과?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        6350,
+        45
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "cond-wf02-32",
+              "leftValue": "={{$json.semantics_ok}}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ]
+        }
+      },
+      "notes": ""
+    },
+    {
+      "id": "wf02-33",
+      "name": "02-33 의미 불일치 수동 검토",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6630,
+        290
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "return $input.all().map(({json:p})=>({json:{state:'SEMANTICS_REVIEW_REQUIRED',reason:'series/state/mtf check',paper_allowed:false}}));"
+      },
+      "notes": ""
+    },
+    {
+      "id": "wf02-34",
+      "name": "02-34 IR → 격리 Python 모듈 생성",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        6620,
+        -35
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.INVESTMENT_API_URL}}/api/v1/pine-converter/generate",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 30000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {ir_id:$json.ir_id, target:'python', sandbox_only:true} }}"
+      },
+      "notes": "WF-02 planned Python service contract. Endpoint implementation, auth and runtime integration not verified. Canvas only; execution disabled."
+    },
+    {
+      "id": "wf02-35",
+      "name": "02-35 Python AST 정적 감사",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        6900,
+        -35
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.INVESTMENT_API_URL}}/api/v1/pine-converter/static-audit",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 30000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {artifact_id:$json.artifact_id,block_network:true,block_filesystem:true,block_subprocess:true} }}"
+      },
+      "notes": "WF-02 planned Python service contract. Endpoint implementation, auth and runtime integration not verified. Canvas only; execution disabled."
+    },
+    {
+      "id": "wf02-36",
+      "name": "02-36 Python 정적 안전 검사 통과?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        7170,
+        -35
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "cond-wf02-36",
+              "leftValue": "={{$json.safe}}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ]
+        }
+      },
+      "notes": ""
+    },
+    {
+      "id": "wf02-37",
+      "name": "02-37 생성 코드 안전 검사 실패",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        7450,
+        240
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "return $input.all().map(({json:p})=>({json:{state:'PYTHON_STATIC_AUDIT_FAILED',diagnostics:p.diagnostics||[],paper_allowed:false}}));"
+      },
+      "notes": ""
+    },
+    {
+      "id": "wf02-38",
+      "name": "02-38 동일 OHLCV 기준자료 확보",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        7450,
+        -200
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.INVESTMENT_API_URL}}/api/v1/pine-converter/fixtures",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 30000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {artifact_id:$json.artifact_id,mode:'ohlcv',verified:true} }}"
+      },
+      "notes": "WF-02 planned Python service contract. Endpoint implementation, auth and runtime integration not verified. Canvas only; execution disabled."
+    },
+    {
+      "id": "wf02-39",
+      "name": "02-39 Pine 기준 출력 확보",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        7450,
+        40
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.INVESTMENT_API_URL}}/api/v1/pine-converter/pine-baseline",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 30000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {artifact_id:$json.artifact_id,source:'authorized_reference',lookahead:false} }}"
+      },
+      "notes": "WF-02 planned Python service contract. Endpoint implementation, auth and runtime integration not verified. Canvas only; execution disabled."
+    },
+    {
+      "id": "wf02-40",
+      "name": "02-40 OHLCV·Pine 기준자료 합류",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        7720,
+        -90
+      ],
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "notes": "두 분기 결과가 모두 필요. n8n 런타임에서 입력 순서 및 merge contract 추가 검증 필요."
+    },
+    {
+      "id": "wf02-41",
+      "name": "02-41 Python 샌드박스 배치 실행",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        8010,
+        -90
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.INVESTMENT_API_URL}}/api/v1/pine-converter/sandbox-run",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 30000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {artifact_id:$json.artifact_id,fixture_id:$json.fixture_id,network:false,orders:false} }}"
+      },
+      "notes": "WF-02 planned Python service contract. Endpoint implementation, auth and runtime integration not verified. Canvas only; execution disabled."
+    },
+    {
+      "id": "wf02-42",
+      "name": "02-42 신호·타이밍·봉확정 비교",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        8290,
+        -90
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.INVESTMENT_API_URL}}/api/v1/pine-converter/compare",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 30000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {artifact_id:$json.artifact_id,fixture_id:$json.fixture_id,python_run_id:$json.python_run_id,lookahead:false} }}"
+      },
+      "notes": "WF-02 planned Python service contract. Endpoint implementation, auth and runtime integration not verified. Canvas only; execution disabled."
+    },
+    {
+      "id": "wf02-43",
+      "name": "02-43 동등성 기준·오차율 판단",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        8570,
+        -90
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "return $input.all().map(({json:p})=>({json:{...p,parity_pass:p.status==='ok'&&p.signal_match===true&&p.bar_close_match===true&&p.lookahead_count===0&&p.nan_semantics_match===true&&typeof p.error_rate==='number'&&p.error_rate<=0.000001}}));"
+      },
+      "notes": "임계값은 임시 엄격 기준. 실데이터의 동등성 정책 검토 필요."
+    },
+    {
+      "id": "wf02-44",
+      "name": "02-44 Pine ↔ Python 동등성 합격?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        8840,
+        -90
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "cond-wf02-44",
+              "leftValue": "={{$json.parity_pass}}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ]
+        }
+      },
+      "notes": ""
+    },
+    {
+      "id": "wf02-45",
+      "name": "02-45 불합격 격리·재검증 대기",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        9110,
+        160
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "return $input.all().map(({json:p})=>({json:{state:'PARITY_FAILED',diagnostics:p.diagnostics||[],paper_allowed:false,wf03_eligible:false}}));"
+      },
+      "notes": ""
+    },
+    {
+      "id": "wf02-46",
+      "name": "02-46 검증 산출물 후보 등록",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        9110,
+        -140
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.INVESTMENT_API_URL}}/api/v1/pine-converter/artifacts/register",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 30000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {source_id:$json.source_id,version:$json.version,sha256:$json.sha256,artifact_id:$json.artifact_id,parity_report_id:$json.parity_report_id,approved_for_paper:false} }}"
+      },
+      "notes": "WF-02 planned Python service contract. Endpoint implementation, auth and runtime integration not verified. Canvas only; execution disabled."
+    },
+    {
+      "id": "wf02-47",
+      "name": "02-47 WF-02 검증 후보 등록 완료",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        9380,
+        -140
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "return $input.all().map(({json:p})=>({json:{...p,state:'VALIDATED_CANDIDATE',wf03_eligible:false,paper_allowed:false,live_allowed:false,next_action:'INDEPENDENT_REVIEW_AND_WF03'}}));"
+      },
+      "notes": ""
+    },
+    {
+      "id": "wf02-48",
+      "name": "02-48 PAPER·LIVE 거래 차단 유지",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        9650,
+        -140
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "return $input.all().map(({json:p})=>({json:{...p,paper_allowed:false,live_allowed:false,execution_status:'EDITOR_ONLY_NO_ORDER_SUBMISSION'}}));"
+      },
+      "notes": "Never activate orders from editor. WF03 approval and Nautilus PAPER are separately gated."
+    }
+  ],
+  "connections": {
+    "02-01 권리 승인 Pine 입력 수신": {
+      "main": [
+        [
+          {
+            "node": "02-02 소스·버전·SHA pin 추출",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "02-02 소스·버전·SHA pin 추출": {
+      "main": [
+        [
+          {
+            "node": "02-03 ID·버전·SHA 검증",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "02-03 ID·버전·SHA 검증": {
+      "main": [
+        [
+          {
+            "node": "02-04 승인 참조 형식 정합?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "02-04 승인 참조 형식 정합?": {
+      "main": [
+        [
+          {
+            "node": "02-06 WF-01 승인 원본 재조회",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "02-05 잘못된 참조 격리",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "02-06 WF-01 승인 원본 재조회": {
+      "main": [
+        [
+          {
+            "node": "02-07 원본 SHA·버전 재대조",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "02-07 원본 SHA·버전 재대조": {
+      "main": [
+        [
+          {
+            "node": "02-08 버전 고정 일치?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "02-08 버전 고정 일치?": {
+      "main": [
+        [
+          {
+            "node": "02-10 Pine 원본 보존·정규화 분리",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "02-09 불일치 격리·HALT",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "02-10 Pine 원본 보존·정규화 분리": {
+      "main": [
+        [
+          {
+            "node": "02-11 버전 지시문 및 선언 검사",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "02-11 버전 지시문 및 선언 검사": {
+      "main": [
+        [
+          {
+            "node": "02-12 버전·선언 매치?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "02-12 버전·선언 매치?": {
+      "main": [
+        [
+          {
+            "node": "02-14 import 의존성 후보 추출",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "02-13 지원 불가 버전 격리",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "02-14 import 의존성 후보 추출": {
+      "main": [
+        [
+          {
+            "node": "02-15 Pine 파서 AST 생성",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "02-15 Pine 파서 AST 생성": {
+      "main": [
+        [
+          {
+            "node": "02-16 AST 진단·범위 검사",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "02-16 AST 진단·범위 검사": {
+      "main": [
+        [
+          {
+            "node": "02-17 AST 파싱 성공?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "02-17 AST 파싱 성공?": {
+      "main": [
+        [
+          {
+            "node": "02-19 Library 의존성·권리 해석",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "02-18 구문·지원범위 오류 격리",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "02-19 Library 의존성·권리 해석": {
+      "main": [
+        [
+          {
+            "node": "02-20 의존성 권한 모두 허용?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "02-20 의존성 권한 모두 허용?": {
+      "main": [
+        [
+          {
+            "node": "02-22 Pine AST → IR 생성",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "02-21 외부 Library 검토 보류",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "02-22 Pine AST → IR 생성": {
+      "main": [
+        [
+          {
+            "node": "02-23 IR 스키마·지원 연산 점검",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "02-23 IR 스키마·지원 연산 점검": {
+      "main": [
+        [
+          {
+            "node": "02-24 IR 유효하고 미지원 없음?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "02-24 IR 유효하고 미지원 없음?": {
+      "main": [
+        [
+          {
+            "node": "02-26 시계열·na·히스토리 의미",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "02-27 var·varip·상태 복원 의미",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "02-28 request.security·MTF·lookahead",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "02-25 IR 변환 격리",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "02-26 시계열·na·히스토리 의미": {
+      "main": [
+        [
+          {
+            "node": "02-29 시계열＋상태 분석 합류",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "02-27 var·varip·상태 복원 의미": {
+      "main": [
+        [
+          {
+            "node": "02-29 시계열＋상태 분석 합류",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "02-29 시계열＋상태 분석 합류": {
+      "main": [
+        [
+          {
+            "node": "02-30 MTF 분석까지 합류",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "02-28 request.security·MTF·lookahead": {
+      "main": [
+        [
+          {
+            "node": "02-30 MTF 분석까지 합류",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "02-30 MTF 분석까지 합류": {
+      "main": [
+        [
+          {
+            "node": "02-31 시계열·상태·MTF 위험 통합",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "02-31 시계열·상태·MTF 위험 통합": {
+      "main": [
+        [
+          {
+            "node": "02-32 변환 의미 위험 모두 통과?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "02-32 변환 의미 위험 모두 통과?": {
+      "main": [
+        [
+          {
+            "node": "02-34 IR → 격리 Python 모듈 생성",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "02-33 의미 불일치 수동 검토",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "02-34 IR → 격리 Python 모듈 생성": {
+      "main": [
+        [
+          {
+            "node": "02-35 Python AST 정적 감사",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "02-35 Python AST 정적 감사": {
+      "main": [
+        [
+          {
+            "node": "02-36 Python 정적 안전 검사 통과?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "02-36 Python 정적 안전 검사 통과?": {
+      "main": [
+        [
+          {
+            "node": "02-38 동일 OHLCV 기준자료 확보",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "02-39 Pine 기준 출력 확보",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "02-37 생성 코드 안전 검사 실패",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "02-38 동일 OHLCV 기준자료 확보": {
+      "main": [
+        [
+          {
+            "node": "02-40 OHLCV·Pine 기준자료 합류",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "02-39 Pine 기준 출력 확보": {
+      "main": [
+        [
+          {
+            "node": "02-40 OHLCV·Pine 기준자료 합류",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "02-40 OHLCV·Pine 기준자료 합류": {
+      "main": [
+        [
+          {
+            "node": "02-41 Python 샌드박스 배치 실행",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "02-41 Python 샌드박스 배치 실행": {
+      "main": [
+        [
+          {
+            "node": "02-42 신호·타이밍·봉확정 비교",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "02-42 신호·타이밍·봉확정 비교": {
+      "main": [
+        [
+          {
+            "node": "02-43 동등성 기준·오차율 판단",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "02-43 동등성 기준·오차율 판단": {
+      "main": [
+        [
+          {
+            "node": "02-44 Pine ↔ Python 동등성 합격?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "02-44 Pine ↔ Python 동등성 합격?": {
+      "main": [
+        [
+          {
+            "node": "02-46 검증 산출물 후보 등록",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "02-45 불합격 격리·재검증 대기",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "02-46 검증 산출물 후보 등록": {
+      "main": [
+        [
+          {
+            "node": "02-47 WF-02 검증 후보 등록 완료",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "02-47 WF-02 검증 후보 등록 완료": {
+      "main": [
+        [
+          {
+            "node": "02-48 PAPER·LIVE 거래 차단 유지",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "staticData": null,
+  "pinData": {},
+  "meta": {
+    "project": "investment",
+    "workflow_id": "WF-02",
+    "editorOnly": true,
+    "executionEnabled": false,
+    "converterEndpointsImplemented": false,
+    "orderSubmissionAllowed": false
+  },
+  "tags": []
+}
