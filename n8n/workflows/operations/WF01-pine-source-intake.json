@@ -106,16 +106,16 @@
     },
     {
       "id": "fail-fields",
-      "name": "fail-fields",
+      "name": "입력 부족 기록",
       "type": "n8n-nodes-base.code",
       "typeVersion": 1,
       "position": [
-        "return $input.all().map(x=>({json:{state:'REJECTED_INPUT',reason:'Missing required Pine metadata',source_id:x.json.source_id}}));",
-        1240
+        1250,
+        420
       ],
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "입력 부족 기록"
+        "jsCode": "return $input.all().map(x=>({json:{state:'REJECTED_INPUT',reason:'Missing required Pine metadata',source_id:x.json.source_id}}));"
       },
       "notes": ""
     },
@@ -154,16 +154,16 @@
     },
     {
       "id": "existing",
-      "name": "existing",
+      "name": "기존 버전 유지",
       "type": "n8n-nodes-base.code",
       "typeVersion": 1,
       "position": [
-        "return $input.all().map(x=>({json:{...x.json,outcome:'ALREADY_REGISTERED'}}));",
-        1820
+        1820,
+        -80
       ],
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "기존 버전 유지"
+        "jsCode": "return $input.all().map(x=>({json:{...x.json,outcome:'ALREADY_REGISTERED'}}));"
       },
       "notes": ""
     },
@@ -192,16 +192,16 @@
     },
     {
       "id": "review-queue",
-      "name": "review-queue",
+      "name": "수동 권리 검토 대기",
       "type": "n8n-nodes-base.code",
       "typeVersion": 1,
       "position": [
-        "return $input.all().map(x=>({json:{...x.json,next_action:'REVIEW_REQUIRED',conversion_allowed:false,paper_allowed:false}}));",
-        2110
+        2110,
+        190
       ],
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "수동 권리 검토 대기"
+        "jsCode": "return $input.all().map(x=>({json:{...x.json,next_action:'REVIEW_REQUIRED',conversion_allowed:false,paper_allowed:false}}));"
       },
       "notes": ""
     },
@@ -263,16 +263,16 @@
     },
     {
       "id": "hold",
-      "name": "hold",
+      "name": "미승인 HOLD",
       "type": "n8n-nodes-base.code",
       "typeVersion": 1,
       "position": [
-        "return $input.all().map(x=>({json:{...x.json,status:'PENDING_HUMAN_REVIEW',wf02_started:false}}));",
-        2730
+        2730,
+        330
       ],
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "미승인 HOLD"
+        "jsCode": "return $input.all().map(x=>({json:{...x.json,status:'PENDING_HUMAN_REVIEW',wf02_started:false}}));"
       },
       "notes": ""
     }
@@ -322,7 +322,7 @@
         ],
         [
           {
-            "node": "fail-fields",
+            "node": "입력 부족 기록",
             "type": "main",
             "index": 0
           }
@@ -344,7 +344,7 @@
       "main": [
         [
           {
-            "node": "existing",
+            "node": "기존 버전 유지",
             "type": "main",
             "index": 0
           }
@@ -362,14 +362,14 @@
       "main": [
         [
           {
-            "node": "review-queue",
+            "node": "수동 권리 검토 대기",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "review-queue": {
+    "수동 권리 검토 대기": {
       "main": [
         [
           {
@@ -391,7 +391,7 @@
         ],
         [
           {
-            "node": "hold",
+            "node": "미승인 HOLD",
             "type": "main",
             "index": 0
           }
