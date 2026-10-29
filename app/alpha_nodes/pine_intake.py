@@ -1,12 +1,13 @@
 """WF-01 immutable Pine source intake; no scraping, conversion, or order routing."""
 import hashlib
+import hmac
 import os
 import sqlite3
 import threading
 from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import urlparse
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel, Field
 from app.alpha_nodes.api import require_auth
 
@@ -35,6 +36,11 @@ def _connection():
         rights_evidence TEXT NOT NULL, rights_state TEXT NOT NULL,
         created_at TEXT NOT NULL,
         PRIMARY KEY(source_id,version), UNIQUE(source_id,sha256))""")
+    db.execute("""CREATE TABLE IF NOT EXISTS pine_rights_reviews (
+        source_id TEXT NOT NULL, version INTEGER NOT NULL,
+        decision TEXT NOT NULL, reviewer TEXT NOT NULL,
+        reason TEXT NOT NULL, reviewed_at TEXT NOT NULL,
+        PRIMARY KEY(source_id, version))""")
     db.commit()
     return db
 
@@ -42,7 +48,7 @@ def _public(row, duplicate=False):
     return {"source_id": row["source_id"], "version": row["version"],
             "sha256": row["sha256"], "script_type": row["script_type"],
             "pine_version": row["pine_version"], "rights_state": row["rights_state"],
-            "conversion_allowed": False, "paper_allowed": False,
+            "conversion_allowed": row["rights_state"] == "APPROVED", "paper_allowed": False,
             "created_at": row["created_at"], "duplicate": duplicate}
 
 def register_source(payload: PineIntake):
@@ -89,3 +95,50 @@ def get_version(source_id: str, version: int):
         if row is None:
             raise HTTPException(status_code=404, detail="Source version not found")
         return _public(row)
+
+class RightsReview(BaseModel):
+    decision: str = Field(pattern=r"^(APPROVED|REJECTED)$")
+    reviewer: str = Field(min_length=2, max_length=100)
+    reason: str = Field(min_length=10, max_length=2000)
+
+def _require_reviewer(x_pine_reviewer_key: str | None = Header(None)) -> None:
+    expected = os.getenv("PINE_RIGHTS_REVIEW_KEY", "")
+    if not expected:
+        raise HTTPException(status_code=503, detail="Rights review disabled")
+    if not x_pine_reviewer_key or not hmac.compare_digest(expected, x_pine_reviewer_key):
+        raise HTTPException(status_code=403, detail="Reviewer permission required")
+
+@router.post("/sources/{source_id}/versions/{version}/rights-review",
+             dependencies=[Depends(_require_reviewer)])
+def review_rights(source_id: str, version: int, request: RightsReview):
+    with _LOCK:
+        with _connection() as db:
+            row = db.execute("SELECT * FROM pine_sources WHERE source_id=? AND version=?",
+                             (source_id, version)).fetchone()
+            if row is None:
+                raise HTTPException(status_code=404, detail="Source version not found")
+            previous = db.execute("SELECT decision FROM pine_rights_reviews WHERE source_id=? AND version=?",
+                                  (source_id, version)).fetchone()
+            if previous is not None:
+                raise HTTPException(status_code=409, detail="Rights decision already finalized")
+            now = datetime.now(timezone.utc).isoformat()
+            db.execute("INSERT INTO pine_rights_reviews VALUES (?,?,?,?,?,?)",
+                       (source_id,version,request.decision,request.reviewer,request.reason,now))
+            db.execute("UPDATE pine_sources SET rights_state=? WHERE source_id=? AND version=?",
+                       (request.decision,source_id,version))
+            updated = db.execute("SELECT * FROM pine_sources WHERE source_id=? AND version=?",
+                                 (source_id,version)).fetchone()
+            return _public(updated)
+
+@router.get("/sources/{source_id}/versions/{version}/conversion-input")
+def conversion_input(source_id: str, version: int):
+    with _connection() as db:
+        row = db.execute("SELECT * FROM pine_sources WHERE source_id=? AND version=?",
+                         (source_id,version)).fetchone()
+        if row is None:
+            raise HTTPException(status_code=404, detail="Source version not found")
+        if row["rights_state"] != "APPROVED":
+            raise HTTPException(status_code=403, detail="Source rights not approved")
+        return {"source_id":row["source_id"], "version":row["version"],
+                "sha256":row["sha256"], "pine_version":row["pine_version"],
+                "script_type":row["script_type"], "source_code":row["source_code"]}
