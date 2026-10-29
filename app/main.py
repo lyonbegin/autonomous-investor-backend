@@ -9,6 +9,7 @@ from app.alpha_nodes.api import router as alpha_router
 from app.alpha_nodes.investment_api import router as investment_router
 from app.alpha_nodes.scenario_api import router as scenario_router
 from app.alpha_nodes.operations_api import router as operations_router
+from app.alpha_nodes.pine_intake import router as pine_intake_router
 
 app = FastAPI(
     title="Autonomous Investor Backend",
@@ -29,3 +30,4 @@ app.include_router(alpha_router)
 app.include_router(investment_router)
 app.include_router(scenario_router)
 app.include_router(operations_router)
+app.include_router(pine_intake_router)
