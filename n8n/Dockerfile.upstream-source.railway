@@ -14,6 +14,16 @@ RUN git clone --depth 1 --branch 'n8n@2.44.5' https://github.com/n8n-io/n8n.git 
 # Apply narrowly-scoped source patch before compiling Vue.
 COPY n8n/patches/enable-native-editable-test.py /tmp/enable-native-editable-test.py
 RUN python3 /tmp/enable-native-editable-test.py
+# Shared canonical n8n Canvas Pan correction — issue #9.
+# Pin the exact common repo revision, fail the build on upstream drift.
+# The normal /workflow/* permissions and backend routes are unchanged.
+ARG SHARED_N8N_STUDIO_COMMIT=999062f1676bdffafa852a36e6c986ef5ce7589f
+RUN git clone https://github.com/lyonbegin/shared-n8n-studio.git /tmp/shared-n8n-studio \
+    && git -C /tmp/shared-n8n-studio checkout --detach "$SHARED_N8N_STUDIO_COMMIT" \
+    && test "$(git -C /tmp/shared-n8n-studio rev-parse HEAD)" = "$SHARED_N8N_STUDIO_COMMIT" \
+    && node /tmp/shared-n8n-studio/scripts/apply-pan-patch.mjs \
+       /src/packages/frontend/editor-ui/src/features/workflows/canvas/components/Canvas.vue \
+    && echo "N8N_SHARED_PAN_PATCH_COMMIT=$SHARED_N8N_STUDIO_COMMIT"
 ENV CI=true
 ENV NODE_OPTIONS="--max-old-space-size=4096"
 RUN pnpm install --frozen-lockfile --trust-lockfile

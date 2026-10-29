@@ -1,0 +1,84 @@
+name: Native official n8n Pan Dockerfile independent Chrome E2E (PR 11)
+on:
+  push:
+    branches: [feature/shared-n8n-pan-native-editor-20261029]
+    paths:
+      - "n8n/Dockerfile.upstream-source.railway"
+      - "n8n/patches/enable-native-editable-test.py"
+      - ".github/workflows/shared-n8n-native-pr11-e2e.yml"
+  workflow_dispatch:
+permissions: {contents: read}
+jobs:
+  native-dockerfile-real-chrome:
+    runs-on: ubuntu-latest
+    timeout-minutes: 85
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: "22"}
+      - name: Import immutable passing PR 10 Chrome harness (test-only)
+        shell: bash
+        run: |
+          set -euo pipefail
+          HARNESS_SHA=52d44451bcd0640cecbd21e0de1c272fa98d3944
+          git fetch --no-tags origin "$HARNESS_SHA"
+          test "$(git rev-parse FETCH_HEAD)" = "$HARNESS_SHA"
+          for path in             n8n/Caddyfile.shared-pan-sandbox             n8n/docker-compose.shared-pan-sandbox.yml             n8n/Dockerfile.shared-pan-gateway             n8n/preview/native-portal.shared-pan.html             n8n/tests/official-pan-chrome.mjs             n8n/tests/official-native-ux-chrome.mjs             n8n/tests/official-all-flows-chrome.mjs             n8n/tests/official-db-editor-chrome.mjs; do
+            mkdir -p "$(dirname "$path")"
+            git show "$HARNESS_SHA:$path" > "$path"
+          done
+          # The key difference: build the ORIGINAL PR 11 native editor Dockerfile,
+          # not PR 10's sandbox Dockerfile. Keep runtime fully ephemeral.
+          sed -i 's@dockerfile: n8n/Dockerfile.shared-pan-sandbox@dockerfile: n8n/Dockerfile.upstream-source.railway@' n8n/docker-compose.shared-pan-sandbox.yml
+          grep -Fq 'dockerfile: n8n/Dockerfile.upstream-source.railway' n8n/docker-compose.shared-pan-sandbox.yml
+          grep -Fq 'SHARED_N8N_STUDIO_COMMIT=999062f1676bdffafa852a36e6c986ef5ce7589f' n8n/Dockerfile.upstream-source.railway
+          grep -Fq "n8n@2.44.5" n8n/Dockerfile.upstream-source.railway
+          docker compose -f n8n/docker-compose.shared-pan-sandbox.yml config --quiet
+          if grep -Eiq '^[[:space:]]*(N8N_ENCRYPTION_KEY|REDIS_[A-Z_]+|BROKER_[A-Z_]+|G2B_[A-Z_]+|DATABASE_URL|DB_POSTGRESDB_[A-Z_]+):' n8n/docker-compose.shared-pan-sandbox.yml; then
+            echo 'Forbidden operational environment in test compose' >&2; exit 1
+          fi
+      - name: Install real Chromium browser
+        working-directory: investment_studio
+        run: |
+          npm install --no-audit --no-fund
+          npm install --no-audit --no-fund --no-save --no-package-lock flatted@3.3.3
+          npx playwright install --with-deps chromium
+      - name: Build ORIGINAL native editor Dockerfile from upstream n8n source
+        run: docker compose -f n8n/docker-compose.shared-pan-sandbox.yml build --progress plain
+      - name: Start disposable preview and SQLite n8n instances
+        run: |
+          docker compose -f n8n/docker-compose.shared-pan-sandbox.yml up -d --no-build
+          for try in $(seq 1 100); do
+            if curl -fsS http://127.0.0.1:39087/health >/dev/null; then break; fi
+            sleep 3
+          done
+          curl -fsS http://127.0.0.1:39087/health
+      - name: Real Chrome left/middle Pan, Shift marquee, zoom/fit, node drag
+        run: node n8n/tests/official-pan-chrome.mjs
+      - name: Real Chrome native add/connect/delete/undo/redo/reload
+        run: node n8n/tests/official-native-ux-chrome.mjs
+      - name: Compare original 13 workflow graphs, IDs and connections
+        run: node n8n/tests/official-all-flows-chrome.mjs
+      - name: Authenticated official editor server SQLite persistence and safe NoOp execution
+        run: |
+          for try in $(seq 1 100); do
+            if curl -fsS http://127.0.0.1:39088/rest/settings >/dev/null; then break; fi
+            sleep 3
+          done
+          curl -fsS http://127.0.0.1:39088/rest/settings > /dev/null
+          node n8n/tests/official-db-editor-chrome.mjs
+      - name: Preserve evidence and sandbox logs
+        if: always()
+        run: |
+          docker compose -f n8n/docker-compose.shared-pan-sandbox.yml logs --no-color > n8n/native-pr11-sandbox-docker.log 2>&1 || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: native-official-n8n-pan-pr11-chrome
+          path: |
+            n8n/tests/artifacts/
+            n8n/native-pr11-sandbox-docker.log
+          if-no-files-found: warn
+      - name: Remove test containers, SQLite and volumes
+        if: always()
+        run: docker compose -f n8n/docker-compose.shared-pan-sandbox.yml down --volumes --remove-orphans || true
