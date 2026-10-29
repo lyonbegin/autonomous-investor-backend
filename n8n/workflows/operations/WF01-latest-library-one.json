@@ -232,7 +232,7 @@
       ],
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const selected=$('06 라이브러리 첫 신규 버전 1개 고르기').first().json.candidate;return $input.all().map(({json:p})=>{const ok=p.kind==='library'&&p.source_id===selected.source_id&&p.version_key===selected.version_key&&p.access==='open'&&typeof p.pine_code==='string'&&p.pine_code.length>=10&&typeof p.source_url==='string'&&p.source_url.startsWith('https://');return {json:{kind:'library',source_id:p.source_id,version_key:p.version_key,source_url:p.source_url,author:p.author||null,license:p.license||null,updated_at:p.updated_at||null,pine_code:ok?p.pine_code:null,source_available:ok,rights_state:'PENDING_REVIEW',selected_count:0}};});"
+        "jsCode": "const selected=$('06 라이브러리 첫 신규 버전 1개 고르기').last().json.candidate;return $input.all().map(({json:p})=>{const ok=p.kind==='library'&&p.source_id===selected.source_id&&p.version_key===selected.version_key&&p.access==='open'&&typeof p.pine_code==='string'&&p.pine_code.length>=10&&typeof p.source_url==='string'&&p.source_url.startsWith('https://');return {json:{kind:'library',source_id:p.source_id,version_key:p.version_key,source_url:p.source_url,author:p.author||null,license:p.license||null,updated_at:p.updated_at||null,pine_code:ok?p.pine_code:null,source_available:ok,rights_state:'PENDING_REVIEW',selected_count:0}};});"
       },
       "notes": ""
     },
