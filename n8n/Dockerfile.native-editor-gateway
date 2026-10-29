@@ -4,7 +4,7 @@
 FROM node:22-alpine AS build
 RUN apk add --no-cache git
 WORKDIR /app
-ARG SHARED_STUDIO_COMMIT=06baeef5c62436efb21eb5d4e1940e4dcfc34149
+ARG SHARED_STUDIO_COMMIT=d43c30797569c83f07c42fd0439e62ec02b35601
 RUN git clone https://github.com/lyonbegin/shared-n8n-studio.git /app/shared \
     && git -C /app/shared checkout --detach "$SHARED_STUDIO_COMMIT" \
     && test "$(git -C /app/shared rev-parse HEAD)" = "$SHARED_STUDIO_COMMIT"
