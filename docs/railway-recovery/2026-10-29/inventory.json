@@ -1,0 +1,680 @@
+{
+  "snapshot_date": "2026-10-29",
+  "project": {
+    "id": "155584dd-b4a4-416c-8f25-c24970c9007c",
+    "name": "AUTONOMOUS-INVESTOR",
+    "workspaceName": "lyonbegin's Projects"
+  },
+  "environment": {
+    "id": "891ba96c-9d98-492d-9176-25481e256c60",
+    "name": "production",
+    "isEphemeral": false
+  },
+  "service_count": 22,
+  "keep_running": [
+    "investment-n8n-native-editor",
+    "investment-shared-n8n-studio"
+  ],
+  "stop_requested_count": 20,
+  "stop_executed": false,
+  "stop_method": "NO SAFE STOP ACTION AVAILABLE VIA CONNECTOR; no deletions",
+  "disclaimer": "GitHub does not contain Railway Function sources by default, DB/volume content, sealed secrets or actual deployment environment. Backups required before removal.",
+  "services": [
+    {
+      "service_name": "autonomous-investor-ui",
+      "service_id": "693151a6-18e0-4bc9-b5d7-d1a2869b341f",
+      "role": "기존 Vite 운영 UI",
+      "action_intent": "STOP_REQUESTED_NOT_EXECUTED",
+      "source_type": "github",
+      "github_repository": "lyonbegin/autonomous-investor-backend",
+      "github_branch": "frontend-vite",
+      "image": null,
+      "railway_region": [
+        "us-west2"
+      ],
+      "replicas": 1,
+      "cron_utc": null,
+      "volumes": [],
+      "deployment": {
+        "id": "f02df3c9-dde4-4a9e-920d-c72e74c8f18d",
+        "status": "SUCCESS",
+        "createdAt": "2026-10-24T07:40:57.598Z",
+        "url": null
+      },
+      "estimated_30_day_usd_prior_snapshot": 0.64,
+      "estimated_cost_note": "Previous 24h resource extrapolation; NOT invoice, may differ after stopping"
+    },
+    {
+      "service_name": "autonomous-investor-public-api",
+      "service_id": "382a3c15-b224-43c8-a890-6910d0003919",
+      "role": "공개 투자 API",
+      "action_intent": "STOP_REQUESTED_NOT_EXECUTED",
+      "source_type": "github",
+      "github_repository": "lyonbegin/autonomous-investor-backend",
+      "github_branch": "public-platform",
+      "image": null,
+      "railway_region": [
+        "us-west2"
+      ],
+      "replicas": 1,
+      "cron_utc": null,
+      "volumes": [],
+      "deployment": {
+        "id": "fd2e228e-ec40-4c92-8f3f-5c72dc95b504",
+        "status": "SUCCESS",
+        "createdAt": "2026-10-24T12:10:46.813Z",
+        "url": null
+      },
+      "estimated_30_day_usd_prior_snapshot": 1.25,
+      "estimated_cost_note": "Previous 24h resource extrapolation; NOT invoice, may differ after stopping"
+    },
+    {
+      "service_name": "autonomous-investor-tradingview-browser",
+      "service_id": "dce0b284-e16a-49c0-9bd4-6ca1e5136e76",
+      "role": "TradingView 브라우저 수집/Playwright",
+      "action_intent": "STOP_REQUESTED_NOT_EXECUTED",
+      "source_type": "github",
+      "github_repository": "lyonbegin/autonomous-investor-backend",
+      "github_branch": "tradingview-service",
+      "image": null,
+      "railway_region": [
+        "asia-southeast1-eqsg3a"
+      ],
+      "replicas": 1,
+      "cron_utc": null,
+      "volumes": [],
+      "deployment": {
+        "id": "0b82d285-b51f-4492-8f23-5c04be38c071",
+        "status": "SUCCESS",
+        "createdAt": "2026-10-24T13:29:03.251Z",
+        "url": null
+      },
+      "estimated_30_day_usd_prior_snapshot": 13.09,
+      "estimated_cost_note": "Previous 24h resource extrapolation; NOT invoice, may differ after stopping"
+    },
+    {
+      "service_name": "investment-shared-n8n-studio",
+      "service_id": "7d7bf472-6076-44bf-8774-f35f503e42cd",
+      "role": "공통 편집기 사전 검증 환경",
+      "action_intent": "KEEP_RUNNING",
+      "source_type": "github",
+      "github_repository": "lyonbegin/autonomous-investor-backend",
+      "github_branch": "feature/engine-run-inspector-20261029",
+      "image": null,
+      "railway_region": [
+        "us-west2"
+      ],
+      "replicas": 1,
+      "cron_utc": null,
+      "volumes": [
+        {
+          "volume_id": "3c629e5e-07ab-4cb0-99d4-1ed124c0a465",
+          "name": "shared-n8n-studio-demo-sqlite",
+          "mount_path": "/data"
+        }
+      ],
+      "deployment": {
+        "id": "c81e13b6-3c40-410a-990c-9476baca3449",
+        "status": "SUCCESS",
+        "createdAt": "2026-10-28T21:31:49.237Z",
+        "url": null
+      },
+      "estimated_30_day_usd_prior_snapshot": 0.08,
+      "estimated_cost_note": "Previous 24h resource extrapolation; NOT invoice, may differ after stopping"
+    },
+    {
+      "service_name": "investment-n8n-worker",
+      "service_id": "d982a6d6-268b-4c29-892c-d475403d430d",
+      "role": "n8n 큐 워커",
+      "action_intent": "STOP_REQUESTED_NOT_EXECUTED",
+      "source_type": "github",
+      "github_repository": "lyonbegin/autonomous-investor-backend",
+      "github_branch": "feature/secure-selfhost-deployment",
+      "image": null,
+      "railway_region": [
+        "us-west2"
+      ],
+      "replicas": 1,
+      "cron_utc": null,
+      "volumes": [],
+      "deployment": {
+        "id": "89eb68b5-d92c-47fd-906d-31c7fef982a2",
+        "status": "SUCCESS",
+        "createdAt": "2026-10-25T06:10:54.820Z",
+        "url": null
+      },
+      "estimated_30_day_usd_prior_snapshot": 4.18,
+      "estimated_cost_note": "Previous 24h resource extrapolation; NOT invoice, may differ after stopping"
+    },
+    {
+      "service_name": "tradingview-collector-cron",
+      "service_id": "b07ee32b-315e-4da4-a703-cfe5889930e6",
+      "role": "TradingView API 수집 스케줄러(Railway Function)",
+      "action_intent": "STOP_REQUESTED_NOT_EXECUTED",
+      "source_type": "railway_function",
+      "github_repository": null,
+      "github_branch": null,
+      "image": "ghcr.io/railwayapp/function-bun:1.4.4",
+      "railway_region": [
+        "us-west2"
+      ],
+      "replicas": 1,
+      "cron_utc": "*/5 * * * *",
+      "volumes": [],
+      "deployment": {
+        "id": "6f79048a-6eef-4906-a8b0-57a19e11141d",
+        "status": "SUCCESS",
+        "createdAt": "2026-10-28T21:50:37.993Z",
+        "url": null
+      },
+      "estimated_30_day_usd_prior_snapshot": 0.38,
+      "estimated_cost_note": "Previous 24h resource extrapolation; NOT invoice, may differ after stopping"
+    },
+    {
+      "service_name": "Postgres",
+      "service_id": "d31addf0-389d-4cb7-9c67-002b65f68a30",
+      "role": "n8n PostgreSQL DB",
+      "action_intent": "STOP_REQUESTED_NOT_EXECUTED",
+      "source_type": "container_image",
+      "github_repository": null,
+      "github_branch": null,
+      "image": "ghcr.io/railwayapp-templates/postgres-ssl:18",
+      "railway_region": [
+        "us-west2"
+      ],
+      "replicas": 1,
+      "cron_utc": null,
+      "volumes": [
+        {
+          "volume_id": "c0711d42-fef2-4eae-aec4-ce2de6344d20",
+          "name": "postgres-volume",
+          "mount_path": "/var/lib/postgresql/data"
+        }
+      ],
+      "deployment": {
+        "id": "54897a43-73f1-4915-a6e0-a51bf2ed902a",
+        "status": "SUCCESS",
+        "createdAt": "2026-10-25T05:44:28.283Z",
+        "url": null
+      },
+      "estimated_30_day_usd_prior_snapshot": 1.44,
+      "estimated_cost_note": "Previous 24h resource extrapolation; NOT invoice, may differ after stopping"
+    },
+    {
+      "service_name": "investment-n8n-ops-api",
+      "service_id": "0c1c0c69-6c16-41d5-abc7-cecc76036afa",
+      "role": "n8n 투자 운영 API",
+      "action_intent": "STOP_REQUESTED_NOT_EXECUTED",
+      "source_type": "github",
+      "github_repository": "lyonbegin/autonomous-investor-backend",
+      "github_branch": "feature/secure-selfhost-deployment",
+      "image": null,
+      "railway_region": [
+        "us-west2"
+      ],
+      "replicas": 1,
+      "cron_utc": null,
+      "volumes": [
+        {
+          "volume_id": "500835ec-905c-4b55-bb65-65a6a52f64ca",
+          "name": "investment-operations-data",
+          "mount_path": "/data"
+        }
+      ],
+      "deployment": {
+        "id": "0988de2d-3a9e-4573-94ee-6bff495f8f29",
+        "status": "SUCCESS",
+        "createdAt": "2026-10-25T06:10:54.819Z",
+        "url": null
+      },
+      "estimated_30_day_usd_prior_snapshot": 1.49,
+      "estimated_cost_note": "Previous 24h resource extrapolation; NOT invoice, may differ after stopping"
+    },
+    {
+      "service_name": "Redis",
+      "service_id": "1979d38a-942e-49df-959f-5a60625936e4",
+      "role": "n8n 큐 Redis",
+      "action_intent": "STOP_REQUESTED_NOT_EXECUTED",
+      "source_type": "container_image",
+      "github_repository": null,
+      "github_branch": null,
+      "image": "redis:8.2",
+      "railway_region": [
+        "us-west2"
+      ],
+      "replicas": 1,
+      "cron_utc": null,
+      "volumes": [
+        {
+          "volume_id": "e8131fde-c7b0-48f1-b224-9c6ce8470c73",
+          "name": "redis-volume",
+          "mount_path": "/data"
+        }
+      ],
+      "deployment": {
+        "id": "9ad153e2-46e9-4962-be0d-0b32a40e10c5",
+        "status": "SUCCESS",
+        "createdAt": "2026-10-25T05:44:31.409Z",
+        "url": null
+      },
+      "estimated_30_day_usd_prior_snapshot": 0.34,
+      "estimated_cost_note": "Previous 24h resource extrapolation; NOT invoice, may differ after stopping"
+    },
+    {
+      "service_name": "autonomous-investor-quant-lab",
+      "service_id": "530b6946-991c-4a67-b2e8-e90249ee515d",
+      "role": "퀀트 분석 연구 API",
+      "action_intent": "STOP_REQUESTED_NOT_EXECUTED",
+      "source_type": "github",
+      "github_repository": "lyonbegin/autonomous-investor-backend",
+      "github_branch": "quant-lab-control",
+      "image": null,
+      "railway_region": [
+        "us-west2"
+      ],
+      "replicas": 1,
+      "cron_utc": null,
+      "volumes": [
+        {
+          "volume_id": "6991e800-5991-42d5-8ced-7de504ce62c8",
+          "name": "quant-lab-data",
+          "mount_path": "/data"
+        }
+      ],
+      "deployment": {
+        "id": "7ba60c14-f7d5-44c7-968c-ba5ccb4b5e62",
+        "status": "SUCCESS",
+        "createdAt": "2026-10-24T13:14:21.912Z",
+        "url": null
+      },
+      "estimated_30_day_usd_prior_snapshot": 0.97,
+      "estimated_cost_note": "Previous 24h resource extrapolation; NOT invoice, may differ after stopping"
+    },
+    {
+      "service_name": "investment-n8n-source-editor",
+      "service_id": "f41f099f-1d8f-4213-a32b-88fae08d3689",
+      "role": "과거 공식 n8n 소스 시험 편집기",
+      "action_intent": "STOP_REQUESTED_NOT_EXECUTED",
+      "source_type": "github",
+      "github_repository": "lyonbegin/autonomous-investor-backend",
+      "github_branch": "feature/n8n-native-editable-test-20261028",
+      "image": null,
+      "railway_region": [
+        "us-west2"
+      ],
+      "replicas": 1,
+      "cron_utc": null,
+      "volumes": [],
+      "deployment": {
+        "id": "6371aa68-946c-4225-a8a6-6912f64460fc",
+        "status": "SUCCESS",
+        "createdAt": "2026-10-28T07:19:22.815Z",
+        "url": null
+      },
+      "estimated_30_day_usd_prior_snapshot": 4.75,
+      "estimated_cost_note": "Previous 24h resource extrapolation; NOT invoice, may differ after stopping"
+    },
+    {
+      "service_name": "autonomous-investor-public-D18a",
+      "service_id": "1b0c086f-8b94-4188-bc6d-6d6d167cb9bd",
+      "role": "공개 React 프론트엔드",
+      "action_intent": "STOP_REQUESTED_NOT_EXECUTED",
+      "source_type": "github",
+      "github_repository": "lyonbegin/autonomous-investor-backend",
+      "github_branch": "public-frontend-react",
+      "image": null,
+      "railway_region": [
+        "us-west2"
+      ],
+      "replicas": 1,
+      "cron_utc": null,
+      "volumes": [],
+      "deployment": {
+        "id": "b8eff9d6-1479-4eb3-aaa6-67ff4e0677ab",
+        "status": "SUCCESS",
+        "createdAt": "2026-10-24T13:25:55.599Z",
+        "url": null
+      },
+      "estimated_30_day_usd_prior_snapshot": 0.38,
+      "estimated_cost_note": "Previous 24h resource extrapolation; NOT invoice, may differ after stopping"
+    },
+    {
+      "service_name": "tradingview-corporate-bond-cron",
+      "service_id": "6f240b92-5fdf-4b1e-8288-12349d3fab39",
+      "role": "회사채 백필 스케줄러(Railway Function)",
+      "action_intent": "STOP_REQUESTED_NOT_EXECUTED",
+      "source_type": "railway_function",
+      "github_repository": null,
+      "github_branch": null,
+      "image": "ghcr.io/railwayapp/function-bun:1.4.4",
+      "railway_region": [
+        "us-west2"
+      ],
+      "replicas": 1,
+      "cron_utc": "*/5 * * * *",
+      "volumes": [],
+      "deployment": {
+        "id": "f5c926a9-1156-4008-8b0d-3615b5a39227",
+        "status": "CRASHED",
+        "createdAt": "2026-10-28T22:00:38.947Z",
+        "url": null
+      },
+      "estimated_30_day_usd_prior_snapshot": 0.45,
+      "estimated_cost_note": "Previous 24h resource extrapolation; NOT invoice, may differ after stopping"
+    },
+    {
+      "service_name": "autonomous-investor-integrated",
+      "service_id": "02a6cadc-d059-45d5-b89f-618ebe6d611b",
+      "role": "12개 투자/분석 엔진 통합 API",
+      "action_intent": "STOP_REQUESTED_NOT_EXECUTED",
+      "source_type": "github",
+      "github_repository": "lyonbegin/autonomous-investor-backend",
+      "github_branch": "railway-integrated-deploy",
+      "image": null,
+      "railway_region": [
+        "us-west2"
+      ],
+      "replicas": 1,
+      "cron_utc": null,
+      "volumes": [],
+      "deployment": {
+        "id": "06be403c-bf79-45d9-96dc-1cf28d4e1554",
+        "status": "SUCCESS",
+        "createdAt": "2026-10-24T07:08:25.709Z",
+        "url": null
+      },
+      "estimated_30_day_usd_prior_snapshot": 21.98,
+      "estimated_cost_note": "Previous 24h resource extrapolation; NOT invoice, may differ after stopping"
+    },
+    {
+      "service_name": "autonomous-investor-api",
+      "service_id": "99323fe2-606d-44b7-8c4a-1a672aab968a",
+      "role": "기본 FastAPI",
+      "action_intent": "STOP_REQUESTED_NOT_EXECUTED",
+      "source_type": "github",
+      "github_repository": "lyonbegin/autonomous-investor-backend",
+      "github_branch": "main",
+      "image": null,
+      "railway_region": [
+        "us-west2"
+      ],
+      "replicas": 1,
+      "cron_utc": null,
+      "volumes": [],
+      "deployment": {
+        "id": "9e59b102-f7df-4f94-9554-ad9bb7f2c279",
+        "status": "SUCCESS",
+        "createdAt": "2026-10-20T22:32:38.096Z",
+        "url": null
+      },
+      "estimated_30_day_usd_prior_snapshot": 0.45,
+      "estimated_cost_note": "Previous 24h resource extrapolation; NOT invoice, may differ after stopping"
+    },
+    {
+      "service_name": "investment-n8n-preview-runtime",
+      "service_id": "f46ae0e9-f156-40ce-bdd9-48f25bb16a05",
+      "role": "과거 n8n 미리보기",
+      "action_intent": "STOP_REQUESTED_NOT_EXECUTED",
+      "source_type": "container_image",
+      "github_repository": null,
+      "github_branch": null,
+      "image": "docker.n8n.io/n8nio/n8n:2.7.2",
+      "railway_region": [
+        "us-west2"
+      ],
+      "replicas": 1,
+      "cron_utc": null,
+      "volumes": [],
+      "deployment": {
+        "id": "332c499f-9934-4fce-8004-b040536fb468",
+        "status": "SUCCESS",
+        "createdAt": "2026-10-27T14:49:24.920Z",
+        "url": null
+      },
+      "estimated_30_day_usd_prior_snapshot": 2.42,
+      "estimated_cost_note": "Previous 24h resource extrapolation; NOT invoice, may differ after stopping"
+    },
+    {
+      "service_name": "macro-collector-cron",
+      "service_id": "66329211-ad39-40d4-8cd4-beb32a4ce494",
+      "role": "거시지표 스케줄러(Railway Function; 소스 조회 실패)",
+      "action_intent": "STOP_REQUESTED_NOT_EXECUTED",
+      "source_type": "railway_function",
+      "github_repository": null,
+      "github_branch": null,
+      "image": "ghcr.io/railwayapp/function-bun:1.4.4",
+      "railway_region": [
+        "us-west2"
+      ],
+      "replicas": 1,
+      "cron_utc": "15 */6 * * *",
+      "volumes": [],
+      "deployment": {
+        "id": "0f016e32-98cd-4a25-bdfc-31ce7912b3f4",
+        "status": "SUCCESS",
+        "createdAt": "2026-10-26T01:56:05.783Z",
+        "url": null
+      },
+      "estimated_30_day_usd_prior_snapshot": null,
+      "estimated_cost_note": "Previous 24h resource extrapolation; NOT invoice, may differ after stopping"
+    },
+    {
+      "service_name": "autonomous-investor-tradingview",
+      "service_id": "aae76a90-6237-4d0f-a3d0-621dbfe7f14f",
+      "role": "TradingView 데이터 API/수집/SQLite",
+      "action_intent": "STOP_REQUESTED_NOT_EXECUTED",
+      "source_type": "github",
+      "github_repository": "lyonbegin/autonomous-investor-backend",
+      "github_branch": "tradingview-service",
+      "image": null,
+      "railway_region": [
+        "us-west2"
+      ],
+      "replicas": 1,
+      "cron_utc": null,
+      "volumes": [
+        {
+          "volume_id": "3c951aee-ad0b-4efc-9375-95a0cd17c854",
+          "name": "tradingview-recovery-4gb-Jz6Z",
+          "mount_path": "/data"
+        }
+      ],
+      "deployment": {
+        "id": "72dd0a6f-18a0-4d7b-8d38-30506d0a088c",
+        "status": "SUCCESS",
+        "createdAt": "2026-10-24T13:23:31.600Z",
+        "url": null
+      },
+      "estimated_30_day_usd_prior_snapshot": 64.87,
+      "estimated_cost_note": "Previous 24h resource extrapolation; NOT invoice, may differ after stopping"
+    },
+    {
+      "service_name": "tradingview-horizon-v3-cron",
+      "service_id": "30242c82-5bb3-4a93-856d-f20203bb6b4a",
+      "role": "Horizon 증분 수집(Railway Function)",
+      "action_intent": "STOP_REQUESTED_NOT_EXECUTED",
+      "source_type": "railway_function",
+      "github_repository": null,
+      "github_branch": null,
+      "image": "ghcr.io/railwayapp/function-bun:1.4.4",
+      "railway_region": [
+        "us-west2"
+      ],
+      "replicas": 1,
+      "cron_utc": "*/5 * * * *",
+      "volumes": [],
+      "deployment": {
+        "id": "7b7724db-7a6f-4aa0-9c4e-d550565cd3e0",
+        "status": "CRASHED",
+        "createdAt": "2026-10-28T22:00:10.273Z",
+        "url": null
+      },
+      "estimated_30_day_usd_prior_snapshot": 0.46,
+      "estimated_cost_note": "Previous 24h resource extrapolation; NOT invoice, may differ after stopping"
+    },
+    {
+      "service_name": "investment-n8n-main",
+      "service_id": "06f6d322-17da-4ba9-be6a-88e6fb281446",
+      "role": "공식 n8n 메인 런타임",
+      "action_intent": "STOP_REQUESTED_NOT_EXECUTED",
+      "source_type": "github",
+      "github_repository": "lyonbegin/autonomous-investor-backend",
+      "github_branch": "feature/secure-selfhost-deployment",
+      "image": null,
+      "railway_region": [
+        "us-west2"
+      ],
+      "replicas": 1,
+      "cron_utc": null,
+      "volumes": [],
+      "deployment": {
+        "id": "36ad5e45-69a7-4467-bb54-fddedb50dc3e",
+        "status": "SUCCESS",
+        "createdAt": "2026-10-25T06:10:54.821Z",
+        "url": null
+      },
+      "estimated_30_day_usd_prior_snapshot": 3.67,
+      "estimated_cost_note": "Previous 24h resource extrapolation; NOT invoice, may differ after stopping"
+    },
+    {
+      "service_name": "investment-n8n-operations-ui",
+      "service_id": "d5028f56-c90e-40d7-bdcc-037c8c2220e9",
+      "role": "기존 n8n 운영 화면",
+      "action_intent": "STOP_REQUESTED_NOT_EXECUTED",
+      "source_type": "github",
+      "github_repository": "lyonbegin/autonomous-investor-backend",
+      "github_branch": "feature/n8n-upstream-source-railway-20261027",
+      "image": null,
+      "railway_region": [
+        "us-west2"
+      ],
+      "replicas": 1,
+      "cron_utc": null,
+      "volumes": [],
+      "deployment": {
+        "id": "999871d4-76c0-46fb-98ee-52e95105d44f",
+        "status": "SUCCESS",
+        "createdAt": "2026-10-27T15:28:09.386Z",
+        "url": null
+      },
+      "estimated_30_day_usd_prior_snapshot": 0.35,
+      "estimated_cost_note": "Previous 24h resource extrapolation; NOT invoice, may differ after stopping"
+    },
+    {
+      "service_name": "investment-n8n-native-editor",
+      "service_id": "6231df4a-7b0b-47be-9097-546472672763",
+      "role": "사용자용 공통 n8n 편집기",
+      "action_intent": "KEEP_RUNNING",
+      "source_type": "github",
+      "github_repository": "lyonbegin/autonomous-investor-backend",
+      "github_branch": "feature/engine-run-inspector-20261029",
+      "image": null,
+      "railway_region": [
+        "us-west2"
+      ],
+      "replicas": 1,
+      "cron_utc": null,
+      "volumes": [
+        {
+          "volume_id": "9097c2be-7308-4976-b795-bc4d89c5d092",
+          "name": "investment-shared-studio-drafts",
+          "mount_path": "/data"
+        }
+      ],
+      "deployment": {
+        "id": "85a0b2a6-572e-4f4e-b16b-bf25af9f0f09",
+        "status": "SUCCESS",
+        "createdAt": "2026-10-28T21:31:49.240Z",
+        "url": null
+      },
+      "estimated_30_day_usd_prior_snapshot": 1.03,
+      "estimated_cost_note": "Previous 24h resource extrapolation; NOT invoice, may differ after stopping"
+    }
+  ],
+  "volumes": [
+    {
+      "id": "3c951aee-ad0b-4efc-9375-95a0cd17c854",
+      "name": "tradingview-recovery-4gb-Jz6Z",
+      "sizeMB": 4096,
+      "region": "us-west2",
+      "mountedOn": {
+        "serviceId": "aae76a90-6237-4d0f-a3d0-621dbfe7f14f",
+        "serviceName": "autonomous-investor-tradingview",
+        "mountPath": "/data"
+      }
+    },
+    {
+      "id": "dda310a7-2659-412d-a568-be766364c08e",
+      "name": "tradingview-data",
+      "sizeMB": 1024,
+      "region": "us-west2",
+      "mountedOn": null
+    },
+    {
+      "id": "6991e800-5991-42d5-8ced-7de504ce62c8",
+      "name": "quant-lab-data",
+      "sizeMB": 1024,
+      "region": "us-west2",
+      "mountedOn": {
+        "serviceId": "530b6946-991c-4a67-b2e8-e90249ee515d",
+        "serviceName": "autonomous-investor-quant-lab",
+        "mountPath": "/data"
+      }
+    },
+    {
+      "id": "3c629e5e-07ab-4cb0-99d4-1ed124c0a465",
+      "name": "shared-n8n-studio-demo-sqlite",
+      "sizeMB": 512,
+      "region": "us-west2",
+      "mountedOn": {
+        "serviceId": "7d7bf472-6076-44bf-8774-f35f503e42cd",
+        "serviceName": "investment-shared-n8n-studio",
+        "mountPath": "/data"
+      }
+    },
+    {
+      "id": "9097c2be-7308-4976-b795-bc4d89c5d092",
+      "name": "investment-shared-studio-drafts",
+      "sizeMB": 512,
+      "region": "us-west2",
+      "mountedOn": {
+        "serviceId": "6231df4a-7b0b-47be-9097-546472672763",
+        "serviceName": "investment-n8n-native-editor",
+        "mountPath": "/data"
+      }
+    },
+    {
+      "id": "e8131fde-c7b0-48f1-b224-9c6ce8470c73",
+      "name": "redis-volume",
+      "sizeMB": 50000,
+      "region": "us-west2",
+      "mountedOn": {
+        "serviceId": "1979d38a-942e-49df-959f-5a60625936e4",
+        "serviceName": "Redis",
+        "mountPath": "/data"
+      }
+    },
+    {
+      "id": "c0711d42-fef2-4eae-aec4-ce2de6344d20",
+      "name": "postgres-volume",
+      "sizeMB": 50000,
+      "region": "us-west2",
+      "mountedOn": {
+        "serviceId": "d31addf0-389d-4cb7-9c67-002b65f68a30",
+        "serviceName": "Postgres",
+        "mountPath": "/var/lib/postgresql/data"
+      }
+    },
+    {
+      "id": "500835ec-905c-4b55-bb65-65a6a52f64ca",
+      "name": "investment-operations-data",
+      "sizeMB": 1024,
+      "region": "us-west2",
+      "mountedOn": {
+        "serviceId": "0c1c0c69-6c16-41d5-abc7-cecc76036afa",
+        "serviceName": "investment-n8n-ops-api",
+        "mountPath": "/data"
+      }
+    }
+  ]
+}

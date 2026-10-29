@@ -1,0 +1,451 @@
+{
+  "snapshot": "2026-10-29",
+  "warning": "No environment variable values or credentials are included.",
+  "services": [
+    {
+      "service": "autonomous-investor-tradingview",
+      "id": "aae76a90-6237-4d0f-a3d0-621dbfe7f14f",
+      "snapshotSource": {
+        "image": null,
+        "repo": "lyonbegin/autonomous-investor-backend",
+        "branch": "tradingview-service"
+      },
+      "source": {
+        "repo": "lyonbegin/autonomous-investor-backend",
+        "branch": "tradingview-service",
+        "checkSuites": false
+      },
+      "build": {
+        "builder": "DOCKERFILE",
+        "dockerfilePath": "Dockerfile"
+      },
+      "deploy": {
+        "startCommand": "sh -c 'uvicorn app.main_tradingview:app --host 0.0.0.0 --port ${PORT:-8080}'",
+        "preDeployCommand": [
+          "python -m app.core.egress_audit"
+        ],
+        "healthcheckPath": "/health",
+        "healthcheckTimeout": 120,
+        "multiRegionConfig": {
+          "us-west2": {
+            "numReplicas": 1
+          }
+        }
+      },
+      "regions": [
+        "us-west2"
+      ],
+      "domains": [
+        {
+          "domain": "autonomous-investor-tradingview-production.up.railway.app",
+          "port": 8080
+        }
+      ],
+      "volumes": [
+        {
+          "volumeId": "3c951aee-ad0b-4efc-9375-95a0cd17c854",
+          "volumeName": "tradingview-recovery-4gb-Jz6Z",
+          "mountPath": "/data"
+        }
+      ],
+      "environment_variable_names": [
+        "AUTONOMOUS_DB_PATH",
+        "DATA_BROWSER_STRICT",
+        "DATA_BROWSER_URL",
+        "TRADINGVIEW_BROWSER_URL"
+      ],
+      "detail_error": null
+    },
+    {
+      "service": "autonomous-investor-ui",
+      "id": "693151a6-18e0-4bc9-b5d7-d1a2869b341f",
+      "snapshotSource": {
+        "image": null,
+        "repo": "lyonbegin/autonomous-investor-backend",
+        "branch": "frontend-vite"
+      },
+      "source": {
+        "repo": "lyonbegin/autonomous-investor-backend",
+        "branch": "frontend-vite",
+        "rootDirectory": "/frontend",
+        "checkSuites": false
+      },
+      "build": {
+        "builder": "DOCKERFILE",
+        "dockerfilePath": "/frontend/Dockerfile",
+        "buildCommand": "npm install --no-audit --no-fund && npm run build"
+      },
+      "deploy": {
+        "startCommand": "sh -c 'npm run preview -- --host 0.0.0.0 --port ${PORT:-4173}'",
+        "healthcheckPath": "/",
+        "healthcheckTimeout": 180,
+        "multiRegionConfig": {
+          "us-west2": {
+            "numReplicas": 1
+          }
+        }
+      },
+      "regions": [
+        "us-west2"
+      ],
+      "domains": [
+        {
+          "domain": "autonomous-investor-ui-production.up.railway.app",
+          "port": 8080
+        }
+      ],
+      "volumes": [],
+      "environment_variable_names": [],
+      "detail_error": null
+    },
+    {
+      "service": "autonomous-investor-public-api",
+      "id": "382a3c15-b224-43c8-a890-6910d0003919",
+      "snapshotSource": {
+        "image": null,
+        "repo": "lyonbegin/autonomous-investor-backend",
+        "branch": "public-platform"
+      },
+      "source": {
+        "repo": "lyonbegin/autonomous-investor-backend",
+        "branch": "public-platform",
+        "rootDirectory": "public_api",
+        "checkSuites": false
+      },
+      "build": {
+        "builder": "DOCKERFILE",
+        "dockerfilePath": "Dockerfile"
+      },
+      "deploy": {
+        "healthcheckPath": "/health",
+        "healthcheckTimeout": 120,
+        "multiRegionConfig": {
+          "us-west2": {
+            "numReplicas": 1
+          }
+        }
+      },
+      "regions": [
+        "us-west2"
+      ],
+      "domains": [
+        {
+          "domain": "autonomous-investor-public-api-production.up.railway.app",
+          "port": 8080
+        }
+      ],
+      "volumes": [],
+      "environment_variable_names": [],
+      "detail_error": null
+    },
+    {
+      "service": "autonomous-investor-tradingview-browser",
+      "id": "dce0b284-e16a-49c0-9bd4-6ca1e5136e76",
+      "snapshotSource": {
+        "image": null,
+        "repo": "lyonbegin/autonomous-investor-backend",
+        "branch": "tradingview-service"
+      },
+      "source": {
+        "repo": "lyonbegin/autonomous-investor-backend",
+        "branch": "tradingview-service",
+        "rootDirectory": "browser_worker",
+        "checkSuites": false
+      },
+      "build": {
+        "builder": "DOCKERFILE",
+        "dockerfilePath": "Dockerfile"
+      },
+      "deploy": {
+        "healthcheckPath": "/health",
+        "healthcheckTimeout": 120,
+        "multiRegionConfig": {
+          "asia-southeast1-eqsg3a": {
+            "numReplicas": 1
+          }
+        }
+      },
+      "regions": [
+        "asia-southeast1-eqsg3a"
+      ],
+      "domains": [
+        {
+          "domain": "autonomous-investor-tradingview-browser-production.up.railway.app",
+          "port": 8080
+        }
+      ],
+      "volumes": [],
+      "environment_variable_names": [],
+      "detail_error": null
+    },
+    {
+      "service": "tradingview-corporate-bond-cron",
+      "id": "6f240b92-5fdf-4b1e-8288-12349d3fab39",
+      "snapshotSource": {
+        "image": "ghcr.io/railwayapp/function-bun:1.4.4",
+        "repo": null,
+        "branch": null
+      },
+      "source": {
+        "image": "ghcr.io/railwayapp/function-bun:1.4.4"
+      },
+      "build": {
+        "builder": "RAILPACK"
+      },
+      "deploy": {
+        "startCommand": null,
+        "restartPolicyType": "NEVER",
+        "multiRegionConfig": {
+          "us-west2": {
+            "numReplicas": 1
+          }
+        },
+        "cronSchedule": "*/5 * * * *"
+      },
+      "regions": [
+        "us-west2"
+      ],
+      "domains": [],
+      "volumes": [],
+      "environment_variable_names": [],
+      "detail_error": null
+    },
+    {
+      "service": "investment-n8n-ops-api",
+      "id": "0c1c0c69-6c16-41d5-abc7-cecc76036afa",
+      "snapshotSource": {
+        "image": null,
+        "repo": "lyonbegin/autonomous-investor-backend",
+        "branch": "feature/secure-selfhost-deployment"
+      },
+      "source": {
+        "repo": "lyonbegin/autonomous-investor-backend",
+        "branch": "feature/secure-selfhost-deployment",
+        "checkSuites": false
+      },
+      "build": {
+        "builder": "DOCKERFILE",
+        "dockerfilePath": "n8n/Dockerfile.backend"
+      },
+      "deploy": {
+        "healthcheckPath": "/health",
+        "restartPolicyType": "ALWAYS",
+        "multiRegionConfig": {
+          "us-west2": {
+            "numReplicas": 1
+          }
+        }
+      },
+      "regions": [
+        "us-west2"
+      ],
+      "domains": [],
+      "volumes": [
+        {
+          "volumeId": "500835ec-905c-4b55-bb65-65a6a52f64ca",
+          "volumeName": "investment-operations-data",
+          "mountPath": "/data"
+        }
+      ],
+      "environment_variable_names": [
+        "ALPHA_NODE_API_KEY",
+        "ALPHA_TRADINGVIEW_BASE",
+        "INVESTMENT_FLOW_DB_PATH",
+        "N8N_INTERNAL_WEBHOOK_BASE",
+        "PORT",
+        "SCENARIO_DB_PATH",
+        "STRATEGY_OPERATIONS_DB_PATH"
+      ],
+      "detail_error": null
+    },
+    {
+      "service": "tradingview-collector-cron",
+      "id": "b07ee32b-315e-4da4-a703-cfe5889930e6",
+      "snapshotSource": {
+        "image": "ghcr.io/railwayapp/function-bun:1.4.4",
+        "repo": null,
+        "branch": null
+      },
+      "source": {
+        "image": "ghcr.io/railwayapp/function-bun:1.4.4"
+      },
+      "build": {
+        "builder": "RAILPACK"
+      },
+      "deploy": {
+        "startCommand": null,
+        "restartPolicyType": "NEVER",
+        "multiRegionConfig": {
+          "us-west2": {
+            "numReplicas": 1
+          }
+        },
+        "cronSchedule": "*/5 * * * *"
+      },
+      "regions": [
+        "us-west2"
+      ],
+      "domains": [],
+      "volumes": [],
+      "environment_variable_names": [],
+      "detail_error": null
+    },
+    {
+      "service": "investment-n8n-preview-runtime",
+      "id": "f46ae0e9-f156-40ce-bdd9-48f25bb16a05",
+      "snapshotSource": {
+        "image": "docker.n8n.io/n8nio/n8n:2.7.2",
+        "repo": null,
+        "branch": null
+      },
+      "source": {
+        "image": "docker.n8n.io/n8nio/n8n:2.7.2"
+      },
+      "build": {
+        "builder": "RAILPACK"
+      },
+      "deploy": {
+        "multiRegionConfig": {
+          "us-west2": {
+            "numReplicas": 1
+          }
+        }
+      },
+      "regions": [
+        "us-west2"
+      ],
+      "domains": [],
+      "volumes": [],
+      "environment_variable_names": [
+        "DB_TYPE",
+        "N8N_DIAGNOSTICS_ENABLED",
+        "N8N_HOST",
+        "N8N_LOG_LEVEL",
+        "N8N_PORT",
+        "N8N_POSTMESSAGE_ALLOWED_ORIGINS",
+        "N8N_PREVIEW_MODE",
+        "N8N_SECURE_COOKIE",
+        "N8N_TEMPLATES_ENABLED"
+      ],
+      "detail_error": null
+    },
+    {
+      "service": "tradingview-horizon-v3-cron",
+      "id": "30242c82-5bb3-4a93-856d-f20203bb6b4a",
+      "snapshotSource": {
+        "image": "ghcr.io/railwayapp/function-bun:1.4.4",
+        "repo": null,
+        "branch": null
+      },
+      "source": {
+        "image": "ghcr.io/railwayapp/function-bun:1.4.4"
+      },
+      "build": {
+        "builder": "RAILPACK"
+      },
+      "deploy": {
+        "startCommand": null,
+        "restartPolicyType": "NEVER",
+        "multiRegionConfig": {
+          "us-west2": {
+            "numReplicas": 1
+          }
+        },
+        "cronSchedule": "*/5 * * * *"
+      },
+      "regions": [
+        "us-west2"
+      ],
+      "domains": [],
+      "volumes": [],
+      "environment_variable_names": [],
+      "detail_error": null
+    },
+    {
+      "service": "Redis",
+      "id": "1979d38a-942e-49df-959f-5a60625936e4",
+      "snapshotSource": {
+        "image": "redis:8.2",
+        "repo": null,
+        "branch": null
+      },
+      "source": {
+        "image": "redis:8.2"
+      },
+      "build": {
+        "builder": "RAILPACK"
+      },
+      "deploy": {
+        "startCommand": "/bin/sh -c \"rm -rf $RAILWAY_VOLUME_MOUNT_PATH/lost+found/ && exec docker-entrypoint.sh redis-server --requirepass $REDIS_PASSWORD --save 60 1 --dir $RAILWAY_VOLUME_MOUNT_PATH\"",
+        "multiRegionConfig": {
+          "us-west2": {
+            "numReplicas": 1
+          }
+        }
+      },
+      "regions": [
+        "us-west2"
+      ],
+      "domains": [],
+      "volumes": [
+        {
+          "volumeId": "e8131fde-c7b0-48f1-b224-9c6ce8470c73",
+          "volumeName": "redis-volume",
+          "mountPath": "/data"
+        }
+      ],
+      "environment_variable_names": [
+        "REDISHOST",
+        "REDISPASSWORD",
+        "REDISPORT",
+        "REDISUSER",
+        "REDIS_PASSWORD",
+        "REDIS_URL"
+      ],
+      "detail_error": null
+    },
+    {
+      "service": "autonomous-investor-api",
+      "id": "99323fe2-606d-44b7-8c4a-1a672aab968a",
+      "snapshotSource": {
+        "image": null,
+        "repo": "lyonbegin/autonomous-investor-backend",
+        "branch": "main"
+      },
+      "source": {
+        "repo": "lyonbegin/autonomous-investor-backend",
+        "branch": "main",
+        "rootDirectory": "/",
+        "checkSuites": false
+      },
+      "build": {
+        "builder": "DOCKERFILE",
+        "dockerfilePath": "Dockerfile"
+      },
+      "deploy": {
+        "startCommand": "uvicorn app.main:app --host 0.0.0.0 --port 8080",
+        "healthcheckPath": "/health",
+        "healthcheckTimeout": 120,
+        "multiRegionConfig": {
+          "us-west2": {
+            "numReplicas": 1
+          }
+        }
+      },
+      "regions": [
+        "us-west2"
+      ],
+      "domains": [
+        {
+          "domain": "autonomous-investor-api-production.up.railway.app",
+          "port": null
+        }
+      ],
+      "volumes": [],
+      "environment_variable_names": [
+        "PORT"
+      ],
+      "detail_error": null
+    }
+  ]
+}
