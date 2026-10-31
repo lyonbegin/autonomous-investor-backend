@@ -16,13 +16,13 @@
       ],
       "parameters": {
         "studioPython": {
-          "python_module": "wf01_node_executor",
+          "python_module": "investment_node_adapter",
           "python_function": "execute_node01",
-          "code_version": "wf01-n01-v1",
+          "code_version": "wf01-n01-v2",
           "node_character": "manual_collection_start"
         }
       },
-      "notes": "전략/라이브러리 수동 시작 노드. 기존 n8n manualTrigger 유형은 유지하고 별도의 허용 Python 함수만 단독 실행합니다. INPUT: ui_selection, requested_detail_limit. OUTPUT: kind/page/max_pages/max_detail_success/sort. Python 입출력은 브라우저별 SQLite node01_executions에 저장되며 TradingView 호출이나 다음 노드 실행은 하지 않습니다."
+      "notes": "프로젝트 전용 Python investment_node_adapter.execute_node01. 실행 결과 전부 SQLite node_runs 및 실제 N01→N02 edge_transfers로 전달. N02는 READY 상태만 되고 자동 실행하지 않음."
     },
     {
       "id": "wf01-library-02",
@@ -35,9 +35,15 @@
       ],
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "return [{json:{kind:'library',page:1,page_size:50,max_pages:20,sort:'updated_desc',selected_count:0}}];"
+        "jsCode": "return $input.all().map(({json:input})=>{if(input.kind!=='library')throw Error('COLLECTION_KIND_MISMATCH');if(!Number.isInteger(input.page)||!Number.isInteger(input.max_pages)||input.sort!=='recent_extended')throw Error('INVALID_UPSTREAM_CONFIG');return {json:{...input,page_size:input.page_size??50,selected_count:input.selected_count??0}};});",
+        "studioPython": {
+          "python_module": "investment_node_adapter",
+          "python_function": "execute_node02",
+          "code_version": "wf01-n02-v1",
+          "node_character": "collection_request_configuration"
+        }
       },
-      "notes": ""
+      "notes": "N01의 OUTPUT 전체를 수신하고 page_size·selected_count만 추가. 독립 Studio에서는 승인된 투자 프로젝트 execute_node02 어댑터 사용. 출력은 node_runs에 저장되고 N03의 입력 대기로 전달."
     },
     {
       "id": "wf01-library-03",
@@ -507,6 +513,7 @@
     "skip_imported_versions": true,
     "source_execution_wired": false,
     "requires_authorized_collector": true,
-    "node01PythonExecutionEnabled": true
+    "node01PythonExecutionEnabled": true,
+    "node02PythonExecutionEnabled": true
   }
 }
