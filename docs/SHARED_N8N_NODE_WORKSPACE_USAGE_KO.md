@@ -1,10 +1,19 @@
 # 주식 자동화 — 공통 n8n Studio 노드 작업 공간 사용법
 
+## 노드 실행 버튼 UX (공통 v3)
+
+- **노드 위 `▶ 실행`: 모달을 열지 않고 저장된 최신 INPUT으로 허용된 어댑터를 실행합니다. 캔버스가 보이는 상태로 노드가 실행 중/성공/실패 색상과 상태를 표시합니다.** 실행 기록은 서버 SQLite에 남습니다.
+- **노드 위 `⚙ 설정·이력`: 사용자가 이 버튼을 명시적으로 눌렀을 때만 노드 작업 공간 모달을 엽니다.** 이때 저장된 실제 실행 OUTPUT과 수정 이력을 조회합니다.
+- 모달의 `저장 후 ▶ 다시 실행`은 입력 편집 상황에서 명시적으로 실행 요청하는 별도 동작입니다. 새 모달을 열지 않습니다.
+- 이 정책은 공통 UI 동작이며 ProcureFlow 등 실제 어댑터 미연결 노드의 ▶ 실행은 비활성화됩니다.
+- 실제 Chromium 검증: https://github.com/lyonbegin/shared-n8n-studio/actions/runs/41229102100 (25/25 통과, Strategy/Library 모두 ▶ 클릭 후 모달 0개 확인).
+
+
 > 문서 기준: 2026-11-01  
 > 소비 프로젝트: `lyonbegin/autonomous-investor-backend` (브랜치 `feature/editor-wf01-canvas-20261029`)  
 > **공통 모듈 소유 저장소**: https://github.com/lyonbegin/shared-n8n-studio  
-> 공통 UI·서버 검증 커밋: `4ad935022085fece81b6761e9d065438050eb12d`  
-> 실제 브라우저 회귀: https://github.com/lyonbegin/shared-n8n-studio/actions/runs/41228535491 (23/23 통과)  
+> 공통 UI·서버 검증 커밋: `ae6653a8c4daae5d767c4d9c98b662ffc597a797`  
+> 실제 브라우저 회귀: https://github.com/lyonbegin/shared-n8n-studio/actions/runs/41229102100 (25/25 통과)  
 > **공통 기능 상세 계약**: https://github.com/lyonbegin/shared-n8n-studio/blob/feature/wf01-canvas-20261029/docs/SHARED_NODE_WORKSPACE_KO.md
 
 ## 1. 코드의 소유권과 사용 범위
@@ -113,7 +122,7 @@ docker build -f n8n/Dockerfile.native-editor-gateway -t investment-shared-editor
 
 배포 전에 `shared-n8n-studio`의 `server/test_studio_server.py`, `playground/tests/shared-node-workspace-live.spec.js`, `playground/tests/wf01-node01-python.spec.js`를 포함한 검증 결과를 확인해야 합니다.
 
-회귀 증거: https://github.com/lyonbegin/shared-n8n-studio/actions/runs/41228535491 (23/23 Playwright pass). **공통 모듈의 입력·수정 이력·N01 시범 실행**에 관한 검증이며, TradingView 실데이터 수집·프로덕션 n8n 전체 실행 테스트는 아닙니다.
+회귀 증거: https://github.com/lyonbegin/shared-n8n-studio/actions/runs/41229102100 (25/25 Playwright pass). **공통 모듈의 입력·수정 이력·N01 시범 실행**에 관한 검증이며, TradingView 실데이터 수집·프로덕션 n8n 전체 실행 테스트는 아닙니다.
 
 롤백은 Dockerfile에서 직전 검증된 커밋으로 되돌려 재배포합니다. 기존 SQLite 볼륨을 임의 삭제/초기화하지 않습니다. 새 DB 테이블은 이전 버전과 별도로 보존되며, 브라우저 세션 쿠키를 잃으면 다른 세션의 초안을 자동으로 이어 볼 수 없습니다.
 
