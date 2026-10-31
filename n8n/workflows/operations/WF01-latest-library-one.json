@@ -1,0 +1,519 @@
+{
+  "name": "WF-01 · 라이브러리만 최신순 1개 수집 (선택 실행 · 미연결)",
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "nodes": [
+    {
+      "id": "wf01-library-01",
+      "name": "01 라이브러리 1개 수집 시작",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        120,
+        160
+      ],
+      "parameters": {
+        "studioPython": {
+          "python_module": "investment_node_adapter",
+          "python_function": "execute_node01",
+          "code_version": "wf01-n01-v2",
+          "node_character": "manual_collection_start"
+        }
+      },
+      "notes": "프로젝트 전용 Python investment_node_adapter.execute_node01. 실행 결과 전부 SQLite node_runs 및 실제 N01→N02 edge_transfers로 전달. N02는 READY 상태만 되고 자동 실행하지 않음."
+    },
+    {
+      "id": "wf01-library-02",
+      "name": "02 라이브러리 최신 목록 1페이지 설정",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        400,
+        160
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "return $input.all().map(({json:input})=>{if(input.kind!=='library')throw Error('COLLECTION_KIND_MISMATCH');if(!Number.isInteger(input.page)||!Number.isInteger(input.max_pages)||input.sort!=='recent_extended')throw Error('INVALID_UPSTREAM_CONFIG');return {json:{...input,page_size:input.page_size??50,selected_count:input.selected_count??0}};});",
+        "studioPython": {
+          "python_module": "investment_node_adapter",
+          "python_function": "execute_node02",
+          "code_version": "wf01-n02-v1",
+          "node_character": "collection_request_configuration"
+        }
+      },
+      "notes": "N01의 OUTPUT 전체를 수신하고 page_size·selected_count만 추가. 독립 Studio에서는 승인된 투자 프로젝트 execute_node02 어댑터 사용. 출력은 node_runs에 저장되고 N03의 입력 대기로 전달."
+    },
+    {
+      "id": "wf01-library-03",
+      "name": "03 TradingView 라이브러리 최신 목록 요청",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        680,
+        160
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "={{$env.TRADINGVIEW_COLLECTOR_BASE_URL}}/api/v1/tradingview/scripts/catalog?kind=library&sort=updated_desc&page={{$json.page}}&page_size=50",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 30000
+        },
+        "sendBody": false
+      },
+      "notes": "이 URL은 연동 계약이며 현재 실제 서비스 API 동작은 확인되지 않았습니다. Credential 및 허가된 수집기 연결 전 활성화 금지."
+    },
+    {
+      "id": "wf01-library-04",
+      "name": "04 라이브러리 후보 순서·종류 검증",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        160
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "return $input.all().map(({json:r})=>{if(!r||r.status!=='ok'||!Array.isArray(r.items))throw Error('CATALOG_UNAVAILABLE');const filtered=r.items.filter(x=>x.kind==='library'&&typeof x.source_id==='string'&&typeof x.version_key==='string').sort((a,b)=>String(b.updated_at||'').localeCompare(String(a.updated_at||'')));return {json:{kind:'library',page:r.page,next_page:r.next_page??null,max_pages:20,candidates:filtered.map(x=>({source_id:x.source_id,version_key:x.version_key,updated_at:x.updated_at,source_url:x.source_url,kind:'library'})),latest_checked:true,source:'authorized_tradingview_collector'}};});"
+      },
+      "notes": ""
+    },
+    {
+      "id": "wf01-library-05",
+      "name": "05 기존 라이브러리 버전 일괄 대조",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1240,
+        160
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.SOURCE_REGISTRY_BASE_URL}}/api/v1/source-registry/check-batch",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 30000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {kind:$json.kind,page:$json.page,next_page:$json.next_page,max_pages:$json.max_pages,candidates:$json.candidates} }}"
+      },
+      "notes": "이 URL은 연동 계약이며 현재 실제 서비스 API 동작은 확인되지 않았습니다. Credential 및 허가된 수집기 연결 전 활성화 금지."
+    },
+    {
+      "id": "wf01-library-06",
+      "name": "06 라이브러리 첫 신규 버전 1개 고르기",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1520,
+        160
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "return $input.all().map(({json:r})=>{if(!r||r.kind!=='library'||!Array.isArray(r.items))throw Error('REGISTRY_CHECK_FAILED');const first=r.items.find(x=>x.kind==='library'&&x.imported===false&&typeof x.source_id==='string'&&typeof x.version_key==='string');return {json:{kind:'library',candidate:first?{source_id:first.source_id,version_key:first.version_key,kind:'library',updated_at:first.updated_at}:null,has_candidate:!!first,page:r.page,next_page:r.next_page??null,max_pages:r.max_pages||20,can_continue:Number.isInteger(r.next_page)&&r.next_page>r.page&&r.next_page<=(r.max_pages||20),checked_count:r.items.length,selected_count:0}};});"
+      },
+      "notes": ""
+    },
+    {
+      "id": "wf01-library-07",
+      "name": "07 신규 라이브러리 찾았나?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1790,
+        160
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "condition-7",
+              "leftValue": "={{$json.has_candidate}}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ]
+        }
+      },
+      "notes": ""
+    },
+    {
+      "id": "wf01-library-08",
+      "name": "08 다음 페이지 남았나?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2040,
+        400
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "condition-8",
+              "leftValue": "={{$json.can_continue}}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ]
+        }
+      },
+      "notes": ""
+    },
+    {
+      "id": "wf01-library-09",
+      "name": "09 다음 페이지로 이동",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2320,
+        390
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "return $input.all().map(({json:p})=>({json:{kind:'library',page:p.next_page,page_size:50,max_pages:p.max_pages,sort:'updated_desc',selected_count:0}}));"
+      },
+      "notes": ""
+    },
+    {
+      "id": "wf01-library-10",
+      "name": "10 최신 목록 탐색 종료 (신규 없음)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2320,
+        600
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "return $input.all().map(({json:p})=>({json:{kind:'library',status:'NO_NEW_ITEM',saved_count:0,checked_page:p.page,next_page:p.next_page??null}}));"
+      },
+      "notes": ""
+    },
+    {
+      "id": "wf01-library-11",
+      "name": "11 라이브러리 원본 상세 Pine 요청",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2070,
+        100
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "={{$env.TRADINGVIEW_COLLECTOR_BASE_URL}}/api/v1/tradingview/scripts/source?kind=library&source_id={{$json.candidate.source_id}}&version_key={{$json.candidate.version_key}}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 30000
+        },
+        "sendBody": false
+      },
+      "notes": "이 URL은 연동 계약이며 현재 실제 서비스 API 동작은 확인되지 않았습니다. Credential 및 허가된 수집기 연결 전 활성화 금지."
+    },
+    {
+      "id": "wf01-library-12",
+      "name": "12 라이브러리 Pine 코드·출처 확인",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2350,
+        100
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const selected=$('06 라이브러리 첫 신규 버전 1개 고르기').last().json.candidate;return $input.all().map(({json:p})=>{const ok=p.kind==='library'&&p.source_id===selected.source_id&&p.version_key===selected.version_key&&p.access==='open'&&typeof p.pine_code==='string'&&p.pine_code.length>=10&&typeof p.source_url==='string'&&p.source_url.startsWith('https://');return {json:{kind:'library',source_id:p.source_id,version_key:p.version_key,source_url:p.source_url,author:p.author||null,license:p.license||null,updated_at:p.updated_at||null,pine_code:ok?p.pine_code:null,source_available:ok,rights_state:'PENDING_REVIEW',selected_count:0}};});"
+      },
+      "notes": ""
+    },
+    {
+      "id": "wf01-library-13",
+      "name": "13 공개된 원본 코드 확보?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2600,
+        100
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "condition-13",
+              "leftValue": "={{$json.source_available}}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ]
+        }
+      },
+      "notes": ""
+    },
+    {
+      "id": "wf01-library-14",
+      "name": "14 원본 비공개·불가 보류",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2880,
+        320
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "return $input.all().map(({json:p})=>({json:{kind:'library',status:'SOURCE_UNAVAILABLE',source_id:p.source_id,version_key:p.version_key,saved_count:0,reason:'No authorized full Pine source was returned'}}));"
+      },
+      "notes": ""
+    },
+    {
+      "id": "wf01-library-15",
+      "name": "15 라이브러리 신규 버전 1개 저장",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2870,
+        20
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.SOURCE_REGISTRY_BASE_URL}}/api/v1/source-registry/import",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 30000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {kind:$json.kind,source_id:$json.source_id,version_key:$json.version_key,source_url:$json.source_url,author:$json.author,license:$json.license,updated_at:$json.updated_at,pine_code:$json.pine_code,rights_state:'PENDING_REVIEW',idempotency_key:$json.kind+':'+$json.source_id+':'+$json.version_key} }}"
+      },
+      "notes": "이 URL은 연동 계약이며 현재 실제 서비스 API 동작은 확인되지 않았습니다. Credential 및 허가된 수집기 연결 전 활성화 금지."
+    },
+    {
+      "id": "wf01-library-16",
+      "name": "16 라이브러리 1개 처리 결과",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3150,
+        20
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "return $input.all().map(({json:p})=>{if(p.kind!=='library'||!['IMPORTED','ALREADY_IMPORTED'].includes(p.status))throw Error('IMPORT_NOT_CONFIRMED');return {json:{kind:'library',status:p.status,saved_count:p.status==='IMPORTED'?1:0,source_id:p.source_id,version_key:p.version_key,sha256:p.sha256||null,rights_state:p.rights_state||'PENDING_REVIEW',imported_at:p.imported_at||null}};});"
+      },
+      "notes": ""
+    }
+  ],
+  "connections": {
+    "01 라이브러리 1개 수집 시작": {
+      "main": [
+        [
+          {
+            "node": "02 라이브러리 최신 목록 1페이지 설정",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "02 라이브러리 최신 목록 1페이지 설정": {
+      "main": [
+        [
+          {
+            "node": "03 TradingView 라이브러리 최신 목록 요청",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "03 TradingView 라이브러리 최신 목록 요청": {
+      "main": [
+        [
+          {
+            "node": "04 라이브러리 후보 순서·종류 검증",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "04 라이브러리 후보 순서·종류 검증": {
+      "main": [
+        [
+          {
+            "node": "05 기존 라이브러리 버전 일괄 대조",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "05 기존 라이브러리 버전 일괄 대조": {
+      "main": [
+        [
+          {
+            "node": "06 라이브러리 첫 신규 버전 1개 고르기",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "06 라이브러리 첫 신규 버전 1개 고르기": {
+      "main": [
+        [
+          {
+            "node": "07 신규 라이브러리 찾았나?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "07 신규 라이브러리 찾았나?": {
+      "main": [
+        [
+          {
+            "node": "11 라이브러리 원본 상세 Pine 요청",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "08 다음 페이지 남았나?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "08 다음 페이지 남았나?": {
+      "main": [
+        [
+          {
+            "node": "09 다음 페이지로 이동",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "10 최신 목록 탐색 종료 (신규 없음)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "09 다음 페이지로 이동": {
+      "main": [
+        [
+          {
+            "node": "03 TradingView 라이브러리 최신 목록 요청",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "11 라이브러리 원본 상세 Pine 요청": {
+      "main": [
+        [
+          {
+            "node": "12 라이브러리 Pine 코드·출처 확인",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "12 라이브러리 Pine 코드·출처 확인": {
+      "main": [
+        [
+          {
+            "node": "13 공개된 원본 코드 확보?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "13 공개된 원본 코드 확보?": {
+      "main": [
+        [
+          {
+            "node": "15 라이브러리 신규 버전 1개 저장",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "14 원본 비공개·불가 보류",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "15 라이브러리 신규 버전 1개 저장": {
+      "main": [
+        [
+          {
+            "node": "16 라이브러리 1개 처리 결과",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "staticData": null,
+  "pinData": {},
+  "tags": [],
+  "meta": {
+    "editorOnly": true,
+    "workflow_id": "WF-01-LIBRARY",
+    "kind": "library",
+    "limit_per_execution": 1,
+    "always_start_at_latest": true,
+    "skip_imported_versions": true,
+    "source_execution_wired": false,
+    "requires_authorized_collector": true,
+    "node01PythonExecutionEnabled": true,
+    "node02PythonExecutionEnabled": true
+  }
+}

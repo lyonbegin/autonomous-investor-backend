@@ -1,0 +1,45 @@
+name: WF01 project adapter contract
+on:
+  push:
+    branches: [feature/editor-wf01-canvas-20261029]
+    paths:
+      - 'n8n/editor-adapter/**'
+      - 'n8n/workflows/operations/WF01-latest-strategy-one.json'
+      - 'n8n/workflows/operations/WF01-latest-library-one.json'
+      - 'n8n/Dockerfile.native-editor-gateway'
+      - '.github/workflows/wf01-project-adapter-contract.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  python-and-workflows:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Project adapter is side-effect free and passes tests
+        run: |
+          python3 -m py_compile n8n/editor-adapter/investment_node_adapter.py
+          PYTHONPATH=n8n/editor-adapter python3 -m unittest discover -s n8n/editor-adapter -p 'test_*.py'
+      - name: Validate N01/N02 binding, original n8n node types and real edges
+        run: |
+          PYTHONPATH=n8n/editor-adapter python3 - <<'PY'
+          import json
+          from pathlib import Path
+          from investment_node_adapter import node_binding,execute_node01,execute_node02
+          for kind in ("strategy","library"):
+              workflow="operations/WF01-latest-"+kind+"-one.json"
+              w=json.loads((Path("n8n/workflows")/workflow).read_text())
+              nodes={n["id"]:n for n in w["nodes"]}
+              n1=nodes[f"wf01-{kind}-01"];n2=nodes[f"wf01-{kind}-02"]
+              assert n1["type"]=="n8n-nodes-base.manualTrigger"
+              assert n2["type"]=="n8n-nodes-base.code"
+              assert n1["parameters"]["studioPython"]==node_binding(workflow,n1["id"])
+              assert n2["parameters"]["studioPython"]==node_binding(workflow,n2["id"])
+              assert "input" in n2["parameters"]["jsCode"]
+              assert w["connections"][n1["name"]]["main"][0][0]["node"]==n2["name"]
+              n1_output=execute_node01({"ui_selection":kind,"requested_detail_limit":1},workflow_kind=kind)
+              n2_output=execute_node02(n1_output,workflow_kind=kind)
+              assert all(n2_output[k]==v for k,v in n1_output.items())
+              assert n2_output["page_size"]==50
+          PY

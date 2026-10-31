@@ -1,0 +1,408 @@
+{
+  "id": "WF01PineIntakeEditor",
+  "name": "WF-01 TradingView Pine 원본 등록 · 라이선스 검토",
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "nodes": [
+    {
+      "id": "wf01-trigger",
+      "name": "관리자 원본 등록",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        140,
+        220
+      ],
+      "parameters": {},
+      "notes": ""
+    },
+    {
+      "id": "입력 정규화",
+      "name": "입력 정규화",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        410,
+        220
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "return [{json:{source_id:'DEMO_STRATEGY',script_type:'strategy',pine_version:6,source_code:'//@version=6\\nstrategy(\"Example\")\\nplot(close)',author:'authorized-user',rights_evidence:'DEMO ONLY - human review required'}}];"
+      },
+      "notes": ""
+    },
+    {
+      "id": "필수 필드 검사",
+      "name": "필수 필드 검사",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        690,
+        220
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "return $input.all().map(item=>{const p=item.json;const required=['source_id','script_type','pine_version','source_code','author','rights_evidence'];return {json:{...p,valid:required.every(k=>Boolean(p[k])),validation_source:'WF01'}}});"
+      },
+      "notes": ""
+    },
+    {
+      "id": "check-fields",
+      "name": "필수 정보 있나?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        970,
+        220
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "valid",
+              "leftValue": "={{$json.valid}}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ]
+        }
+      },
+      "notes": ""
+    },
+    {
+      "id": "register",
+      "name": "Pine 원본 버전 등록",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1250,
+        100
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.INVESTMENT_API_URL}}/api/v1/alpha/pine/sources",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 30000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{$json}}"
+      },
+      "notes": "인증 헤더는 n8n Credential로 연결. 운영 배포 전 실제 서비스 및 API 응답 확인 필수."
+    },
+    {
+      "id": "fail-fields",
+      "name": "입력 부족 기록",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        1250,
+        420
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "return $input.all().map(x=>({json:{state:'REJECTED_INPUT',reason:'Missing required Pine metadata',source_id:x.json.source_id}}));"
+      },
+      "notes": ""
+    },
+    {
+      "id": "dup",
+      "name": "중복 버전인가?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1530,
+        100
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "dupcheck",
+              "leftValue": "={{$json.duplicate}}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ]
+        }
+      },
+      "notes": ""
+    },
+    {
+      "id": "existing",
+      "name": "기존 버전 유지",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        1820,
+        -80
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "return $input.all().map(x=>({json:{...x.json,outcome:'ALREADY_REGISTERED'}}));"
+      },
+      "notes": ""
+    },
+    {
+      "id": "read",
+      "name": "저장 버전 다시 조회",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1820,
+        190
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "={{$env.INVESTMENT_API_URL}}/api/v1/alpha/pine/sources/{{$json.source_id}}/versions/{{$json.version}}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 30000
+        },
+        "sendBody": false,
+        "specifyBody": "json",
+        "jsonBody": "={{$json}}"
+      },
+      "notes": "인증 헤더는 n8n Credential로 연결. 운영 배포 전 실제 서비스 및 API 응답 확인 필수."
+    },
+    {
+      "id": "review-queue",
+      "name": "수동 권리 검토 대기",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        2110,
+        190
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "return $input.all().map(x=>({json:{...x.json,next_action:'REVIEW_REQUIRED',conversion_allowed:false,paper_allowed:false}}));"
+      },
+      "notes": ""
+    },
+    {
+      "id": "review-if",
+      "name": "권리 승인됐나?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2420,
+        190
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "approve",
+              "leftValue": "={{$json.rights_state}}",
+              "rightValue": "APPROVED",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ]
+        }
+      },
+      "notes": ""
+    },
+    {
+      "id": "convert-input",
+      "name": "승인 버전 WF-02 입력 조회",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2730,
+        70
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "={{$env.INVESTMENT_API_URL}}/api/v1/alpha/pine/sources/{{$json.source_id}}/versions/{{$json.version}}/conversion-input",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 30000
+        },
+        "sendBody": false,
+        "specifyBody": "json",
+        "jsonBody": "={{$json}}"
+      },
+      "notes": "인증 헤더는 n8n Credential로 연결. 운영 배포 전 실제 서비스 및 API 응답 확인 필수."
+    },
+    {
+      "id": "hold",
+      "name": "미승인 HOLD",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        2730,
+        330
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "return $input.all().map(x=>({json:{...x.json,status:'PENDING_HUMAN_REVIEW',wf02_started:false}}));"
+      },
+      "notes": ""
+    }
+  ],
+  "connections": {
+    "관리자 원본 등록": {
+      "main": [
+        [
+          {
+            "node": "입력 정규화",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "입력 정규화": {
+      "main": [
+        [
+          {
+            "node": "필수 필드 검사",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "필수 필드 검사": {
+      "main": [
+        [
+          {
+            "node": "필수 정보 있나?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "필수 정보 있나?": {
+      "main": [
+        [
+          {
+            "node": "Pine 원본 버전 등록",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "입력 부족 기록",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pine 원본 버전 등록": {
+      "main": [
+        [
+          {
+            "node": "중복 버전인가?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "중복 버전인가?": {
+      "main": [
+        [
+          {
+            "node": "기존 버전 유지",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "저장 버전 다시 조회",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "저장 버전 다시 조회": {
+      "main": [
+        [
+          {
+            "node": "수동 권리 검토 대기",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "수동 권리 검토 대기": {
+      "main": [
+        [
+          {
+            "node": "권리 승인됐나?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "권리 승인됐나?": {
+      "main": [
+        [
+          {
+            "node": "승인 버전 WF-02 입력 조회",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "미승인 HOLD",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "tags": [],
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "pinData": {},
+  "versionId": "wf01-editor-draft-20261029"
+}
