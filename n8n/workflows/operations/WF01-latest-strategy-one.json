@@ -245,7 +245,7 @@
     },
     {
       "id": "wf01-strategy-11",
-      "name": "11 전략 원본 상세 Pine 요청",
+      "name": "11 전략 Pine 코드 가져오기",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
@@ -268,85 +268,11 @@
           "node_character": "verified_operator_pine_source"
         }
       },
-      "notes": "선택된 전략이 공개 GitHub 고정 리비전 원본에 해당할 때 그 파일을 HTTPS로 가져와 외부 스냅샷 SHA256과 바이트 단위 비교. 일치해야 N12로 전달. 출처: venkatalokeshanne/trading_strategies_indicators/TradingView/strategies/Hrc7Gfqe...pine, 원작자 NICK789 MPL-2.0. TradingView 직접 크롤링/렌더링 아님. 다른 전략은 직접 Pine 원본을 제공하여 SHA 검증하거나 FAILED 처리."
-    },
-    {
-      "id": "wf01-strategy-12",
-      "name": "12 전략 Pine 코드·출처 확인",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        2350,
-        100
-      ],
-      "parameters": {
-        "mode": "runOnceForAllItems",
-        "jsCode": "return $input.all().map(({json:r})=>{if(r.kind!=='strategy'||r.source_hash_verified!==true||r.pine_source_acquired!==true||!r.candidate||typeof r.pine_code!=='string')throw Error('N12_UNVERIFIED_ORIGINAL_SOURCE');return {json:{...r,source_available:true,source_integrity_checked:true,source_id:r.candidate.source_id,version_key:r.candidate.version_key,source_url:r.candidate.source_url,author:r.candidate.author,license:r.candidate.source_license_reported,conversion_validated:false,tradingview_chart_validated:false,source_review_approved:false}};});",
-        "studioPython": {
-          "python_module": "investment_node_adapter",
-          "python_function": "execute_node12",
-          "code_version": "wf01-n12-original-source-contract-v1",
-          "node_character": "validated_pine_source_contract"
-        }
-      },
-      "notes": "N11이 실제 확보한 Pine 원본의 SHA256을 N03 스냅샷 해시와 독립 비교. Pine 버전·strategy 선언·원작자/MPL 고지를 검증하여 N13 IF에 source_available 전달. Pine→Python 변환/TradingView 그래프 동일성/소스 권리 승인은 여기서 아직 합격 처리하지 않음."
-    },
-    {
-      "id": "wf01-strategy-13",
-      "name": "13 공개된 원본 코드 확보?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2,
-      "position": [
-        2600,
-        100
-      ],
-      "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "strict",
-            "version": 2
-          },
-          "combinator": "and",
-          "conditions": [
-            {
-              "id": "condition-13",
-              "leftValue": "={{$json.source_available}}",
-              "operator": {
-                "type": "boolean",
-                "operation": "true"
-              }
-            }
-          ]
-        },
-        "studioPython": {
-          "python_module": "investment_node_adapter",
-          "python_function": "execute_node13",
-          "code_version": "wf01-n13-conditional-source-v1",
-          "node_character": "conditional_route"
-        }
-      },
-      "notes": "N12에서 검증한 실제 Pine source_available=true와 source_hash_verified=true면 N15 소스 저장 경로(참 출력 0번)만 READY. 미확보 또는 무결성 실패면 거짓 출력 N14만 READY. 공통 IF 활성 포트 제한 기능으로 양쪽 동시 활성화 방지."
-    },
-    {
-      "id": "wf01-strategy-14",
-      "name": "14 원본 비공개·불가 보류",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        2880,
-        320
-      ],
-      "parameters": {
-        "mode": "runOnceForAllItems",
-        "jsCode": "return $input.all().map(({json:p})=>({json:{kind:'strategy',status:'SOURCE_UNAVAILABLE',source_id:p.source_id,version_key:p.version_key,saved_count:0,reason:'No authorized full Pine source was returned'}}));"
-      },
-      "notes": ""
+      "notes": "실제 Pine 코드를 가져온다. 작성자 이름·해시·출처 대조로 변환을 차단하지 않는다. 사용권은 별도 검토(PENDING_REVIEW)."
     },
     {
       "id": "wf01-strategy-15",
-      "name": "15 전략 신규 버전 1개 저장",
+      "name": "15 전략 Pine 코드 저장",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
@@ -363,7 +289,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ {kind:$json.kind,source_id:$json.source_id,version_key:$json.version_key,source_url:$json.source_url,author:$json.author,license:$json.license,updated_at:$json.updated_at,pine_code:$json.pine_code,rights_state:'PENDING_REVIEW',idempotency_key:$json.kind+':'+$json.source_id+':'+$json.version_key} }}",
+        "jsonBody": "={{ {kind:$json.kind,source_id:$json.candidate.source_id,version_key:$json.candidate.version_key,pine_code:$json.pine_code} }}",
         "studioPython": {
           "python_module": "investment_node_adapter",
           "python_function": "execute_node15",
@@ -371,11 +297,11 @@
           "node_character": "idempotent_verified_pine_store"
         }
       },
-      "notes": "N13 진짜 참 분기의 SHA 검증된 원본 Pine만 SQLite investment_pine_source_artifacts / investment_pine_versions 에 idempotent 저장. Pine 원본 전체·SHA·작성자·라이선스·원본 URL을 보존하고 source_review_approved=false, conversion_validated=false, tradingview_chart_validated=false로 기록. 실제 거래는 비활성."
+      "notes": "확보한 Pine 코드 자체를 SQLite에 저장. 해시·저작자·원본 URL을 별도 검증/저장하지 않음. 미확보 코드는 저장하지 않음."
     },
     {
       "id": "wf01-strategy-16",
-      "name": "16 전략 1개 처리 결과",
+      "name": "16 전략 저장 결과 확인",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
@@ -384,7 +310,7 @@
       ],
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "return $input.all().map(({json:p})=>{if(p.kind!=='strategy'||p.status!=='VERIFIED_ORIGINAL_STORED_AWAITING_CONVERSION_AND_REVIEW'||p.source_saved!==true||p.source_review_approved!==false||p.conversion_validated!==false||p.tradingview_chart_validated!==false)throw Error('N16_N15_RECEIPT_INVALID');return {json:{kind:p.kind,status:'SOURCE_STORED_REVIEW_PENDING',saved_count:p.source_created===true?1:0,source_id:p.source_id,version_key:p.version_key,sha256:p.pine_source_sha256,rights_state:p.rights_state,db_readback_verified:false,conversion_validated:false,tradingview_chart_validated:false,source_review_approved:false,paper_enabled:false,live_orders_enabled:false}};});",
+        "jsCode": "return $input.all().map(({json:p})=>{if(p.kind!=='strategy'||p.source_saved!==true||p.status!=='PINE_SAVED_CONVERSION_PENDING')throw Error('PINE_NOT_SAVED');return {json:{kind:p.kind,status:'PINE_SAVED_CONVERSION_PENDING',source_id:p.source_id,version_key:p.version_key,saved_count:p.saved_count,rights_state:'PENDING_REVIEW',conversion_validated:false,tradingview_chart_validated:false,paper_enabled:false,live_orders_enabled:false}};});",
         "studioPython": {
           "python_module": "investment_node_adapter",
           "python_function": "execute_node16",
@@ -392,7 +318,7 @@
           "node_character": "verified_source_import_receipt"
         }
       },
-      "notes": "N15 결과를 전달받아 Python 어댑터에서 SQLite artifact+version을 독립 재조회해 무결성 확인. 단독 n8n JS 실행은 DB 검증을 수행하지 않으므로 db_readback_verified=false로 표시하며 최종 PASS 불가."
+      "notes": "중복 검증 없이 실제 DB 저장 성공 결과 표시. Pine→Python 변환과 차트 검증은 WF-02에서 진행."
     }
   ],
   "connections": {
@@ -466,7 +392,7 @@
       "main": [
         [
           {
-            "node": "11 전략 원본 상세 Pine 요청",
+            "node": "11 전략 Pine 코드 가져오기",
             "type": "main",
             "index": 0
           }
@@ -509,51 +435,22 @@
         ]
       ]
     },
-    "11 전략 원본 상세 Pine 요청": {
+    "11 전략 Pine 코드 가져오기": {
       "main": [
         [
           {
-            "node": "12 전략 Pine 코드·출처 확인",
+            "node": "15 전략 Pine 코드 저장",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "12 전략 Pine 코드·출처 확인": {
+    "15 전략 Pine 코드 저장": {
       "main": [
         [
           {
-            "node": "13 공개된 원본 코드 확보?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "13 공개된 원본 코드 확보?": {
-      "main": [
-        [
-          {
-            "node": "15 전략 신규 버전 1개 저장",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "14 원본 비공개·불가 보류",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "15 전략 신규 버전 1개 저장": {
-      "main": [
-        [
-          {
-            "node": "16 전략 1개 처리 결과",
+            "node": "16 전략 저장 결과 확인",
             "type": "main",
             "index": 0
           }
@@ -571,7 +468,7 @@
     "limit_per_execution": 1,
     "always_start_at_latest": true,
     "skip_imported_versions": true,
-    "source_execution_wired": false,
+    "source_execution_wired": true,
     "requires_authorized_collector": true,
     "node01PythonExecutionEnabled": true,
     "node02PythonExecutionEnabled": true,
@@ -581,8 +478,6 @@
     "node06PythonExecutionEnabled": true,
     "node07PythonExecutionEnabled": true,
     "node11PythonExecutionEnabled": true,
-    "node12PythonExecutionEnabled": true,
-    "node13PythonExecutionEnabled": true,
     "node15PythonExecutionEnabled": true,
     "node16PythonExecutionEnabled": true
   }
