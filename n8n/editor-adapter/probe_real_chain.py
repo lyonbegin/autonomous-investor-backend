@@ -148,7 +148,13 @@ def perform():
 
 if __name__=="__main__":
     try:
-        print(json.dumps(perform(),ensure_ascii=False,indent=2),flush=True)
+        outcome=perform()
+        print(json.dumps(outcome,ensure_ascii=False,indent=2),flush=True)
+        # A safely rejected unauthorized or missing collector does NOT count
+        # as successful end-to-end strategy collection.
+        if os.environ.get("WF01_REQUIRE_N03_SUCCESS")=="1" and outcome["result"]!="N03_AUTHORIZED_REAL_FEED_SUCCESS_N04_NOT_EXECUTED":
+            print("FIRST_STAGE_NOT_PASSED: N03 has no actual authorized strategy list; N04 must not run",file=sys.stderr,flush=True)
+            sys.exit(3)
     except Exception as e:
         print("CHAIN_PROBE_FAILED",type(e).__name__,str(e),
               json.dumps(RECORDED,ensure_ascii=False),file=sys.stderr,flush=True)
