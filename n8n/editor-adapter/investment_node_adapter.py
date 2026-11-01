@@ -13,6 +13,7 @@ import urllib.request
 from licensed_strategy_manifest import catalog_from_snapshot
 from investment_source_registry import check_candidates
 from verified_pine_archive import acquire_verified_pine
+from investment_pine_store import save_verified_source
 from datetime import datetime,timezone
 
 WF01_MODES={
@@ -64,6 +65,10 @@ def node_binding(workflow_path,node_id):
         return {"python_module":"investment_node_adapter",
           "python_function":"execute_node13","code_version":"wf01-n13-conditional-source-v1",
           "node_character":"conditional_route"}
+    if node_id==prefix+"15":
+        return {"python_module":"investment_node_adapter",
+          "python_function":"execute_node15","code_version":"wf01-n15-sqlite-pine-artifact-v1",
+          "node_character":"idempotent_verified_pine_store"}
     return None
 
 def node_type(workflow_path,node_id):
@@ -80,6 +85,7 @@ def node_type(workflow_path,node_id):
       "wf01-"+kind+"-11":"n8n-nodes-base.httpRequest",
       "wf01-"+kind+"-12":"n8n-nodes-base.code",
       "wf01-"+kind+"-13":"n8n-nodes-base.if",
+      "wf01-"+kind+"-15":"n8n-nodes-base.httpRequest",
     }.get(node_id)
 
 def execute_node01(input_json,*,workflow_kind):
@@ -481,6 +487,22 @@ def execute_node13(input_json,*,workflow_kind):
        "branch_decided_at":datetime.now(timezone.utc).isoformat(),
        "next_node_executed":False}
 
+def execute_node15(input_json,*,workflow_kind):
+    """Write one verified Pine original to the project registry (no trades)."""
+    if not isinstance(input_json,dict) or input_json.get("kind")!=workflow_kind:
+        raise ValueError("N15_UPSTREAM_KIND_MISMATCH")
+    if input_json.get("source_branch")!="VERIFIED_PINE_TO_IMPORT" or (
+        input_json.get("_studio_active_ports")!=[0]):
+        raise ValueError("N15_UNVERIFIED_N13_BRANCH")
+    candidate=input_json.get("candidate")
+    if not isinstance(candidate,dict) or candidate.get("kind")!=workflow_kind:
+        raise ValueError("N15_CANDIDATE_MISSING")
+    stored=save_verified_source(input_json,workflow_kind)
+    return {**input_json,**stored,
+        "saved_count":1 if stored["source_created"] else 0,
+        "status":"VERIFIED_ORIGINAL_STORED_AWAITING_CONVERSION_AND_REVIEW",
+        "next_node_executed":False}
+
 def execute_node(workflow_path,node_id,input_json):
     kind=WF01_MODES.get(workflow_path)
     binding=node_binding(workflow_path,node_id)
@@ -493,7 +515,8 @@ def execute_node(workflow_path,node_id,input_json):
                "execute_node07":execute_node07,
                "execute_node11":execute_node11,
                "execute_node12":execute_node12,
-               "execute_node13":execute_node13}
+               "execute_node13":execute_node13,
+               "execute_node15":execute_node15}
     func=functions[binding["python_function"]]
     return func(input_json,workflow_kind=kind)
 
@@ -502,6 +525,6 @@ def default_node_input(workflow_path,node_id):
     if not kind:return None
     if node_id=="wf01-"+kind+"-01":
         return {"ui_selection":kind,"requested_detail_limit":1}
-    if node_id in ("wf01-"+kind+"-02","wf01-"+kind+"-03","wf01-"+kind+"-04","wf01-"+kind+"-05","wf01-"+kind+"-06","wf01-"+kind+"-07","wf01-"+kind+"-11","wf01-"+kind+"-12","wf01-"+kind+"-13"):
+    if node_id in ("wf01-"+kind+"-02","wf01-"+kind+"-03","wf01-"+kind+"-04","wf01-"+kind+"-05","wf01-"+kind+"-06","wf01-"+kind+"-07","wf01-"+kind+"-11","wf01-"+kind+"-12","wf01-"+kind+"-13","wf01-"+kind+"-15"):
         return {}
     return None
