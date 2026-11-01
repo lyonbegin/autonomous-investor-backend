@@ -160,4 +160,20 @@ class InvestmentNodeAdapterTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,"N06_REGISTRY_NOT_CHECKED"):
             execute_node06({**n5,"source_registry_checked":False},workflow_kind="strategy")
 
+    def test_n07_true_false_selects_only_one_real_graph_port(self):
+        from investment_node_adapter import execute_node07
+        base={"kind":"strategy","source_registry_checked":True,
+              "candidate":{"source_id":"PUB;one","version_key":"1"},"has_candidate":True}
+        yes=execute_node07(base,workflow_kind="strategy")
+        self.assertEqual(yes["_studio_active_ports"],[0])
+        self.assertEqual(yes["condition_result"],True)
+        self.assertEqual(yes["candidate"],base["candidate"])
+        no=execute_node07({**base,"candidate":None,"has_candidate":False},workflow_kind="strategy")
+        self.assertEqual(no["_studio_active_ports"],[1])
+        self.assertEqual(no["branch_label"],"NO_CANDIDATE")
+        with self.assertRaisesRegex(ValueError,"N07_BOOLEAN_CONDITION_REQUIRED"):
+            execute_node07({**base,"has_candidate":1},workflow_kind="strategy")
+        with self.assertRaisesRegex(ValueError,"N07_TRUE_BRANCH_REQUIRES_REAL_CANDIDATE"):
+            execute_node07({**base,"candidate":None},workflow_kind="strategy")
+
 if __name__=="__main__":unittest.main()
