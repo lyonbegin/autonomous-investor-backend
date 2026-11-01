@@ -48,7 +48,11 @@ jobs:
           assert trace["events"][-1]["status"]=="PENDING"
           assert urllib.request.urlopen(root+result["python_chart_url"]).read().startswith(b"<svg")
           assert b"def run_strategy(bars):" in urllib.request.urlopen(root+result["python_code_url"]).read()
+          assert b"strategy(" in urllib.request.urlopen(root+result["pine_source_url"]).read()
+          assert b"Fast TV" in urllib.request.urlopen(root+result["tv_export_csv_url"]).read()
           assert b"TradingView" in urllib.request.urlopen(root+"/").read()
+          assert b"overlayPython" in urllib.request.urlopen(root+"/").read()
+          assert b"updateOverlay" in urllib.request.urlopen(root+"/app.js").read()
           print("API_OK",result["run_id"],result["status"],len(trace["events"]))
           unsupported={**payload,"pine_code":PINE+"\nstrategy.exit('X',stop=1)"}
           try:
