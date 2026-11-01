@@ -25,13 +25,14 @@ COPY --from=build /app/shared/server/project_adapter_runtime.py /app/project_ada
 COPY n8n/editor-adapter/investment_node_adapter.py /app/investment_node_adapter.py
 COPY n8n/editor-adapter/investment_wf02.py /app/investment_wf02.py
 COPY n8n/pine-parity/engine.py /app/engine.py
+COPY n8n/pine-parity/sequence_reversal.py /app/sequence_reversal.py
 COPY n8n/editor-adapter/licensed_strategy_manifest.py /app/licensed_strategy_manifest.py
 COPY n8n/editor-adapter/investment_source_registry.py /app/investment_source_registry.py
 COPY n8n/editor-adapter/verified_pine_archive.py /app/verified_pine_archive.py
 COPY n8n/editor-adapter/verified_pine_archive_index.json /app/verified_pine_archive_index.json
 COPY n8n/editor-adapter/investment_pine_store.py /app/investment_pine_store.py
 COPY --from=build /app/shared/server/node_workspace_store.py /app/node_workspace_store.py
-RUN python3 -m py_compile /app/studio_server.py /app/node_workspace_store.py /app/node_run_store.py /app/project_adapter_runtime.py /app/investment_node_adapter.py /app/investment_wf02.py /app/engine.py /app/licensed_strategy_manifest.py /app/investment_source_registry.py /app/verified_pine_archive.py
+RUN python3 -m py_compile /app/studio_server.py /app/node_workspace_store.py /app/node_run_store.py /app/project_adapter_runtime.py /app/investment_node_adapter.py /app/investment_wf02.py /app/engine.py /app/sequence_reversal.py /app/licensed_strategy_manifest.py /app/investment_source_registry.py /app/verified_pine_archive.py
 RUN mkdir -p /data && addgroup -S studio && adduser -S studio -G studio \
     && chown -R studio:studio /data /app
 # The Railway volume is mounted after image build as root-owned /data.
