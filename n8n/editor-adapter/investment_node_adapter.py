@@ -4,6 +4,8 @@ This module belongs to autonomous-investor-backend, NOT the shared editor.
 Only specifically registered N01/N02 and attributed metadata-only N03 can run.
 """
 import json
+import hashlib
+import re
 import os
 import ssl
 import urllib.parse
@@ -49,6 +51,10 @@ def node_binding(workflow_path,node_id):
         return {"python_module":"investment_node_adapter",
           "python_function":"execute_node07","code_version":"wf01-n07-if-v1",
           "node_character":"conditional_route"}
+    if node_id==prefix+"11":
+        return {"python_module":"investment_node_adapter",
+          "python_function":"execute_node11","code_version":"wf01-n11-original-pine-hash-v1",
+          "node_character":"verified_operator_pine_source"}
     return None
 
 def node_type(workflow_path,node_id):
@@ -62,6 +68,7 @@ def node_type(workflow_path,node_id):
       "wf01-"+kind+"-05":"n8n-nodes-base.httpRequest",
       "wf01-"+kind+"-06":"n8n-nodes-base.code",
       "wf01-"+kind+"-07":"n8n-nodes-base.if",
+      "wf01-"+kind+"-11":"n8n-nodes-base.httpRequest",
     }.get(node_id)
 
 def execute_node01(input_json,*,workflow_kind):
@@ -328,6 +335,45 @@ def execute_node07(input_json,*,workflow_kind):
         "branch_decided_at":datetime.now(timezone.utc).isoformat(),
         "next_node_executed":False}
 
+def execute_node11(input_json,*,workflow_kind):
+    """Accept genuine operator-provided Pine ONLY when it matches source hash.
+
+    N03 corpus carries metadata, not Pine. Never pretend a metadata URL or a
+    string created by the program is the author's actual published source.
+    """
+    if not isinstance(input_json,dict) or input_json.get("kind")!=workflow_kind:
+        raise ValueError("N11_UPSTREAM_KIND_MISMATCH")
+    candidate=input_json.get("candidate")
+    if not isinstance(candidate,dict) or not input_json.get("has_candidate"):
+        raise ValueError("N11_NO_SELECTED_SOURCE_CANDIDATE")
+    if candidate.get("kind")!=workflow_kind:
+        raise ValueError("N11_SELECTED_KIND_MISMATCH")
+    expected=candidate.get("source_sha256_reported")
+    if not isinstance(expected,str) or not re.fullmatch(r"[a-fA-F0-9]{64}",expected):
+        raise ValueError("N11_ORIGINAL_SOURCE_HASH_NOT_AVAILABLE")
+    code=input_json.get("pine_code")
+    if not isinstance(code,str) or not code.strip():
+        raise ValueError("N11_ORIGINAL_PINE_NOT_SUPPLIED")
+    if len(code.encode("utf-8"))>60000:
+        raise ValueError("N11_PINE_SOURCE_TOO_LARGE")
+    if not re.search(r"(?m)^\s*//@version=(4|5|6)\s*$",code):
+        raise ValueError("N11_PINE_VERSION_DECLARATION_MISSING")
+    if not re.search(r"(?m)^\s*(strategy|indicator|library)\s*\(",code):
+        raise ValueError("N11_PINE_DECLARATION_MISSING")
+    actual=hashlib.sha256(code.encode("utf-8")).hexdigest()
+    if actual.lower()!=expected.lower():
+        raise ValueError("N11_PINE_SHA256_DOES_NOT_MATCH_PUBLISHED_SNAPSHOT")
+    # No automatic non-display TradingView ingestion, no rights approval.
+    return {**input_json,
+        "pine_source_acquired":True,
+        "pine_source_sha256":actual,
+        "source_hash_verified":True,
+        "pine_source_origin":"OPERATOR_PROVIDED_MATCHING_RESEARCH_HASH",
+        "rights_state":"PENDING_REVIEW",
+        "source_verified_at":datetime.now(timezone.utc).isoformat(),
+        "tradingview_requested":False,
+        "next_node_executed":False}
+
 def execute_node(workflow_path,node_id,input_json):
     kind=WF01_MODES.get(workflow_path)
     binding=node_binding(workflow_path,node_id)
@@ -337,7 +383,8 @@ def execute_node(workflow_path,node_id,input_json):
                "execute_node04":execute_node04,
                "execute_node05":execute_node05,
                "execute_node06":execute_node06,
-               "execute_node07":execute_node07}
+               "execute_node07":execute_node07,
+               "execute_node11":execute_node11}
     func=functions[binding["python_function"]]
     return func(input_json,workflow_kind=kind)
 
@@ -346,6 +393,6 @@ def default_node_input(workflow_path,node_id):
     if not kind:return None
     if node_id=="wf01-"+kind+"-01":
         return {"ui_selection":kind,"requested_detail_limit":1}
-    if node_id in ("wf01-"+kind+"-02","wf01-"+kind+"-03","wf01-"+kind+"-04","wf01-"+kind+"-05","wf01-"+kind+"-06","wf01-"+kind+"-07"):
+    if node_id in ("wf01-"+kind+"-02","wf01-"+kind+"-03","wf01-"+kind+"-04","wf01-"+kind+"-05","wf01-"+kind+"-06","wf01-"+kind+"-07","wf01-"+kind+"-11"):
         return {}
     return None
