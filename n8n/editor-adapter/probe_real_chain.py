@@ -348,7 +348,7 @@ def perform():
             check(h11[0]["output_json"]==out11 and
                   h11[0]["status"]=="SUCCESS",
                   "N11 REAL SQLITE OUTPUT NOT STORED")
-            state="N12_REAL_PINE_SOURCE_VALIDATED_N13_READY"
+            state="N13_VERIFIED_PINE_TRUE_N15_READY_FALSE_N14_BLOCKED"
         RECORDED.append({"node":"N11","status":src["status"],"http":status11,
             "run_id":src["run_id"],"upstream_run_id":h["run_id"],
             "input":src["input_json"],"output":src["output_json"],
@@ -387,9 +387,41 @@ def perform():
             RECORDED.append({"node":"N12","status":"SUCCESS","http":status12,
                 "run_id":source12["run_id"],"upstream_run_id":src["run_id"],
                 "input":source12["input_json"],"output":out12,"elapsed_ms":ms12})
-            state="N12_REAL_PINE_SOURCE_VALIDATED_N13_READY"
+            state="N13_VERIFIED_PINE_TRUE_N15_READY_FALSE_N14_BLOCKED"
             print("N12 SOURCE VALIDATION SUCCESS",source12["run_id"],
                  "SHA_MATCH,N13_READY,PYTHON_PARITY_NOT_YET_TESTED",flush=True)
+            n14=PREFIX+"14"
+            n15=PREFIX+"15"
+            status13,branch13,ms13=call(opener,"POST","/api/studio/nodes/execute",
+                {"workflow":WORKFLOW,"node_id":n13,"source_run_id":source12["run_id"]},
+                {"X-Studio-Node-Run":"APPROVED"})
+            check(status13==200 and branch13.get("status")=="SUCCESS",
+                  "N13 REAL IF EXECUTION FAILED:"+str(
+                    {key:branch13.get(key) for key in ("error","status","run_id")}))
+            check(branch13["input_json"]==out12 and
+                  branch13["upstream_run_id"]==source12["run_id"],
+                  "N13 DID NOT RECEIVE EXACT N12 VERIFIED PINE")
+            output13=branch13["output_json"]
+            check(output13["_studio_active_ports"]==[0] and
+                  output13["source_branch"]=="VERIFIED_PINE_TO_IMPORT",
+                  "N13 IF DID NOT ROUTE SOURCE TO TRUE PORT")
+            yes=transfer(opener,n15,branch13["run_id"])
+            check(yes["source_port"]==0 and yes["output_json"]==output13,
+                  "N13 TRUE OUTPUT WAS NOT SENT TO N15")
+            status_no,no_data,_=call(opener,"GET",query("/api/studio/nodes/transfers",n14))
+            check(status_no==200 and not any(x["source_run_id"]==branch13["run_id"]
+                       for x in no_data["transfers"]),
+                  "N13 BUG: FALSE BRANCH N14 ALSO READY")
+            h13=last_history(opener,n13)
+            check(h13[0]["run_id"]==branch13["run_id"] and
+                  h13[0]["output_json"]==output13,
+                  "N13 SQLITE DID NOT RECORD EXACT OUTPUT")
+            RECORDED.append({"node":"N13","status":"SUCCESS","http":status13,
+                "run_id":branch13["run_id"],"upstream_run_id":source12["run_id"],
+                "input":branch13["input_json"],"output":output13,"elapsed_ms":ms13})
+            state="N13_VERIFIED_PINE_TRUE_N15_READY_FALSE_N14_BLOCKED"
+            print("N13 IF EXECUTED",branch13["run_id"],
+                  "TRUE→N15 READY,FALSE→N14 NOT READY",flush=True)
     return {"workflow":WORKFLOW,"result":state,"steps":RECORDED,
       "meaning":"N01→N11 sequential per-node executed. Metadata from pinned third-party snapshot, source from independent pinned GitHub mirror matching exact hash; TradingView chart is not rendered or visually compared."}
 
@@ -399,7 +431,7 @@ if __name__=="__main__":
         print(json.dumps(outcome,ensure_ascii=False,indent=2),flush=True)
         # A safely rejected unauthorized or missing collector does NOT count
         # as successful end-to-end strategy collection.
-        if os.environ.get("WF01_REQUIRE_N12_SUCCESS")=="1" and outcome["result"]!="N12_REAL_PINE_SOURCE_VALIDATED_N13_READY":
+        if os.environ.get("WF01_REQUIRE_N13_SUCCESS")=="1" and outcome["result"]!="N13_VERIFIED_PINE_TRUE_N15_READY_FALSE_N14_BLOCKED":
             print("FIRST_STAGE_NOT_PASSED: N12 did not validate original Pine SHA/license and transfer to N13",file=sys.stderr,flush=True)
             sys.exit(3)
     except Exception as e:
