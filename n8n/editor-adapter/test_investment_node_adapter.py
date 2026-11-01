@@ -1,4 +1,7 @@
 import unittest
+import json
+import os
+from unittest.mock import patch
 from investment_node_adapter import execute_node01,execute_node02,node_binding,WF01_MODES
 
 class InvestmentNodeAdapterTests(unittest.TestCase):
@@ -23,5 +26,50 @@ class InvestmentNodeAdapterTests(unittest.TestCase):
             for limit in (True,0,2):
                 with self.assertRaises(ValueError):
                     execute_node01({"ui_selection":kind,"requested_detail_limit":limit},workflow_kind=kind)
+
+    def test_n03_reads_exact_n02_output_and_blocks_without_approved_provider(self):
+        from investment_node_adapter import execute_node03
+        start={"ui_selection":"strategy","requested_detail_limit":1}
+        n1=execute_node01(start,workflow_kind="strategy")
+        n2=execute_node02(n1,workflow_kind="strategy")
+        with patch.dict(os.environ,{"TRADINGVIEW_AUTHORIZED_CATALOG_URL":""}):
+            with self.assertRaisesRegex(ValueError,"AUTHORIZED_CATALOG_FEED_UNCONFIGURED"):
+                execute_node03(n2,workflow_kind="strategy")
+        with patch.dict(os.environ,{"TRADINGVIEW_AUTHORIZED_CATALOG_URL":"https://www.tradingview.com/api/scrape"}):
+            with self.assertRaisesRegex(ValueError,"DIRECT_TRADINGVIEW_AUTOMATED_COLLECTION_DISABLED"):
+                execute_node03(n2,workflow_kind="strategy")
+
+    def test_n03_authorized_response_is_validated_not_fabricated(self):
+        from investment_node_adapter import execute_node03
+        n1=execute_node01({"ui_selection":"strategy","requested_detail_limit":1},workflow_kind="strategy")
+        n2=execute_node02(n1,workflow_kind="strategy")
+        payload={"kind":"strategy","page":1,"has_more":False,
+                 "items":[{"kind":"strategy","source_id":"ABC-real-provider-sample",
+                           "source_url":"https://www.tradingview.com/script/abc123/",
+                           "title":"Provider fixture; not a collected real strategy",
+                           "version_key":"1","author":"ci"}]}
+        class FakeResponse:
+            status=200
+            headers={"Content-Length":"1000"}
+            def __enter__(self):return self
+            def __exit__(self,*args):return False
+            def read(self,n=-1):return json.dumps(payload).encode()
+        with patch.dict(os.environ,{"TRADINGVIEW_AUTHORIZED_CATALOG_URL":"https://approved.example.com/catalog"}):
+            with patch("investment_node_adapter.urllib.request.urlopen",return_value=FakeResponse()) as fn:
+                output=execute_node03(n2,workflow_kind="strategy")
+                self.assertEqual(output["status"],"ok")
+                self.assertEqual(output["count"],1)
+                self.assertEqual(output["items"][0]["source_id"],"ABC-real-provider-sample")
+                self.assertEqual(output["page_size"],n2["page_size"])
+                self.assertFalse(output["tradingview_requested"])
+                req=fn.call_args.args[0]
+                self.assertIn("page=1",req.full_url)
+                self.assertIn("kind=strategy",req.full_url)
+                self.assertIn("page_size=50",req.full_url)
+        with patch.dict(os.environ,{"TRADINGVIEW_AUTHORIZED_CATALOG_URL":"https://approved.example.com/catalog"}):
+            payload["page"]=2
+            with patch("investment_node_adapter.urllib.request.urlopen",return_value=FakeResponse()):
+                with self.assertRaisesRegex(ValueError,"AUTHORIZED_CATALOG_INCORRECT_PAGE_OR_KIND"):
+                    execute_node03(n2,workflow_kind="strategy")
 
 if __name__=="__main__":unittest.main()
