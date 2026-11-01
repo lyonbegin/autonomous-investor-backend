@@ -45,11 +45,11 @@ jobs:
                   if (binding["python_function"]=="execute_node03" and
                       binding["code_version"]=="wf01-n03-licensed-manifest-v2" and
                       binding4.get("python_function")=="execute_node04" and
-                      binding4.get("code_version")=="wf01-n04-v1" and
+                      binding4.get("code_version")=="wf01-n04-v2-pine-metadata" and
                       binding5.get("python_function")=="execute_node05" and
                       binding5.get("code_version")=="wf01-n05-sqlite-registry-v1" and
                       binding6.get("python_function")=="execute_node06" and
-                      binding6.get("code_version")=="wf01-n06-select-one-v1" and
+                      binding6.get("code_version")=="wf01-n06-select-compatible-v2" and
                       binding7.get("python_function")=="execute_node07" and
                       binding7.get("code_version")=="wf01-n07-if-v1" and
                       binding11.get("python_function")=="execute_node11" and
