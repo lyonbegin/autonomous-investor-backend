@@ -42,8 +42,11 @@ def query(endpoint,node):
 
 def stage(node,source_run_id=None):
     if source_run_id is None:
-        params={"workflow":WORKFLOW,"node_id":node,
-                "input_json":{"ui_selection":"strategy","requested_detail_limit":1}}
+        selector={"ui_selection":"strategy","requested_detail_limit":1}
+        if os.environ.get("WF02_SOURCE_ID"):
+            selector["source_id"]=os.environ["WF02_SOURCE_ID"]
+            selector["version_key"]=os.environ.get("WF02_VERSION_KEY","1.0")
+        params={"workflow":WORKFLOW,"node_id":node,"input_json":selector}
         code,obj=call("POST","/api/studio/node01/execute",params,root=True)
     else:
         st,edges=call("GET",query("/api/studio/nodes/transfers",node))
@@ -69,6 +72,8 @@ def stage(node,source_run_id=None):
 def main():
     first=stage("wf02-01")
     check(first["output_json"]["pine_code"].strip(),"REAL_DB_PINE_EMPTY")
+    if os.environ.get("WF02_SOURCE_ID"):
+        check(first["output_json"]["source_id"]==os.environ["WF02_SOURCE_ID"],"UNEXPECTED_STORED_STRATEGY")
     second=stage("wf02-02",first["run_id"])
     result=second["output_json"]
     check(result.get("status") in ("PYTHON_GENERATED","UNSUPPORTED_PINE"),"UNEXPECTED_RESULT")
