@@ -80,4 +80,35 @@ class InvestmentNodeAdapterTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError,"AUTHORIZED_CATALOG_INCORRECT_PAGE_OR_KIND"):
                     execute_node03(n2,workflow_kind="strategy")
 
+    def test_n04_processes_exact_n03_snapshot_and_preserves_metadata(self):
+        from investment_node_adapter import execute_node04
+        n3={"kind":"strategy","status":"ok","page":1,"max_pages":3,
+            "has_more":True,"catalog_source":"PYNE_GITHUB_CC_BY_4_METADATA_SNAPSHOT",
+            "catalog_is_live":False,"count":3,"manifest_sha256":"a"*64,
+            "items":[
+                {"kind":"strategy","source_id":"PUB;one","version_key":"1",
+                 "source_url":"https://www.tradingview.com/script/ABCDEF12/",
+                 "title":"Older","catalog_observed_at":"2026-08-27",
+                 "updated_at":None,"source_code_fetched":False},
+                {"kind":"strategy","source_id":"PUB;two","version_key":"2",
+                 "source_url":"https://www.tradingview.com/script/87654321/",
+                 "title":"Newer observed","catalog_observed_at":"2026-10-02",
+                 "updated_at":None,"source_code_fetched":False},
+                {"kind":"strategy","source_id":"PUB;two","version_key":"2",
+                 "source_url":"https://www.tradingview.com/script/87654321/",
+                 "title":"Duplicate","catalog_observed_at":"2026-10-02",
+                 "updated_at":None,"source_code_fetched":False}]}
+        out=execute_node04(n3,workflow_kind="strategy")
+        for key,value in n3.items():self.assertEqual(out[key],value)
+        self.assertEqual(out["candidate_count"],2)
+        self.assertEqual(out["duplicates_removed"],1)
+        self.assertEqual(out["next_page"],2)
+        self.assertFalse(out["latest_tradingview_checked"])
+        self.assertTrue(out["validated_catalog_is_snapshot"])
+        self.assertEqual(out["candidates"][0]["source_id"],"PUB;two")
+        self.assertIsNone(out["candidates"][0]["updated_at"])
+        self.assertFalse(out["candidates"][0]["source_code_fetched"])
+        with self.assertRaisesRegex(ValueError,"N04_CATALOG_COUNT_MISMATCH"):
+            execute_node04({**n3,"count":4},workflow_kind="strategy")
+
 if __name__=="__main__":unittest.main()
