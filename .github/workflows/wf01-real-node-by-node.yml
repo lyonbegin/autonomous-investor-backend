@@ -51,6 +51,8 @@ jobs:
                   binding13=node13["parameters"].get("studioPython",{})
                   node15=next(n for n in raw["workflow"]["nodes"] if n["id"]=="wf01-strategy-15")
                   binding15=node15["parameters"].get("studioPython",{})
+                  node16=next(n for n in raw["workflow"]["nodes"] if n["id"]=="wf01-strategy-16")
+                  binding16=node16["parameters"].get("studioPython",{})
                   if (binding["python_function"]=="execute_node03" and
                       binding["code_version"]=="wf01-n03-licensed-manifest-v2" and
                       binding4.get("python_function")=="execute_node04" and
@@ -68,7 +70,9 @@ jobs:
                       binding13.get("python_function")=="execute_node13" and
                       binding13.get("code_version")=="wf01-n13-conditional-source-v1" and
                       binding15.get("python_function")=="execute_node15" and
-                      binding15.get("code_version")=="wf01-n15-sqlite-pine-artifact-v1"):
+                      binding15.get("code_version")=="wf01-n15-sqlite-pine-artifact-v1" and
+                      binding16.get("python_function")=="execute_node16" and
+                      binding16.get("code_version")=="wf01-n16-persistent-readback-v1"):
                       print("N03_REALLY_DEPLOYED_IN_RAILWAY");break
               except Exception as exc:
                   print("N03_DEPLOY_WAIT",type(exc).__name__,str(exc)[:120],flush=True)
@@ -78,12 +82,12 @@ jobs:
       - name: Execute N01→N07 then real N11 Pine source; fail stage if source not acquired
         run: |
           set -o pipefail
-          PYTHONPATH=n8n/editor-adapter WF01_KIND=strategy WF01_REQUIRE_N15_SUCCESS=1 python3 n8n/editor-adapter/probe_real_chain.py | tee /tmp/wf01-real-strategy.log
+          PYTHONPATH=n8n/editor-adapter WF01_KIND=strategy WF01_REQUIRE_N16_SUCCESS=1 python3 n8n/editor-adapter/probe_real_chain.py | tee /tmp/wf01-real-strategy.log
       - name: Diagnose library N01 -> N02 -> N03 separately (manifest contains strategies only; must remain BLOCKED)
         if: always()
         run: |
           set -o pipefail
-          PYTHONPATH=n8n/editor-adapter WF01_KIND=library WF01_REQUIRE_N15_SUCCESS=0 python3 n8n/editor-adapter/probe_real_chain.py | tee /tmp/wf01-real-library.log
+          PYTHONPATH=n8n/editor-adapter WF01_KIND=library WF01_REQUIRE_N16_SUCCESS=0 python3 n8n/editor-adapter/probe_real_chain.py | tee /tmp/wf01-real-library.log
       - name: Check original Pine stored with exact SHA (and do not claim TV chart parity)
         if: always()
         run: |
@@ -92,7 +96,7 @@ jobs:
           log=pathlib.Path("/tmp/wf01-real-strategy.log")
           if not log.exists(): raise AssertionError("STRATEGY_RUN_LOG_MISSING")
           text=log.read_text()
-          assert "N15_REAL_PINE_STORED_N16_READY_PENDING_CONVERSION" in text, "N03 strategy metadata NOT executed successfully"
+          assert "WF01_ORIGINAL_PINE_STORED_AND_RECHECKED_NO_PARITY_CLAIM" in text, "N03 strategy metadata NOT executed successfully"
           assert "PYNE_GITHUB_CC_BY_4_METADATA_SNAPSHOT" in text
           assert '"catalog_is_live": false' in text
           assert '"pine_source_acquired": false' in text
@@ -105,6 +109,11 @@ jobs:
           assert '"node": "N12"' in text
           assert '"node": "N13"' in text
           assert '"node": "N15"' in text
+          assert '"node": "N16"' in text
+          assert '"db_readback_verified": true' in text
+          assert '"status": "SOURCE_STORED_REVIEW_PENDING"' in text
+          assert '"paper_enabled": false' in text
+          assert '"live_orders_enabled": false' in text
           assert '"source_saved": true' in text
           assert '"source_storage": "investment_project_sqlite"' in text
           assert "TRUE→N15 READY,FALSE→N14 NOT READY" in text
@@ -118,7 +127,7 @@ jobs:
           assert '"selected_candidate_count": 1' in text
           assert '"checked_count": 50' in text
           assert "registry checked 50 new" in text
-          print("N01_THROUGH_N12_REAL_SOURCE_CODE_SHA256_AND_N13_EDGE_VERIFIED")
+          print("WF01_N01_TO_N16_ORIGINAL_PINE_STORED_AND_RECHECKED_PASS_ONLY")
           PY
       - name: Archive real service execution logs
         if: always()
