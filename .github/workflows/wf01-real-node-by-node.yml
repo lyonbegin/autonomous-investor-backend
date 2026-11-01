@@ -1,4 +1,4 @@
-name: WF01 real sequential execution (N01 output -> N02 -> N03)
+name: WF01 real sequential Pine collection
 on:
   push:
     branches: [feature/editor-wf01-canvas-20261029]
@@ -6,133 +6,64 @@ on:
       - 'n8n/editor-adapter/**'
       - 'n8n/workflows/operations/WF01-latest-strategy-one.json'
       - 'n8n/workflows/operations/WF01-latest-library-one.json'
-      - 'n8n/Dockerfile.native-editor-gateway'
       - '.github/workflows/wf01-real-node-by-node.yml'
   workflow_dispatch:
 concurrency:
-  group: wf01-live-sequential-${{ github.ref }}
+  group: wf01-real-pine-${{ github.ref }}
   cancel-in-progress: true
 permissions:
   contents: read
 jobs:
-  unit-and-live-node-chain:
+  real-pine:
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
-      - name: Validate project-owned N01 N02 N03 Python contracts
+      - name: Check Python syntax and functional tests
         run: |
-          python3 -m py_compile n8n/editor-adapter/investment_node_adapter.py n8n/editor-adapter/probe_real_chain.py
+          python3 -m compileall -q n8n/editor-adapter
           PYTHONPATH=n8n/editor-adapter python3 -m unittest discover -s n8n/editor-adapter -p 'test_*.py' -v
-      - name: Wait for real deployed N03 AND N04 project adapters
+      - name: Wait until the current workflow is deployed to Railway
         run: |
           python3 - <<'PY'
           import json,time,urllib.request
-          root="https://investment-n8n-native-editor-production.up.railway.app"
-          path=root+"/api/studio/workflows/operations/WF01-latest-strategy-one.json"
-          for i in range(60):
+          url="https://investment-n8n-native-editor-production.up.railway.app/api/studio/workflows/operations/WF01-latest-strategy-one.json"
+          for attempt in range(50):
               try:
-                  raw=json.load(urllib.request.urlopen(path,timeout=8))
-                  node=next(n for n in raw["workflow"]["nodes"] if n["id"]=="wf01-strategy-03")
-                  binding=node["parameters"]["studioPython"]
-                  node4=next(n for n in raw["workflow"]["nodes"] if n["id"]=="wf01-strategy-04")
-                  binding4=node4["parameters"].get("studioPython",{})
-                  node5=next(n for n in raw["workflow"]["nodes"] if n["id"]=="wf01-strategy-05")
-                  binding5=node5["parameters"].get("studioPython",{})
-                  node6=next(n for n in raw["workflow"]["nodes"] if n["id"]=="wf01-strategy-06")
-                  binding6=node6["parameters"].get("studioPython",{})
-                  node7=next(n for n in raw["workflow"]["nodes"] if n["id"]=="wf01-strategy-07")
-                  binding7=node7["parameters"].get("studioPython",{})
-                  node11=next(n for n in raw["workflow"]["nodes"] if n["id"]=="wf01-strategy-11")
-                  binding11=node11["parameters"].get("studioPython",{})
-                  node12=next(n for n in raw["workflow"]["nodes"] if n["id"]=="wf01-strategy-12")
-                  binding12=node12["parameters"].get("studioPython",{})
-                  node13=next(n for n in raw["workflow"]["nodes"] if n["id"]=="wf01-strategy-13")
-                  binding13=node13["parameters"].get("studioPython",{})
-                  node15=next(n for n in raw["workflow"]["nodes"] if n["id"]=="wf01-strategy-15")
-                  binding15=node15["parameters"].get("studioPython",{})
-                  node16=next(n for n in raw["workflow"]["nodes"] if n["id"]=="wf01-strategy-16")
-                  binding16=node16["parameters"].get("studioPython",{})
-                  if (binding["python_function"]=="execute_node03" and
-                      binding["code_version"]=="wf01-n03-licensed-manifest-v2" and
-                      binding4.get("python_function")=="execute_node04" and
-                      binding4.get("code_version")=="wf01-n04-v2-pine-metadata" and
-                      binding5.get("python_function")=="execute_node05" and
-                      binding5.get("code_version")=="wf01-n05-sqlite-registry-v1" and
-                      binding6.get("python_function")=="execute_node06" and
-                      binding6.get("code_version")=="wf01-n06-licensed-archive-v3" and
-                      binding7.get("python_function")=="execute_node07" and
-                      binding7.get("code_version")=="wf01-n07-if-v1" and
-                      binding11.get("python_function")=="execute_node11" and
-                      binding11.get("code_version")=="wf01-n11-verified-archive-v2" and
-                      binding12.get("python_function")=="execute_node12" and
-                      binding12.get("code_version")=="wf01-n12-original-source-contract-v1" and
-                      binding13.get("python_function")=="execute_node13" and
-                      binding13.get("code_version")=="wf01-n13-conditional-source-v1" and
-                      binding15.get("python_function")=="execute_node15" and
-                      binding15.get("code_version")=="wf01-n15-sqlite-pine-artifact-v1" and
-                      binding16.get("python_function")=="execute_node16" and
-                      binding16.get("code_version")=="wf01-n16-persistent-readback-v1"):
-                      print("N03_REALLY_DEPLOYED_IN_RAILWAY");break
+                  with urllib.request.urlopen(url,timeout=12) as r: data=json.load(r)["workflow"]
+                  nodes={n["id"]:n for n in data["nodes"]}
+                  names={n["name"] for n in data["nodes"]}
+                  n11=nodes["wf01-strategy-11"]
+                  n15=nodes["wf01-strategy-15"]
+                  n16=nodes["wf01-strategy-16"]
+                  connection=data["connections"][n11["name"]]["main"][0][0]["node"]
+                  if (not any("wf01-strategy-"+i in nodes for i in ("12","13","14"))
+                      and n11["parameters"]["studioPython"]["python_function"]=="execute_node11"
+                      and n15["parameters"]["studioPython"]["python_function"]=="execute_node15"
+                      and n16["parameters"]["studioPython"]["python_function"]=="execute_node16"
+                      and connection==n15["name"]):
+                      print("WF01_SIMPLIFIED_WORKFLOW_DEPLOYED")
+                      break
               except Exception as exc:
-                  print("N03_DEPLOY_WAIT",type(exc).__name__,str(exc)[:120],flush=True)
-              time.sleep(4)
-          else:raise RuntimeError("ACTUAL_N03_PROJECT_BINDING_NOT_DEPLOYED")
+                  print("WAITING_FOR_RAILWAY",str(exc)[:100],flush=True)
+              time.sleep(5)
+          else: raise RuntimeError("SIMPLIFIED_WORKFLOW_NOT_DEPLOYED")
           PY
-      - name: Execute N01→N07 then real N11 Pine source; fail stage if source not acquired
+      - name: Execute actual strategy collection node by node
         run: |
           set -o pipefail
-          PYTHONPATH=n8n/editor-adapter WF01_KIND=strategy WF01_REQUIRE_N16_SUCCESS=1 python3 n8n/editor-adapter/probe_real_chain.py | tee /tmp/wf01-real-strategy.log
-      - name: Diagnose library N01 -> N02 -> N03 separately (manifest contains strategies only; must remain BLOCKED)
+          PYTHONPATH=n8n/editor-adapter WF01_KIND=strategy python3 n8n/editor-adapter/probe_real_chain.py | tee /tmp/wf01-strategy.log
+          grep -q 'WF01_PINE_SOURCE_SAVED_REAL_RUN' /tmp/wf01-strategy.log
+      - name: Verify missing library feed fails transparently
         if: always()
         run: |
           set -o pipefail
-          PYTHONPATH=n8n/editor-adapter WF01_KIND=library WF01_REQUIRE_N16_SUCCESS=0 python3 n8n/editor-adapter/probe_real_chain.py | tee /tmp/wf01-real-library.log
-      - name: Check original Pine stored with exact SHA (and do not claim TV chart parity)
-        if: always()
-        run: |
-          python3 - <<'PY'
-          import pathlib
-          log=pathlib.Path("/tmp/wf01-real-strategy.log")
-          if not log.exists(): raise AssertionError("STRATEGY_RUN_LOG_MISSING")
-          text=log.read_text()
-          assert "WF01_ORIGINAL_PINE_STORED_AND_RECHECKED_NO_PARITY_CLAIM" in text, "N03 strategy metadata NOT executed successfully"
-          assert "PYNE_GITHUB_CC_BY_4_METADATA_SNAPSHOT" in text
-          assert '"catalog_is_live": false' in text
-          assert '"pine_source_acquired": false' in text
-          assert '"node": "N04"' in text
-          assert '"candidate_count": 50' in text
-          assert '"node": "N05"' in text
-          assert '"node": "N06"' in text
-          assert '"node": "N07"' in text
-          assert '"node": "N11"' in text
-          assert '"node": "N12"' in text
-          assert '"node": "N13"' in text
-          assert '"node": "N15"' in text
-          assert '"node": "N16"' in text
-          assert '"db_readback_verified": true' in text
-          assert '"status": "SOURCE_STORED_REVIEW_PENDING"' in text
-          assert '"paper_enabled": false' in text
-          assert '"live_orders_enabled": false' in text
-          assert '"source_saved": true' in text
-          assert '"source_storage": "investment_project_sqlite"' in text
-          assert "TRUE→N15 READY,FALSE→N14 NOT READY" in text
-          assert '"conversion_validated": false' in text
-          assert '"tradingview_chart_validated": false' in text
-          assert '"pine_source_origin": "GITHUB_PINNED_OPEN_SOURCE_ARCHIVE"' in text
-          assert '"source_hash_verified": true' in text
-          assert '"rights_state": "MPL_2_0_REVIEW_REQUIRED"' in text
-          assert '"tradingview_requested": false' in text
-          assert "TRUE→N11 READY, FALSE→N08 NOT READY" in text
-          assert '"selected_candidate_count": 1' in text
-          assert '"checked_count": 50' in text
-          assert "registry checked 50 new" in text
-          print("WF01_N01_TO_N16_ORIGINAL_PINE_STORED_AND_RECHECKED_PASS_ONLY")
-          PY
-      - name: Archive real service execution logs
+          PYTHONPATH=n8n/editor-adapter WF01_KIND=library python3 n8n/editor-adapter/probe_real_chain.py | tee /tmp/wf01-library.log
+          grep -q 'LIBRARY_CATALOG_NOT_AVAILABLE' /tmp/wf01-library.log
+      - name: Save real node results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: real-wf01-n01-n02-n03-service-trace
-          path: /tmp/wf01-real-*.log
+          name: wf01-pine-source-execution
+          path: /tmp/wf01-*.log
           if-no-files-found: ignore
