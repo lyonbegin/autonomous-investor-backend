@@ -21,7 +21,7 @@ def request(opener,method,path,data=None):
     if data is not None:
         payload=json.dumps(data).encode("utf-8")
         headers["Content-Type"]="application/json"
-    headers["X-Studio-Node-Run"]="APPROVED"
+    headers["X-Studio-Node-Run"]="N01" if path.endswith("/node01/execute") else "APPROVED"
     req=urllib.request.Request(BASE+path,method=method,data=payload,headers=headers)
     try:
         with opener.open(req,timeout=35) as response:
@@ -61,6 +61,7 @@ def run():
             params={"workflow":WORKFLOW,"node_id":node,"source_run_id":parent["run_id"]}
             api="/api/studio/nodes/execute"
         code,data=request(opener,"POST",api,params)
+        check(data.get("run_id"),f"N{step} ENDPOINT REJECTED RUN: HTTP {code} {str(data)[:350]}")
         st,history=request(opener,"GET",url("/api/studio/nodes/history",node))
         check(st==200,"CANNOT_READ_NODE_HISTORY")
         matching=[r for r in history.get("executions",[]) if r.get("run_id")==data.get("run_id")]
