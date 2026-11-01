@@ -1,0 +1,63 @@
+name: WF02 Pine strategy -> Python chart parity (project owned)
+on:
+  push:
+    branches: [feature/editor-wf01-canvas-20261029]
+    paths:
+      - 'n8n/pine-parity/**'
+      - 'n8n/Dockerfile.pine-parity.railway'
+      - '.github/workflows/pine-parity-first-stage.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  parity-engine-and-http:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Strict Pine subset parser, Python generated code and numeric comparator tests
+        run: |
+          PYTHONPATH=n8n/pine-parity python3 -m unittest discover -s n8n/pine-parity -p 'test_engine.py' -v
+          python3 -m py_compile n8n/pine-parity/server.py n8n/pine-parity/engine.py
+      - name: Build real Railway image
+        run: docker build -f n8n/Dockerfile.pine-parity.railway -t pine-parity-contract:test .
+      - name: Start actual HTTP service with independent test data volume
+        run: |
+          docker run -d --name pine-parity-contract -p 19765:3000 -e PORT=3000 -e PARITY_STORAGE=/tmp/test-artifacts pine-parity-contract:test
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:19765/health; then break; fi
+            sleep 1
+          done
+      - name: End-to-end JSON response, run logs, SVG and real generated .py artifact
+        run: |
+          PYTHONPATH=n8n/pine-parity python3 - <<'PY'
+          import json,urllib.request,urllib.error
+          from test_engine import PINE,COLS,synthetic_csv
+          root="http://127.0.0.1:19765"
+          payload={"pine_code":PINE,"csv_text":synthetic_csv(),"columns":COLS,
+                   "symbol":"SYNTHETIC:CI","timeframe":"1D","source_url":""}
+          req=urllib.request.Request(root+"/api/compare",data=json.dumps(payload).encode(),
+              headers={"Content-Type":"application/json"},method="POST")
+          result=json.load(urllib.request.urlopen(req))
+          assert result["numeric_match"] is True,result
+          assert result["status"]=="TRADINGVIEW_SCREENSHOT_REQUIRED",result
+          detail=json.load(urllib.request.urlopen(root+result["details_url"]))
+          trace=json.load(urllib.request.urlopen(root+result["trace_url"]))
+          assert detail["pine_sha256"]==result["pine_sha256"]
+          assert len(trace["events"])==7
+          assert trace["events"][-1]["status"]=="PENDING"
+          assert urllib.request.urlopen(root+result["python_chart_url"]).read().startswith(b"<svg")
+          assert b"def run_strategy(bars):" in urllib.request.urlopen(root+result["python_code_url"]).read()
+          assert b"TradingView" in urllib.request.urlopen(root+"/").read()
+          print("API_OK",result["run_id"],result["status"],len(trace["events"]))
+          unsupported={**payload,"pine_code":PINE+"\nstrategy.exit('X',stop=1)"}
+          try:
+              urllib.request.urlopen(urllib.request.Request(root+"/api/compare",
+                  data=json.dumps(unsupported).encode(),headers={"Content-Type":"application/json"},method="POST"))
+              raise AssertionError("Unsupported Pine must fail closed")
+          except urllib.error.HTTPError as exc:
+              assert exc.code==422
+          PY
+      - name: Logs on failure
+        if: failure()
+        run: docker logs pine-parity-contract || true
