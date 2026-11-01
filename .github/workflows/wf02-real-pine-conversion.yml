@@ -36,7 +36,8 @@ jobs:
                   nodes={n["id"]:n for n in wf["nodes"]}
                   if (len(nodes)==3 and
                       nodes["wf02-01"]["parameters"]["studioPython"]["python_function"]=="execute_wf02_node01" and
-                      nodes["wf02-02"]["parameters"]["studioPython"]["python_function"]=="execute_wf02_node02"):
+                      nodes["wf02-02"]["parameters"]["studioPython"]["python_function"]=="execute_wf02_node02" and
+                      nodes["wf02-02"]["parameters"]["studioPython"]["code_version"]=="wf02-n02-convert-v2-nonoverlay"):
                       print("WF02_REAL_NODES_DEPLOYED",flush=True)
                       break
               except Exception as exc: print("WF02_DEPLOY_WAIT",type(exc).__name__,flush=True)
