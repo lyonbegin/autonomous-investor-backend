@@ -64,7 +64,7 @@ def run():
         st,history=request(opener,"GET",url("/api/studio/nodes/history",node))
         check(st==200,"CANNOT_READ_NODE_HISTORY")
         matching=[r for r in history.get("executions",[]) if r.get("run_id")==data.get("run_id")]
-        check(len(matching)==1,f"N{step} RUN NOT IN SQLITE HISTORY")
+        check(len(matching)==1,f"N{step} RUN NOT IN SQLITE HISTORY: run={data.get('run_id')!r}, history_status={st}, keys={list(history)}, recent_runs={[x.get('run_id') for x in history.get('executions',[])[:5]]}")
         record=matching[0]
         check(record["input_json"]==data["input_json"] and
               record["output_json"]==data["output_json"],f"N{step} DB IO MISMATCH")
