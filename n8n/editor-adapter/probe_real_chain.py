@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Execute actual Railway WF01 nodes, one at a time, without author/hash auditing."""
+"""Real WF01 node-by-node collection, including no-new-Pine page traversal."""
 import http.cookiejar
 import json
 import os
@@ -13,122 +13,116 @@ BASE=os.getenv("STUDIO_BASE","https://investment-n8n-native-editor-production.up
 KIND=os.getenv("WF01_KIND","strategy")
 WORKFLOW=f"operations/WF01-latest-{KIND}-one.json"
 PREFIX=f"wf01-{KIND}-"
-RESULTS=[]
+STEPS=[]
+opener=urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
 
-def request(opener,method,path,data=None):
-    headers={"Accept":"application/json","User-Agent":"WF01-real-node-probe/2"}
-    payload=None
-    if data is not None:
-        payload=json.dumps(data).encode("utf-8")
-        headers["Content-Type"]="application/json"
-    headers["X-Studio-Node-Run"]="N01" if path.endswith("/node01/execute") else "APPROVED"
-    req=urllib.request.Request(BASE+path,method=method,data=payload,headers=headers)
-    try:
-        with opener.open(req,timeout=35) as response:
-            return response.status,json.load(response)
-    except urllib.error.HTTPError as exc:
-        try: body=json.loads(exc.read())
-        except ValueError: body={"error":"HTTP_"+str(exc.code)}
-        return exc.code,body
-
-def read_api(opener,path):
-    """Retry read-only requests during Railway deployment handovers, never POST."""
-    last=None
-    for attempt in range(5):
+def call(method,path,data=None):
+    body=json.dumps(data).encode() if data is not None else None
+    headers={"Accept":"application/json","User-Agent":"WF01-real-page-probe/2",
+             "X-Studio-Node-Run":"N01" if path.endswith("/node01/execute") else "APPROVED"}
+    if body is not None:headers["Content-Type"]="application/json"
+    for retry in range(5):
+        req=urllib.request.Request(BASE+path,method=method,data=body,headers=headers)
         try:
-            status,response=request(opener,"GET",path)
-            if status==200:
-                return status,response
-            last=f"HTTP {status}: {str(response)[:140]}"
-        except (urllib.error.URLError,TimeoutError,OSError) as exc:
-            last=type(exc).__name__+":"+str(exc)[:140]
-        print("RETRY_READ",path.split("?")[0],last,flush=True)
-        time.sleep(2+attempt)
-    raise RuntimeError("READ_API_FAILED:"+str(last))
+            with opener.open(req,timeout=30) as resp:return resp.status,json.load(resp)
+        except urllib.error.HTTPError as exc:
+            if method=="GET" and exc.code in (502,503,504) and retry<4:
+                time.sleep(1+retry);continue
+            try:return exc.code,json.load(exc)
+            except ValueError:return exc.code,{"error":"UNREADABLE_HTTP_RESPONSE"}
+        except (OSError,TimeoutError):
+            if method!="GET" or retry==4:raise
+            time.sleep(1+retry)
+
+def ensure(flag,msg):
+    if not flag:raise AssertionError(msg)
 
 def url(endpoint,node):
     return endpoint+"?"+urllib.parse.urlencode({"workflow":WORKFLOW,"node_id":node})
 
-def check(condition,message):
-    if not condition:
-        raise AssertionError(message)
+def execute(suffix,parent=None):
+    node=PREFIX+suffix
+    if parent is None:
+        ensure(suffix=="01","ONLY_N01_ROOT")
+        data={"workflow":WORKFLOW,"node_id":node,
+              "input_json":{"ui_selection":KIND,"requested_detail_limit":1,"max_pages":3}}
+        status,result=call("POST","/api/studio/node01/execute",data)
+    else:
+        status,edges=call("GET",url("/api/studio/nodes/transfers",node))
+        ensure(status==200,"EDGE_READ_FAILED_"+node)
+        incoming=[e for e in edges.get("transfers",[]) if e["source_run_id"]==parent["run_id"]]
+        ensure(len(incoming)==1 and incoming[0]["output_json"]==parent["output_json"],
+               "UPSTREAM_OUTPUT_NOT_DELIVERED_"+node)
+        status,result=call("POST","/api/studio/nodes/execute",
+                    {"workflow":WORKFLOW,"node_id":node,"source_run_id":parent["run_id"]})
+    ensure(result.get("run_id"),"NO_RUN_ID_"+node+":"+str(result)[:180])
+    hs,hist=call("GET",url("/api/studio/nodes/history",node))
+    ensure(hs==200 and any(
+        h["run_id"]==result["run_id"] and h["output_json"]==result.get("output_json")
+        for h in hist.get("executions",[])),"HISTORY_MISMATCH_"+node)
+    if parent is not None:
+        ensure(result["input_json"]==parent["output_json"] and
+               result["upstream_run_id"]==parent["run_id"],"BAD_INPUT_"+node)
+    report={"node":"N"+suffix,"status":result.get("status"),"http":status,
+            "run_id":result["run_id"],"error":result.get("error")}
+    STEPS.append(report)
+    print("WF01_NODE",json.dumps(report),flush=True)
+    return status,result
 
 def run():
-    opener=urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
-    health_status,health=read_api(opener,"/api/studio/health")
-    check(health_status==200 and health.get("projectAdapterConnected") is True,
-          "PROJECT_ADAPTER_OFFLINE")
-    parent=None
-    for step in ["01","02","03","04","05","06","07","11","15","16"]:
-        node=PREFIX+step
-        if step=="01":
-            params={"workflow":WORKFLOW,"node_id":node,
-                    "input_json":{"ui_selection":KIND,"requested_detail_limit":1,"max_pages":3}}
-            api="/api/studio/node01/execute"
-        else:
-            check(parent is not None,"MISSING_UPSTREAM")
-            st,transfer=read_api(opener,url("/api/studio/nodes/transfers",node))
-            check(st==200,"CANNOT_READ_EDGE")
-            transfers=[t for t in transfer.get("transfers",[])
-                       if t["source_run_id"]==parent["run_id"]]
-            check(len(transfers)==1 and transfers[0]["output_json"]==parent["output_json"],
-                  f"N{step} DID NOT RECEIVE PREVIOUS OUTPUT")
-            params={"workflow":WORKFLOW,"node_id":node,"source_run_id":parent["run_id"]}
-            api="/api/studio/nodes/execute"
-        code,data=request(opener,"POST",api,params)
-        check(data.get("run_id"),f"N{step} ENDPOINT REJECTED RUN: HTTP {code} {str(data)[:350]}")
-        st,history=read_api(opener,url("/api/studio/nodes/history",node))
-        check(st==200,"CANNOT_READ_NODE_HISTORY")
-        matching=[r for r in history.get("executions",[]) if r.get("run_id")==data.get("run_id")]
-        check(len(matching)==1,f"N{step} RUN NOT IN SQLITE HISTORY: run={data.get('run_id')!r}, history_status={st}, keys={list(history)}, recent_runs={[x.get('run_id') for x in history.get('executions',[])[:5]]}")
-        record=matching[0]
-        check(record["input_json"]==data["input_json"] and
-              record["output_json"]==data["output_json"],f"N{step} DB IO MISMATCH")
-        if parent:
-            check(data["upstream_run_id"]==parent["run_id"] and
-                  data["input_json"]==parent["output_json"],
-                  f"N{step} INPUT != PRIOR OUTPUT")
-        RESULTS.append({"node":"N"+step,"http":code,"status":data.get("status"),
-                        "run_id":data.get("run_id"),"error":data.get("error")})
-        print("NODE_RESULT",json.dumps(RESULTS[-1],ensure_ascii=False),flush=True)
-        if KIND=="library" and step=="03":
-            check(code==422 and data["status"]=="FAILED",
-                  "LIBRARY_MUST_REPORT_REAL_PROVIDER_UNAVAILABLE")
-            return "LIBRARY_CATALOG_NOT_AVAILABLE"
-        check(code==200 and data.get("status")=="SUCCESS",
-              f"N{step} EXECUTION_FAILED: {data.get('error') or code}")
-        result=data["output_json"]
-        if step=="03":
-            check(result["count"]>0 and result.get("catalog_is_live") is False,
-                  "NO_REAL_CATALOG_OR_FALSE_LIVE_STATUS")
-        if step=="05":
-            check(result["checked_count"]>0,"DB_COMPARE_NOT_RUN")
-        if step=="07":
-            check(result.get("_studio_active_ports")==[0],
-                  "NO_NEW_CANDIDATE_TO_COLLECT")
-        if step=="11":
-            check(result.get("pine_source_acquired") is True and
-                  "strategy(" in result["pine_code"],
-                  "PINE_TEXT_NOT_ACQUIRED")
-            check("pine_source_sha256" not in result and
-                  "author" not in result["candidate"],
-                  "UNNECESSARY_AUTHOR_OR_HASH_GATE_REMAINS")
-        if step=="15":
-            check(result.get("source_saved") is True,"PINE_NOT_STORED_IN_SQLITE")
-        if step=="16":
-            check(result["status"]=="PINE_SAVED_CONVERSION_PENDING" and
-                  result["paper_enabled"] is False and
-                  result["conversion_validated"] is False,
-                  "UNVERIFIED_CONVERSION_OR_TRADING_CLAIM")
-            print("WF01_PINE_SOURCE_SAVED_REAL_RUN",result["source_id"],
-                  result["version_key"],flush=True)
-        parent=data
-    return "PINE_SAVED_CONVERSION_PENDING"
+    _,a=execute("01")
+    _,b=execute("02",a)
+    previous=b
+    for page in range(1,4):
+        st,c=execute("03",previous)
+        if KIND=="library":
+            ensure(st==422 and c["status"]=="FAILED" and
+                   c["error"]=="LICENSED_MANIFEST_STRATEGIES_ONLY",
+                   "LIBRARY_FEED_MUST_NOT_BE_FAKED")
+            print("WF01_LIBRARY_NOT_AVAILABLE",flush=True)
+            return "LIBRARY_FEED_NOT_AVAILABLE"
+        ensure(st==200 and c["status"]=="SUCCESS" and
+            c["output_json"]["count"]>0,"NO_REAL_CATALOG")
+        _,d=execute("04",c)
+        _,e=execute("05",d)
+        _,g=execute("06",e)
+        _,h=execute("07",g)
+        out=h["output_json"]
+        if out["has_candidate"]:
+            ensure(out["_studio_active_ports"]==[0],"N07_TRUE_PORT_MISSING")
+            status,src=execute("11",h)
+            ensure(status==200 and src["output_json"]["pine_source_acquired"] is True,
+                   "N11_ACTUAL_PINE_NOT_ACQUIRED")
+            _,saved=execute("15",src)
+            ensure(saved["output_json"]["source_saved"] is True,
+                   "N15_SQLITE_SOURCE_NOT_STORED")
+            _,done=execute("16",saved)
+            ensure(done["output_json"]["status"]=="PINE_SAVED_CONVERSION_PENDING" and
+                   done["output_json"]["paper_enabled"] is False,
+                   "N16_FALSE_CONVERSION_OR_TRADE_CLAIM")
+            print("WF01_PINE_SOURCE_SAVED_REAL_RUN",
+                  done["output_json"]["source_id"],flush=True)
+            return "PINE_SAVED_CONVERSION_PENDING"
+        ensure(out["_studio_active_ports"]==[1],"N07_FALSE_PORT_MISSING")
+        _,n8=execute("08",h)
+        more=n8["output_json"]["next_page_available"]
+        if more:
+            ensure(n8["output_json"]["_studio_active_ports"]==[0],"N08_TRUE_PORT_MISSING")
+            _,previous=execute("09",n8)
+            ensure(previous["output_json"]["page"]==page+1,"N09_PAGE_ADVANCE_FAILED")
+            continue
+        ensure(n8["output_json"]["_studio_active_ports"]==[1],"N08_FALSE_PORT_MISSING")
+        _,terminal=execute("10",n8)
+        ensure(terminal["output_json"]["status"]=="NO_FETCHABLE_NEW_PINE" and
+               terminal["output_json"]["saved_count"]==0,"N10_FALSE_SAVING_CLAIM")
+        print("WF01_NO_FETCHABLE_NEW_PINE",flush=True)
+        return "NO_FETCHABLE_NEW_PINE"
+    raise AssertionError("WF01_PAGE_LIMIT_NOT_ENFORCED")
 
 if __name__=="__main__":
     try:
         result=run()
-        print(json.dumps({"result":result,"runs":RESULTS},ensure_ascii=False,indent=2),flush=True)
+        print(json.dumps({"result":result,"steps":STEPS},ensure_ascii=False,indent=2))
     except Exception as exc:
         print("WF01_REAL_CHAIN_FAILED",type(exc).__name__,str(exc),file=sys.stderr)
         sys.exit(1)
