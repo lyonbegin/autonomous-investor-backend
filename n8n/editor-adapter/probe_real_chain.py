@@ -244,7 +244,10 @@ def perform():
             check(out6.get(key)==val,f"N06 LOST UPSTREAM FIELD {key}")
         check(out6["has_candidate"] is True and
               out6["selected_candidate_count"]==1 and
-              out6["candidate"]["source_id"]==out5["items"][0]["source_id"] and
+              any(x["source_id"]==out6["candidate"]["source_id"]
+                  for x in out5["items"]) and
+              out6["candidate_pine_version_supported_by_current_converter"] is True and
+              str(out6["candidate"].get("pine_version")) in ("5","6") and
               out6["pine_source_acquired"] is False,
               "N06 DID NOT SELECT EXACTLY ONE VALID UNIMPORTED METADATA CANDIDATE")
         h6=last_history(opener,n6)
