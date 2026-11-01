@@ -4,7 +4,7 @@ used ONLY for unit isolation, never represented as real TradingView data.
 import hashlib, os, sqlite3, tempfile, unittest
 from pathlib import Path
 from unittest.mock import patch
-from investment_node_adapter import execute_node15
+from investment_node_adapter import execute_node15,execute_node16
 from investment_source_registry import check_candidates
 
 PINE="//@version=6\n// © Example Author\nstrategy(\"test\", overlay=true)\nplot(close)\n"
@@ -32,6 +32,15 @@ class PineStore(unittest.TestCase):
             self.assertTrue(first["source_saved"])
             self.assertTrue(first["source_created"])
             self.assertEqual(first["saved_count"],1)
+            receipt=execute_node16(first,workflow_kind="strategy")
+            self.assertTrue(receipt["db_readback_verified"])
+            self.assertEqual(receipt["status"],"SOURCE_STORED_REVIEW_PENDING")
+            self.assertFalse(receipt["conversion_validated"])
+            self.assertFalse(receipt["tradingview_chart_validated"])
+            self.assertFalse(receipt["paper_enabled"])
+            self.assertFalse(receipt["live_orders_enabled"])
+            with self.assertRaisesRegex(ValueError,"N16_SOURCE_HASH_INVALID"):
+                execute_node16({**first,"pine_code":first["pine_code"]+"//modified"},workflow_kind="strategy")
             second=execute_node15(row,workflow_kind="strategy")
             self.assertTrue(second["source_saved"])
             self.assertFalse(second["source_created"])
