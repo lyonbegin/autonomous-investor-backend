@@ -155,6 +155,43 @@ def perform():
       "input":c["input_json"],"output":c["output_json"],
       "error":c.get("error"),"elapsed_ms":ms})
     print("N03 EXECUTION",state,c.get("error") or c["output_json"].get("count"),flush=True)
+    if status==200:
+        n5=PREFIX+"05"
+        status4,d,ms4=call(opener,"POST","/api/studio/nodes/execute",
+            {"workflow":WORKFLOW,"node_id":n4,"source_run_id":c["run_id"]},
+            {"X-Studio-Node-Run":"APPROVED"})
+        check(status4==200 and d.get("status")=="SUCCESS",f"N04 FAILED HTTP {status4}: {d}")
+        check(d["upstream_run_id"]==c["run_id"],"N04 SOURCE EXECUTION ID MISMATCH")
+        check(d["input_json"]==c["output_json"] and
+              d["upstream_output_json"]==c["output_json"],
+              "N04 ACTUAL INPUT != N03 ACTUAL OUTPUT")
+        for key,value in c["output_json"].items():
+            check(d["output_json"].get(key)==value,f"N04 DROPPED N03 FIELD: {key}")
+        out4=d["output_json"]
+        check(len(out4["candidates"])==out4["candidate_count"] and
+              out4["candidate_count"]==c["output_json"]["count"],
+              "N04 CANDIDATES COUNT NOT PRESERVED")
+        check(out4["validated_catalog_is_snapshot"] is True and
+              out4["latest_tradingview_checked"] is False and
+              out4["next_page"]==2 and out4["max_pages"]==3,
+              "N04 STALE OR FALSE LIVE PAGINATION")
+        check(all(x["source_id"] and x["source_url"] and x["version_key"]
+                  for x in out4["candidates"]), "N04 INVALID REAL CANDIDATES")
+        h4=last_history(opener,n4)
+        check(h4[0]["run_id"]==d["run_id"] and
+              h4[0]["upstream_run_id"]==c["run_id"] and
+              h4[0]["input_json"]==d["input_json"] and
+              h4[0]["output_json"]==d["output_json"],
+              "N04 DATABASE INPUT/OUTPUT OR LINEAGE MISMATCH")
+        t45=transfer(opener,n5,d["run_id"])
+        check(t45["output_json"]==d["output_json"] and t45["status"]=="READY",
+              "N04→N05 FULL OUTPUT NOT READY")
+        RECORDED.append({"node":"N04","status":"SUCCESS","http":status4,
+             "run_id":d["run_id"],"upstream_run_id":c["run_id"],
+             "input":d["input_json"],"output":d["output_json"],
+             "elapsed_ms":ms4})
+        state="N04_REAL_VALIDATION_SUCCESS_N05_INPUT_READY"
+        print("N04 EXECUTED AND STORED",d["run_id"],"validated",out4["candidate_count"],"N05 READY",flush=True)
     return {"workflow":WORKFLOW,"result":state,"steps":RECORDED,
       "meaning":"N01,N02 real successes; N03 must be real approved feed or explicit FAILED, never synthetic."}
 
@@ -164,8 +201,8 @@ if __name__=="__main__":
         print(json.dumps(outcome,ensure_ascii=False,indent=2),flush=True)
         # A safely rejected unauthorized or missing collector does NOT count
         # as successful end-to-end strategy collection.
-        if os.environ.get("WF01_REQUIRE_N03_SUCCESS")=="1" and outcome["result"]!="N03_REAL_METADATA_SUCCESS_N04_INPUT_READY":
-            print("FIRST_STAGE_NOT_PASSED: N03 has no actual authorized strategy list; N04 must not run",file=sys.stderr,flush=True)
+        if os.environ.get("WF01_REQUIRE_N04_SUCCESS")=="1" and outcome["result"]!="N04_REAL_VALIDATION_SUCCESS_N05_INPUT_READY":
+            print("FIRST_STAGE_NOT_PASSED: N04 did not validate and deliver real strategy metadata to N05",file=sys.stderr,flush=True)
             sys.exit(3)
     except Exception as e:
         print("CHAIN_PROBE_FAILED",type(e).__name__,str(e),
