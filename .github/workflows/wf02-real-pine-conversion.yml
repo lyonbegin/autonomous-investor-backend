@@ -48,7 +48,7 @@ jobs:
       - name: Execute actual saved Pine node by node - do not claim unsupported converted
         run: |
           set -o pipefail
-          PYTHONPATH=n8n/editor-adapter:n8n/pine-parity WF02_REQUIRE_REAL_CONVERSION=1 WF02_SOURCE_ID='PUB;67a1548c0960450086a19d5b0ef1d467' WF02_VERSION_KEY='1.0' python3 n8n/editor-adapter/probe_wf02_real.py | tee /tmp/wf02-real.log
+          PYTHONPATH=n8n/editor-adapter:n8n/pine-parity WF02_EXPECT_SCOPE='PINE_V6_RSI_REVERSAL_RUN_SIGNAL' WF02_REQUIRE_REAL_CONVERSION=1 WF02_SOURCE_ID='PUB;67a1548c0960450086a19d5b0ef1d467' WF02_VERSION_KEY='1.0' python3 n8n/editor-adapter/probe_wf02_real.py | tee /tmp/wf02-real.log
           grep -q 'WF02_REAL_PINE_PYTHON_GENERATED_REQUIRES_TV_PARITY' /tmp/wf02-real.log
       - name: Retain live execution evidence
         if: always()
