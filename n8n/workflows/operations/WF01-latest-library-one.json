@@ -137,11 +137,11 @@
         "studioPython": {
           "python_module": "investment_node_adapter",
           "python_function": "execute_node06",
-          "code_version": "wf01-n06-select-compatible-v2",
+          "code_version": "wf01-n06-licensed-archive-v3",
           "node_character": "choose_single_new_strategy"
         }
       },
-      "notes": "N05 실제 미등록 후보 중 Pine v6·v5 및 명시적 라이선스를 우선하여 전략 1개 선택. 변환 가능 문법 전체가 확인됐다는 의미는 아니며 Pine 원본은 아직 미확보."
+      "notes": "N05에서 imported=false인 실제 소스 중 GitHub 고정 보관소에 경로가 존재하고 MPL 고지가 보고된 Pine v6/v5를 우선 선택. 후보는 1건, 검증 원본 여부는 N11 SHA 재검사 후에만 확정. 다른 전략 후보는 삭제하지 않음."
     },
     {
       "id": "wf01-library-07",
