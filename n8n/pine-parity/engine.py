@@ -196,37 +196,47 @@ def numeric_compare(bars,series,conditions,columns):
     return comparison,all_required,all_match
 
 def generate_python(spec):
-    """Standalone source for the audited subset. Not exec'd in HTTP process."""
+    """Emit an executable strategy function for the strictly parsed subset.
+
+    Includes series, cross signals and assumed next-bar open fills. It is
+    not a claim of TradingView order-fill parity."""
     literal=repr(spec)
     return (
         "# Generated from STRICT supported Pine subset; no arbitrary source executed.\n"
         "SPEC = "+literal+"\n\n"
         "def run_strategy(bars):\n"
-        "    close=[float(bar['close']) for bar in bars]\n"
+        "    close=[float(bar[\'close\']) for bar in bars]\n"
         "    series={}\n"
-        "    for name,(kind,n) in SPEC['series'].items():\n"
+        "    for name,(kind,n) in SPEC[\'series\'].items():\n"
         "        values=[];ema=None\n"
         "        for i,v in enumerate(close):\n"
-        "            if kind=='sma':\n"
+        "            if kind==\'sma\':\n"
         "                values.append(sum(close[i-n+1:i+1])/n if i>=n-1 else None)\n"
         "            else:\n"
         "                ema=v if ema is None else v*2/(n+1)+ema*(1-2/(n+1))\n"
         "                values.append(ema)\n"
         "        series[name]=values\n"
         "    signals={}\n"
-        "    for name,(kind,left,right) in SPEC['conditions'].items():\n"
+        "    for name,(kind,left,right) in SPEC[\'conditions\'].items():\n"
         "        a,b=series[left],series[right];values=[False]\n"
         "        for i in range(1,len(close)):\n"
         "            if any(t is None for t in (a[i],a[i-1],b[i],b[i-1])):\n"
         "                values.append(False)\n"
-        "            elif kind=='crossover':\n"
+        "            elif kind==\'crossover\':\n"
         "                values.append(a[i]>b[i] and a[i-1]<=b[i-1])\n"
         "            else:\n"
         "                values.append(a[i]<b[i] and a[i-1]>=b[i-1])\n"
         "        signals[name]=values\n"
-        "    return {'series':series,'signals':signals}\n"
+        "    trades=[]\n"
+        "    for i in range(len(close)):\n"
+        "        for signal,side in SPEC[\'entries\']:\n"
+        "            if signals[signal][i]:\n"
+        "                trades.append({\'bar_index\':i,\'time\':bars[i][\'time\'],\n"
+        "                    \'direction\':side,\'signal_price\':close[i],\n"
+        "                    \'assumed_fill_time\':bars[i+1][\'time\'] if i+1<len(close) else None,\n"
+        "                    \'assumed_fill_price\':bars[i+1][\'open\'] if i+1<len(close) else None})\n"
+        "    return {\'series\':series,\'signals\':signals,\'trades\':trades}\n"
     )
-
 def render_svg(bars,series,conditions,title="Python strategy chart",spec=None):
     # Returned SVG is rendered by Python, not by JS / TradingView.
     n=min(180,len(bars));start=len(bars)-n;part=bars[start:]
