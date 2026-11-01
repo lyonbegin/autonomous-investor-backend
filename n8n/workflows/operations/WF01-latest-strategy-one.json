@@ -281,9 +281,15 @@
       ],
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const selected=$('06 전략 첫 신규 버전 1개 고르기').last().json.candidate;return $input.all().map(({json:p})=>{const ok=p.kind==='strategy'&&p.source_id===selected.source_id&&p.version_key===selected.version_key&&p.access==='open'&&typeof p.pine_code==='string'&&p.pine_code.length>=10&&typeof p.source_url==='string'&&p.source_url.startsWith('https://');return {json:{kind:'strategy',source_id:p.source_id,version_key:p.version_key,source_url:p.source_url,author:p.author||null,license:p.license||null,updated_at:p.updated_at||null,pine_code:ok?p.pine_code:null,source_available:ok,rights_state:'PENDING_REVIEW',selected_count:0}};});"
+        "jsCode": "return $input.all().map(({json:r})=>{if(r.kind!=='strategy'||r.source_hash_verified!==true||r.pine_source_acquired!==true||!r.candidate||typeof r.pine_code!=='string')throw Error('N12_UNVERIFIED_ORIGINAL_SOURCE');return {json:{...r,source_available:true,source_integrity_checked:true,source_id:r.candidate.source_id,version_key:r.candidate.version_key,source_url:r.candidate.source_url,author:r.candidate.author,license:r.candidate.source_license_reported,conversion_validated:false,tradingview_chart_validated:false,source_review_approved:false}};});",
+        "studioPython": {
+          "python_module": "investment_node_adapter",
+          "python_function": "execute_node12",
+          "code_version": "wf01-n12-original-source-contract-v1",
+          "node_character": "validated_pine_source_contract"
+        }
       },
-      "notes": ""
+      "notes": "N11이 실제 확보한 Pine 원본의 SHA256을 N03 스냅샷 해시와 독립 비교. Pine 버전·strategy 선언·원작자/MPL 고지를 검증하여 N13 IF에 source_available 전달. Pine→Python 변환/TradingView 그래프 동일성/소스 권리 승인은 여기서 아직 합격 처리하지 않음."
     },
     {
       "id": "wf01-strategy-13",
@@ -556,6 +562,7 @@
     "node05PythonExecutionEnabled": true,
     "node06PythonExecutionEnabled": true,
     "node07PythonExecutionEnabled": true,
-    "node11PythonExecutionEnabled": true
+    "node11PythonExecutionEnabled": true,
+    "node12PythonExecutionEnabled": true
   }
 }
