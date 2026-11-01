@@ -318,9 +318,28 @@ def perform():
                 "N12 RECEIVED DATA DESPITE N11 PINE SOURCE FAILURE")
             state="N11_BLOCKED_ORIGINAL_PINE_NOT_SUPPLIED_N12_NOT_EXECUTED"
         else:
-            check(src["output_json"]["source_hash_verified"] is True and
-                  src["output_json"]["pine_source_acquired"] is True,
+            import hashlib
+            out11=src["output_json"]
+            check(out11["source_hash_verified"] is True and
+                  out11["pine_source_acquired"] is True and
+                  out11["pine_source_origin"]=="GITHUB_PINNED_OPEN_SOURCE_ARCHIVE",
                   "N11 FALSE PINE SOURCE SUCCESS")
+            check(out11["pine_source_sha256"]==
+                  hashlib.sha256(out11["pine_code"].encode("utf-8")).hexdigest(),
+                  "N11 SHA DOES NOT MATCH ACTUAL PINE TEXT")
+            check(out11["pine_source_sha256"]==
+                  out11["candidate"]["source_sha256_reported"],
+                  "N11 ACTUAL PINE DOES NOT MATCH INDEPENDENT MANIFEST")
+            check(out11["rights_state"]=="MPL_2_0_REVIEW_REQUIRED" and
+                  out11["tradingview_requested"] is False,
+                  "N11 FALSE RIGHTS APPROVAL OR TRADINGVIEW ACCESS CLAIM")
+            n12transfer=transfer(opener,n12,src["run_id"])
+            check(n12transfer["output_json"]==out11 and
+                  n12transfer["source_port"]==0,
+                  "N11→N12 FULL PINE INPUT NOT TRANSFERRED")
+            check(h11[0]["output_json"]==out11 and
+                  h11[0]["status"]=="SUCCESS",
+                  "N11 REAL SQLITE OUTPUT NOT STORED")
             state="N11_GENUINE_SOURCE_HASH_VERIFIED_N12_INPUT_READY"
         RECORDED.append({"node":"N11","status":src["status"],"http":status11,
             "run_id":src["run_id"],"upstream_run_id":h["run_id"],
@@ -328,7 +347,7 @@ def perform():
             "error":src.get("error"),"elapsed_ms":ms11})
         print("N11 SOURCE EXECUTION",state,src.get("error") or "HASH_VERIFIED",flush=True)
     return {"workflow":WORKFLOW,"result":state,"steps":RECORDED,
-      "meaning":"N01,N02 real successes; N03 must be real approved feed or explicit FAILED, never synthetic."}
+      "meaning":"N01→N11 sequential per-node executed. Metadata from pinned third-party snapshot, source from independent pinned GitHub mirror matching exact hash; TradingView chart is not rendered or visually compared."}
 
 if __name__=="__main__":
     try:
