@@ -42,6 +42,8 @@ jobs:
                   binding7=node7["parameters"].get("studioPython",{})
                   node11=next(n for n in raw["workflow"]["nodes"] if n["id"]=="wf01-strategy-11")
                   binding11=node11["parameters"].get("studioPython",{})
+                  node12=next(n for n in raw["workflow"]["nodes"] if n["id"]=="wf01-strategy-12")
+                  binding12=node12["parameters"].get("studioPython",{})
                   if (binding["python_function"]=="execute_node03" and
                       binding["code_version"]=="wf01-n03-licensed-manifest-v2" and
                       binding4.get("python_function")=="execute_node04" and
@@ -53,7 +55,9 @@ jobs:
                       binding7.get("python_function")=="execute_node07" and
                       binding7.get("code_version")=="wf01-n07-if-v1" and
                       binding11.get("python_function")=="execute_node11" and
-                      binding11.get("code_version")=="wf01-n11-verified-archive-v2"):
+                      binding11.get("code_version")=="wf01-n11-verified-archive-v2" and
+                      binding12.get("python_function")=="execute_node12" and
+                      binding12.get("code_version")=="wf01-n12-original-source-contract-v1"):
                       print("N03_REALLY_DEPLOYED_IN_RAILWAY");break
               except Exception as exc:
                   print("N03_DEPLOY_WAIT",type(exc).__name__,str(exc)[:120],flush=True)
@@ -63,12 +67,12 @@ jobs:
       - name: Execute N01→N07 then real N11 Pine source; fail stage if source not acquired
         run: |
           set -o pipefail
-          PYTHONPATH=n8n/editor-adapter WF01_KIND=strategy WF01_REQUIRE_N11_SUCCESS=1 python3 n8n/editor-adapter/probe_real_chain.py | tee /tmp/wf01-real-strategy.log
+          PYTHONPATH=n8n/editor-adapter WF01_KIND=strategy WF01_REQUIRE_N12_SUCCESS=1 python3 n8n/editor-adapter/probe_real_chain.py | tee /tmp/wf01-real-strategy.log
       - name: Diagnose library N01 -> N02 -> N03 separately (manifest contains strategies only; must remain BLOCKED)
         if: always()
         run: |
           set -o pipefail
-          PYTHONPATH=n8n/editor-adapter WF01_KIND=library WF01_REQUIRE_N11_SUCCESS=0 python3 n8n/editor-adapter/probe_real_chain.py | tee /tmp/wf01-real-library.log
+          PYTHONPATH=n8n/editor-adapter WF01_KIND=library WF01_REQUIRE_N12_SUCCESS=0 python3 n8n/editor-adapter/probe_real_chain.py | tee /tmp/wf01-real-library.log
       - name: Check original Pine stored with exact SHA (and do not claim TV chart parity)
         if: always()
         run: |
@@ -77,7 +81,7 @@ jobs:
           log=pathlib.Path("/tmp/wf01-real-strategy.log")
           if not log.exists(): raise AssertionError("STRATEGY_RUN_LOG_MISSING")
           text=log.read_text()
-          assert "N11_GENUINE_SOURCE_HASH_VERIFIED_N12_INPUT_READY" in text, "N03 strategy metadata NOT executed successfully"
+          assert "N12_REAL_PINE_SOURCE_VALIDATED_N13_READY" in text, "N03 strategy metadata NOT executed successfully"
           assert "PYNE_GITHUB_CC_BY_4_METADATA_SNAPSHOT" in text
           assert '"catalog_is_live": false' in text
           assert '"pine_source_acquired": false' in text
@@ -87,6 +91,9 @@ jobs:
           assert '"node": "N06"' in text
           assert '"node": "N07"' in text
           assert '"node": "N11"' in text
+          assert '"node": "N12"' in text
+          assert '"conversion_validated": false' in text
+          assert '"tradingview_chart_validated": false' in text
           assert '"pine_source_origin": "GITHUB_PINNED_OPEN_SOURCE_ARCHIVE"' in text
           assert '"source_hash_verified": true' in text
           assert '"rights_state": "MPL_2_0_REVIEW_REQUIRED"' in text
@@ -95,7 +102,7 @@ jobs:
           assert '"selected_candidate_count": 1' in text
           assert '"checked_count": 50' in text
           assert '"new_count": 50' in text
-          print("N01_THROUGH_N11_REAL_SOURCE_SHA256_AND_N12_EDGE_VERIFIED")
+          print("N01_THROUGH_N12_REAL_SOURCE_CODE_SHA256_AND_N13_EDGE_VERIFIED")
           PY
       - name: Archive real service execution logs
         if: always()
