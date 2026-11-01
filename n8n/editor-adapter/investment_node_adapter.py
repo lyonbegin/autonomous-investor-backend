@@ -66,6 +66,12 @@ def node_binding(workflow_path,node_id):
         return {"python_module":"investment_node_adapter",
           "python_function":"execute_node07","code_version":"wf01-n07-if-v1",
           "node_character":"conditional_route"}
+    if node_id==prefix+"08":
+        return {"python_module":"investment_node_adapter","python_function":"execute_node08","code_version":"wf01-n08-more-pages-v1","node_character":"conditional_route"}
+    if node_id==prefix+"09":
+        return {"python_module":"investment_node_adapter","python_function":"execute_node09","code_version":"wf01-n09-next-page-v1","node_character":"next_collection_page"}
+    if node_id==prefix+"10":
+        return {"python_module":"investment_node_adapter","python_function":"execute_node10","code_version":"wf01-n10-exhausted-v1","node_character":"collection_exhausted"}
     if node_id==prefix+"11":
         return {"python_module":"investment_node_adapter",
           "python_function":"execute_node11","code_version":"wf01-n11-simple-pine-v1",
@@ -93,6 +99,9 @@ def node_type(workflow_path,node_id):
       "wf01-"+kind+"-05":"n8n-nodes-base.httpRequest",
       "wf01-"+kind+"-06":"n8n-nodes-base.code",
       "wf01-"+kind+"-07":"n8n-nodes-base.if",
+      "wf01-"+kind+"-08":"n8n-nodes-base.if",
+      "wf01-"+kind+"-09":"n8n-nodes-base.code",
+      "wf01-"+kind+"-10":"n8n-nodes-base.code",
       "wf01-"+kind+"-11":"n8n-nodes-base.httpRequest",
       "wf01-"+kind+"-15":"n8n-nodes-base.httpRequest",
       "wf01-"+kind+"-16":"n8n-nodes-base.code",
@@ -296,7 +305,7 @@ def execute_node06(input_json,*,workflow_kind):
     new=[item for item in rows if item.get("imported") is False]
     # Prefer a known mirror path to avoid selecting an unavailable Pine file.
     fetchable=[item for item in new if archive_path_for(item)]
-    one=(fetchable[0] if fetchable else new[0] if new else None)
+    one=fetchable[0] if fetchable else None
     return {**input_json,"candidate":one,"has_candidate":one is not None,
         "selected_candidate_count":1 if one else 0,
         "can_continue":isinstance(input_json.get("next_page"),int),
@@ -322,6 +331,35 @@ def execute_node07(input_json,*,workflow_kind):
         "branch_label":"HAS_NEW_CANDIDATE" if has_candidate else "NO_CANDIDATE",
         "branch_decided_at":datetime.now(timezone.utc).isoformat(),
         "next_node_executed":False}
+
+def execute_node08(input_json,*,workflow_kind):
+    """Route no-candidate to next page, or stop if no pages remain."""
+    if input_json.get("kind")!=workflow_kind or input_json.get("has_candidate") is not False:
+        raise ValueError("N08_REQUIRES_NO_CANDIDATE")
+    more=input_json.get("can_continue")
+    if type(more) is not bool:raise ValueError("N08_INVALID_CAN_CONTINUE")
+    return {**input_json,"_studio_active_ports":[0 if more else 1],
+            "next_page_available":more}
+
+def execute_node09(input_json,*,workflow_kind):
+    """Prepare the next actual catalog page and clear stale candidate data."""
+    if input_json.get("kind")!=workflow_kind or input_json.get("next_page_available") is not True:
+        raise ValueError("N09_NEXT_PAGE_NOT_APPROVED")
+    nxt,max_pages=input_json.get("next_page"),input_json.get("max_pages")
+    if type(nxt) is not int or type(max_pages) is not int or not 2<=nxt<=max_pages<=3:
+        raise ValueError("N09_INVALID_PAGE")
+    return {"kind":workflow_kind,"page":nxt,"max_pages":max_pages,
+        "page_size":input_json.get("page_size",50),"sort":"recent_extended",
+        "max_detail_success":1,"selected_count":0,"tradingview_requested":False,
+        "next_node_executed":False}
+
+def execute_node10(input_json,*,workflow_kind):
+    """Stop without claiming code was imported."""
+    if input_json.get("kind")!=workflow_kind or input_json.get("next_page_available") is not False:
+        raise ValueError("N10_MORE_PAGES_REMAIN")
+    return {"kind":workflow_kind,"status":"NO_FETCHABLE_NEW_PINE","saved_count":0,
+            "checked_page":input_json.get("page"),"conversion_validated":False,
+            "tradingview_chart_validated":False}
 
 def execute_node11(input_json,*,workflow_kind):
     """Obtain real Pine text; do not decide authorship or code authenticity."""
@@ -387,6 +425,9 @@ def execute_node(workflow_path,node_id,input_json):
                "execute_node05":execute_node05,
                "execute_node06":execute_node06,
                "execute_node07":execute_node07,
+               "execute_node08":execute_node08,
+               "execute_node09":execute_node09,
+               "execute_node10":execute_node10,
                "execute_node11":execute_node11,
                "execute_node15":execute_node15,
                "execute_node16":execute_node16}
@@ -400,6 +441,6 @@ def default_node_input(workflow_path,node_id):
     if not kind:return None
     if node_id=="wf01-"+kind+"-01":
         return {"ui_selection":kind,"requested_detail_limit":1}
-    if node_id in ("wf01-"+kind+"-02","wf01-"+kind+"-03","wf01-"+kind+"-04","wf01-"+kind+"-05","wf01-"+kind+"-06","wf01-"+kind+"-07","wf01-"+kind+"-11","wf01-"+kind+"-15","wf01-"+kind+"-16"):
+    if node_id in ("wf01-"+kind+"-02","wf01-"+kind+"-03","wf01-"+kind+"-04","wf01-"+kind+"-05","wf01-"+kind+"-06","wf01-"+kind+"-07","wf01-"+kind+"-08","wf01-"+kind+"-09","wf01-"+kind+"-10","wf01-"+kind+"-11","wf01-"+kind+"-15","wf01-"+kind+"-16"):
         return {}
     return None
