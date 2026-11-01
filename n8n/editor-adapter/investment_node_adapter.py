@@ -12,6 +12,7 @@ import urllib.parse
 import urllib.request
 from licensed_strategy_manifest import catalog_from_snapshot
 from investment_source_registry import check_candidates
+from verified_pine_archive import acquire_verified_pine
 from datetime import datetime,timezone
 
 WF01_MODES={
@@ -53,7 +54,7 @@ def node_binding(workflow_path,node_id):
           "node_character":"conditional_route"}
     if node_id==prefix+"11":
         return {"python_module":"investment_node_adapter",
-          "python_function":"execute_node11","code_version":"wf01-n11-original-pine-hash-v1",
+          "python_function":"execute_node11","code_version":"wf01-n11-verified-archive-v2",
           "node_character":"verified_operator_pine_source"}
     return None
 
@@ -364,8 +365,12 @@ def execute_node11(input_json,*,workflow_kind):
     if not isinstance(expected,str) or not re.fullmatch(r"[a-fA-F0-9]{64}",expected):
         raise ValueError("N11_ORIGINAL_SOURCE_HASH_NOT_AVAILABLE")
     code=input_json.get("pine_code")
+    archive=None
     if not isinstance(code,str) or not code.strip():
-        raise ValueError("N11_ORIGINAL_PINE_NOT_SUPPLIED")
+        # Only one pinned, independently SHA-matched open-source GitHub
+        # mirror is enabled. Other candidates remain explicitly blocked.
+        archive=acquire_verified_pine(candidate)
+        code=archive["pine_code"]
     if len(code.encode("utf-8"))>60000:
         raise ValueError("N11_PINE_SOURCE_TOO_LARGE")
     if not re.search(r"(?m)^\s*//@version=(4|5|6)\s*$",code):
@@ -375,13 +380,17 @@ def execute_node11(input_json,*,workflow_kind):
     actual=hashlib.sha256(code.encode("utf-8")).hexdigest()
     if actual.lower()!=expected.lower():
         raise ValueError("N11_PINE_SHA256_DOES_NOT_MATCH_PUBLISHED_SNAPSHOT")
-    # No automatic non-display TradingView ingestion, no rights approval.
+    # We verified a pinned independent GitHub archive against the external
+    # manifest's byte-level SHA. This does NOT verify TradingView chart output.
     return {**input_json,
+        **({"pine_code":code} if archive else {}),
+        **(archive or {}),
         "pine_source_acquired":True,
         "pine_source_sha256":actual,
         "source_hash_verified":True,
-        "pine_source_origin":"OPERATOR_PROVIDED_MATCHING_RESEARCH_HASH",
-        "rights_state":"PENDING_REVIEW",
+        "pine_source_origin":"GITHUB_PINNED_OPEN_SOURCE_ARCHIVE" if archive else
+                             "OPERATOR_PROVIDED_MATCHING_RESEARCH_HASH",
+        "rights_state":"MPL_2_0_REVIEW_REQUIRED" if archive else "PENDING_REVIEW",
         "source_verified_at":datetime.now(timezone.utc).isoformat(),
         "tradingview_requested":False,
         "next_node_executed":False}
