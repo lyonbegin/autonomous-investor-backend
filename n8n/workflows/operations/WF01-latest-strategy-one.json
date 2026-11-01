@@ -141,7 +141,7 @@
           "node_character": "choose_single_new_strategy"
         }
       },
-      "notes": "새 전략 후보 1개 선택. Python 실행 어댑터는 실제 공개 Pine 파일 경로가 연결된 후보를 우선함."
+      "notes": "신규 후보 중 실제 공개 Pine 파일 경로가 있는 1개만 선택. 없으면 N07 거짓 경로로 페이지 이동."
     },
     {
       "id": "wf01-strategy-07",
@@ -209,9 +209,15 @@
               }
             }
           ]
+        },
+        "studioPython": {
+          "python_module": "investment_node_adapter",
+          "python_function": "execute_node08",
+          "code_version": "wf01-n08-more-pages-v1",
+          "node_character": "conditional_route"
         }
       },
-      "notes": ""
+      "notes": "현재 페이지에 신규 공개 Pine이 없을 때 다음 페이지가 있는지 IF 분기."
     },
     {
       "id": "wf01-strategy-09",
@@ -224,9 +230,15 @@
       ],
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "return $input.all().map(({json:p})=>({json:{kind:'strategy',page:p.next_page,page_size:50,max_pages:p.max_pages,sort:'updated_desc',selected_count:0}}));"
+        "jsCode": "return $input.all().map(({json:p})=>({json:{kind:p.kind,page:p.next_page,max_pages:p.max_pages,page_size:p.page_size||50,sort:'recent_extended',max_detail_success:1,selected_count:0,tradingview_requested:false,next_node_executed:false}}));",
+        "studioPython": {
+          "python_module": "investment_node_adapter",
+          "python_function": "execute_node09",
+          "code_version": "wf01-n09-next-page-v1",
+          "node_character": "next_collection_page"
+        }
       },
-      "notes": ""
+      "notes": "N03에 다음 페이지 목록을 요청, 앞 페이지 후보/실행 필드 제거."
     },
     {
       "id": "wf01-strategy-10",
@@ -239,9 +251,15 @@
       ],
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "return $input.all().map(({json:p})=>({json:{kind:'strategy',status:'NO_NEW_ITEM',saved_count:0,checked_page:p.page,next_page:p.next_page??null}}));"
+        "jsCode": "return $input.all().map(({json:p})=>({json:{kind:p.kind,status:'NO_FETCHABLE_NEW_PINE',saved_count:0,checked_page:p.page,conversion_validated:false,tradingview_chart_validated:false}}));",
+        "studioPython": {
+          "python_module": "investment_node_adapter",
+          "python_function": "execute_node10",
+          "code_version": "wf01-n10-exhausted-v1",
+          "node_character": "collection_exhausted"
+        }
       },
-      "notes": ""
+      "notes": "새로운 접근 가능한 Pine이 없음을 보고. 수집 성공으로 기록하지 않음."
     },
     {
       "id": "wf01-strategy-11",
@@ -480,6 +498,9 @@
     "node11PythonExecutionEnabled": true,
     "node15PythonExecutionEnabled": true,
     "node16PythonExecutionEnabled": true,
-    "project_adapter_execution_enabled": true
+    "project_adapter_execution_enabled": true,
+    "node10PythonExecutionEnabled": true,
+    "node08PythonExecutionEnabled": true,
+    "node09PythonExecutionEnabled": true
   }
 }
