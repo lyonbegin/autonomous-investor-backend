@@ -27,7 +27,7 @@ def node_binding(workflow_path,node_id):
     if workflow_path==WF02_PATH:
         commands={
           "wf02-01":("execute_wf02_node01","wf02-n01-load-db-v1","manual_collection_start"),
-          "wf02-02":("execute_wf02_node02","wf02-n02-convert-v1","convert_pine_to_python"),
+          "wf02-02":("execute_wf02_node02","wf02-n02-convert-v2-nonoverlay","convert_pine_to_python"),
           "wf02-03":("execute_wf02_node03","wf02-n03-conversion-result-v1","display_conversion_result")
         }
         if node_id not in commands:return None
