@@ -62,6 +62,41 @@ jobs:
           except urllib.error.HTTPError as exc:
               assert exc.code==422
           PY
+      - name: Verify Railway production deployment exposes exact parity release and real run traces
+        run: |
+          PYTHONPATH=n8n/pine-parity python3 - <<'PY'
+          import json,time,urllib.request
+          from test_engine import PINE,COLS,synthetic_csv
+          root="https://investment-pine-parity-review-production.up.railway.app"
+          for attempt in range(70):
+              try:
+                  health=json.load(urllib.request.urlopen(root+"/health",timeout=8))
+                  if health.get("release")=="pine-parity-stage1-r1": break
+              except Exception: pass
+              time.sleep(3)
+          else: raise RuntimeError("EXACT_RAILWAY_RELEASE_NOT_LIVE")
+          payload={"pine_code":PINE,"csv_text":synthetic_csv(),"columns":COLS,
+                   "symbol":"SYNTHETIC:CI-RAILWAY","timeframe":"1D","source_url":""}
+          req=urllib.request.Request(root+"/api/compare",data=json.dumps(payload).encode(),
+                    headers={"Content-Type":"application/json"},method="POST")
+          result=json.load(urllib.request.urlopen(req,timeout=25))
+          assert result["numeric_match"] is True,result
+          assert result["status"]=="TRADINGVIEW_SCREENSHOT_REQUIRED",result
+          assert result["visual_verdict"]=="NOT_YET_VERIFIED"
+          details=json.load(urllib.request.urlopen(root+result["details_url"],timeout=12))
+          trace=json.load(urllib.request.urlopen(root+result["trace_url"],timeout=12))
+          assert len(trace["events"])==7
+          assert trace["events"][-1]["status"]=="PENDING"
+          assert details["pine_sha256"]==result["pine_sha256"]
+          assert urllib.request.urlopen(root+result["python_chart_url"],timeout=12).read().startswith(b"<svg")
+          assert b"def run_strategy(bars):" in urllib.request.urlopen(root+result["python_code_url"],timeout=12).read()
+          assert b"Fast TV" in urllib.request.urlopen(root+result["tv_export_csv_url"],timeout=12).read()
+          assert b"strategy(" in urllib.request.urlopen(root+result["pine_source_url"],timeout=12).read()
+          html=urllib.request.urlopen(root+"/",timeout=12).read()
+          assert b"overlayPython" in html
+          assert b"updateOverlay" in urllib.request.urlopen(root+"/app.js",timeout=12).read()
+          print("RAILWAY_LIVE_E2E_SUCCESS",result["run_id"],result["status"],"7 staged trace events")
+          PY
       - name: Logs on failure
         if: failure()
         run: docker logs pine-parity-contract || true
