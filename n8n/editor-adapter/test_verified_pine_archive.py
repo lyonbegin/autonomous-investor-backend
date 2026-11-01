@@ -71,7 +71,7 @@ class PinnedSource(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,"N11_NOT_IN_VERIFIED_SOURCE_ARCHIVE"):
                 archive.acquire_verified_pine({**candidate(digest),"source_url":"https://www.tradingview.com/script/FAKE1234/"})
             with self.assertRaisesRegex(ValueError,"ARCHIVE_PINE_VERSION_MISMATCH"):
-                archive.acquire_verified_pine({**candidate(digest),"pine_version":"5"})
+                archive.acquire_verified_pine({**candidate(digest),"pine_version":"4"})
             with self.assertRaisesRegex(ValueError,"ARCHIVE_LICENSE_NOT_MATCHING_CORPUS"):
                 archive.acquire_verified_pine({**candidate(digest),"source_license_reported":"none"})
 
