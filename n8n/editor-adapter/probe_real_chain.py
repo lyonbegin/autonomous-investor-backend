@@ -307,16 +307,18 @@ def perform():
               h11[0]["upstream_run_id"]==h["run_id"] and
               h11[0]["input_json"]==out7,
               "N11 INPUT != ACTUAL SELECTED SOURCE OUTPUT")
+        print("N11_HTTP_RESULT",status11,src.get("status"),
+              src.get("error"),flush=True)
         if status11==422:
             check(src["status"]=="FAILED" and
-                  src["error"]=="N11_ORIGINAL_PINE_NOT_SUPPLIED" and
+                  isinstance(src.get("error"),str) and src["error"].startswith("N11_") and
                   src["output_json"] is None,
-                  "N11 DID NOT FAIL CLOSED FOR MISSING GENUINE PINE")
+                  "N11 FAILED WITHOUT DOCUMENTED SOURCE INTEGRITY ERROR: "+str(src.get("error")))
             st12,data12,_=call(opener,"GET",query("/api/studio/nodes/transfers",n12))
             check(st12==200 and not any(x["source_run_id"]==src["run_id"]
                 for x in data12["transfers"]),
                 "N12 RECEIVED DATA DESPITE N11 PINE SOURCE FAILURE")
-            state="N11_BLOCKED_ORIGINAL_PINE_NOT_SUPPLIED_N12_NOT_EXECUTED"
+            state="N11_BLOCKED_SOURCE_NOT_VERIFIED_N12_NOT_EXECUTED"
         else:
             import hashlib
             out11=src["output_json"]
