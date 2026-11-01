@@ -72,6 +72,16 @@ class PineParity(unittest.TestCase):
         self.assertEqual(mismatches[0]["variable"],"fastMA")
         self.assertEqual(mismatches[0]["mismatch_bars"][0]["bar_index"],62)
 
+    def test_legal_nonoverlay_and_multiline_strategy_header(self):
+        for declaration in (
+            'strategy("SMA test", overlay=false)',
+            'strategy("SMA test",\n    overlay=false,\n    initial_capital=10000)'
+        ):
+            source=PINE.replace('strategy("MA crossover test", overlay=true)',declaration)
+            spec=parse_pine(source)
+            self.assertEqual(len(spec["entries"]),2)
+            self.assertEqual(spec["supported_subset"],"PINE_V5_V6_CLOSE_SMA_EMA_CROSS_STRATEGY")
+
     def test_no_tv_indicator_reference_is_incomplete(self):
         result=analyze(PINE,synthetic_csv(reference=False),{})
         self.assertEqual(result["status"],"REFERENCE_COLUMNS_REQUIRED")
