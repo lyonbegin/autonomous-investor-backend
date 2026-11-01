@@ -37,7 +37,7 @@
         "studioPython": {
           "python_module": "investment_node_adapter",
           "python_function": "execute_wf02_node02",
-          "code_version": "wf02-n02-convert-v1",
+          "code_version": "wf02-n02-convert-v2-nonoverlay",
           "node_character": "convert_pine_to_python"
         },
         "mode": "runOnceForAllItems",
