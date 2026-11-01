@@ -61,7 +61,7 @@ class PineParity(unittest.TestCase):
         self.assertEqual(result["status"],"NUMERIC_MATCH_VISUAL_REVIEW_REQUIRED")
         self.assertEqual(len(result["comparison"]),4)
         self.assertTrue(result["svg"].startswith("<svg"))
-        self.assertIn("Python",result["source"])
+        self.assertEqual(result["source"],"PYTHON_STRICT_SUPPORTED_SUBSET")
 
     def test_mismatch_identifies_bar_and_variable(self):
         result=analyze(PINE,synthetic_csv(mismatch=True),COLS)
