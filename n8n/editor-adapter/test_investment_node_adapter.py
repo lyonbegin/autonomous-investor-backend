@@ -142,15 +142,18 @@ class InvestmentNodeAdapterTests(unittest.TestCase):
     def test_n06_selects_only_one_unregistered_source_and_preserves_n05(self):
         from investment_node_adapter import execute_node06
         a={"kind":"strategy","source_id":"PUB;first","version_key":"1",
-           "source_url":"https://www.tradingview.com/script/12345678/","imported":False}
-        b={**a,"source_id":"PUB;second","imported":False}
+           "source_url":"https://www.tradingview.com/script/12345678/","imported":False,
+           "pine_version":"4","source_license_reported":"none"}
+        b={**a,"source_id":"PUB;second","imported":False,
+           "pine_version":"6","source_license_reported":"MPL-2.0"}
         n5={"kind":"strategy","source_registry_checked":True,
             "items":[a,b],"checked_count":2,"page":1,"max_pages":3,
             "next_page":2,"candidate_sort_basis":"third_party_manifest_observed_at",
             "selected_count":0}
         result=execute_node06(n5,workflow_kind="strategy")
         for key,val in n5.items():self.assertEqual(result[key],val)
-        self.assertEqual(result["candidate"]["source_id"],"PUB;first")
+        self.assertEqual(result["candidate"]["source_id"],"PUB;second")
+        self.assertTrue(result["candidate_pine_version_supported_by_current_converter"])
         self.assertEqual(result["selected_candidate_count"],1)
         self.assertTrue(result["has_candidate"])
         self.assertFalse(result["pine_source_acquired"])
