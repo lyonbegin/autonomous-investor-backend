@@ -57,14 +57,6 @@ def node_binding(workflow_path,node_id):
         return {"python_module":"investment_node_adapter",
           "python_function":"execute_node11","code_version":"wf01-n11-verified-archive-v2",
           "node_character":"verified_operator_pine_source"}
-    if node_id==prefix+"12":
-        return {"python_module":"investment_node_adapter",
-          "python_function":"execute_node12","code_version":"wf01-n12-original-source-contract-v1",
-          "node_character":"validated_pine_source_contract"}
-    if node_id==prefix+"13":
-        return {"python_module":"investment_node_adapter",
-          "python_function":"execute_node13","code_version":"wf01-n13-conditional-source-v1",
-          "node_character":"conditional_route"}
     if node_id==prefix+"15":
         return {"python_module":"investment_node_adapter",
           "python_function":"execute_node15","code_version":"wf01-n15-sqlite-pine-artifact-v1",
@@ -85,8 +77,6 @@ def node_type(workflow_path,node_id):
       "wf01-"+kind+"-06":"n8n-nodes-base.code",
       "wf01-"+kind+"-07":"n8n-nodes-base.if",
       "wf01-"+kind+"-11":"n8n-nodes-base.httpRequest",
-      "wf01-"+kind+"-12":"n8n-nodes-base.code",
-      "wf01-"+kind+"-13":"n8n-nodes-base.if",
       "wf01-"+kind+"-15":"n8n-nodes-base.httpRequest",
       "wf01-"+kind+"-16":"n8n-nodes-base.code",
     }.get(node_id)
@@ -371,175 +361,53 @@ def execute_node07(input_json,*,workflow_kind):
         "next_node_executed":False}
 
 def execute_node11(input_json,*,workflow_kind):
-    """Accept genuine operator-provided Pine ONLY when it matches source hash.
-
-    N03 corpus carries metadata, not Pine. Never pretend a metadata URL or a
-    string created by the program is the author's actual published source.
-    """
+    """Obtain real Pine text; do not decide authorship or code authenticity."""
     if not isinstance(input_json,dict) or input_json.get("kind")!=workflow_kind:
         raise ValueError("N11_UPSTREAM_KIND_MISMATCH")
     candidate=input_json.get("candidate")
-    if not isinstance(candidate,dict) or not input_json.get("has_candidate"):
-        raise ValueError("N11_NO_SELECTED_SOURCE_CANDIDATE")
+    if not input_json.get("has_candidate") or not isinstance(candidate,dict):
+        raise ValueError("N11_NO_SELECTED_CANDIDATE")
     if candidate.get("kind")!=workflow_kind:
-        raise ValueError("N11_SELECTED_KIND_MISMATCH")
-    expected=candidate.get("source_sha256_reported")
-    if not isinstance(expected,str) or not re.fullmatch(r"[a-fA-F0-9]{64}",expected):
-        raise ValueError("N11_ORIGINAL_SOURCE_HASH_NOT_AVAILABLE")
+        raise ValueError("N11_CANDIDATE_KIND_MISMATCH")
     code=input_json.get("pine_code")
-    archive=None
     if not isinstance(code,str) or not code.strip():
-        # Only one pinned, independently SHA-matched open-source GitHub
-        # mirror is enabled. Other candidates remain explicitly blocked.
-        archive=acquire_verified_pine(candidate)
-        code=archive["pine_code"]
-    if len(code.encode("utf-8"))>60000:
-        raise ValueError("N11_PINE_SOURCE_TOO_LARGE")
-    if not re.search(r"(?m)^\s*//@version=(4|5|6)\s*$",code):
-        raise ValueError("N11_PINE_VERSION_DECLARATION_MISSING")
-    if not re.search(r"(?m)^\s*(strategy|indicator|library)\s*\(",code):
-        raise ValueError("N11_PINE_DECLARATION_MISSING")
-    actual=hashlib.sha256(code.encode("utf-8")).hexdigest()
-    if actual.lower()!=expected.lower():
-        raise ValueError("N11_PINE_SHA256_DOES_NOT_MATCH_PUBLISHED_SNAPSHOT")
-    # We verified a pinned independent GitHub archive against the external
-    # manifest's byte-level SHA. This does NOT verify TradingView chart output.
-    return {**input_json,
-        **({"pine_code":code} if archive else {}),
-        **(archive or {}),
+        code=acquire_verified_pine(candidate)["pine_code"]
+    if len(code.encode("utf-8"))>60000 or not re.search(r"(?m)^\\s*//@version=[456]\\s*$",code):
+        raise ValueError("N11_INVALID_PINE_CONTENT")
+    declaration="library" if workflow_kind=="library" else "strategy"
+    if not re.search(r"(?m)^\\s*"+declaration+r"\\s*\\(",code):
+        raise ValueError("N11_WRONG_PINE_SCRIPT_TYPE")
+    return {
+        "kind":workflow_kind,
+        "candidate":{"kind":workflow_kind,
+            "source_id":candidate["source_id"],
+            "version_key":str(candidate["version_key"])},
+        "pine_code":code,
         "pine_source_acquired":True,
-        "pine_source_sha256":actual,
-        "source_hash_verified":True,
-        "pine_source_origin":"GITHUB_PINNED_OPEN_SOURCE_ARCHIVE" if archive else
-                             "OPERATOR_PROVIDED_MATCHING_RESEARCH_HASH",
-        "rights_state":"MPL_2_0_REVIEW_REQUIRED" if archive else "PENDING_REVIEW",
-        "source_verified_at":datetime.now(timezone.utc).isoformat(),
-        "tradingview_requested":False,
-        "next_node_executed":False}
-
-def execute_node12(input_json,*,workflow_kind):
-    """N12 checks actual N11 source integrity and author/version provenance.
-
-    No semantic Pine -> Python conversion and no TradingView chart approval
-    is claimed here; those require a separate compiler/parity validation.
-    """
-    if not isinstance(input_json,dict) or input_json.get("kind")!=workflow_kind:
-        raise ValueError("N12_UPSTREAM_KIND_MISMATCH")
-    candidate=input_json.get("candidate")
-    if not isinstance(candidate,dict) or candidate.get("kind")!=workflow_kind:
-        raise ValueError("N12_SELECTED_CANDIDATE_MISSING")
-    if input_json.get("source_hash_verified") is not True or input_json.get("pine_source_acquired") is not True:
-        raise ValueError("N12_N11_ORIGINAL_PINE_NOT_VERIFIED")
-    pine=input_json.get("pine_code")
-    if not isinstance(pine,str) or not pine or len(pine.encode())>60000:
-        raise ValueError("N12_PINE_CODE_MISSING_OR_TOO_LARGE")
-    expected=candidate.get("source_sha256_reported")
-    digest=hashlib.sha256(pine.encode("utf-8")).hexdigest()
-    if digest!=expected or digest!=input_json.get("pine_source_sha256"):
-        raise ValueError("N12_SOURCE_SHA256_AND_INDEPENDENT_MANIFEST_MISMATCH")
-    header=re.search(r"(?m)^\s*//@version=(4|5|6)\s*$",pine)
-    if not header or str(candidate.get("pine_version"))!=header.group(1):
-        raise ValueError("N12_PINE_VERSION_MISMATCH")
-    if not re.search(r"(?m)^\s*strategy\s*\(",pine):
-        raise ValueError("N12_NOT_A_STRATEGY_SCRIPT")
-    source_url=candidate.get("source_url")
-    if not isinstance(source_url,str) or not source_url.startswith("https://www.tradingview.com/script/"):
-        raise ValueError("N12_INVALID_SOURCE_ORIGIN")
-    author=candidate.get("author")
-    if not isinstance(author,str) or not author.strip():
-        raise ValueError("N12_AUTHOR_METADATA_MISSING")
-    expected_license=str(candidate.get("source_license_reported","")).upper()
-    if expected_license=="MPL-2.0" and "Mozilla Public License 2.0" not in pine[:600]:
-        raise ValueError("N12_MPL_LICENSE_NOTICE_MISSING")
-    author_notice_verified=("© "+author).lower() in pine[:1200].lower()
-    # A missing author comment is NOT grounds to falsify/modify the source.
-    # Record it as a rights-review warning. The publisher metadata and
-    # independent SHA are kept, but source reuse is still unapproved.
-    if input_json.get("rights_state") not in ("MPL_2_0_REVIEW_REQUIRED","PENDING_REVIEW"):
-        raise ValueError("N12_RIGHTS_STATE_NOT_PENDING")
-    return {**input_json,
-        "source_available":True,
-        "source_integrity_checked":True,
-        "source_id":candidate["source_id"],
-        "version_key":candidate["version_key"],
-        "source_url":source_url,
-        "author":author,
-        "license":candidate.get("source_license_reported","unknown"),
-        "pine_version":header.group(1),
-        "pine_source_sha256":digest,
-        "source_validation":"ORIGINAL_PINE_HASH_AND_METADATA_MATCH",
-        "source_author_notice_verified":author_notice_verified,
-        "source_author_notice_status":"MATCH" if author_notice_verified else "NOT_PRESENT_REVIEW_REQUIRED",
+        "rights_state":"PENDING_REVIEW",
         "conversion_validated":False,
-        "tradingview_chart_validated":False,
-        "source_review_approved":False,
-        "node12_validated_at":datetime.now(timezone.utc).isoformat(),
-        "next_node_executed":False}
-
-def execute_node13(input_json,*,workflow_kind):
-    """Route verified Pine source ONLY to the import branch."""
-    if not isinstance(input_json,dict) or input_json.get("kind")!=workflow_kind:
-        raise ValueError("N13_UPSTREAM_KIND_MISMATCH")
-    value=input_json.get("source_available")
-    if type(value) is not bool:
-        raise ValueError("N13_SOURCE_AVAILABILITY_NOT_BOOLEAN")
-    if value:
-        if input_json.get("source_integrity_checked") is not True or (
-             input_json.get("source_hash_verified") is not True):
-            raise ValueError("N13_SOURCE_PRESENT_BUT_NOT_VERIFIED")
-        pine=input_json.get("pine_code")
-        if not isinstance(pine,str) or not pine:
-            raise ValueError("N13_SOURCE_CODE_MISSING")
-    selected_port=0 if value else 1
-    return {**input_json,"_studio_active_ports":[selected_port],
-       "source_branch":"VERIFIED_PINE_TO_IMPORT" if value else "PINE_NOT_AVAILABLE",
-       "source_branch_status":"PENDING_IMPORT" if value else "SOURCE_HOLD",
-       "branch_decided_at":datetime.now(timezone.utc).isoformat(),
-       "next_node_executed":False}
+        "tradingview_chart_validated":False}
 
 def execute_node15(input_json,*,workflow_kind):
-    """Write one verified Pine original to the project registry (no trades)."""
+    """Save the Pine text obtained at N11; N12/N13 no longer exist."""
     if not isinstance(input_json,dict) or input_json.get("kind")!=workflow_kind:
         raise ValueError("N15_UPSTREAM_KIND_MISMATCH")
-    if input_json.get("source_branch")!="VERIFIED_PINE_TO_IMPORT" or (
-        input_json.get("_studio_active_ports")!=[0]):
-        raise ValueError("N15_UNVERIFIED_N13_BRANCH")
-    candidate=input_json.get("candidate")
-    if not isinstance(candidate,dict) or candidate.get("kind")!=workflow_kind:
-        raise ValueError("N15_CANDIDATE_MISSING")
+    if input_json.get("pine_source_acquired") is not True:
+        raise ValueError("N15_PINE_SOURCE_NOT_ACQUIRED")
     stored=save_verified_source(input_json,workflow_kind)
-    return {**input_json,**stored,
-        "saved_count":1 if stored["source_created"] else 0,
-        "status":"VERIFIED_ORIGINAL_STORED_AWAITING_CONVERSION_AND_REVIEW",
-        "next_node_executed":False}
+    return {**input_json,**stored,"status":"PINE_SAVED_CONVERSION_PENDING"}
 
 def execute_node16(input_json,*,workflow_kind):
-    """Finish only after N15 SQLite artifact and version are reread."""
-    if not isinstance(input_json,dict) or input_json.get('kind')!=workflow_kind:
-        raise ValueError('N16_UPSTREAM_KIND_MISMATCH')
-    if input_json.get('status')!='VERIFIED_ORIGINAL_STORED_AWAITING_CONVERSION_AND_REVIEW' or input_json.get('source_saved') is not True:
-        raise ValueError('N16_N15_SUCCESS_RECEIPT_REQUIRED')
-    candidate=input_json.get('candidate')
-    if not isinstance(candidate,dict) or candidate.get('kind')!=workflow_kind:
-        raise ValueError('N16_CANDIDATE_MISSING')
-    digest=input_json.get('pine_source_sha256')
-    code=input_json.get('pine_code')
-    if not isinstance(code,str) or not isinstance(digest,str) or hashlib.sha256(code.encode('utf-8')).hexdigest()!=digest:
-        raise ValueError('N16_SOURCE_HASH_INVALID')
-    if any(input_json.get(k) is not False for k in ('source_review_approved','conversion_validated','tradingview_chart_validated')):
-        raise ValueError('N16_PREMATURE_APPROVAL_CLAIM')
-    from contextlib import closing
-    from investment_source_registry import open_registry
-    with closing(open_registry()) as db:
-        row=db.execute('SELECT pine_sha256,pine_code,rights_state,conversion_validated,tradingview_chart_validated,saved_at FROM investment_pine_source_artifacts WHERE kind=? AND source_id=? AND version_key=?',(workflow_kind,candidate['source_id'],candidate['version_key'])).fetchone()
-        ver=db.execute('SELECT pine_sha256,verified_source,approved_for_conversion FROM investment_pine_versions WHERE kind=? AND source_id=? AND version_key=?',(workflow_kind,candidate['source_id'],candidate['version_key'])).fetchone()
-    if not row or not ver or row['pine_sha256']!=digest or row['pine_code']!=code or ver['pine_sha256']!=digest or ver['verified_source']!=1:
-        raise ValueError('N16_PERSISTED_SOURCE_READBACK_MISMATCH')
-    if row['conversion_validated'] or row['tradingview_chart_validated'] or ver['approved_for_conversion']:
-        raise ValueError('N16_UNVERIFIED_CONVERSION_OR_APPROVAL')
-    if row['rights_state'] not in ('PENDING_REVIEW','MPL_2_0_REVIEW_REQUIRED'):
-        raise ValueError('N16_RIGHTS_STATE_NOT_PENDING')
-    return {'kind':workflow_kind,'status':'SOURCE_STORED_REVIEW_PENDING','saved_count':1 if input_json.get('source_created') is True else 0,'source_id':candidate['source_id'],'version_key':candidate['version_key'],'sha256':digest,'rights_state':row['rights_state'],'imported_at':row['saved_at'],'db_readback_verified':True,'conversion_validated':False,'tradingview_chart_validated':False,'source_review_approved':False,'paper_enabled':False,'live_orders_enabled':False,'next_node_executed':False}
+    """Display actual saved source result, not a duplicate source audit."""
+    if not isinstance(input_json,dict) or input_json.get("kind")!=workflow_kind:
+        raise ValueError("N16_UPSTREAM_KIND_MISMATCH")
+    if input_json.get("source_saved") is not True or input_json.get("status")!="PINE_SAVED_CONVERSION_PENDING":
+        raise ValueError("N16_SOURCE_SAVE_NOT_COMPLETE")
+    return {"kind":workflow_kind,"status":"PINE_SAVED_CONVERSION_PENDING",
+        "source_id":input_json["source_id"],"version_key":input_json["version_key"],
+        "saved_count":input_json["saved_count"],"rights_state":"PENDING_REVIEW",
+        "conversion_validated":False,"tradingview_chart_validated":False,
+        "paper_enabled":False,"live_orders_enabled":False}
 
 def execute_node(workflow_path,node_id,input_json):
     kind=WF01_MODES.get(workflow_path)
@@ -552,8 +420,6 @@ def execute_node(workflow_path,node_id,input_json):
                "execute_node06":execute_node06,
                "execute_node07":execute_node07,
                "execute_node11":execute_node11,
-               "execute_node12":execute_node12,
-               "execute_node13":execute_node13,
                "execute_node15":execute_node15,
                "execute_node16":execute_node16}
     func=functions[binding["python_function"]]
@@ -564,6 +430,6 @@ def default_node_input(workflow_path,node_id):
     if not kind:return None
     if node_id=="wf01-"+kind+"-01":
         return {"ui_selection":kind,"requested_detail_limit":1}
-    if node_id in ("wf01-"+kind+"-02","wf01-"+kind+"-03","wf01-"+kind+"-04","wf01-"+kind+"-05","wf01-"+kind+"-06","wf01-"+kind+"-07","wf01-"+kind+"-11","wf01-"+kind+"-12","wf01-"+kind+"-13","wf01-"+kind+"-15","wf01-"+kind+"-16"):
+    if node_id in ("wf01-"+kind+"-02","wf01-"+kind+"-03","wf01-"+kind+"-04","wf01-"+kind+"-05","wf01-"+kind+"-06","wf01-"+kind+"-07","wf01-"+kind+"-11","wf01-"+kind+"-15","wf01-"+kind+"-16"):
         return {}
     return None
