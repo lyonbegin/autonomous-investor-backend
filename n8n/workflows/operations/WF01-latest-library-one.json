@@ -264,11 +264,11 @@
         "studioPython": {
           "python_module": "investment_node_adapter",
           "python_function": "execute_node11",
-          "code_version": "wf01-n11-original-pine-hash-v1",
+          "code_version": "wf01-n11-verified-archive-v2",
           "node_character": "verified_operator_pine_source"
         }
       },
-      "notes": "N07에서 실제 선택한 전략의 Pine 원본이 제공되어야 실행 가능. 기존 TradingView 자동 HTTP 원본 호출 URL은 사용하지 않음. ⚙ 노드 입력 JSON에 {pine_code: 실제 Pine 원문} 입력 후 저장·실행 시 선택된 전략의 기준 SHA256과 정확히 일치해야 N12로 전달; 불일치나 미제공이면 FAILED 및 N12 실행 금지. 출처/저작권 승인은 별도."
+      "notes": "선택된 전략이 공개 GitHub 고정 리비전 원본에 해당할 때 그 파일을 HTTPS로 가져와 외부 스냅샷 SHA256과 바이트 단위 비교. 일치해야 N12로 전달. 출처: venkatalokeshanne/trading_strategies_indicators/TradingView/strategies/Hrc7Gfqe...pine, 원작자 NICK789 MPL-2.0. TradingView 직접 크롤링/렌더링 아님. 다른 전략은 직접 Pine 원본을 제공하여 SHA 검증하거나 FAILED 처리."
     },
     {
       "id": "wf01-library-12",
