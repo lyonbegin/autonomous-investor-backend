@@ -133,9 +133,15 @@
       ],
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "return $input.all().map(({json:r})=>{if(!r||r.kind!=='library'||!Array.isArray(r.items))throw Error('REGISTRY_CHECK_FAILED');const first=r.items.find(x=>x.kind==='library'&&x.imported===false&&typeof x.source_id==='string'&&typeof x.version_key==='string');return {json:{kind:'library',candidate:first?{source_id:first.source_id,version_key:first.version_key,kind:'library',updated_at:first.updated_at}:null,has_candidate:!!first,page:r.page,next_page:r.next_page??null,max_pages:r.max_pages||20,can_continue:Number.isInteger(r.next_page)&&r.next_page>r.page&&r.next_page<=(r.max_pages||20),checked_count:r.items.length,selected_count:0}};});"
+        "jsCode": "return $input.all().map(({json:r})=>{if(r.kind!=='library'||r.source_registry_checked!==true||!Array.isArray(r.items))throw Error('N06_N05_REGISTRY_OUTPUT_INVALID');const first=r.items.find(x=>x.kind==='library'&&x.imported===false&&typeof x.source_id==='string'&&typeof x.version_key==='string'&&String(x.source_url||'').startsWith('https://www.tradingview.com/script/'));const can=Number.isInteger(r.next_page)&&r.next_page>r.page&&r.next_page<=r.max_pages;return {json:{...r,candidate:first??null,has_candidate:!!first,selected_candidate_count:first?1:0,can_continue:can,pine_source_acquired:false,candidate_selection_basis:r.candidate_sort_basis??'unknown'}};});",
+        "studioPython": {
+          "python_module": "investment_node_adapter",
+          "python_function": "execute_node06",
+          "code_version": "wf01-n06-select-one-v1",
+          "node_character": "choose_single_new_strategy"
+        }
       },
-      "notes": ""
+      "notes": "실제 N05 SQLite 대조 결과에서 신규 전략 한 건만 선택. 후보 메타데이터만 선별하며 Pine 코드를 확보했다고 주장하지 않음. 모든 N05 출력 필드를 보존하고 N07 입력 대기로 저장."
     },
     {
       "id": "wf01-library-07",
@@ -535,6 +541,7 @@
     "node02PythonExecutionEnabled": true,
     "node03PythonExecutionEnabled": true,
     "node04PythonExecutionEnabled": true,
-    "node05PythonExecutionEnabled": true
+    "node05PythonExecutionEnabled": true,
+    "node06PythonExecutionEnabled": true
   }
 }
