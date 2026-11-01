@@ -32,6 +32,10 @@ def node_binding(workflow_path,node_id):
         return {"python_module":"investment_node_adapter",
           "python_function":"execute_node03","code_version":"wf01-n03-licensed-manifest-v2",
           "node_character":"authorized_catalog_request"}
+    if node_id==prefix+"04":
+        return {"python_module":"investment_node_adapter",
+          "python_function":"execute_node04","code_version":"wf01-n04-v1",
+          "node_character":"validated_catalog_candidates"}
     return None
 
 def node_type(workflow_path,node_id):
@@ -41,6 +45,7 @@ def node_type(workflow_path,node_id):
       "wf01-"+kind+"-01":"n8n-nodes-base.manualTrigger",
       "wf01-"+kind+"-02":"n8n-nodes-base.code",
       "wf01-"+kind+"-03":"n8n-nodes-base.httpRequest",
+      "wf01-"+kind+"-04":"n8n-nodes-base.code",
     }.get(node_id)
 
 def execute_node01(input_json,*,workflow_kind):
@@ -178,12 +183,72 @@ def execute_node03(input_json,*,workflow_kind):
         "next_node_executed":False
     }
 
+def execute_node04(input_json,*,workflow_kind):
+    """Validate real N03 candidates; preserve full input and never invent dates."""
+    if not isinstance(input_json,dict) or input_json.get("kind")!=workflow_kind:
+        raise ValueError("N04_UPSTREAM_KIND_MISMATCH")
+    if input_json.get("status")!="ok" or not isinstance(input_json.get("items"),list):
+        raise ValueError("N04_CATALOG_UNAVAILABLE")
+    if not input_json.get("catalog_source") or type(input_json.get("count")) is not int:
+        raise ValueError("N04_CATALOG_PROVENANCE_MISSING")
+    page,max_pages=input_json.get("page"),input_json.get("max_pages")
+    if type(page) is not int or type(max_pages) is not int or not 1<=page<=max_pages<=3:
+        raise ValueError("N04_PAGE_CONFIG_MISMATCH")
+    items=input_json["items"]
+    if len(items)!=input_json["count"] or not items:
+        raise ValueError("N04_CATALOG_COUNT_MISMATCH")
+    candidates=[];seen=set();removed=0
+    for item in items:
+        if not isinstance(item,dict) or item.get("kind")!=workflow_kind:
+            raise ValueError("N04_INVALID_ITEM_KIND")
+        sid,version,url=item.get("source_id"),item.get("version_key"),item.get("source_url")
+        if not isinstance(sid,str) or not sid or not isinstance(version,str):
+            raise ValueError("N04_SOURCE_ID_OR_VERSION_MISSING")
+        if not isinstance(url,str):
+            raise ValueError("N04_INVALID_TRADINGVIEW_URL")
+        parsed=urllib.parse.urlsplit(url)
+        if parsed.hostname not in ("www.tradingview.com","tradingview.com","kr.tradingview.com") or parsed.scheme!="https":
+            raise ValueError("N04_INVALID_TRADINGVIEW_URL")
+        key=(sid,version)
+        if key in seen:
+            removed+=1;continue
+        seen.add(key)
+        candidates.append({"kind":workflow_kind,"source_id":sid,"version_key":version,
+            "source_url":url,"title":str(item.get("title") or "")[:300],
+            "author":str(item.get("author") or "")[:150],
+            "source_sha256_reported":item.get("source_sha256_reported"),
+            "published_at":item.get("published_at"),"updated_at":item.get("updated_at"),
+            "catalog_observed_at":item.get("catalog_observed_at"),
+            "metadata_origin":item.get("metadata_origin") or input_json["catalog_source"],
+            "access":item.get("access","unknown"),
+            "source_code_fetched":item.get("source_code_fetched",False),
+            "source_license_reported":item.get("source_license_reported","unknown")})
+    if not candidates:
+        raise ValueError("N04_NO_VALID_CANDIDATES")
+    is_live=input_json.get("catalog_is_live") is True
+    # Research corpus fetched_at must NEVER be passed off as TradingView updated_at.
+    candidates.sort(key=lambda item:(
+        str(item["updated_at"] or "") if is_live else str(item["catalog_observed_at"] or ""),
+        item["source_id"]),reverse=True)
+    next_page=page+1 if input_json.get("has_more") and page<max_pages else None
+    return {**input_json,
+        "candidates":candidates,"candidate_count":len(candidates),
+        "duplicates_removed":removed,"next_page":next_page,
+        "latest_tradingview_checked":bool(is_live),
+        "validated_catalog_is_snapshot":not is_live,
+        "candidate_sort_basis":"updated_at_from_live_provider" if is_live
+                          else "third_party_manifest_observed_at",
+        "source":"project_approved_catalog_validation",
+        "node04_validated_at":datetime.now(timezone.utc).isoformat(),
+        "next_node_executed":False}
+
 def execute_node(workflow_path,node_id,input_json):
     kind=WF01_MODES.get(workflow_path)
     binding=node_binding(workflow_path,node_id)
     if not kind or not binding:raise ValueError("UNREGISTERED_PROJECT_NODE")
     functions={"execute_node01":execute_node01,"execute_node02":execute_node02,
-               "execute_node03":execute_node03}
+               "execute_node03":execute_node03,
+               "execute_node04":execute_node04}
     func=functions[binding["python_function"]]
     return func(input_json,workflow_kind=kind)
 
@@ -192,6 +257,6 @@ def default_node_input(workflow_path,node_id):
     if not kind:return None
     if node_id=="wf01-"+kind+"-01":
         return {"ui_selection":kind,"requested_detail_limit":1}
-    if node_id in ("wf01-"+kind+"-02","wf01-"+kind+"-03"):
+    if node_id in ("wf01-"+kind+"-02","wf01-"+kind+"-03","wf01-"+kind+"-04"):
         return {}
     return None
