@@ -71,6 +71,8 @@ class Handler(BaseHTTPRequestHandler):
                 "reference_screenshot_url":f"/artifacts/{r['id']}/reference" if r["image_kind"] else None,
                 "python_chart_url":f"/artifacts/{r['id']}/python.svg",
                 "python_code_url":f"/artifacts/{r['id']}/strategy.py",
+                "pine_source_url":f"/artifacts/{r['id']}/source.pine",
+                "tv_export_csv_url":f"/artifacts/{r['id']}/tv-export.csv",
                 "visual_review":r["visual_review"],"trace_url":f"/api/runs/{r['id']}/trace"})
             return self.response(200,detail)
         if len(parts)==4 and parts[:2]==["api","runs"] and parts[3]=="trace":
@@ -84,6 +86,10 @@ class Handler(BaseHTTPRequestHandler):
                 return self.response(200,(STORAGE/(r["id"]+".svg")).read_bytes(),"image/svg+xml")
             if parts[2]=="strategy.py":
                 return self.response(200,(STORAGE/(r["id"]+".py")).read_bytes(),"text/plain; charset=utf-8")
+            if parts[2]=="source.pine":
+                return self.response(200,(STORAGE/(r["id"]+".pine")).read_bytes(),"text/plain; charset=utf-8")
+            if parts[2]=="tv-export.csv":
+                return self.response(200,(STORAGE/(r["id"]+".csv")).read_bytes(),"text/csv; charset=utf-8")
             if parts[2]=="reference" and r["image_kind"]:
                 return self.response(200,(STORAGE/(r["id"]+".reference")).read_bytes(),r["image_kind"])
         return self.response(404,{"error":"NOT_FOUND"})
@@ -158,6 +164,8 @@ class Handler(BaseHTTPRequestHandler):
             generated_python=result.pop("python_code")
             (STORAGE/(run_id+".svg")).write_text(svg,encoding="utf-8")
             (STORAGE/(run_id+".py")).write_text(generated_python,encoding="utf-8")
+            (STORAGE/(run_id+".pine")).write_text(pine,encoding="utf-8")
+            (STORAGE/(run_id+".csv")).write_text(csv_text,encoding="utf-8")
             if image_bytes:(STORAGE/(run_id+".reference")).write_bytes(image_bytes)
             with sqlite3.connect(DB,timeout=20) as db:
                 db.execute("""INSERT INTO runs
@@ -172,6 +180,8 @@ class Handler(BaseHTTPRequestHandler):
                 "reference_screenshot_url":f"/artifacts/{run_id}/reference" if image_bytes else None,
                 "python_chart_url":f"/artifacts/{run_id}/python.svg",
                 "python_code_url":f"/artifacts/{run_id}/strategy.py",
+                "pine_source_url":f"/artifacts/{run_id}/source.pine",
+                "tv_export_csv_url":f"/artifacts/{run_id}/tv-export.csv",
                 "trace_url":f"/api/runs/{run_id}/trace",
                 "details_url":f"/api/runs/{run_id}","pine_sha256":result["pine_sha256"]})
         except (ValueError,UnsupportedPine,UnicodeDecodeError,json.JSONDecodeError) as e:
