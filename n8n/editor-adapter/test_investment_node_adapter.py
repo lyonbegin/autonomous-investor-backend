@@ -33,8 +33,16 @@ class InvestmentNodeAdapterTests(unittest.TestCase):
         n1=execute_node01(start,workflow_kind="strategy")
         n2=execute_node02(n1,workflow_kind="strategy")
         with patch.dict(os.environ,{"TRADINGVIEW_AUTHORIZED_CATALOG_URL":""}):
-            with self.assertRaisesRegex(ValueError,"AUTHORIZED_CATALOG_FEED_UNCONFIGURED"):
-                execute_node03(n2,workflow_kind="strategy")
+            snapshot={"kind":"strategy","page":1,"items":[{"kind":"strategy","source_id":"PUB;sample",
+                "source_url":"https://www.tradingview.com/script/abc12345/"}],
+                "count":1,"catalog_source":"PYNE_GITHUB_CC_BY_4_METADATA_SNAPSHOT",
+                "catalog_is_live":False,"pine_source_acquired":False}
+            with patch("investment_node_adapter.catalog_from_snapshot",return_value=snapshot) as catalog:
+                real=execute_node03(n2,workflow_kind="strategy")
+                self.assertEqual(real["count"],1)
+                self.assertFalse(real["catalog_is_live"])
+                self.assertFalse(real["pine_source_acquired"])
+                catalog.assert_called_once_with(kind="strategy",page=1,page_size=50,sort="recent_extended")
         with patch.dict(os.environ,{"TRADINGVIEW_AUTHORIZED_CATALOG_URL":"https://www.tradingview.com/api/scrape"}):
             with self.assertRaisesRegex(ValueError,"DIRECT_TRADINGVIEW_AUTOMATED_COLLECTION_DISABLED"):
                 execute_node03(n2,workflow_kind="strategy")
