@@ -66,17 +66,21 @@ def parse_pine(code):
     version=re.search(r"(?m)^\s*//@version=(5|6)\s*$",code)
     if not version:raise UnsupportedPine("ONLY_PINE_V5_V6")
     params={}; series={}; signals={}; entries=[]; plots=[]
-    last_if=None; declared=False
+    last_if=None; declared=False; declaration_paren_depth=0
     for index,original in enumerate(code.splitlines(),1):
         line=original.strip()
         if not line or line.startswith("//"):continue
+        if declaration_paren_depth>0:
+            declaration_paren_depth+=line.count("(")-line.count(")")
+            if declaration_paren_depth<0:raise UnsupportedPine("INVALID_STRATEGY_HEADER")
+            continue
         if line.startswith("strategy("):
             if declared:raise UnsupportedPine("MULTIPLE_DECLARATIONS")
             declared=True
-            if not re.search(r"\boverlay\s*=\s*true\b",line):
-                raise UnsupportedPine("ONLY_OVERLAY_STRATEGIES")
-            if re.search(r"\b(commission|slippage|calc_on_every_tick|process_orders_on_close|pyramiding)\s*=",line):
-                raise UnsupportedPine("ORDER_EXECUTION_SETTINGS_NEED_EXPLICIT_ADAPTER")
+            # overlay and broker execution options are chart/order settings;
+            # do not reject mathematical signal extraction because of them.
+            declaration_paren_depth=line.count("(")-line.count(")")
+            if declaration_paren_depth<0:raise UnsupportedPine("INVALID_STRATEGY_HEADER")
             continue
         match=ASSIGN.match(line)
         if match:
