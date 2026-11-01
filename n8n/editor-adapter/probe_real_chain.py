@@ -351,7 +351,7 @@ def perform():
             check(h11[0]["output_json"]==out11 and
                   h11[0]["status"]=="SUCCESS",
                   "N11 REAL SQLITE OUTPUT NOT STORED")
-            state="N15_REAL_PINE_STORED_N16_READY_PENDING_CONVERSION"
+            state="WF01_ORIGINAL_PINE_STORED_AND_RECHECKED_NO_PARITY_CLAIM"
         RECORDED.append({"node":"N11","status":src["status"],"http":status11,
             "run_id":src["run_id"],"upstream_run_id":h["run_id"],
             "input":src["input_json"],"output":src["output_json"],
@@ -390,7 +390,7 @@ def perform():
             RECORDED.append({"node":"N12","status":"SUCCESS","http":status12,
                 "run_id":source12["run_id"],"upstream_run_id":src["run_id"],
                 "input":source12["input_json"],"output":out12,"elapsed_ms":ms12})
-            state="N15_REAL_PINE_STORED_N16_READY_PENDING_CONVERSION"
+            state="WF01_ORIGINAL_PINE_STORED_AND_RECHECKED_NO_PARITY_CLAIM"
             print("N12 SOURCE VALIDATION SUCCESS",source12["run_id"],
                  "SHA_MATCH,N13_READY,PYTHON_PARITY_NOT_YET_TESTED",flush=True)
             n14=PREFIX+"14"
@@ -422,7 +422,7 @@ def perform():
             RECORDED.append({"node":"N13","status":"SUCCESS","http":status13,
                 "run_id":branch13["run_id"],"upstream_run_id":source12["run_id"],
                 "input":branch13["input_json"],"output":output13,"elapsed_ms":ms13})
-            state="N15_REAL_PINE_STORED_N16_READY_PENDING_CONVERSION"
+            state="WF01_ORIGINAL_PINE_STORED_AND_RECHECKED_NO_PARITY_CLAIM"
             print("N13 IF EXECUTED",branch13["run_id"],
                   "TRUE→N15 READY,FALSE→N14 NOT READY",flush=True)
             n16=PREFIX+"16"
@@ -457,10 +457,39 @@ def perform():
             RECORDED.append({"node":"N15","status":"SUCCESS","http":status15,
                 "run_id":stored15["run_id"],"upstream_run_id":branch13["run_id"],
                 "input":stored15["input_json"],"output":out15,"elapsed_ms":ms15})
-            state="N15_REAL_PINE_STORED_N16_READY_PENDING_CONVERSION"
+            state="WF01_ORIGINAL_PINE_STORED_AND_RECHECKED_NO_PARITY_CLAIM"
             print("N15 SQLITE SOURCE STORED",stored15["run_id"],
                   "new",out15["source_created"],
                   "sha",out15["pine_source_sha256"],"N16 READY",flush=True)
+            status16,done16,ms16=call(opener,"POST","/api/studio/nodes/execute",
+                {"workflow":WORKFLOW,"node_id":n16,"source_run_id":stored15["run_id"]},
+                {"X-Studio-Node-Run":"APPROVED"})
+            check(status16==200 and done16.get("status")=="SUCCESS",
+                  "N16 REAL SQLITE SOURCE READBACK FAILED:"+str(
+                    {k:done16.get(k) for k in ("error","status","run_id")}))
+            check(done16["upstream_run_id"]==stored15["run_id"] and
+                  done16["input_json"]==out15,
+                  "N16 DID NOT RECEIVE EXACT N15 OUTPUT")
+            o16=done16["output_json"]
+            check(o16["db_readback_verified"] is True and
+                  o16["status"]=="SOURCE_STORED_REVIEW_PENDING" and
+                  o16["sha256"]==out15["pine_source_sha256"] and
+                  all(o16[k] is False for k in (
+                    "conversion_validated","tradingview_chart_validated",
+                    "source_review_approved","paper_enabled","live_orders_enabled")),
+                  "N16 FALSELY CLAIMS PINE WAS CONVERTED/TRADED OR DB DOES NOT MATCH")
+            h16=last_history(opener,n16)
+            check(h16[0]["run_id"]==done16["run_id"] and
+                  h16[0]["upstream_run_id"]==stored15["run_id"] and
+                  h16[0]["input_json"]==done16["input_json"] and
+                  h16[0]["output_json"]==o16,
+                  "N16 SQLITE RECHECK HISTORY MISMATCH")
+            RECORDED.append({"node":"N16","status":"SUCCESS","http":status16,
+                "run_id":done16["run_id"],"upstream_run_id":stored15["run_id"],
+                "input":done16["input_json"],"output":o16,"elapsed_ms":ms16})
+            state="WF01_ORIGINAL_PINE_STORED_AND_RECHECKED_NO_PARITY_CLAIM"
+            print("N16 ORIGINAL SOURCE DB READBACK SUCCESS",done16["run_id"],
+                  "PINE_SHA",o16["sha256"],"PYTHON_PARITY_NOT_YET_VERIFIED",flush=True)
     return {"workflow":WORKFLOW,"result":state,"steps":RECORDED,
       "meaning":"N01→N11 sequential per-node executed. Metadata from pinned third-party snapshot, source from independent pinned GitHub mirror matching exact hash; TradingView chart is not rendered or visually compared."}
 
@@ -470,7 +499,7 @@ if __name__=="__main__":
         print(json.dumps(outcome,ensure_ascii=False,indent=2),flush=True)
         # A safely rejected unauthorized or missing collector does NOT count
         # as successful end-to-end strategy collection.
-        if os.environ.get("WF01_REQUIRE_N15_SUCCESS")=="1" and outcome["result"]!="N15_REAL_PINE_STORED_N16_READY_PENDING_CONVERSION":
+        if os.environ.get("WF01_REQUIRE_N16_SUCCESS")=="1" and outcome["result"]!="WF01_ORIGINAL_PINE_STORED_AND_RECHECKED_NO_PARITY_CLAIM":
             print("FIRST_STAGE_NOT_PASSED: N12 did not validate original Pine SHA/license and transfer to N13",file=sys.stderr,flush=True)
             sys.exit(3)
     except Exception as e:
