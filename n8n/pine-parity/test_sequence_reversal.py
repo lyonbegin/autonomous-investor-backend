@@ -108,6 +108,20 @@ class RSISequenceConversion(unittest.TestCase):
         self.assertEqual(series[14],100.0)
         self.assertEqual(series[-1],100.0)
 
+    def test_chart_renders_signal_without_inventing_tradingview_baseline(self):
+        from engine import analyze
+        rows=["time,open,high,low,close"]
+        for i,b in enumerate(fixture()):
+            rows.append(f"{b['time']},{b['open']},{b['high']},{b['low']},{b['close']}")
+        report=analyze(PINE,"\\n".join(rows)+"\\n",{},"Synthetic candle check")
+        self.assertEqual(report["status"],"REFERENCE_COLUMNS_REQUIRED")
+        self.assertEqual(report["source"],"PYTHON_RSI_REVERSAL_RUN_RESTRICTED")
+        self.assertFalse(report["numeric_match"])
+        self.assertEqual(report["trade_count"],1)
+        self.assertTrue(report["svg"].startswith("<svg"))
+        self.assertIn("def run_strategy(bars):",report["python_code"])
+        self.assertIn("NOT_TV_PARITY",report["execution_model"])
+
     def test_reject_malformed_market_data(self):
         namespace={}
         exec(generate_sequence_python(parse_sequence_pine(PINE)),namespace)
