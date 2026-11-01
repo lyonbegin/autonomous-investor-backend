@@ -1,13 +1,14 @@
 """Stock-project-owned WF01 node registry and execution logic.
 
 This module belongs to autonomous-investor-backend, NOT the shared editor.
-Only bounded, side-effect-free N01/N02 test functions are registered.
+Only specifically registered N01/N02 and attributed metadata-only N03 can run.
 """
 import json
 import os
 import ssl
 import urllib.parse
 import urllib.request
+from licensed_strategy_manifest import catalog_from_snapshot
 from datetime import datetime,timezone
 
 WF01_MODES={
@@ -29,7 +30,7 @@ def node_binding(workflow_path,node_id):
           "node_character":"collection_request_configuration"}
     if node_id==prefix+"03":
         return {"python_module":"investment_node_adapter",
-          "python_function":"execute_node03","code_version":"wf01-n03-authorized-catalog-v1",
+          "python_function":"execute_node03","code_version":"wf01-n03-licensed-manifest-v2",
           "node_character":"authorized_catalog_request"}
     return None
 
@@ -100,7 +101,13 @@ def execute_node03(input_json,*,workflow_kind):
 
     url=os.environ.get("TRADINGVIEW_AUTHORIZED_CATALOG_URL","").strip()
     if not url:
-        raise ValueError("AUTHORIZED_CATALOG_FEED_UNCONFIGURED")
+        # Public, attributed metadata only. It is a dated corpus snapshot,
+        # never advertised as live TradingView "latest" or as Pine source.
+        manifest=catalog_from_snapshot(kind=workflow_kind,page=page,
+            page_size=page_size,sort=input_json["sort"])
+        return {**input_json,**manifest,
+            "fetched_at":datetime.now(timezone.utc).isoformat(),
+            "status":"ok","next_node_executed":False}
     parsed=urllib.parse.urlsplit(url)
     if parsed.scheme!="https" or not parsed.netloc or parsed.username or parsed.password or parsed.fragment:
         raise ValueError("AUTHORIZED_CATALOG_FEED_URL_INVALID")
