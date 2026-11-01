@@ -260,9 +260,15 @@
         "options": {
           "timeout": 30000
         },
-        "sendBody": false
+        "sendBody": false,
+        "studioPython": {
+          "python_module": "investment_node_adapter",
+          "python_function": "execute_node11",
+          "code_version": "wf01-n11-original-pine-hash-v1",
+          "node_character": "verified_operator_pine_source"
+        }
       },
-      "notes": "이 URL은 연동 계약이며 현재 실제 서비스 API 동작은 확인되지 않았습니다. Credential 및 허가된 수집기 연결 전 활성화 금지."
+      "notes": "N07에서 실제 선택한 전략의 Pine 원본이 제공되어야 실행 가능. 기존 TradingView 자동 HTTP 원본 호출 URL은 사용하지 않음. ⚙ 노드 입력 JSON에 {pine_code: 실제 Pine 원문} 입력 후 저장·실행 시 선택된 전략의 기준 SHA256과 정확히 일치해야 N12로 전달; 불일치나 미제공이면 FAILED 및 N12 실행 금지. 출처/저작권 승인은 별도."
     },
     {
       "id": "wf01-strategy-12",
@@ -549,6 +555,7 @@
     "node04PythonExecutionEnabled": true,
     "node05PythonExecutionEnabled": true,
     "node06PythonExecutionEnabled": true,
-    "node07PythonExecutionEnabled": true
+    "node07PythonExecutionEnabled": true,
+    "node11PythonExecutionEnabled": true
   }
 }
