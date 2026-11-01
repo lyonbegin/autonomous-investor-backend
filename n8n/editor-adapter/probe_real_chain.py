@@ -348,7 +348,7 @@ def perform():
             check(h11[0]["output_json"]==out11 and
                   h11[0]["status"]=="SUCCESS",
                   "N11 REAL SQLITE OUTPUT NOT STORED")
-            state="N13_VERIFIED_PINE_TRUE_N15_READY_FALSE_N14_BLOCKED"
+            state="N15_REAL_PINE_STORED_N16_READY_PENDING_CONVERSION"
         RECORDED.append({"node":"N11","status":src["status"],"http":status11,
             "run_id":src["run_id"],"upstream_run_id":h["run_id"],
             "input":src["input_json"],"output":src["output_json"],
@@ -387,7 +387,7 @@ def perform():
             RECORDED.append({"node":"N12","status":"SUCCESS","http":status12,
                 "run_id":source12["run_id"],"upstream_run_id":src["run_id"],
                 "input":source12["input_json"],"output":out12,"elapsed_ms":ms12})
-            state="N13_VERIFIED_PINE_TRUE_N15_READY_FALSE_N14_BLOCKED"
+            state="N15_REAL_PINE_STORED_N16_READY_PENDING_CONVERSION"
             print("N12 SOURCE VALIDATION SUCCESS",source12["run_id"],
                  "SHA_MATCH,N13_READY,PYTHON_PARITY_NOT_YET_TESTED",flush=True)
             n14=PREFIX+"14"
@@ -419,9 +419,45 @@ def perform():
             RECORDED.append({"node":"N13","status":"SUCCESS","http":status13,
                 "run_id":branch13["run_id"],"upstream_run_id":source12["run_id"],
                 "input":branch13["input_json"],"output":output13,"elapsed_ms":ms13})
-            state="N13_VERIFIED_PINE_TRUE_N15_READY_FALSE_N14_BLOCKED"
+            state="N15_REAL_PINE_STORED_N16_READY_PENDING_CONVERSION"
             print("N13 IF EXECUTED",branch13["run_id"],
                   "TRUE→N15 READY,FALSE→N14 NOT READY",flush=True)
+            n16=PREFIX+"16"
+            status15,stored15,ms15=call(opener,"POST","/api/studio/nodes/execute",
+                {"workflow":WORKFLOW,"node_id":n15,"source_run_id":branch13["run_id"]},
+                {"X-Studio-Node-Run":"APPROVED"})
+            check(status15==200 and stored15.get("status")=="SUCCESS",
+                  "N15 PROJECT SQLITE ORIGINAL PINE IMPORT FAILED:"+str(
+                    {k:stored15.get(k) for k in ("error","status","run_id")}))
+            check(stored15["upstream_run_id"]==branch13["run_id"] and
+                  stored15["input_json"]==output13 and
+                  stored15["upstream_output_json"]==output13,
+                  "N15 ACTUAL SOURCE INPUT IS NOT N13 FULL OUTPUT")
+            out15=stored15["output_json"]
+            check(out15["source_saved"] is True and
+                  out15["source_storage"]=="investment_project_sqlite" and
+                  out15["source_review_approved"] is False and
+                  out15["conversion_validated"] is False and
+                  out15["tradingview_chart_validated"] is False,
+                  "N15 ORIGINAL PINE NOT SAVED OR FALSE STRATEGY PASS CLAIM")
+            check(out15["pine_code"]==output13["pine_code"] and
+                  out15["pine_source_sha256"]==output13["pine_source_sha256"],
+                  "N15 CHANGED ORIGINAL PINE DURING SQLITE IMPORT")
+            h15=last_history(opener,n15)
+            check(h15[0]["run_id"]==stored15["run_id"] and
+                  h15[0]["input_json"]==stored15["input_json"] and
+                  h15[0]["output_json"]==out15,
+                  "N15 EXECUTION DB LOG DOES NOT MATCH REAL SAVED RECORD")
+            t1516=transfer(opener,n16,stored15["run_id"])
+            check(t1516["output_json"]==out15 and t1516["status"]=="READY",
+                  "N15→N16 SOURCE RESULT INPUT NOT TRANSFERRED")
+            RECORDED.append({"node":"N15","status":"SUCCESS","http":status15,
+                "run_id":stored15["run_id"],"upstream_run_id":branch13["run_id"],
+                "input":stored15["input_json"],"output":out15,"elapsed_ms":ms15})
+            state="N15_REAL_PINE_STORED_N16_READY_PENDING_CONVERSION"
+            print("N15 SQLITE SOURCE STORED",stored15["run_id"],
+                  "new",out15["source_created"],
+                  "sha",out15["pine_source_sha256"],"N16 READY",flush=True)
     return {"workflow":WORKFLOW,"result":state,"steps":RECORDED,
       "meaning":"N01→N11 sequential per-node executed. Metadata from pinned third-party snapshot, source from independent pinned GitHub mirror matching exact hash; TradingView chart is not rendered or visually compared."}
 
@@ -431,7 +467,7 @@ if __name__=="__main__":
         print(json.dumps(outcome,ensure_ascii=False,indent=2),flush=True)
         # A safely rejected unauthorized or missing collector does NOT count
         # as successful end-to-end strategy collection.
-        if os.environ.get("WF01_REQUIRE_N13_SUCCESS")=="1" and outcome["result"]!="N13_VERIFIED_PINE_TRUE_N15_READY_FALSE_N14_BLOCKED":
+        if os.environ.get("WF01_REQUIRE_N15_SUCCESS")=="1" and outcome["result"]!="N15_REAL_PINE_STORED_N16_READY_PENDING_CONVERSION":
             print("FIRST_STAGE_NOT_PASSED: N12 did not validate original Pine SHA/license and transfer to N13",file=sys.stderr,flush=True)
             sys.exit(3)
     except Exception as e:
