@@ -25,6 +25,9 @@ def call(method,path,data=None,root=False):
         try:
             with opener.open(req,timeout=25) as r:return r.status,json.load(r)
         except urllib.error.HTTPError as e:
+            if method=="GET" and e.code in (429,502,503,504) and attempt<2:
+                time.sleep(1+attempt)
+                continue
             try: return e.code,json.load(e)
             except ValueError:return e.code,{"error":"INVALID_HTTP_JSON"}
         except (OSError,TimeoutError) as e:
