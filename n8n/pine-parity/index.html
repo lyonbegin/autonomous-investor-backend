@@ -21,7 +21,13 @@ a{color:#73b9ff}section{min-width:0}.panel{background:#0c1b2d;border:1px solid #
 .results{margin-top:14px;display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
 .result{padding:12px;border-radius:9px;background:#122238}.result span{display:block;color:#9cb0cd;font-size:12px}.result strong{display:block;margin-top:8px;font-size:15px}
 #status[data-state="ok"]{color:#38dcaf}#status[data-state="bad"]{color:#f5a0aa}#status[data-state="pending"]{color:#eac86b}
-#comparison{margin-top:13px}.tableWrap{max-height:230px;overflow:auto}table{border-collapse:collapse;width:100%;font-size:12px}th,td{text-align:left;border-bottom:1px solid #253b55;padding:9px 7px;vertical-align:top}th{color:#a7c7e9}
+#comparison{margin-top:13px}
+.overlayGrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;align-items:center;margin:12px 0}
+.overlayBox{position:relative;width:100%;aspect-ratio:2.35;background:#071321;border:1px solid #29415e;border-radius:8px;overflow:hidden}
+.overlayBox img{position:absolute;left:0;top:0;width:100%;height:100%;object-fit:fill}
+.overlayBox #overlayPython{opacity:.5}
+.overlayTip{font-size:11px;color:#b7cbe2;line-height:1.5}
+@media(max-width:680px){.overlayGrid{grid-template-columns:1fr}}.tableWrap{max-height:230px;overflow:auto}table{border-collapse:collapse;width:100%;font-size:12px}th,td{text-align:left;border-bottom:1px solid #253b55;padding:9px 7px;vertical-align:top}th{color:#a7c7e9}
 .flow{margin-top:13px}.steps{display:grid;grid-template-columns:repeat(7,minmax(95px,1fr));gap:6px}.step{font-size:11px;background:#17283b;padding:9px;border-radius:7px;border:1px solid #36506b}
 .step.ok{border-color:#267e68}.step.bad{border-color:#b45663}.step.pending{border-color:#a28a46}
 #trace{max-height:240px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;background:#07111f;padding:14px;border-radius:8px;font-size:11px;color:#b5d5ee}
@@ -74,6 +80,23 @@ a{color:#73b9ff}section{min-width:0}.panel{background:#0c1b2d;border:1px solid #
     <div class="result"><span>1차 검증 결과</span><strong id="status" data-state="pending">미실행</strong></div>
     <div class="result"><span>TradingView 출력값 ↔ Python</span><strong id="numeric">자료 대기</strong></div>
     <div class="result"><span>실제 이미지 비교</span><strong id="visual">원본 이미지 필요</strong></div>
+  </div>
+  <div class="panel" style="margin-top:13px">
+    <h3 style="margin:0 0 8px">차트 이미지 투명도 중첩 비교 · 육안 보조</h3>
+    <p class="overlayTip">TradingView 캡처에서 차트 영역만 자르고, 오른쪽 Python 차트와 가격축·날짜 범위를 같게 맞춰야 의미 있는 비교가 됩니다. <b>이 기능만으로 자동 동등성 합격을 선언하지 않습니다.</b></p>
+    <div class="overlayGrid">
+      <div><label for="opacity">Python 이미지 투명도 <span id="opacityValue">50%</span></label>
+        <input id="opacity" type="range" min="0" max="100" value="50" style="padding:0"></div>
+      <div><label for="shiftX">Python 좌우 위치 조정 (픽셀)</label>
+        <input id="shiftX" type="range" min="-80" max="80" value="0" style="padding:0"></div>
+      <div><label for="shiftY">Python 상하 위치 조정 (픽셀)</label>
+        <input id="shiftY" type="range" min="-80" max="80" value="0" style="padding:0"></div>
+    </div>
+    <div class="overlayBox" id="overlayArea">
+      <div class="noChart" id="overlayPlaceholder" style="position:absolute;inset:20px;margin:auto">좌우 두 차트가 준비되면 여기에 중첩해서 비교할 수 있습니다.</div>
+      <img id="overlayTradingView" alt="중첩 비교용 TradingView 기준 이미지" hidden>
+      <img id="overlayPython" alt="중첩 비교용 Python 계산 이미지" hidden>
+    </div>
   </div>
   <div id="comparePanel" class="panel" style="margin-top:13px">
     <h3 style="margin:0 0 10px">캔들별 수치·신호 비교</h3>
