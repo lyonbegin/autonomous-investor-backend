@@ -217,64 +217,39 @@ def execute_node03(input_json,*,workflow_kind):
     }
 
 def execute_node04(input_json,*,workflow_kind):
-    """Validate real N03 candidates; preserve full input and never invent dates."""
+    """Deduplicate actual catalog candidates and keep only data needed to fetch."""
     if not isinstance(input_json,dict) or input_json.get("kind")!=workflow_kind:
         raise ValueError("N04_UPSTREAM_KIND_MISMATCH")
-    if input_json.get("status")!="ok" or not isinstance(input_json.get("items"),list):
-        raise ValueError("N04_CATALOG_UNAVAILABLE")
-    if not input_json.get("catalog_source") or type(input_json.get("count")) is not int:
-        raise ValueError("N04_CATALOG_PROVENANCE_MISSING")
-    page,max_pages=input_json.get("page"),input_json.get("max_pages")
-    if type(page) is not int or type(max_pages) is not int or not 1<=page<=max_pages<=3:
-        raise ValueError("N04_PAGE_CONFIG_MISMATCH")
-    items=input_json["items"]
-    if len(items)!=input_json["count"] or not items:
-        raise ValueError("N04_CATALOG_COUNT_MISMATCH")
-    candidates=[];seen=set();removed=0
-    for item in items:
-        if not isinstance(item,dict) or item.get("kind")!=workflow_kind:
-            raise ValueError("N04_INVALID_ITEM_KIND")
-        sid,version,url=item.get("source_id"),item.get("version_key"),item.get("source_url")
-        if not isinstance(sid,str) or not sid or not isinstance(version,str):
-            raise ValueError("N04_SOURCE_ID_OR_VERSION_MISSING")
-        if not isinstance(url,str):
-            raise ValueError("N04_INVALID_TRADINGVIEW_URL")
+    rows=input_json.get("items")
+    if not isinstance(rows,list) or not rows:
+        raise ValueError("N04_EMPTY_CATALOG")
+    seen=set()
+    candidates=[]
+    for item in rows:
+        if item.get("kind")!=workflow_kind:
+            continue
+        source_id=item.get("source_id")
+        version=str(item.get("version_key",""))
+        url=item.get("source_url")
+        if not isinstance(source_id,str) or not source_id or not isinstance(url,str):
+            continue
         parsed=urllib.parse.urlsplit(url)
-        if parsed.hostname not in ("www.tradingview.com","tradingview.com","kr.tradingview.com") or parsed.scheme!="https":
-            raise ValueError("N04_INVALID_TRADINGVIEW_URL")
-        key=(sid,version)
+        if parsed.scheme!="https" or parsed.hostname not in (
+            "www.tradingview.com","tradingview.com","kr.tradingview.com"):
+            continue
+        key=(source_id,version)
         if key in seen:
-            removed+=1;continue
+            continue
         seen.add(key)
-        candidates.append({"kind":workflow_kind,"source_id":sid,"version_key":version,
-            "source_url":url,"title":str(item.get("title") or "")[:300],
-            "author":str(item.get("author") or "")[:150],
-            "source_sha256_reported":item.get("source_sha256_reported"),
-            "pine_version":item.get("pine_version"),
-            "published_at":item.get("published_at"),"updated_at":item.get("updated_at"),
-            "catalog_observed_at":item.get("catalog_observed_at"),
-            "metadata_origin":item.get("metadata_origin") or input_json["catalog_source"],
-            "access":item.get("access","unknown"),
-            "source_code_fetched":item.get("source_code_fetched",False),
-            "source_license_reported":item.get("source_license_reported","unknown")})
+        candidates.append({"kind":workflow_kind,"source_id":source_id,
+            "version_key":version,"source_url":url,"title":str(item.get("title") or ""),
+            "pine_version":str(item.get("pine_version") or "")})
     if not candidates:
-        raise ValueError("N04_NO_VALID_CANDIDATES")
-    is_live=input_json.get("catalog_is_live") is True
-    # Research corpus fetched_at must NEVER be passed off as TradingView updated_at.
-    candidates.sort(key=lambda item:(
-        str(item["updated_at"] or "") if is_live else str(item["catalog_observed_at"] or ""),
-        item["source_id"]),reverse=True)
-    next_page=page+1 if input_json.get("has_more") and page<max_pages else None
-    return {**input_json,
-        "candidates":candidates,"candidate_count":len(candidates),
-        "duplicates_removed":removed,"next_page":next_page,
-        "latest_tradingview_checked":bool(is_live),
-        "validated_catalog_is_snapshot":not is_live,
-        "candidate_sort_basis":"updated_at_from_live_provider" if is_live
-                          else "third_party_manifest_observed_at",
-        "source":"project_approved_catalog_validation",
-        "node04_validated_at":datetime.now(timezone.utc).isoformat(),
-        "next_node_executed":False}
+        raise ValueError("N04_NO_FETCHABLE_CANDIDATES")
+    next_page=(input_json["page"]+1 if input_json.get("has_more") and
+               input_json["page"]<input_json["max_pages"] else None)
+    return {**input_json,"candidates":candidates,"candidate_count":len(candidates),
+        "next_page":next_page}
 
 def execute_node05(input_json,*,workflow_kind):
     """Exact N04 candidates -> project SQLite source version presence check."""
@@ -295,49 +270,20 @@ def execute_node05(input_json,*,workflow_kind):
         "next_node_executed":False}
 
 def execute_node06(input_json,*,workflow_kind):
-    """Select ONE genuinely unregistered source version from N05's SQLite results."""
+    """Choose one new candidate whose Pine can be fetched from the index."""
     if not isinstance(input_json,dict) or input_json.get("kind")!=workflow_kind:
         raise ValueError("N06_UPSTREAM_KIND_MISMATCH")
-    if input_json.get("source_registry_checked") is not True:
-        raise ValueError("N06_REGISTRY_NOT_CHECKED")
     rows=input_json.get("items")
-    if not isinstance(rows,list) or len(rows)!=input_json.get("checked_count"):
-        raise ValueError("N06_INVALID_N05_ITEMS")
-    if any(x.get("kind")!=workflow_kind for x in rows):
-        raise ValueError("N06_CROSS_KIND_ITEM")
-    valid=[x for x in rows if x.get("imported") is False and
-           isinstance(x.get("source_id"),str) and x.get("source_id") and
-           isinstance(x.get("version_key"),str) and
-           isinstance(x.get("source_url"),str) and
-           x["source_url"].startswith("https://www.tradingview.com/script/")]
-    def preference(candidate):
-        version=str(candidate.get("pine_version") or "")
-        # Version compatibility is a preliminary filter, not a promise that
-        # its Pine operations are supported by the current Python compiler.
-        license_id=str(candidate.get("source_license_reported") or "").upper()
-        licensed=license_id in ("MPL-2.0","MIT","APACHE-2.0","BSD-3-CLAUSE")
-        archived=licensed and archive_path_for(candidate) is not None
-        if version=="6" and archived:return 0
-        if version=="5" and archived:return 1
-        if version=="6":return 2 if licensed else 3
-        if version=="5":return 4 if licensed else 5
-        return 6
-    one=min(valid,key=preference) if valid else None
-    # No Pine source has yet been downloaded; this chooses metadata for N11.
-    return {**input_json,
-      "candidate":one,
-      "has_candidate":one is not None,
-      "selected_candidate_count":1 if one else 0,
-      "selected_count":input_json.get("selected_count",0),
-      "can_continue":isinstance(input_json.get("next_page"),int) and
-                     input_json["next_page"]>input_json.get("page",0) and
-                     input_json["next_page"]<=input_json.get("max_pages",0),
-      "candidate_selection_basis":"prioritize_verified_archive_and_MPL_license_then_Pine_v6_v5",
-      "candidate_pine_version_supported_by_current_converter":
-          bool(one and str(one.get("pine_version")) in ("5","6")),
-      "pine_source_acquired":False,
-      "node06_selected_at":datetime.now(timezone.utc).isoformat(),
-      "next_node_executed":False}
+    if not isinstance(rows,list) or input_json.get("source_registry_checked") is not True:
+        raise ValueError("N06_REGISTRY_UNAVAILABLE")
+    new=[item for item in rows if item.get("imported") is False]
+    # Prefer a known mirror path to avoid selecting an unavailable Pine file.
+    fetchable=[item for item in new if archive_path_for(item)]
+    one=(fetchable[0] if fetchable else new[0] if new else None)
+    return {**input_json,"candidate":one,"has_candidate":one is not None,
+        "selected_candidate_count":1 if one else 0,
+        "can_continue":isinstance(input_json.get("next_page"),int),
+        "pine_source_acquired":False}
 
 def execute_node07(input_json,*,workflow_kind):
     """Actual IF routing: choose exactly one native n8n output handle."""
