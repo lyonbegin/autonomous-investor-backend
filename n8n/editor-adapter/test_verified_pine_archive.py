@@ -45,6 +45,19 @@ class PinnedSource(unittest.TestCase):
             self.assertEqual(mocked.call_args.args[0].full_url,archive.ARCHIVE_URL)
             self.assertEqual(parent["candidate"],out["candidate"])
 
+    def test_newline_only_canonicalization_requires_exact_sha(self):
+        digest=hashlib.sha256(SYNTHETIC).hexdigest()
+        mirror=SYNTHETIC.replace(b"\r\n",b"\r\r\n")
+        self.assertNotEqual(hashlib.sha256(mirror).hexdigest(),digest)
+        with patch.object(archive,"EXPECTED_SHA256",digest),patch.object(
+            archive.urllib.request,"urlopen",return_value=Response(mirror)):
+            result=archive.acquire_verified_pine(candidate(digest))
+            self.assertEqual(result["pine_source_sha256"],digest)
+            self.assertEqual(result["source_archive_newline_normalization"],"CRCRLF_TO_CRLF")
+            self.assertEqual(result["source_archive_raw_sha256"],
+                             hashlib.sha256(mirror).hexdigest())
+            self.assertEqual(result["pine_code"].encode(),SYNTHETIC)
+
     def test_reject_modified_bytes_even_with_correct_metadata(self):
         digest=hashlib.sha256(SYNTHETIC).hexdigest()
         with patch.object(archive,"EXPECTED_SHA256",digest),patch.object(
