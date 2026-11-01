@@ -226,4 +226,20 @@ class InvestmentNodeAdapterTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,"N12_PINE_VERSION_MISMATCH"):
             execute_node12({**sample,"candidate":{**sample["candidate"],"pine_version":"5"}},workflow_kind="strategy")
 
+    def test_n13_routes_verified_source_to_import_branch_only(self):
+        from investment_node_adapter import execute_node13
+        a={"kind":"strategy","source_available":True,
+           "source_integrity_checked":True,"source_hash_verified":True,
+           "pine_code":"//@version=6\nstrategy(\"s\")"}
+        good=execute_node13(a,workflow_kind="strategy")
+        self.assertEqual(good["_studio_active_ports"],[0])
+        self.assertEqual(good["source_branch"],"VERIFIED_PINE_TO_IMPORT")
+        self.assertEqual(good["pine_code"],a["pine_code"])
+        b=execute_node13({**a,"source_available":False,"pine_code":None},workflow_kind="strategy")
+        self.assertEqual(b["_studio_active_ports"],[1])
+        with self.assertRaisesRegex(ValueError,"N13_SOURCE_PRESENT_BUT_NOT_VERIFIED"):
+            execute_node13({**a,"source_hash_verified":False},workflow_kind="strategy")
+        with self.assertRaisesRegex(ValueError,"N13_SOURCE_AVAILABILITY_NOT_BOOLEAN"):
+            execute_node13({**a,"source_available":"true"},workflow_kind="strategy")
+
 if __name__=="__main__":unittest.main()
