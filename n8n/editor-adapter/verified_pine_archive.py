@@ -53,9 +53,9 @@ def acquire_verified_pine(candidate):
     normalization="NONE"
     if received_sha!=EXPECTED_SHA256:
         candidates=[
-            ("CRCRLF_TO_CRLF",raw.replace(b"\\r\\r\\n",b"\\r\\n")),
-            ("LF_TO_CRLF",raw.replace(b"\\r\\n",b"\\n").replace(b"\\n",b"\\r\\n")),
-            ("CRLF_TO_LF",raw.replace(b"\\r\\n",b"\\n"))
+            ("CRCRLF_TO_CRLF",raw.replace(b"\r\r\n",b"\r\n")),
+            ("LF_TO_CRLF",raw.replace(b"\r\n",b"\n").replace(b"\n",b"\r\n")),
+            ("CRLF_TO_LF",raw.replace(b"\r\n",b"\n"))
         ]
         for method,alternate in candidates:
             if alternate!=raw and hashlib.sha256(alternate).hexdigest()==EXPECTED_SHA256:
