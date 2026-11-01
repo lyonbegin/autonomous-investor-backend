@@ -187,7 +187,7 @@ class InvestmentNodeAdapterTests(unittest.TestCase):
         n7={"kind":"strategy","has_candidate":True,
             "candidate":{"kind":"strategy","source_id":"PUB;fixture",
                          "source_sha256_reported":digest}}
-        with self.assertRaisesRegex(ValueError,"N11_ORIGINAL_PINE_NOT_SUPPLIED"):
+        with self.assertRaisesRegex(ValueError,"N11_NOT_IN_VERIFIED_SOURCE_ARCHIVE"):
             execute_node11(n7,workflow_kind="strategy")
         with self.assertRaisesRegex(ValueError,"N11_PINE_SHA256_DOES_NOT_MATCH"):
             execute_node11({**n7,"pine_code":pine+"// changed"},workflow_kind="strategy")
