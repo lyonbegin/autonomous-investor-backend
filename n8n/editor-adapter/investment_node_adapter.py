@@ -41,6 +41,10 @@ def node_binding(workflow_path,node_id):
         return {"python_module":"investment_node_adapter",
           "python_function":"execute_node05","code_version":"wf01-n05-sqlite-registry-v1",
           "node_character":"project_source_version_check"}
+    if node_id==prefix+"06":
+        return {"python_module":"investment_node_adapter",
+          "python_function":"execute_node06","code_version":"wf01-n06-select-one-v1",
+          "node_character":"choose_single_new_strategy"}
     return None
 
 def node_type(workflow_path,node_id):
@@ -52,6 +56,7 @@ def node_type(workflow_path,node_id):
       "wf01-"+kind+"-03":"n8n-nodes-base.httpRequest",
       "wf01-"+kind+"-04":"n8n-nodes-base.code",
       "wf01-"+kind+"-05":"n8n-nodes-base.httpRequest",
+      "wf01-"+kind+"-06":"n8n-nodes-base.code",
     }.get(node_id)
 
 def execute_node01(input_json,*,workflow_kind):
@@ -266,6 +271,37 @@ def execute_node05(input_json,*,workflow_kind):
         "pine_source_acquired":False,
         "next_node_executed":False}
 
+def execute_node06(input_json,*,workflow_kind):
+    """Select ONE genuinely unregistered source version from N05's SQLite results."""
+    if not isinstance(input_json,dict) or input_json.get("kind")!=workflow_kind:
+        raise ValueError("N06_UPSTREAM_KIND_MISMATCH")
+    if input_json.get("source_registry_checked") is not True:
+        raise ValueError("N06_REGISTRY_NOT_CHECKED")
+    rows=input_json.get("items")
+    if not isinstance(rows,list) or len(rows)!=input_json.get("checked_count"):
+        raise ValueError("N06_INVALID_N05_ITEMS")
+    if any(x.get("kind")!=workflow_kind for x in rows):
+        raise ValueError("N06_CROSS_KIND_ITEM")
+    valid=[x for x in rows if x.get("imported") is False and
+           isinstance(x.get("source_id"),str) and x.get("source_id") and
+           isinstance(x.get("version_key"),str) and
+           isinstance(x.get("source_url"),str) and
+           x["source_url"].startswith("https://www.tradingview.com/script/")]
+    one=valid[0] if valid else None
+    # No Pine source has yet been downloaded; this chooses metadata for N11.
+    return {**input_json,
+      "candidate":one,
+      "has_candidate":one is not None,
+      "selected_candidate_count":1 if one else 0,
+      "selected_count":input_json.get("selected_count",0),
+      "can_continue":isinstance(input_json.get("next_page"),int) and
+                     input_json["next_page"]>input_json.get("page",0) and
+                     input_json["next_page"]<=input_json.get("max_pages",0),
+      "candidate_selection_basis":input_json.get("candidate_sort_basis","unknown"),
+      "pine_source_acquired":False,
+      "node06_selected_at":datetime.now(timezone.utc).isoformat(),
+      "next_node_executed":False}
+
 def execute_node(workflow_path,node_id,input_json):
     kind=WF01_MODES.get(workflow_path)
     binding=node_binding(workflow_path,node_id)
@@ -273,7 +309,8 @@ def execute_node(workflow_path,node_id,input_json):
     functions={"execute_node01":execute_node01,"execute_node02":execute_node02,
                "execute_node03":execute_node03,
                "execute_node04":execute_node04,
-               "execute_node05":execute_node05}
+               "execute_node05":execute_node05,
+               "execute_node06":execute_node06}
     func=functions[binding["python_function"]]
     return func(input_json,workflow_kind=kind)
 
@@ -282,6 +319,6 @@ def default_node_input(workflow_path,node_id):
     if not kind:return None
     if node_id=="wf01-"+kind+"-01":
         return {"ui_selection":kind,"requested_detail_limit":1}
-    if node_id in ("wf01-"+kind+"-02","wf01-"+kind+"-03","wf01-"+kind+"-04","wf01-"+kind+"-05"):
+    if node_id in ("wf01-"+kind+"-02","wf01-"+kind+"-03","wf01-"+kind+"-04","wf01-"+kind+"-05","wf01-"+kind+"-06"):
         return {}
     return None
