@@ -64,6 +64,15 @@ class WF02ConversionTests(unittest.TestCase):
             row=db.execute("SELECT python_code FROM investment_python_conversions").fetchone()
         self.assertEqual(row[0],converted["python_code"])
 
+    def test_realistic_nonoverlay_strategy_conversion_not_blocked(self):
+        pine=SUPPORTED.replace('overlay=true','overlay=false, initial_capital=10000')
+        seed(pine,"PUB;overlay-false")
+        source=execute_wf02_node01({"ui_selection":"strategy","requested_detail_limit":1},
+                workflow_kind="strategy")
+        converted=execute_wf02_node02(source,workflow_kind="strategy")
+        self.assertEqual(converted["status"],"PYTHON_GENERATED")
+        self.assertIn("trades",converted["python_code"])
+
     def test_complex_pine_is_reported_unsupported_not_fake_converted(self):
         code="""//@version=6
 strategy("complex",overlay=true)
