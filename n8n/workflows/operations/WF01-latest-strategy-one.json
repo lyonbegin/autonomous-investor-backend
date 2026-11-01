@@ -66,11 +66,11 @@
         "studioPython": {
           "python_module": "investment_node_adapter",
           "python_function": "execute_node03",
-          "code_version": "wf01-n03-authorized-catalog-v1",
+          "code_version": "wf01-n03-licensed-manifest-v2",
           "node_character": "authorized_catalog_request"
         }
       },
-      "notes": "실제 N02 OUTPUT을 전달받아 프로젝트 전용 execute_node03 Python 호출. 서버에 TRADINGVIEW_AUTHORIZED_CATALOG_URL이 없으면 'AUTHORIZED_CATALOG_FEED_UNCONFIGURED' 실제 오류로 기록하고 N04 실행 금지. TradingView 직접 자동 스크래핑 금지. 공식 n8n URL은 미연결 상태."
+      "notes": "프로젝트별 실제 Python N03. 승인된 공급 API가 있으면 API 호출, 없으면 CC BY 4.0 PyneSys GitHub 전략 메타데이터 스냅샷 조회(실시간 TradingView 최신 아님). Pine 원문 확보는 아직 아님. N03 OUTPUT을 N04에 전달."
     },
     {
       "id": "wf01-strategy-04",
