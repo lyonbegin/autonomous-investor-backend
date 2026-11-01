@@ -56,6 +56,10 @@ def node_binding(workflow_path,node_id):
         return {"python_module":"investment_node_adapter",
           "python_function":"execute_node11","code_version":"wf01-n11-verified-archive-v2",
           "node_character":"verified_operator_pine_source"}
+    if node_id==prefix+"12":
+        return {"python_module":"investment_node_adapter",
+          "python_function":"execute_node12","code_version":"wf01-n12-original-source-contract-v1",
+          "node_character":"validated_pine_source_contract"}
     return None
 
 def node_type(workflow_path,node_id):
@@ -70,6 +74,7 @@ def node_type(workflow_path,node_id):
       "wf01-"+kind+"-06":"n8n-nodes-base.code",
       "wf01-"+kind+"-07":"n8n-nodes-base.if",
       "wf01-"+kind+"-11":"n8n-nodes-base.httpRequest",
+      "wf01-"+kind+"-12":"n8n-nodes-base.code",
     }.get(node_id)
 
 def execute_node01(input_json,*,workflow_kind):
@@ -395,6 +400,61 @@ def execute_node11(input_json,*,workflow_kind):
         "tradingview_requested":False,
         "next_node_executed":False}
 
+def execute_node12(input_json,*,workflow_kind):
+    """N12 checks actual N11 source integrity and author/version provenance.
+
+    No semantic Pine -> Python conversion and no TradingView chart approval
+    is claimed here; those require a separate compiler/parity validation.
+    """
+    if not isinstance(input_json,dict) or input_json.get("kind")!=workflow_kind:
+        raise ValueError("N12_UPSTREAM_KIND_MISMATCH")
+    candidate=input_json.get("candidate")
+    if not isinstance(candidate,dict) or candidate.get("kind")!=workflow_kind:
+        raise ValueError("N12_SELECTED_CANDIDATE_MISSING")
+    if input_json.get("source_hash_verified") is not True or input_json.get("pine_source_acquired") is not True:
+        raise ValueError("N12_N11_ORIGINAL_PINE_NOT_VERIFIED")
+    pine=input_json.get("pine_code")
+    if not isinstance(pine,str) or not pine or len(pine.encode())>60000:
+        raise ValueError("N12_PINE_CODE_MISSING_OR_TOO_LARGE")
+    expected=candidate.get("source_sha256_reported")
+    digest=hashlib.sha256(pine.encode("utf-8")).hexdigest()
+    if digest!=expected or digest!=input_json.get("pine_source_sha256"):
+        raise ValueError("N12_SOURCE_SHA256_AND_INDEPENDENT_MANIFEST_MISMATCH")
+    header=re.search(r"(?m)^\s*//@version=(4|5|6)\s*$",pine)
+    if not header or str(candidate.get("pine_version"))!=header.group(1):
+        raise ValueError("N12_PINE_VERSION_MISMATCH")
+    if not re.search(r"(?m)^\s*strategy\s*\(",pine):
+        raise ValueError("N12_NOT_A_STRATEGY_SCRIPT")
+    source_url=candidate.get("source_url")
+    if not isinstance(source_url,str) or not source_url.startswith("https://www.tradingview.com/script/"):
+        raise ValueError("N12_INVALID_SOURCE_ORIGIN")
+    author=candidate.get("author")
+    if not isinstance(author,str) or not author.strip():
+        raise ValueError("N12_AUTHOR_METADATA_MISSING")
+    expected_license=str(candidate.get("source_license_reported","")).upper()
+    if expected_license=="MPL-2.0" and "Mozilla Public License 2.0" not in pine[:600]:
+        raise ValueError("N12_MPL_LICENSE_NOTICE_MISSING")
+    if expected_license=="MPL-2.0" and ("© "+author).lower() not in pine[:600].lower():
+        raise ValueError("N12_AUTHOR_NOTICE_MISMATCH")
+    if input_json.get("rights_state") not in ("MPL_2_0_REVIEW_REQUIRED","PENDING_REVIEW"):
+        raise ValueError("N12_RIGHTS_STATE_NOT_PENDING")
+    return {**input_json,
+        "source_available":True,
+        "source_integrity_checked":True,
+        "source_id":candidate["source_id"],
+        "version_key":candidate["version_key"],
+        "source_url":source_url,
+        "author":author,
+        "license":candidate.get("source_license_reported","unknown"),
+        "pine_version":header.group(1),
+        "pine_source_sha256":digest,
+        "source_validation":"ORIGINAL_PINE_HASH_AND_METADATA_MATCH",
+        "conversion_validated":False,
+        "tradingview_chart_validated":False,
+        "source_review_approved":False,
+        "node12_validated_at":datetime.now(timezone.utc).isoformat(),
+        "next_node_executed":False}
+
 def execute_node(workflow_path,node_id,input_json):
     kind=WF01_MODES.get(workflow_path)
     binding=node_binding(workflow_path,node_id)
@@ -405,7 +465,8 @@ def execute_node(workflow_path,node_id,input_json):
                "execute_node05":execute_node05,
                "execute_node06":execute_node06,
                "execute_node07":execute_node07,
-               "execute_node11":execute_node11}
+               "execute_node11":execute_node11,
+               "execute_node12":execute_node12}
     func=functions[binding["python_function"]]
     return func(input_json,workflow_kind=kind)
 
@@ -414,6 +475,6 @@ def default_node_input(workflow_path,node_id):
     if not kind:return None
     if node_id=="wf01-"+kind+"-01":
         return {"ui_selection":kind,"requested_detail_limit":1}
-    if node_id in ("wf01-"+kind+"-02","wf01-"+kind+"-03","wf01-"+kind+"-04","wf01-"+kind+"-05","wf01-"+kind+"-06","wf01-"+kind+"-07","wf01-"+kind+"-11"):
+    if node_id in ("wf01-"+kind+"-02","wf01-"+kind+"-03","wf01-"+kind+"-04","wf01-"+kind+"-05","wf01-"+kind+"-06","wf01-"+kind+"-07","wf01-"+kind+"-11","wf01-"+kind+"-12"):
         return {}
     return None
