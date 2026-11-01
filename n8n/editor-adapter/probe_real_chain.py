@@ -214,8 +214,11 @@ def perform():
         check(out5["checked_count"]==d["output_json"]["candidate_count"] and
               out5["new_count"]+out5["imported_count"]==out5["checked_count"],
               "N05 DB CANDIDATE COUNTS MISMATCH")
-        check(all(x["imported"] is False for x in out5["items"]),
-              "N05 INVALID SOURCE: METADATA HASH WAS FALSELY MARKED AS STORED PINE")
+        check(sum(1 for x in out5["items"] if x["imported"] is True)==
+              out5["imported_count"],"N05 SQLITE IMPORT COUNT INCONSISTENT")
+        check(all((x.get("registry_state")=="VERIFIED_PINE") == x["imported"]
+                  for x in out5["items"]),
+              "N05 SOURCE REGISTRY STATE DOES NOT MATCH REAL IMPORTED PINE")
         for key,value in d["output_json"].items():
             if key!="items":
                 check(out5.get(key)==value,f"N05 DROPPED N04 FIELD {key}")
@@ -250,8 +253,8 @@ def perform():
             check(out6.get(key)==val,f"N06 LOST UPSTREAM FIELD {key}")
         check(out6["has_candidate"] is True and
               out6["selected_candidate_count"]==1 and
-              any(x["source_id"]==out6["candidate"]["source_id"]
-                  for x in out5["items"]) and
+              any(x["source_id"]==out6["candidate"]["source_id"] and
+                  x["imported"] is False for x in out5["items"]) and
               out6["candidate_pine_version_supported_by_current_converter"] is True and
               str(out6["candidate"].get("pine_version")) in ("5","6") and
               out6["pine_source_acquired"] is False,
