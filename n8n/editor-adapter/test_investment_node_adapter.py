@@ -198,4 +198,32 @@ class InvestmentNodeAdapterTests(unittest.TestCase):
         self.assertEqual(out["rights_state"],"PENDING_REVIEW")
         self.assertFalse(out["tradingview_requested"])
 
+    def test_n12_independent_validation_of_original_pine_and_provenance(self):
+        from investment_node_adapter import execute_node12
+        import hashlib
+        code=("// This Pine Script® code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/\r\n"
+              "// © TestAuthor\r\n//@version=6\r\n"
+              "strategy(\"Test Strategy\", overlay=true)\r\nplot(close)\r\n")
+        digest=hashlib.sha256(code.encode()).hexdigest()
+        sample={"kind":"strategy","pine_code":code,"pine_source_acquired":True,
+           "source_hash_verified":True,"pine_source_sha256":digest,
+           "rights_state":"MPL_2_0_REVIEW_REQUIRED",
+           "candidate":{"kind":"strategy","source_id":"PUB;verified","version_key":"1.0",
+                        "source_url":"https://www.tradingview.com/script/ABCDEFGH/",
+                        "author":"TestAuthor","pine_version":"6",
+                        "source_license_reported":"MPL-2.0",
+                        "source_sha256_reported":digest}}
+        result=execute_node12(sample,workflow_kind="strategy")
+        self.assertEqual(result["pine_source_sha256"],digest)
+        self.assertEqual(result["source_id"],"PUB;verified")
+        self.assertTrue(result["source_available"])
+        self.assertFalse(result["conversion_validated"])
+        self.assertFalse(result["source_review_approved"])
+        with self.assertRaisesRegex(ValueError,"N12_SOURCE_SHA256"):
+            execute_node12({**sample,"pine_code":code+"// changed"},workflow_kind="strategy")
+        with self.assertRaisesRegex(ValueError,"N12_AUTHOR_NOTICE_MISMATCH"):
+            execute_node12({**sample,"candidate":{**sample["candidate"],"author":"OtherPerson"}},workflow_kind="strategy")
+        with self.assertRaisesRegex(ValueError,"N12_PINE_VERSION_MISMATCH"):
+            execute_node12({**sample,"candidate":{**sample["candidate"],"pine_version":"5"}},workflow_kind="strategy")
+
 if __name__=="__main__":unittest.main()
