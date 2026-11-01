@@ -262,6 +262,38 @@ def perform():
         state="N06_ONE_REAL_CANDIDATE_SELECTED_N07_INPUT_READY"
         print("N06 EXECUTED ONE CANDIDATE",out6["candidate"]["source_id"],
               "N07 READY; SOURCE PINE NOT ACQUIRED",flush=True)
+        n11=PREFIX+"11"
+        n8=PREFIX+"08"
+        status7,h,ms7=call(opener,"POST","/api/studio/nodes/execute",
+             {"workflow":WORKFLOW,"node_id":n7,"source_run_id":g["run_id"]},
+             {"X-Studio-Node-Run":"APPROVED"})
+        check(status7==200 and h.get("status")=="SUCCESS",f"N07 IF EXECUTION FAILED: {status7} {h}")
+        check(h["upstream_run_id"]==g["run_id"] and
+              h["input_json"]==out6 and
+              h["upstream_output_json"]==out6,
+              "N07 ACTUAL IF INPUT != N06 OUTPUT")
+        out7=h["output_json"]
+        check(out7["_studio_active_ports"]==[0] and
+              out7["condition_result"] is True and out7["has_candidate"] is True,
+              "N07 WRONG TRUE/FALSE DECISION")
+        h7=last_history(opener,n7)
+        check(h7[0]["run_id"]==h["run_id"] and
+              h7[0]["upstream_run_id"]==g["run_id"] and
+              h7[0]["input_json"]==h["input_json"] and
+              h7[0]["output_json"]==out7,
+              "N07 SQLITE INPUT/OUTPUT OR PREDECESSOR RECORD MISMATCH")
+        yes=transfer(opener,n11,h["run_id"])
+        check(yes["output_json"]==out7 and yes["source_port"]==0,
+              "TRUE BRANCH DID NOT DELIVER N07 OUTPUT TO N11")
+        no_status,no_data,_=call(opener,"GET",query("/api/studio/nodes/transfers",n8))
+        check(no_status==200 and not any(x["source_run_id"]==h["run_id"]
+                    for x in no_data["transfers"]),
+              "BUG: FALSE N08 BRANCH WAS ALSO MARKED READY")
+        RECORDED.append({"node":"N07","status":"SUCCESS","http":status7,
+              "run_id":h["run_id"],"upstream_run_id":g["run_id"],
+              "input":h["input_json"],"output":out7,"elapsed_ms":ms7})
+        state="N07_TRUE_BRANCH_N11_READY_FALSE_BRANCH_NOT_EXECUTED"
+        print("N07 IF EXECUTED",h["run_id"],"TRUE→N11 READY, FALSE→N08 NOT READY",flush=True)
     return {"workflow":WORKFLOW,"result":state,"steps":RECORDED,
       "meaning":"N01,N02 real successes; N03 must be real approved feed or explicit FAILED, never synthetic."}
 
@@ -271,8 +303,8 @@ if __name__=="__main__":
         print(json.dumps(outcome,ensure_ascii=False,indent=2),flush=True)
         # A safely rejected unauthorized or missing collector does NOT count
         # as successful end-to-end strategy collection.
-        if os.environ.get("WF01_REQUIRE_N06_SUCCESS")=="1" and outcome["result"]!="N06_ONE_REAL_CANDIDATE_SELECTED_N07_INPUT_READY":
-            print("FIRST_STAGE_NOT_PASSED: N06 did not choose an authentic source candidate and transfer its input to N07",file=sys.stderr,flush=True)
+        if os.environ.get("WF01_REQUIRE_N07_SUCCESS")=="1" and outcome["result"]!="N07_TRUE_BRANCH_N11_READY_FALSE_BRANCH_NOT_EXECUTED":
+            print("FIRST_STAGE_NOT_PASSED: N07 did not route the real candidate exclusively to N11",file=sys.stderr,flush=True)
             sys.exit(3)
     except Exception as e:
         print("CHAIN_PROBE_FAILED",type(e).__name__,str(e),
