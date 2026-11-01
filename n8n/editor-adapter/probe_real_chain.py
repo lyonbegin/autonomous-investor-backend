@@ -31,6 +31,21 @@ def request(opener,method,path,data=None):
         except ValueError: body={"error":"HTTP_"+str(exc.code)}
         return exc.code,body
 
+def read_api(opener,path):
+    """Retry read-only requests during Railway deployment handovers, never POST."""
+    last=None
+    for attempt in range(5):
+        try:
+            status,response=request(opener,"GET",path)
+            if status==200:
+                return status,response
+            last=f"HTTP {status}: {str(response)[:140]}"
+        except (urllib.error.URLError,TimeoutError,OSError) as exc:
+            last=type(exc).__name__+":"+str(exc)[:140]
+        print("RETRY_READ",path.split("?")[0],last,flush=True)
+        time.sleep(2+attempt)
+    raise RuntimeError("READ_API_FAILED:"+str(last))
+
 def url(endpoint,node):
     return endpoint+"?"+urllib.parse.urlencode({"workflow":WORKFLOW,"node_id":node})
 
@@ -40,7 +55,7 @@ def check(condition,message):
 
 def run():
     opener=urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
-    health_status,health=request(opener,"GET","/api/studio/health")
+    health_status,health=read_api(opener,"/api/studio/health")
     check(health_status==200 and health.get("projectAdapterConnected") is True,
           "PROJECT_ADAPTER_OFFLINE")
     parent=None
@@ -52,7 +67,7 @@ def run():
             api="/api/studio/node01/execute"
         else:
             check(parent is not None,"MISSING_UPSTREAM")
-            st,transfer=request(opener,"GET",url("/api/studio/nodes/transfers",node))
+            st,transfer=read_api(opener,url("/api/studio/nodes/transfers",node))
             check(st==200,"CANNOT_READ_EDGE")
             transfers=[t for t in transfer.get("transfers",[])
                        if t["source_run_id"]==parent["run_id"]]
@@ -62,7 +77,7 @@ def run():
             api="/api/studio/nodes/execute"
         code,data=request(opener,"POST",api,params)
         check(data.get("run_id"),f"N{step} ENDPOINT REJECTED RUN: HTTP {code} {str(data)[:350]}")
-        st,history=request(opener,"GET",url("/api/studio/nodes/history",node))
+        st,history=read_api(opener,url("/api/studio/nodes/history",node))
         check(st==200,"CANNOT_READ_NODE_HISTORY")
         matching=[r for r in history.get("executions",[]) if r.get("run_id")==data.get("run_id")]
         check(len(matching)==1,f"N{step} RUN NOT IN SQLITE HISTORY: run={data.get('run_id')!r}, history_status={st}, keys={list(history)}, recent_runs={[x.get('run_id') for x in history.get('executions',[])[:5]]}")
