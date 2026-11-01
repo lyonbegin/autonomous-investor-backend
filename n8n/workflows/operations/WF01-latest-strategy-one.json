@@ -83,7 +83,7 @@
       ],
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "return $input.all().map(({json:r})=>{if(r.kind!=='strategy'||r.status!=='ok'||!Array.isArray(r.items))throw Error('N04_UPSTREAM_CATALOG_INVALID');const seen=new Set();let duplicates=0;const candidates=[];for(const item of r.items){if(item.kind!=='strategy'||typeof item.source_id!=='string'||typeof item.version_key!=='string'||!String(item.source_url||'').startsWith('https://www.tradingview.com/script/'))throw Error('N04_ITEM_INVALID');const key=item.source_id+'#'+item.version_key;if(seen.has(key)){duplicates++;continue;}seen.add(key);candidates.push({...item});}const live=r.catalog_is_live===true;candidates.sort((a,b)=>String(live?b.updated_at||'':b.catalog_observed_at||'').localeCompare(String(live?a.updated_at||'':a.catalog_observed_at||''))||String(b.source_id).localeCompare(String(a.source_id)));return {json:{...r,candidates,candidate_count:candidates.length,duplicates_removed:duplicates,next_page:r.has_more&&r.page<r.max_pages?r.page+1:null,latest_tradingview_checked:live,validated_catalog_is_snapshot:!live,candidate_sort_basis:live?'updated_at_from_live_provider':'third_party_manifest_observed_at',source:'project_approved_catalog_validation'}};});",
+        "jsCode": "return $input.all().map(({json:r})=>{if(r.kind!=='strategy'||!Array.isArray(r.items))throw Error('NO_CATALOG');const seen=new Set();const candidates=[];for(const x of r.items){const key=x.source_id+'#'+x.version_key;if(seen.has(key))continue;seen.add(key);candidates.push({kind:x.kind,source_id:x.source_id,version_key:x.version_key,source_url:x.source_url,title:x.title,pine_version:x.pine_version});}return {json:{...r,candidates,candidate_count:candidates.length,next_page:r.has_more&&r.page<r.max_pages?r.page+1:null}};});",
         "studioPython": {
           "python_module": "investment_node_adapter",
           "python_function": "execute_node04",
@@ -91,7 +91,7 @@
           "node_character": "validated_catalog_candidates"
         }
       },
-      "notes": "N03의 실제 전체 OUTPUT을 받아 전략 후보의 ID·URL·버전 및 중복을 검증. PyneSys 스냅샷 관측일은 실제 TradingView 갱신일이 아니므로 분리 유지. N04 출력은 DB에 저장하고 N05의 대기 INPUT으로 전송. 실제 Pine 버전 및 보고된 라이선스도 보존."
+      "notes": "실제 목록에서 ID·버전 중복만 제거. 작성자·해시·출처 감사를 반복하지 않음."
     },
     {
       "id": "wf01-strategy-05",
@@ -133,7 +133,7 @@
       ],
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "return $input.all().map(({json:r})=>{if(r.kind!=='strategy'||r.source_registry_checked!==true||!Array.isArray(r.items))throw Error('N06_REGISTRY_NOT_CHECKED');const valid=r.items.filter(x=>x.kind==='strategy'&&x.imported===false&&typeof x.source_id==='string'&&typeof x.version_key==='string'&&String(x.source_url||'').startsWith('https://www.tradingview.com/script/'));const rank=x=>{const v=String(x.pine_version||'');const l=String(x.source_license_reported||'').toUpperCase();const licensed=['MPL-2.0','MIT','APACHE-2.0','BSD-3-CLAUSE'].includes(l);return v==='6'?(licensed?0:1):v==='5'?(licensed?2:3):4;};valid.sort((a,b)=>rank(a)-rank(b));const first=valid[0]||null;return {json:{...r,candidate:first,has_candidate:!!first,selected_candidate_count:first?1:0,can_continue:Number.isInteger(r.next_page)&&r.next_page>r.page&&r.next_page<=r.max_pages,pine_source_acquired:false,candidate_selection_basis:'prioritize_Pine_v6_v5_with_reported_license_then_catalog_order',candidate_pine_version_supported_by_current_converter:!!first&&['5','6'].includes(String(first.pine_version))}};});",
+        "jsCode": "return $input.all().map(({json:r})=>{const available=(r.items||[]).filter(x=>x.kind==='strategy'&&x.imported===false);const first=available[0]||null;return {json:{...r,candidate:first,has_candidate:!!first,selected_candidate_count:first?1:0,can_continue:Number.isInteger(r.next_page),pine_source_acquired:false}};});",
         "studioPython": {
           "python_module": "investment_node_adapter",
           "python_function": "execute_node06",
@@ -141,7 +141,7 @@
           "node_character": "choose_single_new_strategy"
         }
       },
-      "notes": "N05에서 imported=false인 실제 소스 중 GitHub 고정 보관소에 경로가 존재하고 MPL 고지가 보고된 Pine v6/v5를 우선 선택. 후보는 1건, 검증 원본 여부는 N11 SHA 재검사 후에만 확정. 다른 전략 후보는 삭제하지 않음."
+      "notes": "새 전략 후보 1개 선택. Python 실행 어댑터는 실제 공개 Pine 파일 경로가 연결된 후보를 우선함."
     },
     {
       "id": "wf01-strategy-07",
@@ -264,8 +264,8 @@
         "studioPython": {
           "python_module": "investment_node_adapter",
           "python_function": "execute_node11",
-          "code_version": "wf01-n11-verified-archive-v2",
-          "node_character": "verified_operator_pine_source"
+          "code_version": "wf01-n11-simple-pine-v1",
+          "node_character": "fetch_pine_code"
         }
       },
       "notes": "실제 Pine 코드를 가져온다. 작성자 이름·해시·출처 대조로 변환을 차단하지 않는다. 사용권은 별도 검토(PENDING_REVIEW)."
@@ -293,8 +293,8 @@
         "studioPython": {
           "python_module": "investment_node_adapter",
           "python_function": "execute_node15",
-          "code_version": "wf01-n15-sqlite-pine-artifact-v1",
-          "node_character": "idempotent_verified_pine_store"
+          "code_version": "wf01-n15-pine-store-v1",
+          "node_character": "persist_pine_code"
         }
       },
       "notes": "확보한 Pine 코드 자체를 SQLite에 저장. 해시·저작자·원본 URL을 별도 검증/저장하지 않음. 미확보 코드는 저장하지 않음."
@@ -314,8 +314,8 @@
         "studioPython": {
           "python_module": "investment_node_adapter",
           "python_function": "execute_node16",
-          "code_version": "wf01-n16-persistent-readback-v1",
-          "node_character": "verified_source_import_receipt"
+          "code_version": "wf01-n16-result-v1",
+          "node_character": "display_source_save_result"
         }
       },
       "notes": "중복 검증 없이 실제 DB 저장 성공 결과 표시. Pine→Python 변환과 차트 검증은 WF-02에서 진행."
@@ -468,7 +468,7 @@
     "limit_per_execution": 1,
     "always_start_at_latest": true,
     "skip_imported_versions": true,
-    "source_execution_wired": true,
+    "source_execution_wired": false,
     "requires_authorized_collector": true,
     "node01PythonExecutionEnabled": true,
     "node02PythonExecutionEnabled": true,
@@ -479,6 +479,7 @@
     "node07PythonExecutionEnabled": true,
     "node11PythonExecutionEnabled": true,
     "node15PythonExecutionEnabled": true,
-    "node16PythonExecutionEnabled": true
+    "node16PythonExecutionEnabled": true,
+    "project_adapter_execution_enabled": true
   }
 }
