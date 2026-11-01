@@ -58,7 +58,7 @@ jobs:
                       binding5.get("python_function")=="execute_node05" and
                       binding5.get("code_version")=="wf01-n05-sqlite-registry-v1" and
                       binding6.get("python_function")=="execute_node06" and
-                      binding6.get("code_version")=="wf01-n06-select-compatible-v2" and
+                      binding6.get("code_version")=="wf01-n06-licensed-archive-v3" and
                       binding7.get("python_function")=="execute_node07" and
                       binding7.get("code_version")=="wf01-n07-if-v1" and
                       binding11.get("python_function")=="execute_node11" and
@@ -117,7 +117,7 @@ jobs:
           assert "TRUE→N11 READY, FALSE→N08 NOT READY" in text
           assert '"selected_candidate_count": 1' in text
           assert '"checked_count": 50' in text
-          assert '"new_count": 50' in text
+          assert "registry checked 50 new" in text
           print("N01_THROUGH_N12_REAL_SOURCE_CODE_SHA256_AND_N13_EDGE_VERIFIED")
           PY
       - name: Archive real service execution logs
