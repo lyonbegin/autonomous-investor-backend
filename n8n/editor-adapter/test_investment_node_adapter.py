@@ -47,6 +47,32 @@ class WF01UsefulNodes(unittest.TestCase):
         self.assertNotIn("pine_source_sha256",got)
         self.assertEqual(got["rights_state"],"PENDING_REVIEW")
 
+    def test_no_fetchable_pine_moves_to_next_catalog_page(self):
+        from investment_node_adapter import (execute_node06,execute_node07,
+                                               execute_node08,execute_node09,execute_node10)
+        old={"kind":"strategy","source_id":"PUB;unknown","version_key":"1.0",
+             "source_url":"https://www.tradingview.com/script/FAKE1234/","imported":False}
+        parent={"kind":"strategy","items":[old],"source_registry_checked":True,
+                "page":1,"max_pages":3,"page_size":50,"next_page":2}
+        selected=execute_node06(parent,workflow_kind="strategy")
+        self.assertFalse(selected["has_candidate"])
+        self.assertIsNone(selected["candidate"])
+        branched=execute_node07(selected,workflow_kind="strategy")
+        self.assertEqual(branched["_studio_active_ports"],[1])
+        paged=execute_node08(branched,workflow_kind="strategy")
+        self.assertEqual(paged["_studio_active_ports"],[0])
+        following=execute_node09(paged,workflow_kind="strategy")
+        self.assertEqual(following["page"],2)
+        self.assertNotIn("candidate",following)
+        self.assertNotIn("items",following)
+        finish=execute_node08(execute_node07(execute_node06(
+            {**parent,"page":3,"next_page":None},
+            workflow_kind="strategy"),workflow_kind="strategy"),workflow_kind="strategy")
+        self.assertEqual(finish["_studio_active_ports"],[1])
+        result=execute_node10(finish,workflow_kind="strategy")
+        self.assertEqual(result["status"],"NO_FETCHABLE_NEW_PINE")
+        self.assertEqual(result["saved_count"],0)
+
     def test_removed_nodes_cannot_execute(self):
         path="operations/WF01-latest-strategy-one.json"
         self.assertIsNone(node_binding(path,"wf01-strategy-12"))
