@@ -60,6 +60,10 @@ def node_binding(workflow_path,node_id):
         return {"python_module":"investment_node_adapter",
           "python_function":"execute_node12","code_version":"wf01-n12-original-source-contract-v1",
           "node_character":"validated_pine_source_contract"}
+    if node_id==prefix+"13":
+        return {"python_module":"investment_node_adapter",
+          "python_function":"execute_node13","code_version":"wf01-n13-conditional-source-v1",
+          "node_character":"conditional_route"}
     return None
 
 def node_type(workflow_path,node_id):
@@ -75,6 +79,7 @@ def node_type(workflow_path,node_id):
       "wf01-"+kind+"-07":"n8n-nodes-base.if",
       "wf01-"+kind+"-11":"n8n-nodes-base.httpRequest",
       "wf01-"+kind+"-12":"n8n-nodes-base.code",
+      "wf01-"+kind+"-13":"n8n-nodes-base.if",
     }.get(node_id)
 
 def execute_node01(input_json,*,workflow_kind):
@@ -455,6 +460,27 @@ def execute_node12(input_json,*,workflow_kind):
         "node12_validated_at":datetime.now(timezone.utc).isoformat(),
         "next_node_executed":False}
 
+def execute_node13(input_json,*,workflow_kind):
+    """Route verified Pine source ONLY to the import branch."""
+    if not isinstance(input_json,dict) or input_json.get("kind")!=workflow_kind:
+        raise ValueError("N13_UPSTREAM_KIND_MISMATCH")
+    value=input_json.get("source_available")
+    if type(value) is not bool:
+        raise ValueError("N13_SOURCE_AVAILABILITY_NOT_BOOLEAN")
+    if value:
+        if input_json.get("source_integrity_checked") is not True or (
+             input_json.get("source_hash_verified") is not True):
+            raise ValueError("N13_SOURCE_PRESENT_BUT_NOT_VERIFIED")
+        pine=input_json.get("pine_code")
+        if not isinstance(pine,str) or not pine:
+            raise ValueError("N13_SOURCE_CODE_MISSING")
+    selected_port=0 if value else 1
+    return {**input_json,"_studio_active_ports":[selected_port],
+       "source_branch":"VERIFIED_PINE_TO_IMPORT" if value else "PINE_NOT_AVAILABLE",
+       "source_branch_status":"PENDING_IMPORT" if value else "SOURCE_HOLD",
+       "branch_decided_at":datetime.now(timezone.utc).isoformat(),
+       "next_node_executed":False}
+
 def execute_node(workflow_path,node_id,input_json):
     kind=WF01_MODES.get(workflow_path)
     binding=node_binding(workflow_path,node_id)
@@ -466,7 +492,8 @@ def execute_node(workflow_path,node_id,input_json):
                "execute_node06":execute_node06,
                "execute_node07":execute_node07,
                "execute_node11":execute_node11,
-               "execute_node12":execute_node12}
+               "execute_node12":execute_node12,
+               "execute_node13":execute_node13}
     func=functions[binding["python_function"]]
     return func(input_json,workflow_kind=kind)
 
@@ -475,6 +502,6 @@ def default_node_input(workflow_path,node_id):
     if not kind:return None
     if node_id=="wf01-"+kind+"-01":
         return {"ui_selection":kind,"requested_detail_limit":1}
-    if node_id in ("wf01-"+kind+"-02","wf01-"+kind+"-03","wf01-"+kind+"-04","wf01-"+kind+"-05","wf01-"+kind+"-06","wf01-"+kind+"-07","wf01-"+kind+"-11","wf01-"+kind+"-12"):
+    if node_id in ("wf01-"+kind+"-02","wf01-"+kind+"-03","wf01-"+kind+"-04","wf01-"+kind+"-05","wf01-"+kind+"-06","wf01-"+kind+"-07","wf01-"+kind+"-11","wf01-"+kind+"-12","wf01-"+kind+"-13"):
         return {}
     return None
