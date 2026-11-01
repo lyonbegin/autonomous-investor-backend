@@ -51,15 +51,25 @@ def execute_wf02_node02(input_json,*,workflow_kind):
         raise ValueError("WF02_EMPTY_PINE")
     # Reuse the existing, strictly scoped Pine converter; never exec Pine input.
     from engine import parse_pine,generate_python,UnsupportedPine
+    from sequence_reversal import (parse_sequence_pine,generate_sequence_python,
+                                    UnsupportedSequencePine)
     try:
         spec=parse_pine(code)
-    except UnsupportedPine as exc:
-        return {k:v for k,v in input_json.items() if k!="pine_code"} | {
-            "status":"UNSUPPORTED_PINE","unsupported_reason":str(exc),
-            "python_code":None,"converter_scope":"SMA_EMA_CROSS_ONLY",
-            "conversion_validated":False,"tradingview_chart_validated":False}
-    python_code=generate_python(spec)
-    if not python_code.startswith("# Generated from STRICT supported Pine subset;"):
+        python_code=generate_python(spec)
+    except UnsupportedPine as first_error:
+        try:
+            spec=parse_sequence_pine(code)
+            python_code=generate_sequence_python(spec)
+        except UnsupportedSequencePine as second_error:
+            return {k:v for k,v in input_json.items() if k!="pine_code"} | {
+                "status":"UNSUPPORTED_PINE",
+                "unsupported_reason":str(second_error),
+                "basic_converter_reason":str(first_error),
+                "python_code":None,"converter_scope":None,
+                "conversion_validated":False,"tradingview_chart_validated":False}
+    # Only verify the emitted code compiles, not that TradingView signals match.
+    compile(python_code,"<WF02 generated Python>","exec")
+    if "def run_strategy(bars):" not in python_code:
         raise ValueError("WF02_PYTHON_GENERATION_FAILED")
     with closing(open_registry()) as db:
         db.execute("""CREATE TABLE IF NOT EXISTS investment_python_conversions (
