@@ -294,6 +294,36 @@ def perform():
               "input":h["input_json"],"output":out7,"elapsed_ms":ms7})
         state="N07_TRUE_BRANCH_N11_READY_FALSE_BRANCH_NOT_EXECUTED"
         print("N07 IF EXECUTED",h["run_id"],"TRUE→N11 READY, FALSE→N08 NOT READY",flush=True)
+        n12=PREFIX+"12"
+        status11,src,ms11=call(opener,"POST","/api/studio/nodes/execute",
+            {"workflow":WORKFLOW,"node_id":n11,"source_run_id":h["run_id"]},
+            {"X-Studio-Node-Run":"APPROVED"})
+        check(status11 in (200,422),f"N11 SOURCE NODE HTTP {status11}: {src}")
+        h11=last_history(opener,n11)
+        check(h11[0]["run_id"]==src["run_id"] and
+              h11[0]["upstream_run_id"]==h["run_id"] and
+              h11[0]["input_json"]==out7,
+              "N11 INPUT != ACTUAL SELECTED SOURCE OUTPUT")
+        if status11==422:
+            check(src["status"]=="FAILED" and
+                  src["error"]=="N11_ORIGINAL_PINE_NOT_SUPPLIED" and
+                  src["output_json"] is None,
+                  "N11 DID NOT FAIL CLOSED FOR MISSING GENUINE PINE")
+            st12,data12,_=call(opener,"GET",query("/api/studio/nodes/transfers",n12))
+            check(st12==200 and not any(x["source_run_id"]==src["run_id"]
+                for x in data12["transfers"]),
+                "N12 RECEIVED DATA DESPITE N11 PINE SOURCE FAILURE")
+            state="N11_BLOCKED_ORIGINAL_PINE_NOT_SUPPLIED_N12_NOT_EXECUTED"
+        else:
+            check(src["output_json"]["source_hash_verified"] is True and
+                  src["output_json"]["pine_source_acquired"] is True,
+                  "N11 FALSE PINE SOURCE SUCCESS")
+            state="N11_GENUINE_SOURCE_HASH_VERIFIED_N12_INPUT_READY"
+        RECORDED.append({"node":"N11","status":src["status"],"http":status11,
+            "run_id":src["run_id"],"upstream_run_id":h["run_id"],
+            "input":src["input_json"],"output":src["output_json"],
+            "error":src.get("error"),"elapsed_ms":ms11})
+        print("N11 SOURCE EXECUTION",state,src.get("error") or "HASH_VERIFIED",flush=True)
     return {"workflow":WORKFLOW,"result":state,"steps":RECORDED,
       "meaning":"N01,N02 real successes; N03 must be real approved feed or explicit FAILED, never synthetic."}
 
@@ -303,8 +333,8 @@ if __name__=="__main__":
         print(json.dumps(outcome,ensure_ascii=False,indent=2),flush=True)
         # A safely rejected unauthorized or missing collector does NOT count
         # as successful end-to-end strategy collection.
-        if os.environ.get("WF01_REQUIRE_N07_SUCCESS")=="1" and outcome["result"]!="N07_TRUE_BRANCH_N11_READY_FALSE_BRANCH_NOT_EXECUTED":
-            print("FIRST_STAGE_NOT_PASSED: N07 did not route the real candidate exclusively to N11",file=sys.stderr,flush=True)
+        if os.environ.get("WF01_REQUIRE_N11_SUCCESS")=="1" and outcome["result"]!="N11_GENUINE_SOURCE_HASH_VERIFIED_N12_INPUT_READY":
+            print("FIRST_STAGE_NOT_PASSED: N11 did not acquire actual matching Pine and therefore cannot pass to N12",file=sys.stderr,flush=True)
             sys.exit(3)
     except Exception as e:
         print("CHAIN_PROBE_FAILED",type(e).__name__,str(e),
