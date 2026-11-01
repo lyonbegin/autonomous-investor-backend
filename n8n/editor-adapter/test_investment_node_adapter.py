@@ -111,4 +111,32 @@ class InvestmentNodeAdapterTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,"N04_CATALOG_COUNT_MISMATCH"):
             execute_node04({**n3,"count":4},workflow_kind="strategy")
 
+    def test_n05_queries_real_sqlite_version_registry_not_metadata_hash(self):
+        import sqlite3
+        import tempfile
+        from pathlib import Path
+        from investment_node_adapter import execute_node05
+        candidate={"kind":"strategy","source_id":"PUB;test","version_key":"3",
+            "source_url":"https://www.tradingview.com/script/ABCdef12/",
+            "source_sha256_reported":"a"*64,"source_code_fetched":False}
+        n4={"kind":"strategy","candidate_count":1,"candidates":[candidate],
+            "items":[candidate],"page":1,"max_pages":3}
+        with tempfile.TemporaryDirectory() as tmp:
+            with patch.dict(os.environ,{"STUDIO_DB_PATH":str(Path(tmp)/"registry.sqlite3")}):
+                first=execute_node05(n4,workflow_kind="strategy")
+                self.assertEqual(first["new_count"],1)
+                self.assertEqual(first["imported_count"],0)
+                self.assertFalse(first["items"][0]["imported"])
+                self.assertEqual(first["candidate_count"],1)
+                with sqlite3.connect(str(Path(tmp)/"registry.sqlite3")) as db:
+                    db.execute("""INSERT INTO investment_pine_versions
+                       (kind,source_id,version_key,pine_sha256,verified_source,
+                        approved_for_conversion,saved_at) VALUES(?,?,?,?,?,?,?)""",
+                       ("strategy","PUB;test","3","b"*64,1,0,"2026-11-01T00:00:00Z"))
+                second=execute_node05(n4,workflow_kind="strategy")
+                self.assertEqual(second["imported_count"],1)
+                self.assertTrue(second["items"][0]["imported"])
+                self.assertFalse(second["items"][0]["conversion_approved"])
+                self.assertEqual(second["input_json"] if "input_json" in second else second["candidates"],n4["candidates"])
+
 if __name__=="__main__":unittest.main()
