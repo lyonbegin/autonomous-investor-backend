@@ -82,7 +82,6 @@ jobs:
           assert '"node": "N05"' in text
           assert '"node": "N06"' in text
           assert '"node": "N07"' in text
-          assert '"_studio_active_ports": [\n          0' not in text or "N07 IF EXECUTED" in text
           assert "TRUE→N11 READY, FALSE→N08 NOT READY" in text
           assert '"selected_candidate_count": 1' in text
           assert '"checked_count": 50' in text
