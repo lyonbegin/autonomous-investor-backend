@@ -348,12 +348,48 @@ def perform():
             check(h11[0]["output_json"]==out11 and
                   h11[0]["status"]=="SUCCESS",
                   "N11 REAL SQLITE OUTPUT NOT STORED")
-            state="N11_GENUINE_SOURCE_HASH_VERIFIED_N12_INPUT_READY"
+            state="N12_REAL_PINE_SOURCE_VALIDATED_N13_READY"
         RECORDED.append({"node":"N11","status":src["status"],"http":status11,
             "run_id":src["run_id"],"upstream_run_id":h["run_id"],
             "input":src["input_json"],"output":src["output_json"],
             "error":src.get("error"),"elapsed_ms":ms11})
         print("N11 SOURCE EXECUTION",state,src.get("error") or "HASH_VERIFIED",flush=True)
+        if status11==200:
+            n13=PREFIX+"13"
+            status12,source12,ms12=call(opener,"POST","/api/studio/nodes/execute",
+                {"workflow":WORKFLOW,"node_id":n12,"source_run_id":src["run_id"]},
+                {"X-Studio-Node-Run":"APPROVED"})
+            check(status12==200 and source12.get("status")=="SUCCESS",
+                  "N12 ACTUAL CODE/PROVENANCE VALIDATION FAILED: "+str(
+                       {k:source12.get(k) for k in ("error","status","run_id")}))
+            check(source12["upstream_run_id"]==src["run_id"] and
+                  source12["input_json"]==src["output_json"],
+                  "N12 INPUT DOES NOT MATCH ACTUAL N11 OUTPUT")
+            out12=source12["output_json"]
+            check(out12["source_integrity_checked"] is True and
+                  out12["source_available"] is True and
+                  out12["conversion_validated"] is False and
+                  out12["tradingview_chart_validated"] is False,
+                  "N12 FALSE SOURCE VALIDATION OR PYTHON PARITY CLAIM")
+            check(out12["pine_source_sha256"]==
+                  src["output_json"]["pine_source_sha256"] and
+                  out12["pine_code"]==src["output_json"]["pine_code"],
+                  "N12 ALTERED ORIGINAL PINE SOURCE")
+            h12=last_history(opener,n12)
+            check(h12[0]["run_id"]==source12["run_id"] and
+                  h12[0]["upstream_run_id"]==src["run_id"] and
+                  h12[0]["input_json"]==source12["input_json"] and
+                  h12[0]["output_json"]==out12,
+                  "N12 ORIGINAL PINE INPUT/OUTPUT NOT STORED IN SQLITE")
+            t1213=transfer(opener,n13,source12["run_id"])
+            check(t1213["output_json"]==out12 and t1213["status"]=="READY",
+                  "N12→N13 ACTUAL VERIFIED SOURCE TRANSFER MISSING")
+            RECORDED.append({"node":"N12","status":"SUCCESS","http":status12,
+                "run_id":source12["run_id"],"upstream_run_id":src["run_id"],
+                "input":source12["input_json"],"output":out12,"elapsed_ms":ms12})
+            state="N12_REAL_PINE_SOURCE_VALIDATED_N13_READY"
+            print("N12 SOURCE VALIDATION SUCCESS",source12["run_id"],
+                 "SHA_MATCH,N13_READY,PYTHON_PARITY_NOT_YET_TESTED",flush=True)
     return {"workflow":WORKFLOW,"result":state,"steps":RECORDED,
       "meaning":"N01→N11 sequential per-node executed. Metadata from pinned third-party snapshot, source from independent pinned GitHub mirror matching exact hash; TradingView chart is not rendered or visually compared."}
 
@@ -363,8 +399,8 @@ if __name__=="__main__":
         print(json.dumps(outcome,ensure_ascii=False,indent=2),flush=True)
         # A safely rejected unauthorized or missing collector does NOT count
         # as successful end-to-end strategy collection.
-        if os.environ.get("WF01_REQUIRE_N11_SUCCESS")=="1" and outcome["result"]!="N11_GENUINE_SOURCE_HASH_VERIFIED_N12_INPUT_READY":
-            print("FIRST_STAGE_NOT_PASSED: N11 did not acquire actual matching Pine and therefore cannot pass to N12",file=sys.stderr,flush=True)
+        if os.environ.get("WF01_REQUIRE_N12_SUCCESS")=="1" and outcome["result"]!="N12_REAL_PINE_SOURCE_VALIDATED_N13_READY":
+            print("FIRST_STAGE_NOT_PASSED: N12 did not validate original Pine SHA/license and transfer to N13",file=sys.stderr,flush=True)
             sys.exit(3)
     except Exception as e:
         print("CHAIN_PROBE_FAILED",type(e).__name__,str(e),
