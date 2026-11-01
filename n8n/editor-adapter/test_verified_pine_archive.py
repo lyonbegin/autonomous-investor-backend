@@ -58,6 +58,18 @@ class PinnedSource(unittest.TestCase):
                              hashlib.sha256(mirror).hexdigest())
             self.assertEqual(result["pine_code"].encode(),SYNTHETIC)
 
+    def test_missing_author_notice_is_flagged_without_editing_original_bytes(self):
+        without_notice=SYNTHETIC.replace("// © NICK789\r\n".encode("utf-8"),b"")
+        sha=hashlib.sha256(without_notice).hexdigest()
+        with patch("verified_pine_archive.urllib.request.urlopen",
+                   return_value=Response(without_notice)):
+            result=archive.acquire_verified_pine(candidate(sha))
+            self.assertFalse(result["source_author_notice_present"])
+            self.assertEqual(result["source_author_notice_status"],
+                             "NOT_PRESENT_REVIEW_REQUIRED")
+            self.assertEqual(result["pine_code"].encode("utf-8"),without_notice)
+            self.assertEqual(result["rights_state"],"MPL_2_0_REVIEW_REQUIRED")
+
     def test_reject_modified_bytes_even_with_correct_metadata(self):
         digest=hashlib.sha256(SYNTHETIC).hexdigest()
         with patch.object(archive,"EXPECTED_SHA256",digest),patch.object(
