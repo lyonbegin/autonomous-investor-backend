@@ -195,7 +195,39 @@ def numeric_compare(bars,series,conditions,columns):
             "mismatch_bars":mismatch[:8]})
     return comparison,all_required,all_match
 
-def render_svg(bars,series,conditions,title="Python strategy chart"):
+def generate_python(spec):
+    """Standalone source for the audited subset. Not exec'd in HTTP process."""
+    literal=repr(spec)
+    return (
+        "# Generated from STRICT supported Pine subset; no arbitrary source executed.\n"
+        "SPEC = "+literal+"\n\n"
+        "def run_strategy(bars):\n"
+        "    close=[float(bar['close']) for bar in bars]\n"
+        "    series={}\n"
+        "    for name,(kind,n) in SPEC['series'].items():\n"
+        "        values=[];ema=None\n"
+        "        for i,v in enumerate(close):\n"
+        "            if kind=='sma':\n"
+        "                values.append(sum(close[i-n+1:i+1])/n if i>=n-1 else None)\n"
+        "            else:\n"
+        "                ema=v if ema is None else v*2/(n+1)+ema*(1-2/(n+1))\n"
+        "                values.append(ema)\n"
+        "        series[name]=values\n"
+        "    signals={}\n"
+        "    for name,(kind,left,right) in SPEC['conditions'].items():\n"
+        "        a,b=series[left],series[right];values=[False]\n"
+        "        for i in range(1,len(close)):\n"
+        "            if any(t is None for t in (a[i],a[i-1],b[i],b[i-1])):\n"
+        "                values.append(False)\n"
+        "            elif kind=='crossover':\n"
+        "                values.append(a[i]>b[i] and a[i-1]<=b[i-1])\n"
+        "            else:\n"
+        "                values.append(a[i]<b[i] and a[i-1]>=b[i-1])\n"
+        "        signals[name]=values\n"
+        "    return {'series':series,'signals':signals}\n"
+    )
+
+def render_svg(bars,series,conditions,title="Python strategy chart",spec=None):
     # Returned SVG is rendered by Python, not by JS / TradingView.
     n=min(180,len(bars));start=len(bars)-n;part=bars[start:]
     width=1100;height=470;left=62;right=18;top=35;bottom=46
@@ -235,11 +267,10 @@ def render_svg(bars,series,conditions,title="Python strategy chart"):
     for key,vals in conditions.items():
         for i in range(start,len(bars)):
             if not vals[i]:continue
-            xx=x(i-start); bullish="crossunder" not in key.lower()
-            # Shape direction is based on the actual condition operation, not its name.
-            bullish=key and True
-            tip=y(bars[i]["low"])-8
-            if any(s[0]==key and s[1]=="short" for s in []):bullish=False
+            xx=x(i-start)
+            kind=(spec or {}).get("conditions",{}).get(key,["crossover"])[0]
+            bullish=kind=="crossover"
+            tip=(y(bars[i]["low"])-8) if bullish else (y(bars[i]["high"])+8)
             if bullish:
                 out.append(f'<path d="M{xx:.2f} {tip:.2f} l-6 9 h12 Z" fill="#2de4a7"/>')
             else:
@@ -260,6 +291,6 @@ def analyze(pine_code,csv_text,column_mapping=None,title="Python re-render"):
         "bars":len(bars),"csv_headers":headers,"strategy":spec,
         "comparison":comparisons,"trades":trades[:500],"trade_count":len(trades),
         "numeric_match":bool(complete and match),
-        "svg":render_svg(bars,series,signals,title),"source":"PYTHON_STRICT_SUPPORTED_SUBSET",
+        "svg":render_svg(bars,series,signals,title,spec),"python_code":generate_python(spec),"source":"PYTHON_STRICT_SUPPORTED_SUBSET",
         "baseline_source":"USER_SUPPLIED_TV_CSV_NOT_AUTOMATICALLY_AUTHENTICATED",
         "image_match":"NOT_AUTOMATICALLY_VERIFIED"}
