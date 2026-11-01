@@ -99,13 +99,17 @@ def acquire_verified_pine(candidate):
         not re.search(r"(?m)^\s*strategy\s*\(",text)):
         raise ValueError("N11_ARCHIVE_LICENSE_VERSION_OR_STRATEGY_MISSING")
     author=str(candidate.get("author") or ("NICK789" if candidate["source_id"]==SOURCE_ID else ""))
-    if not author or ("© "+author).lower() not in text[:1200].lower():
-        raise ValueError("N11_ARCHIVE_AUTHOR_NOTICE_MISMATCH")
+    if not author:
+        raise ValueError("N11_ARCHIVE_AUTHOR_METADATA_MISSING")
+    author_notice_present=("© "+author).lower() in text[:1200].lower()
     return {"pine_code":text,
         "pine_source_sha256":hashlib.sha256(normalized).hexdigest(),
         "source_archive_url":archive_url,"source_archive_revision":ARCHIVE_REV,
         "source_archive_raw_sha256":raw_sha,
         "source_archive_newline_normalization":method,
         "pine_source_origin":"GITHUB_PINNED_OPEN_SOURCE_ARCHIVE",
-        "source_author":author,"rights_state":"MPL_2_0_REVIEW_REQUIRED",
+        "source_author":author,
+        "source_author_notice_present":author_notice_present,
+        "source_author_notice_status":"MATCH" if author_notice_present else "NOT_PRESENT_REVIEW_REQUIRED",
+        "rights_state":"MPL_2_0_REVIEW_REQUIRED",
         "tradingview_requested":False,"tradingview_chart_rendered":False}
