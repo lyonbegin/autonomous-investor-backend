@@ -37,7 +37,7 @@ def node_binding(workflow_path,node_id):
           "node_character":"authorized_catalog_request"}
     if node_id==prefix+"04":
         return {"python_module":"investment_node_adapter",
-          "python_function":"execute_node04","code_version":"wf01-n04-v1",
+          "python_function":"execute_node04","code_version":"wf01-n04-v2-pine-metadata",
           "node_character":"validated_catalog_candidates"}
     if node_id==prefix+"05":
         return {"python_module":"investment_node_adapter",
@@ -45,7 +45,7 @@ def node_binding(workflow_path,node_id):
           "node_character":"project_source_version_check"}
     if node_id==prefix+"06":
         return {"python_module":"investment_node_adapter",
-          "python_function":"execute_node06","code_version":"wf01-n06-select-one-v1",
+          "python_function":"execute_node06","code_version":"wf01-n06-select-compatible-v2",
           "node_character":"choose_single_new_strategy"}
     if node_id==prefix+"07":
         return {"python_module":"investment_node_adapter",
@@ -240,6 +240,7 @@ def execute_node04(input_json,*,workflow_kind):
             "source_url":url,"title":str(item.get("title") or "")[:300],
             "author":str(item.get("author") or "")[:150],
             "source_sha256_reported":item.get("source_sha256_reported"),
+            "pine_version":item.get("pine_version"),
             "published_at":item.get("published_at"),"updated_at":item.get("updated_at"),
             "catalog_observed_at":item.get("catalog_observed_at"),
             "metadata_origin":item.get("metadata_origin") or input_json["catalog_source"],
@@ -299,7 +300,16 @@ def execute_node06(input_json,*,workflow_kind):
            isinstance(x.get("version_key"),str) and
            isinstance(x.get("source_url"),str) and
            x["source_url"].startswith("https://www.tradingview.com/script/")]
-    one=valid[0] if valid else None
+    def preference(candidate):
+        version=str(candidate.get("pine_version") or "")
+        # Version compatibility is a preliminary filter, not a promise that
+        # its Pine operations are supported by the current Python compiler.
+        license_id=str(candidate.get("source_license_reported") or "").upper()
+        licensed=license_id in ("MPL-2.0","MIT","APACHE-2.0","BSD-3-CLAUSE")
+        if version=="6":return 0 if licensed else 1
+        if version=="5":return 2 if licensed else 3
+        return 4
+    one=min(valid,key=preference) if valid else None
     # No Pine source has yet been downloaded; this chooses metadata for N11.
     return {**input_json,
       "candidate":one,
@@ -309,7 +319,9 @@ def execute_node06(input_json,*,workflow_kind):
       "can_continue":isinstance(input_json.get("next_page"),int) and
                      input_json["next_page"]>input_json.get("page",0) and
                      input_json["next_page"]<=input_json.get("max_pages",0),
-      "candidate_selection_basis":input_json.get("candidate_sort_basis","unknown"),
+      "candidate_selection_basis":"prioritize_Pine_v6_v5_with_reported_license_then_catalog_order",
+      "candidate_pine_version_supported_by_current_converter":
+          bool(one and str(one.get("pine_version")) in ("5","6")),
       "pine_source_acquired":False,
       "node06_selected_at":datetime.now(timezone.utc).isoformat(),
       "next_node_executed":False}
