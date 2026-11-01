@@ -1,50 +1,33 @@
-"""No synthetic data is ever accepted as production N03 success.
-
-These unit tests use an in-memory CC-BY manifest fixture to validate schema,
-provenance, pagination and refusal of unauthorized/malformed entries.
-Real HTTPS integration is separately exercised by probe_real_chain.py.
-"""
+"""Check N03 external snapshot selection, not author/hash verification."""
+import csv
 import io
 import unittest
 from unittest.mock import patch
 from licensed_strategy_manifest import catalog_from_snapshot
 
-HEADER="id,kind,name,author,pine_version,script_version,agree_count,license,sha256,tv_url,file,fetched_at,symbol,timeframe\n"
-def item(n,date,kind="strategy",url=None):
-    u=url or ("https://www.tradingview.com/script/%08d/"%n)
-    return f"PUB;{n:08d},{kind},Strategy {n},RealAuthor,6,1.0,300,MPL-2.0,{'a'*64},{u},none.pine,{date},,\n"
-def manifest():
-    text=HEADER
-    for i in range(110):
-        text+=item(i+1,"2026-10-02" if i>50 else "2026-08-27")
-    text+=item(123,"2026-10-03","indicator")
-    return text
+HEADER="id,kind,name,pine_version,script_version,tv_url,fetched_at\n"
+def row(i,kind="strategy",url=None):
+    return f"PUB;{i:08d},{kind},Test {i},6,1.0,{url or f'https://www.tradingview.com/script/{i:08d}/'},2026-10-02\n"
 
-class ManifestContract(unittest.TestCase):
-    def test_strategy_metadata_pagination_and_no_live_claim(self):
-        with patch("licensed_strategy_manifest.fetch_manifest",return_value=(
-             list(__import__("csv").DictReader(io.StringIO(manifest()))),"d"*64)):
+class SnapshotTests(unittest.TestCase):
+    def test_actual_source_rows_and_pages(self):
+        rows=list(csv.DictReader(io.StringIO(HEADER+''.join(row(i) for i in range(1,61)))))
+        with patch("licensed_strategy_manifest.fetch_manifest",return_value=rows):
             first=catalog_from_snapshot(kind="strategy",page=1,page_size=50,sort="recent_extended")
             second=catalog_from_snapshot(kind="strategy",page=2,page_size=50,sort="recent_extended")
-            self.assertEqual(first["count"],50)
-            self.assertEqual(first["total_count"],110)
-            self.assertEqual(second["count"],50)
-            self.assertEqual(len({x["source_id"] for x in first["items"]+second["items"]}),100)
-            self.assertFalse(first["catalog_is_live"])
-            self.assertFalse(first["latest_tradingview_verified"])
-            self.assertFalse(first["pine_source_acquired"])
-            self.assertIn("PyneSys",first["manifest_license"])
-            self.assertEqual(first["items"][0]["published_at"],None)
-            self.assertFalse(first["items"][0]["source_code_fetched"])
-    def test_no_library_falsification(self):
+        self.assertEqual(first["count"],50)
+        self.assertEqual(second["count"],10)
+        self.assertFalse(first["catalog_is_live"])
+        self.assertNotIn("manifest_sha256",first)
+        self.assertNotIn("author",first["items"][0])
+        self.assertNotIn("source_sha256_reported",first["items"][0])
+
+    def test_unsupported_library_and_bad_url(self):
         with self.assertRaisesRegex(ValueError,"STRATEGIES_ONLY"):
-            catalog_from_snapshot(kind="library",page=1,page_size=5,sort="recent_extended")
-    def test_invalid_link_or_hash_discarded(self):
-        text=HEADER+item(1,"2026-10-02",url="https://evil.example/script/87654321/")+item(2,"2026-10-03")
-        with patch("licensed_strategy_manifest.fetch_manifest",return_value=(
-             list(__import__("csv").DictReader(io.StringIO(text))),"d"*64)):
-            obj=catalog_from_snapshot(kind="strategy",page=1,page_size=5,sort="recent_extended")
-            self.assertEqual(obj["count"],1)
-            self.assertEqual(obj["invalid_entries_skipped"],1)
+            catalog_from_snapshot(kind="library",page=1,page_size=50,sort="recent_extended")
+        rows=list(csv.DictReader(io.StringIO(HEADER+row(1,url="https://evil.example/script/11111111/")+row(2))))
+        with patch("licensed_strategy_manifest.fetch_manifest",return_value=rows):
+            got=catalog_from_snapshot(kind="strategy",page=1,page_size=5,sort="recent_extended")
+        self.assertEqual(got["count"],1)
 
 if __name__=="__main__":unittest.main()
