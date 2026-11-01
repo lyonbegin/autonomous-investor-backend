@@ -53,7 +53,7 @@ jobs:
                       binding7.get("python_function")=="execute_node07" and
                       binding7.get("code_version")=="wf01-n07-if-v1" and
                       binding11.get("python_function")=="execute_node11" and
-                      binding11.get("code_version")=="wf01-n11-original-pine-hash-v1"):
+                      binding11.get("code_version")=="wf01-n11-verified-archive-v2"):
                       print("N03_REALLY_DEPLOYED_IN_RAILWAY");break
               except Exception as exc:
                   print("N03_DEPLOY_WAIT",type(exc).__name__,str(exc)[:120],flush=True)
@@ -69,7 +69,7 @@ jobs:
         run: |
           set -o pipefail
           PYTHONPATH=n8n/editor-adapter WF01_KIND=library WF01_REQUIRE_N11_SUCCESS=0 python3 n8n/editor-adapter/probe_real_chain.py | tee /tmp/wf01-real-library.log
-      - name: Explicitly require nonempty strategy metadata (historical snapshot, not live TradingView)
+      - name: Check original Pine stored with exact SHA (and do not claim TV chart parity)
         if: always()
         run: |
           python3 - <<'PY'
@@ -87,11 +87,15 @@ jobs:
           assert '"node": "N06"' in text
           assert '"node": "N07"' in text
           assert '"node": "N11"' in text
+          assert '"pine_source_origin": "GITHUB_PINNED_OPEN_SOURCE_ARCHIVE"' in text
+          assert '"source_hash_verified": true' in text
+          assert '"rights_state": "MPL_2_0_REVIEW_REQUIRED"' in text
+          assert '"tradingview_requested": false' in text
           assert "TRUE→N11 READY, FALSE→N08 NOT READY" in text
           assert '"selected_candidate_count": 1' in text
           assert '"checked_count": 50' in text
           assert '"new_count": 50' in text
-          print("N01_THROUGH_N11_REAL_ORIGINAL_PINE_REQUIRED")
+          print("N01_THROUGH_N11_REAL_SOURCE_SHA256_AND_N12_EDGE_VERIFIED")
           PY
       - name: Archive real service execution logs
         if: always()
