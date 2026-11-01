@@ -123,13 +123,25 @@ def perform():
     check(h3[0]["input_json"]==b["output_json"],
           "N03 ACTUAL SQLITE INPUT != N02 ACTUAL OUTPUT")
     if status==200:
-        check(c["status"]=="SUCCESS" and c["output_json"]["catalog_source"]=="AUTHORIZED_EXTERNAL_FEED",
-              f"N03 FALSE CATALOG SUCCESS {c}")
+        source=c["output_json"].get("catalog_source")
+        check(c["status"]=="SUCCESS" and source in (
+              "AUTHORIZED_EXTERNAL_FEED","PYNE_GITHUB_CC_BY_4_METADATA_SNAPSHOT"),
+              f"N03 UNTRUSTED CATALOG SOURCE {c}")
         check(h3[0]["output_json"]==c["output_json"],"N03 DB OUTPUT MISMATCH")
-        check(isinstance(c["output_json"]["items"],list),"N03 MISSING REAL ITEMS ARRAY")
+        check(isinstance(c["output_json"]["items"],list) and len(c["output_json"]["items"])>0,
+              "N03 EMPTY STRATEGY CATALOG IS NOT A SUCCESS")
+        if source=="PYNE_GITHUB_CC_BY_4_METADATA_SNAPSHOT":
+            check(c["output_json"]["catalog_is_live"] is False,
+                  "HISTORICAL MANIFEST FALSELY CLAIMED LIVE TRADINGVIEW")
+            check(c["output_json"]["pine_source_acquired"] is False,
+                  "N03 MANIFEST FALSELY CLAIMED TO HAVE PINE CODE")
+            check(c["output_json"]["manifest_sha256"] and
+                  all(v["source_url"].startswith("https://www.tradingview.com/script/")
+                      for v in c["output_json"]["items"]),
+                  "MANIFEST PROVENANCE OR STRATEGY LINKS INVALID")
         t34=transfer(opener,n4,c["run_id"])
         check(t34["output_json"]==c["output_json"],"N03→N04 TRANSFER MISMATCH")
-        state="N03_AUTHORIZED_REAL_FEED_SUCCESS_N04_NOT_EXECUTED"
+        state="N03_REAL_METADATA_SUCCESS_N04_INPUT_READY"
     else:
         check(c["status"]=="FAILED" and c["output_json"] is None,
               "N03 ERROR MUST NOT REPORT SUCCESS")
@@ -152,7 +164,7 @@ if __name__=="__main__":
         print(json.dumps(outcome,ensure_ascii=False,indent=2),flush=True)
         # A safely rejected unauthorized or missing collector does NOT count
         # as successful end-to-end strategy collection.
-        if os.environ.get("WF01_REQUIRE_N03_SUCCESS")=="1" and outcome["result"]!="N03_AUTHORIZED_REAL_FEED_SUCCESS_N04_NOT_EXECUTED":
+        if os.environ.get("WF01_REQUIRE_N03_SUCCESS")=="1" and outcome["result"]!="N03_REAL_METADATA_SUCCESS_N04_INPUT_READY":
             print("FIRST_STAGE_NOT_PASSED: N03 has no actual authorized strategy list; N04 must not run",file=sys.stderr,flush=True)
             sys.exit(3)
     except Exception as e:
