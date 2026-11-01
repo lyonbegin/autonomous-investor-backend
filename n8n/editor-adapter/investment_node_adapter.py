@@ -12,7 +12,7 @@ import urllib.parse
 import urllib.request
 from licensed_strategy_manifest import catalog_from_snapshot
 from investment_source_registry import check_candidates
-from verified_pine_archive import acquire_verified_pine
+from verified_pine_archive import acquire_verified_pine,archive_path_for
 from investment_pine_store import save_verified_source
 from datetime import datetime,timezone
 
@@ -47,7 +47,7 @@ def node_binding(workflow_path,node_id):
           "node_character":"project_source_version_check"}
     if node_id==prefix+"06":
         return {"python_module":"investment_node_adapter",
-          "python_function":"execute_node06","code_version":"wf01-n06-select-compatible-v2",
+          "python_function":"execute_node06","code_version":"wf01-n06-licensed-archive-v3",
           "node_character":"choose_single_new_strategy"}
     if node_id==prefix+"07":
         return {"python_module":"investment_node_adapter",
@@ -326,9 +326,12 @@ def execute_node06(input_json,*,workflow_kind):
         # its Pine operations are supported by the current Python compiler.
         license_id=str(candidate.get("source_license_reported") or "").upper()
         licensed=license_id in ("MPL-2.0","MIT","APACHE-2.0","BSD-3-CLAUSE")
-        if version=="6":return 0 if licensed else 1
-        if version=="5":return 2 if licensed else 3
-        return 4
+        archived=licensed and archive_path_for(candidate) is not None
+        if version=="6" and archived:return 0
+        if version=="5" and archived:return 1
+        if version=="6":return 2 if licensed else 3
+        if version=="5":return 4 if licensed else 5
+        return 6
     one=min(valid,key=preference) if valid else None
     # No Pine source has yet been downloaded; this chooses metadata for N11.
     return {**input_json,
@@ -339,7 +342,7 @@ def execute_node06(input_json,*,workflow_kind):
       "can_continue":isinstance(input_json.get("next_page"),int) and
                      input_json["next_page"]>input_json.get("page",0) and
                      input_json["next_page"]<=input_json.get("max_pages",0),
-      "candidate_selection_basis":"prioritize_Pine_v6_v5_with_reported_license_then_catalog_order",
+      "candidate_selection_basis":"prioritize_verified_archive_and_MPL_license_then_Pine_v6_v5",
       "candidate_pine_version_supported_by_current_converter":
           bool(one and str(one.get("pine_version")) in ("5","6")),
       "pine_source_acquired":False,
