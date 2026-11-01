@@ -176,4 +176,23 @@ class InvestmentNodeAdapterTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,"N07_TRUE_BRANCH_REQUIRES_REAL_CANDIDATE"):
             execute_node07({**base,"candidate":None},workflow_kind="strategy")
 
+    def test_n11_rejects_absent_or_modified_pine_and_accepts_exact_hash(self):
+        import hashlib
+        from investment_node_adapter import execute_node11
+        pine="//@version=6\nstrategy('Owner supplied source', overlay=true)\nplot(close)\n"
+        digest=hashlib.sha256(pine.encode()).hexdigest()
+        n7={"kind":"strategy","has_candidate":True,
+            "candidate":{"kind":"strategy","source_id":"PUB;fixture",
+                         "source_sha256_reported":digest}}
+        with self.assertRaisesRegex(ValueError,"N11_ORIGINAL_PINE_NOT_SUPPLIED"):
+            execute_node11(n7,workflow_kind="strategy")
+        with self.assertRaisesRegex(ValueError,"N11_PINE_SHA256_DOES_NOT_MATCH"):
+            execute_node11({**n7,"pine_code":pine+"// changed"},workflow_kind="strategy")
+        out=execute_node11({**n7,"pine_code":pine},workflow_kind="strategy")
+        self.assertTrue(out["source_hash_verified"])
+        self.assertTrue(out["pine_source_acquired"])
+        self.assertEqual(out["pine_source_sha256"],digest)
+        self.assertEqual(out["rights_state"],"PENDING_REVIEW")
+        self.assertFalse(out["tradingview_requested"])
+
 if __name__=="__main__":unittest.main()
