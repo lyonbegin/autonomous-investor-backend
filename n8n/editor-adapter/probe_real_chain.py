@@ -192,6 +192,44 @@ def perform():
              "elapsed_ms":ms4})
         state="N04_REAL_VALIDATION_SUCCESS_N05_INPUT_READY"
         print("N04 EXECUTED AND STORED",d["run_id"],"validated",out4["candidate_count"],"N05 READY",flush=True)
+        n6=PREFIX+"06"
+        status5,e,ms5=call(opener,"POST","/api/studio/nodes/execute",
+            {"workflow":WORKFLOW,"node_id":n5,"source_run_id":d["run_id"]},
+            {"X-Studio-Node-Run":"APPROVED"})
+        check(status5==200 and e.get("status")=="SUCCESS",f"N05 FAILED HTTP {status5}: {e}")
+        check(e["upstream_run_id"]==d["run_id"] and
+              e["input_json"]==d["output_json"] and
+              e["upstream_output_json"]==d["output_json"],
+              "N05 DID NOT ACTUALLY RECEIVE N04 FULL OUTPUT")
+        out5=e["output_json"]
+        check(out5["registry_source"]=="project_owned_sqlite_pine_versions"
+              and out5["source_registry_checked"] is True,
+              "N05 NOT CHECKED AGAINST PROJECT SQLITE")
+        check(out5["checked_count"]==d["output_json"]["candidate_count"] and
+              out5["new_count"]+out5["imported_count"]==out5["checked_count"],
+              "N05 DB CANDIDATE COUNTS MISMATCH")
+        check(all(x["imported"] is False for x in out5["items"]),
+              "N05 INVALID SOURCE: METADATA HASH WAS FALSELY MARKED AS STORED PINE")
+        for key,value in d["output_json"].items():
+            if key!="items":
+                check(out5.get(key)==value,f"N05 DROPPED N04 FIELD {key}")
+        check(out5["catalog_items"]==d["output_json"]["items"],
+              "N05 LOST ORIGINAL SOURCE CATALOG ITEMS")
+        h5=last_history(opener,n5)
+        check(h5[0]["run_id"]==e["run_id"] and
+              h5[0]["upstream_run_id"]==d["run_id"] and
+              h5[0]["input_json"]==e["input_json"] and
+              h5[0]["output_json"]==out5,
+              "N05 REAL SQLITE INPUT/OUTPUT NOT PERSISTED")
+        t56=transfer(opener,n6,e["run_id"])
+        check(t56["output_json"]==out5 and t56["status"]=="READY",
+              "N05→N06 ACTUAL OUTPUT NOT READY")
+        RECORDED.append({"node":"N05","status":"SUCCESS","http":status5,
+            "run_id":e["run_id"],"upstream_run_id":d["run_id"],
+            "input":e["input_json"],"output":out5,"elapsed_ms":ms5})
+        state="N05_REAL_REGISTRY_SUCCESS_N06_INPUT_READY"
+        print("N05 EXECUTED AND STORED",e["run_id"],
+              "registry checked",out5["checked_count"],"new",out5["new_count"],"N06 READY",flush=True)
     return {"workflow":WORKFLOW,"result":state,"steps":RECORDED,
       "meaning":"N01,N02 real successes; N03 must be real approved feed or explicit FAILED, never synthetic."}
 
@@ -201,8 +239,8 @@ if __name__=="__main__":
         print(json.dumps(outcome,ensure_ascii=False,indent=2),flush=True)
         # A safely rejected unauthorized or missing collector does NOT count
         # as successful end-to-end strategy collection.
-        if os.environ.get("WF01_REQUIRE_N04_SUCCESS")=="1" and outcome["result"]!="N04_REAL_VALIDATION_SUCCESS_N05_INPUT_READY":
-            print("FIRST_STAGE_NOT_PASSED: N04 did not validate and deliver real strategy metadata to N05",file=sys.stderr,flush=True)
+        if os.environ.get("WF01_REQUIRE_N05_SUCCESS")=="1" and outcome["result"]!="N05_REAL_REGISTRY_SUCCESS_N06_INPUT_READY":
+            print("FIRST_STAGE_NOT_PASSED: N05 did not compare real source versions to project DB and pass data to N06",file=sys.stderr,flush=True)
             sys.exit(3)
     except Exception as e:
         print("CHAIN_PROBE_FAILED",type(e).__name__,str(e),
