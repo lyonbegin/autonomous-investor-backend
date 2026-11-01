@@ -37,12 +37,18 @@ def call(opener,method,path,data=None,extra=None):
     try:
         response=opener.open(req,timeout=30)
         status=response.status
-        raw=response.read(2000000)
+        raw=response.read(12000000)
     except urllib.error.HTTPError as exc:
-        status=exc.code;raw=exc.read(2000000)
+        status=exc.code;raw=exc.read(12000000)
     elapsed=round((time.monotonic()-started)*1000,2)
-    try:payload=json.loads(raw)
-    except ValueError:payload={"raw":raw.decode(errors="replace")}
+    try:
+        payload=json.loads(raw)
+    except ValueError as exc:
+        payload={"error":"INVALID_OR_TRUNCATED_HTTP_JSON",
+                 "decode_error":str(exc)[:180],
+                 "received_bytes":len(raw),
+                 "sample_head":raw[:180].decode(errors="replace"),
+                 "sample_tail":raw[-180:].decode(errors="replace")}
     return status,payload,elapsed
 
 def query(path,node):
