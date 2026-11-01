@@ -55,14 +55,14 @@ def node_binding(workflow_path,node_id):
           "node_character":"conditional_route"}
     if node_id==prefix+"11":
         return {"python_module":"investment_node_adapter",
-          "python_function":"execute_node11","code_version":"wf01-n11-verified-archive-v2",
-          "node_character":"verified_operator_pine_source"}
+          "python_function":"execute_node11","code_version":"wf01-n11-simple-pine-v1",
+          "node_character":"fetch_pine_code"}
     if node_id==prefix+"15":
         return {"python_module":"investment_node_adapter",
-          "python_function":"execute_node15","code_version":"wf01-n15-sqlite-pine-artifact-v1",
-          "node_character":"idempotent_verified_pine_store"}
+          "python_function":"execute_node15","code_version":"wf01-n15-pine-store-v1",
+          "node_character":"persist_pine_code"}
     if node_id==prefix+"16":
-        return {"python_module":"investment_node_adapter","python_function":"execute_node16","code_version":"wf01-n16-persistent-readback-v1","node_character":"verified_source_import_receipt"}
+        return {"python_module":"investment_node_adapter","python_function":"execute_node16","code_version":"wf01-n16-result-v1","node_character":"display_source_save_result"}
     return None
 
 def node_type(workflow_path,node_id):
