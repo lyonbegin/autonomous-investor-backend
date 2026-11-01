@@ -230,6 +230,38 @@ def perform():
         state="N05_REAL_REGISTRY_SUCCESS_N06_INPUT_READY"
         print("N05 EXECUTED AND STORED",e["run_id"],
               "registry checked",out5["checked_count"],"new",out5["new_count"],"N06 READY",flush=True)
+        n7=PREFIX+"07"
+        status6,g,ms6=call(opener,"POST","/api/studio/nodes/execute",
+            {"workflow":WORKFLOW,"node_id":n6,"source_run_id":e["run_id"]},
+            {"X-Studio-Node-Run":"APPROVED"})
+        check(status6==200 and g.get("status")=="SUCCESS",f"N06 FAILED HTTP {status6}: {g}")
+        check(g["upstream_run_id"]==e["run_id"] and
+              g["input_json"]==out5 and
+              g["upstream_output_json"]==out5,
+              "N06 ACTUAL INPUT DID NOT MATCH N05 OUTPUT")
+        out6=g["output_json"]
+        for key,val in out5.items():
+            check(out6.get(key)==val,f"N06 LOST UPSTREAM FIELD {key}")
+        check(out6["has_candidate"] is True and
+              out6["selected_candidate_count"]==1 and
+              out6["candidate"]["source_id"]==out5["items"][0]["source_id"] and
+              out6["pine_source_acquired"] is False,
+              "N06 DID NOT SELECT EXACTLY ONE VALID UNIMPORTED METADATA CANDIDATE")
+        h6=last_history(opener,n6)
+        check(h6[0]["run_id"]==g["run_id"] and
+              h6[0]["upstream_run_id"]==e["run_id"] and
+              h6[0]["input_json"]==g["input_json"] and
+              h6[0]["output_json"]==out6,
+              "N06 SQLITE EXECUTION RECORD MISMATCH")
+        t67=transfer(opener,n7,g["run_id"])
+        check(t67["output_json"]==out6 and t67["status"]=="READY",
+              "N06→N07 FULL OUTPUT NOT DELIVERED")
+        RECORDED.append({"node":"N06","status":"SUCCESS","http":status6,
+             "run_id":g["run_id"],"upstream_run_id":e["run_id"],
+             "input":g["input_json"],"output":g["output_json"],"elapsed_ms":ms6})
+        state="N06_ONE_REAL_CANDIDATE_SELECTED_N07_INPUT_READY"
+        print("N06 EXECUTED ONE CANDIDATE",out6["candidate"]["source_id"],
+              "N07 READY; SOURCE PINE NOT ACQUIRED",flush=True)
     return {"workflow":WORKFLOW,"result":state,"steps":RECORDED,
       "meaning":"N01,N02 real successes; N03 must be real approved feed or explicit FAILED, never synthetic."}
 
@@ -239,8 +271,8 @@ if __name__=="__main__":
         print(json.dumps(outcome,ensure_ascii=False,indent=2),flush=True)
         # A safely rejected unauthorized or missing collector does NOT count
         # as successful end-to-end strategy collection.
-        if os.environ.get("WF01_REQUIRE_N05_SUCCESS")=="1" and outcome["result"]!="N05_REAL_REGISTRY_SUCCESS_N06_INPUT_READY":
-            print("FIRST_STAGE_NOT_PASSED: N05 did not compare real source versions to project DB and pass data to N06",file=sys.stderr,flush=True)
+        if os.environ.get("WF01_REQUIRE_N06_SUCCESS")=="1" and outcome["result"]!="N06_ONE_REAL_CANDIDATE_SELECTED_N07_INPUT_READY":
+            print("FIRST_STAGE_NOT_PASSED: N06 did not choose an authentic source candidate and transfer its input to N07",file=sys.stderr,flush=True)
             sys.exit(3)
     except Exception as e:
         print("CHAIN_PROBE_FAILED",type(e).__name__,str(e),
