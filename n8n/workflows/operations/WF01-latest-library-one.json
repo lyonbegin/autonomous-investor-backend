@@ -112,9 +112,15 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ {kind:$json.kind,page:$json.page,next_page:$json.next_page,max_pages:$json.max_pages,candidates:$json.candidates} }}"
+        "jsonBody": "={{ {kind:$json.kind,page:$json.page,next_page:$json.next_page,max_pages:$json.max_pages,candidates:$json.candidates} }}",
+        "studioPython": {
+          "python_module": "investment_node_adapter",
+          "python_function": "execute_node05",
+          "code_version": "wf01-n05-sqlite-registry-v1",
+          "node_character": "project_source_version_check"
+        }
       },
-      "notes": "이 URL은 연동 계약이며 현재 실제 서비스 API 동작은 확인되지 않았습니다. Credential 및 허가된 수집기 연결 전 활성화 금지."
+      "notes": "주식 프로젝트가 운영하는 실제 SQLite DB에서 source_id+version_key의 검증된 Pine 원본 등록 여부를 조회. 메타데이터 SHA만 있으면 imported=false. N04 전체 INPUT 보존, N05 OUTPUT을 N06에 전달. 기존 외부 source-registry HTTP URL은 미활성 계약."
     },
     {
       "id": "wf01-library-06",
@@ -528,6 +534,7 @@
     "node01PythonExecutionEnabled": true,
     "node02PythonExecutionEnabled": true,
     "node03PythonExecutionEnabled": true,
-    "node04PythonExecutionEnabled": true
+    "node04PythonExecutionEnabled": true,
+    "node05PythonExecutionEnabled": true
   }
 }
