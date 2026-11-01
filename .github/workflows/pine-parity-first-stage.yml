@@ -74,7 +74,7 @@ jobs:
               o=100+3*math.sin(i*.3)
               c=o+1.6*math.cos(i*.61)
               lines.append(f"syn{i},{o},{max(o,c)+0.7},{min(o,c)-0.7},{c}")
-          payload={"pine_code":pine,"csv_text":"\\n".join(lines)+"\\n",
+          payload={"pine_code":pine,"csv_text":"\n".join(lines)+"\n",
                    "columns":{},"symbol":"SYNTHETIC:CI_NOT_TV","timeframe":"1D"}
           req=urllib.request.Request(root+"/api/compare",data=json.dumps(payload).encode(),
                                     headers={"Content-Type":"application/json"},method="POST")
