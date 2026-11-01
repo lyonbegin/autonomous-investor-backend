@@ -5,6 +5,7 @@ a reported SHA-256. Imported means the source itself was stored and verified
 by a later intake step in this same project.
 """
 import os
+from contextlib import closing
 import sqlite3
 
 def db_path():
@@ -28,7 +29,7 @@ def open_registry():
 def check_candidates(kind,candidates):
     if not isinstance(candidates,list) or len(candidates)>100:
         raise ValueError("N05_CANDIDATES_NOT_VALIDATED")
-    with open_registry() as db:
+    with closing(open_registry()) as db:
         checked=[];imported=0
         for candidate in candidates:
             if candidate.get("kind")!=kind:
