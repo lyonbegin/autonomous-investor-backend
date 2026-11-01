@@ -7,7 +7,6 @@ No TradingView terms circumvention, scraping, session automation, or fake items.
 """
 import csv
 import datetime as dt
-import hashlib
 import io
 import re
 import ssl
@@ -20,8 +19,7 @@ MANIFEST_LICENSE="CC BY 4.0 — PyneSys (metadata manifest only; Pine code exclu
 MANIFEST_URL=("https://raw.githubusercontent.com/PyneSys/pyne-in-the-wild/"
              + MANIFEST_REVISION + "/corpus/manifest.csv")
 MAX_MANIFEST_BYTES=750000
-EXPECTED_COLS={"id","kind","name","author","pine_version","script_version",
-               "license","sha256","tv_url","fetched_at"}
+EXPECTED_COLS={"id","kind","name","pine_version","script_version","tv_url","fetched_at"}
 
 def validate_url(url):
     p=urllib.parse.urlsplit(url)
@@ -53,7 +51,7 @@ def fetch_manifest():
         raise ValueError("LICENSED_MANIFEST_MISSING_COLUMNS")
     if len(rows)>5000:
         raise ValueError("LICENSED_MANIFEST_TOO_MANY_ENTRIES")
-    return rows,hashlib.sha256(raw).hexdigest()
+    return rows
 
 def catalog_from_snapshot(*,kind,page,page_size,sort):
     if kind!="strategy":
@@ -62,7 +60,7 @@ def catalog_from_snapshot(*,kind,page,page_size,sort):
         raise ValueError("LICENSED_MANIFEST_INVALID_SORT")
     if not (1<=page<=3 and 1<=page_size<=100):
         raise ValueError("LICENSED_MANIFEST_INVALID_PAGE")
-    rows,manifest_hash=fetch_manifest()
+    rows=fetch_manifest()
     selected=[];skipped=0
     for item in rows:
         if item.get("kind")!="strategy":
@@ -72,9 +70,6 @@ def catalog_from_snapshot(*,kind,page,page_size,sort):
             if not isinstance(source_id,str) or not source_id.startswith("PUB;") or len(source_id)>100:
                 raise ValueError("MANIFEST_ENTRY_INVALID_ID")
             source_url=validate_url(item["tv_url"])
-            digest=item.get("sha256","")
-            if not re.fullmatch(r"[a-fA-F0-9]{64}",digest):
-                raise ValueError("MANIFEST_ENTRY_INVALID_SHA256")
             recorded=item.get("fetched_at","")
             dt.date.fromisoformat(recorded)
         except (ValueError,TypeError,KeyError):
@@ -85,15 +80,12 @@ def catalog_from_snapshot(*,kind,page,page_size,sort):
             "source_id":source_id,
             "source_url":source_url,
             "title":(item.get("name") or "").strip()[:300],
-            "author":(item.get("author") or "").strip()[:150],
             "version_key":str(item.get("script_version") or "")[:150],
             "published_at":None, # NOT in manifest; do not invent a publication time.
             "updated_at":None,
             "access":"open_source_as_reported_by_corpus_not_reverified",
             "pine_version":item.get("pine_version"),
-            "source_sha256_reported":digest.lower(),
             "source_code_fetched":False,
-            "source_license_reported":item.get("license","unknown"),
             "catalog_observed_at":recorded,
             "metadata_origin":MANIFEST_REPOSITORY,
         })
@@ -112,13 +104,9 @@ def catalog_from_snapshot(*,kind,page,page_size,sort):
         "catalog_is_live":False,
         "latest_tradingview_verified":False,
         "sort_basis":"manifest_observed_at_not_publication_date",
-        "manifest_sha256":manifest_hash,
-        "manifest_revision":MANIFEST_REVISION,
-        "manifest_origin":MANIFEST_REPOSITORY,
-        "manifest_license":MANIFEST_LICENSE,
         "invalid_entries_skipped":skipped,
         "pine_source_acquired":False,
         "tradingview_requested":False,
         "real_tradingview_publication_links_reported":True,
         "no_pine_redistributed":True,
-        "source_record_kind":"third_party_corpus_metadata"}
+        "source_record_kind":"external_strategy_list"}
