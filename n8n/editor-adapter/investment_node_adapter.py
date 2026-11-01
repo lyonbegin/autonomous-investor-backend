@@ -69,6 +69,8 @@ def node_binding(workflow_path,node_id):
         return {"python_module":"investment_node_adapter",
           "python_function":"execute_node15","code_version":"wf01-n15-sqlite-pine-artifact-v1",
           "node_character":"idempotent_verified_pine_store"}
+    if node_id==prefix+"16":
+        return {"python_module":"investment_node_adapter","python_function":"execute_node16","code_version":"wf01-n16-persistent-readback-v1","node_character":"verified_source_import_receipt"}
     return None
 
 def node_type(workflow_path,node_id):
@@ -86,6 +88,7 @@ def node_type(workflow_path,node_id):
       "wf01-"+kind+"-12":"n8n-nodes-base.code",
       "wf01-"+kind+"-13":"n8n-nodes-base.if",
       "wf01-"+kind+"-15":"n8n-nodes-base.httpRequest",
+      "wf01-"+kind+"-16":"n8n-nodes-base.code",
     }.get(node_id)
 
 def execute_node01(input_json,*,workflow_kind):
@@ -503,6 +506,34 @@ def execute_node15(input_json,*,workflow_kind):
         "status":"VERIFIED_ORIGINAL_STORED_AWAITING_CONVERSION_AND_REVIEW",
         "next_node_executed":False}
 
+def execute_node16(input_json,*,workflow_kind):
+    """Finish only after N15 SQLite artifact and version are reread."""
+    if not isinstance(input_json,dict) or input_json.get('kind')!=workflow_kind:
+        raise ValueError('N16_UPSTREAM_KIND_MISMATCH')
+    if input_json.get('status')!='VERIFIED_ORIGINAL_STORED_AWAITING_CONVERSION_AND_REVIEW' or input_json.get('source_saved') is not True:
+        raise ValueError('N16_N15_SUCCESS_RECEIPT_REQUIRED')
+    candidate=input_json.get('candidate')
+    if not isinstance(candidate,dict) or candidate.get('kind')!=workflow_kind:
+        raise ValueError('N16_CANDIDATE_MISSING')
+    digest=input_json.get('pine_source_sha256')
+    code=input_json.get('pine_code')
+    if not isinstance(code,str) or not isinstance(digest,str) or hashlib.sha256(code.encode('utf-8')).hexdigest()!=digest:
+        raise ValueError('N16_SOURCE_HASH_INVALID')
+    if any(input_json.get(k) is not False for k in ('source_review_approved','conversion_validated','tradingview_chart_validated')):
+        raise ValueError('N16_PREMATURE_APPROVAL_CLAIM')
+    from contextlib import closing
+    from investment_source_registry import open_registry
+    with closing(open_registry()) as db:
+        row=db.execute('SELECT pine_sha256,pine_code,rights_state,conversion_validated,tradingview_chart_validated,saved_at FROM investment_pine_source_artifacts WHERE kind=? AND source_id=? AND version_key=?',(workflow_kind,candidate['source_id'],candidate['version_key'])).fetchone()
+        ver=db.execute('SELECT pine_sha256,verified_source,approved_for_conversion FROM investment_pine_versions WHERE kind=? AND source_id=? AND version_key=?',(workflow_kind,candidate['source_id'],candidate['version_key'])).fetchone()
+    if not row or not ver or row['pine_sha256']!=digest or row['pine_code']!=code or ver['pine_sha256']!=digest or ver['verified_source']!=1:
+        raise ValueError('N16_PERSISTED_SOURCE_READBACK_MISMATCH')
+    if row['conversion_validated'] or row['tradingview_chart_validated'] or ver['approved_for_conversion']:
+        raise ValueError('N16_UNVERIFIED_CONVERSION_OR_APPROVAL')
+    if row['rights_state'] not in ('PENDING_REVIEW','MPL_2_0_REVIEW_REQUIRED'):
+        raise ValueError('N16_RIGHTS_STATE_NOT_PENDING')
+    return {'kind':workflow_kind,'status':'SOURCE_STORED_REVIEW_PENDING','saved_count':1 if input_json.get('source_created') is True else 0,'source_id':candidate['source_id'],'version_key':candidate['version_key'],'sha256':digest,'rights_state':row['rights_state'],'imported_at':row['saved_at'],'db_readback_verified':True,'conversion_validated':False,'tradingview_chart_validated':False,'source_review_approved':False,'paper_enabled':False,'live_orders_enabled':False,'next_node_executed':False}
+
 def execute_node(workflow_path,node_id,input_json):
     kind=WF01_MODES.get(workflow_path)
     binding=node_binding(workflow_path,node_id)
@@ -516,7 +547,8 @@ def execute_node(workflow_path,node_id,input_json):
                "execute_node11":execute_node11,
                "execute_node12":execute_node12,
                "execute_node13":execute_node13,
-               "execute_node15":execute_node15}
+               "execute_node15":execute_node15,
+               "execute_node16":execute_node16}
     func=functions[binding["python_function"]]
     return func(input_json,workflow_kind=kind)
 
@@ -525,6 +557,6 @@ def default_node_input(workflow_path,node_id):
     if not kind:return None
     if node_id=="wf01-"+kind+"-01":
         return {"ui_selection":kind,"requested_detail_limit":1}
-    if node_id in ("wf01-"+kind+"-02","wf01-"+kind+"-03","wf01-"+kind+"-04","wf01-"+kind+"-05","wf01-"+kind+"-06","wf01-"+kind+"-07","wf01-"+kind+"-11","wf01-"+kind+"-12","wf01-"+kind+"-13","wf01-"+kind+"-15"):
+    if node_id in ("wf01-"+kind+"-02","wf01-"+kind+"-03","wf01-"+kind+"-04","wf01-"+kind+"-05","wf01-"+kind+"-06","wf01-"+kind+"-07","wf01-"+kind+"-11","wf01-"+kind+"-12","wf01-"+kind+"-13","wf01-"+kind+"-15","wf01-"+kind+"-16"):
         return {}
     return None
