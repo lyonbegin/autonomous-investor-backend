@@ -5,6 +5,7 @@ on:
     paths:
       - 'n8n/editor-adapter/**'
       - 'n8n/pine-parity/engine.py'
+      - 'n8n/pine-parity/sequence_reversal.py'
       - 'n8n/workflows/operations/WF02-pine-to-python.json'
       - 'n8n/Dockerfile.native-editor-gateway'
       - '.github/workflows/wf02-real-pine-conversion.yml'
@@ -22,7 +23,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Syntax, unit and strategy signal parity against engine
         run: |
-          python3 -m py_compile n8n/editor-adapter/investment_wf02.py n8n/editor-adapter/investment_node_adapter.py n8n/pine-parity/engine.py
+          python3 -m py_compile n8n/editor-adapter/investment_wf02.py n8n/editor-adapter/investment_node_adapter.py n8n/pine-parity/engine.py n8n/pine-parity/sequence_reversal.py
           PYTHONPATH=n8n/editor-adapter:n8n/pine-parity python3 -m unittest discover -s n8n/editor-adapter -p 'test_*.py' -v
           PYTHONPATH=n8n/pine-parity python3 -m unittest discover -s n8n/pine-parity -p 'test_*.py' -v
       - name: Wait until real Railway WF02 workflow is present
@@ -47,8 +48,8 @@ jobs:
       - name: Execute actual saved Pine node by node - do not claim unsupported converted
         run: |
           set -o pipefail
-          PYTHONPATH=n8n/editor-adapter:n8n/pine-parity WF02_REQUIRE_REAL_CONVERSION=0 python3 n8n/editor-adapter/probe_wf02_real.py | tee /tmp/wf02-real.log
-          grep -Eq 'WF02_REAL_PINE_PYTHON_GENERATED_REQUIRES_TV_PARITY|WF02_REAL_SOURCE_UNSUPPORTED_NOT_CONVERTED' /tmp/wf02-real.log
+          PYTHONPATH=n8n/editor-adapter:n8n/pine-parity WF02_REQUIRE_REAL_CONVERSION=1 WF02_SOURCE_ID='PUB;67a1548c0960450086a19d5b0ef1d467' WF02_VERSION_KEY='1.0' python3 n8n/editor-adapter/probe_wf02_real.py | tee /tmp/wf02-real.log
+          grep -q 'WF02_REAL_PINE_PYTHON_GENERATED_REQUIRES_TV_PARITY' /tmp/wf02-real.log
       - name: Retain live execution evidence
         if: always()
         uses: actions/upload-artifact@v4
