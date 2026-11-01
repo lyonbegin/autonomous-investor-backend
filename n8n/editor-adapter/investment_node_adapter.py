@@ -9,6 +9,7 @@ import ssl
 import urllib.parse
 import urllib.request
 from licensed_strategy_manifest import catalog_from_snapshot
+from investment_source_registry import check_candidates
 from datetime import datetime,timezone
 
 WF01_MODES={
@@ -36,6 +37,10 @@ def node_binding(workflow_path,node_id):
         return {"python_module":"investment_node_adapter",
           "python_function":"execute_node04","code_version":"wf01-n04-v1",
           "node_character":"validated_catalog_candidates"}
+    if node_id==prefix+"05":
+        return {"python_module":"investment_node_adapter",
+          "python_function":"execute_node05","code_version":"wf01-n05-sqlite-registry-v1",
+          "node_character":"project_source_version_check"}
     return None
 
 def node_type(workflow_path,node_id):
@@ -46,6 +51,7 @@ def node_type(workflow_path,node_id):
       "wf01-"+kind+"-02":"n8n-nodes-base.code",
       "wf01-"+kind+"-03":"n8n-nodes-base.httpRequest",
       "wf01-"+kind+"-04":"n8n-nodes-base.code",
+      "wf01-"+kind+"-05":"n8n-nodes-base.httpRequest",
     }.get(node_id)
 
 def execute_node01(input_json,*,workflow_kind):
@@ -242,13 +248,32 @@ def execute_node04(input_json,*,workflow_kind):
         "node04_validated_at":datetime.now(timezone.utc).isoformat(),
         "next_node_executed":False}
 
+def execute_node05(input_json,*,workflow_kind):
+    """Exact N04 candidates -> project SQLite source version presence check."""
+    if not isinstance(input_json,dict) or input_json.get("kind")!=workflow_kind:
+        raise ValueError("N05_UPSTREAM_KIND_MISMATCH")
+    candidates=input_json.get("candidates")
+    if not isinstance(candidates,list) or not candidates or len(candidates)!=input_json.get("candidate_count"):
+        raise ValueError("N05_INVALID_N04_CANDIDATES")
+    check=check_candidates(workflow_kind,candidates)
+    if check["checked_count"]!=len(candidates):
+        raise ValueError("N05_REGISTRY_CHECK_INCOMPLETE")
+    return {**input_json,
+        "catalog_items":input_json.get("items"),
+        **check,
+        "source_registry_checked":True,
+        "source_registry_checked_at":datetime.now(timezone.utc).isoformat(),
+        "pine_source_acquired":False,
+        "next_node_executed":False}
+
 def execute_node(workflow_path,node_id,input_json):
     kind=WF01_MODES.get(workflow_path)
     binding=node_binding(workflow_path,node_id)
     if not kind or not binding:raise ValueError("UNREGISTERED_PROJECT_NODE")
     functions={"execute_node01":execute_node01,"execute_node02":execute_node02,
                "execute_node03":execute_node03,
-               "execute_node04":execute_node04}
+               "execute_node04":execute_node04,
+               "execute_node05":execute_node05}
     func=functions[binding["python_function"]]
     return func(input_json,workflow_kind=kind)
 
@@ -257,6 +282,6 @@ def default_node_input(workflow_path,node_id):
     if not kind:return None
     if node_id=="wf01-"+kind+"-01":
         return {"ui_selection":kind,"requested_detail_limit":1}
-    if node_id in ("wf01-"+kind+"-02","wf01-"+kind+"-03","wf01-"+kind+"-04"):
+    if node_id in ("wf01-"+kind+"-02","wf01-"+kind+"-03","wf01-"+kind+"-04","wf01-"+kind+"-05"):
         return {}
     return None
