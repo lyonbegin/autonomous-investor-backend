@@ -451,8 +451,10 @@ def execute_node12(input_json,*,workflow_kind):
     expected_license=str(candidate.get("source_license_reported","")).upper()
     if expected_license=="MPL-2.0" and "Mozilla Public License 2.0" not in pine[:600]:
         raise ValueError("N12_MPL_LICENSE_NOTICE_MISSING")
-    if expected_license=="MPL-2.0" and ("© "+author).lower() not in pine[:600].lower():
-        raise ValueError("N12_AUTHOR_NOTICE_MISMATCH")
+    author_notice_verified=("© "+author).lower() in pine[:1200].lower()
+    # A missing author comment is NOT grounds to falsify/modify the source.
+    # Record it as a rights-review warning. The publisher metadata and
+    # independent SHA are kept, but source reuse is still unapproved.
     if input_json.get("rights_state") not in ("MPL_2_0_REVIEW_REQUIRED","PENDING_REVIEW"):
         raise ValueError("N12_RIGHTS_STATE_NOT_PENDING")
     return {**input_json,
@@ -466,6 +468,8 @@ def execute_node12(input_json,*,workflow_kind):
         "pine_version":header.group(1),
         "pine_source_sha256":digest,
         "source_validation":"ORIGINAL_PINE_HASH_AND_METADATA_MATCH",
+        "source_author_notice_verified":author_notice_verified,
+        "source_author_notice_status":"MATCH" if author_notice_verified else "NOT_PRESENT_REVIEW_REQUIRED",
         "conversion_validated":False,
         "tradingview_chart_validated":False,
         "source_review_approved":False,
