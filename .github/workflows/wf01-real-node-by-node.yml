@@ -38,6 +38,8 @@ jobs:
                   binding5=node5["parameters"].get("studioPython",{})
                   node6=next(n for n in raw["workflow"]["nodes"] if n["id"]=="wf01-strategy-06")
                   binding6=node6["parameters"].get("studioPython",{})
+                  node7=next(n for n in raw["workflow"]["nodes"] if n["id"]=="wf01-strategy-07")
+                  binding7=node7["parameters"].get("studioPython",{})
                   if (binding["python_function"]=="execute_node03" and
                       binding["code_version"]=="wf01-n03-licensed-manifest-v2" and
                       binding4.get("python_function")=="execute_node04" and
@@ -45,7 +47,9 @@ jobs:
                       binding5.get("python_function")=="execute_node05" and
                       binding5.get("code_version")=="wf01-n05-sqlite-registry-v1" and
                       binding6.get("python_function")=="execute_node06" and
-                      binding6.get("code_version")=="wf01-n06-select-one-v1"):
+                      binding6.get("code_version")=="wf01-n06-select-one-v1" and
+                      binding7.get("python_function")=="execute_node07" and
+                      binding7.get("code_version")=="wf01-n07-if-v1"):
                       print("N03_REALLY_DEPLOYED_IN_RAILWAY");break
               except Exception as exc:
                   print("N03_DEPLOY_WAIT",type(exc).__name__,str(exc)[:120],flush=True)
@@ -55,12 +59,12 @@ jobs:
       - name: Actually execute N01 -> N02 -> N03 -> N04, require N05 transfer ready (strategy)
         run: |
           set -o pipefail
-          PYTHONPATH=n8n/editor-adapter WF01_KIND=strategy WF01_REQUIRE_N06_SUCCESS=1 python3 n8n/editor-adapter/probe_real_chain.py | tee /tmp/wf01-real-strategy.log
+          PYTHONPATH=n8n/editor-adapter WF01_KIND=strategy WF01_REQUIRE_N07_SUCCESS=1 python3 n8n/editor-adapter/probe_real_chain.py | tee /tmp/wf01-real-strategy.log
       - name: Diagnose library N01 -> N02 -> N03 separately (manifest contains strategies only; must remain BLOCKED)
         if: always()
         run: |
           set -o pipefail
-          PYTHONPATH=n8n/editor-adapter WF01_KIND=library WF01_REQUIRE_N06_SUCCESS=0 python3 n8n/editor-adapter/probe_real_chain.py | tee /tmp/wf01-real-library.log
+          PYTHONPATH=n8n/editor-adapter WF01_KIND=library WF01_REQUIRE_N07_SUCCESS=0 python3 n8n/editor-adapter/probe_real_chain.py | tee /tmp/wf01-real-library.log
       - name: Explicitly require nonempty strategy metadata (historical snapshot, not live TradingView)
         if: always()
         run: |
@@ -69,7 +73,7 @@ jobs:
           log=pathlib.Path("/tmp/wf01-real-strategy.log")
           if not log.exists(): raise AssertionError("STRATEGY_RUN_LOG_MISSING")
           text=log.read_text()
-          assert "N06_ONE_REAL_CANDIDATE_SELECTED_N07_INPUT_READY" in text, "N03 strategy metadata NOT executed successfully"
+          assert "N07_TRUE_BRANCH_N11_READY_FALSE_BRANCH_NOT_EXECUTED" in text, "N03 strategy metadata NOT executed successfully"
           assert "PYNE_GITHUB_CC_BY_4_METADATA_SNAPSHOT" in text
           assert '"catalog_is_live": false' in text
           assert '"pine_source_acquired": false' in text
@@ -77,10 +81,13 @@ jobs:
           assert '"candidate_count": 50' in text
           assert '"node": "N05"' in text
           assert '"node": "N06"' in text
+          assert '"node": "N07"' in text
+          assert '"_studio_active_ports": [\n          0' not in text or "N07 IF EXECUTED" in text
+          assert "TRUE→N11 READY, FALSE→N08 NOT READY" in text
           assert '"selected_candidate_count": 1' in text
           assert '"checked_count": 50' in text
           assert '"new_count": 50' in text
-          print("N01_THROUGH_N06_REAL_IO_SQLITE_VERIFIED_N07_READY")
+          print("N01_THROUGH_N07_REAL_IO_SQLITE_VERIFIED_EXCLUSIVE_BRANCH_N11_READY")
           PY
       - name: Archive real service execution logs
         if: always()
