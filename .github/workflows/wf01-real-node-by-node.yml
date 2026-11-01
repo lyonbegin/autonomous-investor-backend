@@ -41,10 +41,13 @@ jobs:
           PY
       - name: Actually execute N01 then pass output to N02 then attempt N03 (strategy)
         run: |
-          PYTHONPATH=n8n/editor-adapter WF01_KIND=strategy python3 n8n/editor-adapter/probe_real_chain.py | tee /tmp/wf01-real-strategy.log
+          set -o pipefail
+          PYTHONPATH=n8n/editor-adapter WF01_KIND=strategy WF01_REQUIRE_N03_SUCCESS=1 python3 n8n/editor-adapter/probe_real_chain.py | tee /tmp/wf01-real-strategy.log
       - name: Actually execute N01 then pass output to N02 then attempt N03 (library)
+        if: always()
         run: |
-          PYTHONPATH=n8n/editor-adapter WF01_KIND=library python3 n8n/editor-adapter/probe_real_chain.py | tee /tmp/wf01-real-library.log
+          set -o pipefail
+          PYTHONPATH=n8n/editor-adapter WF01_KIND=library WF01_REQUIRE_N03_SUCCESS=1 python3 n8n/editor-adapter/probe_real_chain.py | tee /tmp/wf01-real-library.log
       - name: Archive real service execution logs
         if: always()
         uses: actions/upload-artifact@v4
