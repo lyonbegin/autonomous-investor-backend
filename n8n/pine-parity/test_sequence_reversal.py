@@ -113,7 +113,7 @@ class RSISequenceConversion(unittest.TestCase):
         rows=["time,open,high,low,close"]
         for i,b in enumerate(fixture()):
             rows.append(f"{b['time']},{b['open']},{b['high']},{b['low']},{b['close']}")
-        report=analyze(PINE,"\\n".join(rows)+"\\n",{},"Synthetic candle check")
+        report=analyze(PINE,"\n".join(rows)+"\n",{},"Synthetic candle check")
         self.assertEqual(report["status"],"REFERENCE_COLUMNS_REQUIRED")
         self.assertEqual(report["source"],"PYTHON_RSI_REVERSAL_RUN_RESTRICTED")
         self.assertFalse(report["numeric_match"])
