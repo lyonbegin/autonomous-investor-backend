@@ -62,9 +62,15 @@
         "options": {
           "timeout": 30000
         },
-        "sendBody": false
+        "sendBody": false,
+        "studioPython": {
+          "python_module": "investment_node_adapter",
+          "python_function": "execute_node03",
+          "code_version": "wf01-n03-authorized-catalog-v1",
+          "node_character": "authorized_catalog_request"
+        }
       },
-      "notes": "이 URL은 연동 계약이며 현재 실제 서비스 API 동작은 확인되지 않았습니다. Credential 및 허가된 수집기 연결 전 활성화 금지."
+      "notes": "실제 N02 OUTPUT을 전달받아 프로젝트 전용 execute_node03 Python 호출. 서버에 TRADINGVIEW_AUTHORIZED_CATALOG_URL이 없으면 'AUTHORIZED_CATALOG_FEED_UNCONFIGURED' 실제 오류로 기록하고 N04 실행 금지. TradingView 직접 자동 스크래핑 금지. 공식 n8n URL은 미연결 상태."
     },
     {
       "id": "wf01-strategy-04",
@@ -514,6 +520,7 @@
     "source_execution_wired": false,
     "requires_authorized_collector": true,
     "node01PythonExecutionEnabled": true,
-    "node02PythonExecutionEnabled": true
+    "node02PythonExecutionEnabled": true,
+    "node03PythonExecutionEnabled": true
   }
 }
