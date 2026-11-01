@@ -384,9 +384,15 @@
       ],
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "return $input.all().map(({json:p})=>{if(p.kind!=='strategy'||!['IMPORTED','ALREADY_IMPORTED'].includes(p.status))throw Error('IMPORT_NOT_CONFIRMED');return {json:{kind:'strategy',status:p.status,saved_count:p.status==='IMPORTED'?1:0,source_id:p.source_id,version_key:p.version_key,sha256:p.sha256||null,rights_state:p.rights_state||'PENDING_REVIEW',imported_at:p.imported_at||null}};});"
+        "jsCode": "return $input.all().map(({json:p})=>{if(p.kind!=='strategy'||p.status!=='VERIFIED_ORIGINAL_STORED_AWAITING_CONVERSION_AND_REVIEW'||p.source_saved!==true||p.source_review_approved!==false||p.conversion_validated!==false||p.tradingview_chart_validated!==false)throw Error('N16_N15_RECEIPT_INVALID');return {json:{kind:p.kind,status:'SOURCE_STORED_REVIEW_PENDING',saved_count:p.source_created===true?1:0,source_id:p.source_id,version_key:p.version_key,sha256:p.pine_source_sha256,rights_state:p.rights_state,db_readback_verified:false,conversion_validated:false,tradingview_chart_validated:false,source_review_approved:false,paper_enabled:false,live_orders_enabled:false}};});",
+        "studioPython": {
+          "python_module": "investment_node_adapter",
+          "python_function": "execute_node16",
+          "code_version": "wf01-n16-persistent-readback-v1",
+          "node_character": "verified_source_import_receipt"
+        }
       },
-      "notes": ""
+      "notes": "N15 결과를 전달받아 Python 어댑터에서 SQLite artifact+version을 독립 재조회해 무결성 확인. 단독 n8n JS 실행은 DB 검증을 수행하지 않으므로 db_readback_verified=false로 표시하며 최종 PASS 불가."
     }
   ],
   "connections": {
@@ -577,6 +583,7 @@
     "node11PythonExecutionEnabled": true,
     "node12PythonExecutionEnabled": true,
     "node13PythonExecutionEnabled": true,
-    "node15PythonExecutionEnabled": true
+    "node15PythonExecutionEnabled": true,
+    "node16PythonExecutionEnabled": true
   }
 }
