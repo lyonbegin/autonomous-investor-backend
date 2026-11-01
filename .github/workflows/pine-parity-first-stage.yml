@@ -17,8 +17,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Strict Pine subset parser, Python generated code and numeric comparator tests
         run: |
-          PYTHONPATH=n8n/pine-parity python3 -m unittest discover -s n8n/pine-parity -p 'test_engine.py' -v
-          python3 -m py_compile n8n/pine-parity/server.py n8n/pine-parity/engine.py
+          PYTHONPATH=n8n/pine-parity python3 -m unittest discover -s n8n/pine-parity -p 'test_*.py' -v
+          python3 -m py_compile n8n/pine-parity/server.py n8n/pine-parity/engine.py n8n/pine-parity/sequence_reversal.py
       - name: Build real Railway image
         run: docker build -f n8n/Dockerfile.pine-parity.railway -t pine-parity-contract:test .
       - name: Start actual HTTP service with independent test data volume
@@ -62,6 +62,33 @@ jobs:
           except urllib.error.HTTPError as exc:
               assert exc.code==422
           PY
+      - name: Real Pine from public mirror and synthetic OHLC - no TradingView baseline claim
+        run: |
+          python3 - <<'PY'
+          import json,urllib.request,math
+          root="http://127.0.0.1:19765"
+          pine_url="https://raw.githubusercontent.com/venkatalokeshanne/trading_strategies_indicators/a9a6f4a9145de22bacacc24b827fb4095a3a425c/TradingView/strategies/49jNhJXM-Sequence-Snap-RSI-Confirmed-Reversal-Scalper.pine"
+          with urllib.request.urlopen(pine_url,timeout=20) as r: pine=r.read().decode("utf-8")
+          lines=["time,open,high,low,close"]
+          for i in range(100):
+              o=100+3*math.sin(i*.3)
+              c=o+1.6*math.cos(i*.61)
+              lines.append(f"syn{i},{o},{max(o,c)+0.7},{min(o,c)-0.7},{c}")
+          payload={"pine_code":pine,"csv_text":"\\n".join(lines)+"\\n",
+                   "columns":{},"symbol":"SYNTHETIC:CI_NOT_TV","timeframe":"1D"}
+          req=urllib.request.Request(root+"/api/compare",data=json.dumps(payload).encode(),
+                                    headers={"Content-Type":"application/json"},method="POST")
+          result=json.load(urllib.request.urlopen(req,timeout=30))
+          assert result["status"]=="REFERENCE_COLUMNS_REQUIRED",result
+          assert result["numeric_match"] is False,result
+          with urllib.request.urlopen(root+result["python_chart_url"]) as response:
+              assert response.read().startswith(b"<svg")
+          with urllib.request.urlopen(root+result["python_code_url"]) as response:
+              assert b"def run_strategy(bars):" in response.read()
+          with urllib.request.urlopen(root+result["details_url"]) as response: detail=json.load(response)
+          assert detail["strategy"]["supported_subset"]=="PINE_V6_RSI_REVERSAL_RUN_SIGNAL"
+          print("ACTUAL_SEQUENCE_PINE_SYNTHETIC_CHART_NO_TV_BASELINE",result["run_id"])
+          PY
       - name: Verify Railway production deployment exposes exact parity release and real run traces
         run: |
           PYTHONPATH=n8n/pine-parity python3 - <<'PY'
@@ -71,7 +98,7 @@ jobs:
           for attempt in range(70):
               try:
                   health=json.load(urllib.request.urlopen(root+"/health",timeout=8))
-                  if health.get("release")=="pine-parity-stage1-r1": break
+                  if health.get("release")=="pine-parity-stage2-rsi-run-v1": break
               except Exception: pass
               time.sleep(3)
           else: raise RuntimeError("EXACT_RAILWAY_RELEASE_NOT_LIVE")
