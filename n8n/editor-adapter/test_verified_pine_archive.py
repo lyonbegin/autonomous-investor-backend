@@ -68,7 +68,7 @@ class PinnedSource(unittest.TestCase):
     def test_reject_other_pine_version_and_untrusted_identity(self):
         digest=hashlib.sha256(SYNTHETIC).hexdigest()
         with patch.object(archive,"EXPECTED_SHA256",digest):
-            with self.assertRaisesRegex(ValueError,"ARCHIVE_SCRIPT_URL_MISMATCH"):
+            with self.assertRaisesRegex(ValueError,"N11_NOT_IN_VERIFIED_SOURCE_ARCHIVE"):
                 archive.acquire_verified_pine({**candidate(digest),"source_url":"https://www.tradingview.com/script/FAKE1234/"})
             with self.assertRaisesRegex(ValueError,"ARCHIVE_PINE_VERSION_MISMATCH"):
                 archive.acquire_verified_pine({**candidate(digest),"pine_version":"5"})
