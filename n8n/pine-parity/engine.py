@@ -283,7 +283,7 @@ def render_svg(bars,series,conditions,title="Python strategy chart",spec=None):
             if not vals[i]:continue
             xx=x(i-start)
             kind=(spec or {}).get("conditions",{}).get(key,["crossover"])[0]
-            bullish=kind=="crossover"
+            bullish=kind in ("crossover","long")
             tip=(y(bars[i]["low"])-8) if bullish else (y(bars[i]["high"])+8)
             if bullish:
                 out.append(f'<path d="M{xx:.2f} {tip:.2f} l-6 9 h12 Z" fill="#2de4a7"/>')
@@ -295,16 +295,52 @@ def render_svg(bars,series,conditions,title="Python strategy chart",spec=None):
     return "".join(out)
 
 def analyze(pine_code,csv_text,column_mapping=None,title="Python re-render"):
-    spec=parse_pine(pine_code)
+    try:
+        spec=parse_pine(pine_code)
+        mode="MA_CROSS"
+    except UnsupportedPine:
+        from sequence_reversal import parse_sequence_pine,UnsupportedSequencePine
+        try:
+            spec=parse_sequence_pine(pine_code)
+            mode="RSI_REVERSAL_RUN"
+        except UnsupportedSequencePine as exc:
+            raise UnsupportedPine(str(exc)) from exc
     bars,headers=read_csv(csv_text)
-    series,signals,trades=run_python(bars,spec)
+    if mode=="MA_CROSS":
+        series,signals,trades=run_python(bars,spec)
+        chart_series=series
+        chart_signals=signals
+        generated=generate_python(spec)
+        execution_model="MA_CROSS_ASSUMED_NEXT_BAR_OPEN_NOT_TV_PARITY"
+        source="PYTHON_STRICT_SUPPORTED_SUBSET"
+        chart_spec=spec
+    else:
+        from sequence_reversal import _run_sequence,generate_sequence_python
+        output=_run_sequence(bars,spec)
+        series,signals=output["series"],output["signals"]
+        trades=output["trades"]
+        generated=generate_sequence_python(spec)
+        # RSI is an oscillator, not a price line. Draw actual OHLC candles
+        # and strategy signal markers on the price panel.
+        chart_series={}
+        order_times={(t["bar_index"],t["direction"]) for t in output["orders"]}
+        chart_signals={
+            "longSetup":[(i,"long") in order_times for i in range(len(bars))],
+            "shortSetup":[(i,"short") in order_times for i in range(len(bars))],
+        }
+        chart_spec={"conditions":{"longSetup":("long",),
+                                   "shortSetup":("short",)}}
+        execution_model=output["execution_model"]
+        source="PYTHON_RSI_REVERSAL_RUN_RESTRICTED"
     comparisons,complete,match=numeric_compare(bars,series,signals,column_mapping)
     status=("REFERENCE_COLUMNS_REQUIRED" if not complete else
-           "NUMERIC_MISMATCH" if not match else "NUMERIC_MATCH_VISUAL_REVIEW_REQUIRED")
+            "NUMERIC_MISMATCH" if not match else "NUMERIC_MATCH_VISUAL_REVIEW_REQUIRED")
     return {"status":status,"pine_sha256":sha(pine_code),"csv_sha256":sha(csv_text),
         "bars":len(bars),"csv_headers":headers,"strategy":spec,
         "comparison":comparisons,"trades":trades[:500],"trade_count":len(trades),
         "numeric_match":bool(complete and match),
-        "svg":render_svg(bars,series,signals,title,spec),"python_code":generate_python(spec),"source":"PYTHON_STRICT_SUPPORTED_SUBSET",
+        "svg":render_svg(bars,chart_series,chart_signals,title,chart_spec),
+        "python_code":generated,"source":source,
+        "execution_model":execution_model,
         "baseline_source":"USER_SUPPLIED_TV_CSV_NOT_AUTOMATICALLY_AUTHENTICATED",
         "image_match":"NOT_AUTOMATICALLY_VERIFIED"}
