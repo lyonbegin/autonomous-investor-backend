@@ -79,6 +79,15 @@ def main():
     check(result.get("status") in ("PYTHON_GENERATED","UNSUPPORTED_PINE"),"UNEXPECTED_RESULT")
     if result["status"]=="PYTHON_GENERATED":
         check("def run_strategy" in result.get("python_code",""),"PYTHON_SOURCE_NOT_GENERATED")
+        if os.environ.get("WF02_EXPECT_SCOPE"):
+            check(result.get("converter_scope")==os.environ["WF02_EXPECT_SCOPE"],
+                  "WRONG_COMPILER_PATH_OR_INCOMPLETE_STRATEGY")
+            opts=result.get("strategy_spec",{}).get("inputs",{})
+            check(opts.get("run_length")==5 and opts.get("rsi_length")==14
+                  and opts.get("enable_long") is True
+                  and opts.get("enable_short") is False
+                  and opts.get("reward_multiple")==1.5,
+                  "ACTUAL_SCRIPT_INPUT_DEFAULTS_NOT_PARSED")
     else:
         check(result.get("python_code") is None and result.get("unsupported_reason"),
               "UNSUPPORTED_SCRIPT_FAKED_AS_PYTHON")
