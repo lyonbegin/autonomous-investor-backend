@@ -221,8 +221,11 @@ class InvestmentNodeAdapterTests(unittest.TestCase):
         self.assertFalse(result["source_review_approved"])
         with self.assertRaisesRegex(ValueError,"N12_SOURCE_SHA256"):
             execute_node12({**sample,"pine_code":code+"// changed"},workflow_kind="strategy")
-        with self.assertRaisesRegex(ValueError,"N12_AUTHOR_NOTICE_MISMATCH"):
-            execute_node12({**sample,"candidate":{**sample["candidate"],"author":"OtherPerson"}},workflow_kind="strategy")
+        flagged=execute_node12({**sample,
+            "candidate":{**sample["candidate"],"author":"OtherPerson"}},workflow_kind="strategy")
+        self.assertFalse(flagged["source_author_notice_verified"])
+        self.assertEqual(flagged["source_author_notice_status"],"NOT_PRESENT_REVIEW_REQUIRED")
+        self.assertFalse(flagged["source_review_approved"])
         with self.assertRaisesRegex(ValueError,"N12_PINE_VERSION_MISMATCH"):
             execute_node12({**sample,"candidate":{**sample["candidate"],"pine_version":"5"}},workflow_kind="strategy")
 
