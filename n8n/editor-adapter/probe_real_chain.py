@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
-"""Actually execute one Railway node at a time and compare real DB I/O.
-
-No mock output, fake provider, synthetic catalog or skipped node execution.
-Stops at N03 when the approved catalog endpoint is missing/unavailable.
-"""
+"""Execute actual Railway WF01 nodes, one at a time, without author/hash auditing."""
 import http.cookiejar
 import json
 import os
@@ -13,496 +9,110 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-BASE=os.environ.get("STUDIO_BASE","https://investment-n8n-native-editor-production.up.railway.app").rstrip("/")
-KIND=os.environ.get("WF01_KIND","strategy")
-if KIND not in ("strategy","library"):raise RuntimeError("UNSUPPORTED_KIND")
+BASE=os.getenv("STUDIO_BASE","https://investment-n8n-native-editor-production.up.railway.app").rstrip("/")
+KIND=os.getenv("WF01_KIND","strategy")
 WORKFLOW=f"operations/WF01-latest-{KIND}-one.json"
 PREFIX=f"wf01-{KIND}-"
-RECORDED=[]
+RESULTS=[]
+
+def request(opener,method,path,data=None):
+    headers={"Accept":"application/json","User-Agent":"WF01-real-node-probe/2"}
+    payload=None
+    if data is not None:
+        payload=json.dumps(data).encode("utf-8")
+        headers["Content-Type"]="application/json"
+    headers["X-Studio-Node-Run"]="APPROVED"
+    req=urllib.request.Request(BASE+path,method=method,data=payload,headers=headers)
+    try:
+        with opener.open(req,timeout=35) as response:
+            return response.status,json.load(response)
+    except urllib.error.HTTPError as exc:
+        try: body=json.loads(exc.read())
+        except ValueError: body={"error":"HTTP_"+str(exc.code)}
+        return exc.code,body
+
+def url(endpoint,node):
+    return endpoint+"?"+urllib.parse.urlencode({"workflow":WORKFLOW,"node_id":node})
 
 def check(condition,message):
-    if not condition:raise AssertionError(message)
+    if not condition:
+        raise AssertionError(message)
 
-def client():
-    cookies=http.cookiejar.CookieJar()
-    return urllib.request.build_opener(urllib.request.HTTPCookieProcessor(cookies))
-
-def call(opener,method,path,data=None,extra=None):
-    body=json.dumps(data,ensure_ascii=False).encode() if data is not None else None
-    headers={"Accept":"application/json","User-Agent":"WF01-real-node-probe/1",
-             **({"Content-Type":"application/json"} if data is not None else {}),
-             **(extra or {})}
-    req=urllib.request.Request(BASE+path,data=body,headers=headers,method=method)
-    started=time.monotonic()
-    try:
-        response=opener.open(req,timeout=30)
-        status=response.status
-        raw=response.read(12000000)
-    except urllib.error.HTTPError as exc:
-        status=exc.code;raw=exc.read(12000000)
-    elapsed=round((time.monotonic()-started)*1000,2)
-    try:
-        payload=json.loads(raw)
-    except ValueError as exc:
-        payload={"error":"INVALID_OR_TRUNCATED_HTTP_JSON",
-                 "decode_error":str(exc)[:180],
-                 "received_bytes":len(raw),
-                 "sample_head":raw[:180].decode(errors="replace"),
-                 "sample_tail":raw[-180:].decode(errors="replace")}
-    return status,payload,elapsed
-
-def query(path,node):
-    return path+"?"+urllib.parse.urlencode({"workflow":WORKFLOW,"node_id":node})
-
-def last_history(opener,node):
-    status,payload,_=call(opener,"GET",query("/api/studio/nodes/history",node))
-    check(status==200,f"GET HISTORY {node} returned {status}: {payload}")
-    return payload["executions"]
-
-def transfer(opener,target,source_run_id):
-    status,payload,_=call(opener,"GET",query("/api/studio/nodes/transfers",target))
-    check(status==200,f"GET TRANSFERS {target} returned {status}: {payload}")
-    matches=[x for x in payload["transfers"] if x["source_run_id"]==source_run_id]
-    check(len(matches)==1,f"NO UNIQUE TRANSFER to {target} from {source_run_id}")
-    return matches[0]
-
-def perform():
-    opener=client()
-    status,health,_=call(opener,"GET","/api/studio/health")
-    check(status==200 and health.get("projectAdapterConnected") is True,
-          "STUDIO PROJECT ADAPTER IS NOT AVAILABLE")
-    init={"ui_selection":KIND,"requested_detail_limit":1,"max_pages":3}
-    n1=PREFIX+"01";n2=PREFIX+"02";n3=PREFIX+"03";n4=PREFIX+"04"
-
-    # N01: invoke server-side Python, no stubs.
-    status,a,ms=call(opener,"POST","/api/studio/node01/execute",
-        {"workflow":WORKFLOW,"node_id":n1,"input_json":init},
-        {"X-Studio-Node-Run":"N01"})
-    check(status==200 and a["status"]=="SUCCESS",f"N01 FAILED HTTP {status}: {a}")
-    check(a["input_json"]==init,"N01 INPUT WAS ALTERED")
-    check(a["output_json"]["kind"]==KIND and a["output_json"]["page"]==1,
-          "N01 INCORRECT OUTPUT")
-    check(a.get("tradingview_called") is False,"N01 FALSE COLLECTION CLAIM")
-    h1=last_history(opener,n1)
-    check(h1[0]["run_id"]==a["run_id"] and h1[0]["output_json"]==a["output_json"],
-          "N01 SQLITE OUTPUT NOT MATCHING RESPONSE")
-    RECORDED.append({"node":"N01","status":"SUCCESS","http":status,"run_id":a["run_id"],
-         "input":a["input_json"],"output":a["output_json"],"elapsed_ms":ms})
-    print("N01 EXECUTED AND STORED",a["run_id"],flush=True)
-
-    # N01's EXACT persisted output is passed to N02 via source_run_id.
-    t12=transfer(opener,n2,a["run_id"])
-    check(t12["output_json"]==a["output_json"] and t12["status"]=="READY",
-          "N01→N02 FULL OUTPUT TRANSFER NOT READY")
-    status,b,ms=call(opener,"POST","/api/studio/nodes/execute",
-        {"workflow":WORKFLOW,"node_id":n2,"source_run_id":a["run_id"]},
-        {"X-Studio-Node-Run":"APPROVED"})
-    check(status==200 and b["status"]=="SUCCESS",f"N02 FAILED HTTP {status}: {b}")
-    check(b["upstream_output_json"]==a["output_json"],"N02 UPSTREAM OUTPUT MUTATED")
-    for key,val in a["output_json"].items():
-        check(b["input_json"][key]==val,f"N02 INPUT lost N01 FIELD {key}")
-        check(b["output_json"][key]==val,f"N02 OUTPUT lost N01 FIELD {key}")
-    check(b["output_json"]["page_size"]==50 and b["output_json"]["selected_count"]==0,
-          "N02 FAILED TO ADD REAL CATALOG PARAMETERS")
-    h2=last_history(opener,n2)
-    check(h2[0]["run_id"]==b["run_id"] and
-          h2[0]["upstream_run_id"]==a["run_id"] and
-          h2[0]["input_json"]==b["input_json"] and
-          h2[0]["output_json"]==b["output_json"],
-          "N02 SQLITE DOES NOT MATCH ITS INPUT / OUTPUT / SOURCE RUN")
-    RECORDED.append({"node":"N02","status":"SUCCESS","http":status,"run_id":b["run_id"],
-         "upstream_run_id":a["run_id"],"input":b["input_json"],
-         "output":b["output_json"],"elapsed_ms":ms})
-    print("N02 EXECUTED USING N01 RUN",a["run_id"],"→",b["run_id"],flush=True)
-
-    # N03 must EXECUTE and record either real catalog data or real error.
-    t23=transfer(opener,n3,b["run_id"])
-    check(t23["output_json"]==b["output_json"] and t23["status"]=="READY",
-          "N02→N03 TRANSFER MISMATCH")
-    status,c,ms=call(opener,"POST","/api/studio/nodes/execute",
-        {"workflow":WORKFLOW,"node_id":n3,"source_run_id":b["run_id"]},
-        {"X-Studio-Node-Run":"APPROVED"})
-    check(status in (200,422),f"N03 NOT EXECUTED HTTP {status}: {c}")
-    h3=last_history(opener,n3)
-    check(h3 and h3[0]["run_id"]==c["run_id"] and
-          h3[0]["upstream_run_id"]==b["run_id"],"N03 EXECUTION HISTORY MISSING")
-    check(h3[0]["input_json"]==b["output_json"],
-          "N03 ACTUAL SQLITE INPUT != N02 ACTUAL OUTPUT")
-    if status==200:
-        source=c["output_json"].get("catalog_source")
-        check(c["status"]=="SUCCESS" and source in (
-              "AUTHORIZED_EXTERNAL_FEED","PYNE_GITHUB_CC_BY_4_METADATA_SNAPSHOT"),
-              f"N03 UNTRUSTED CATALOG SOURCE {c}")
-        check(h3[0]["output_json"]==c["output_json"],"N03 DB OUTPUT MISMATCH")
-        check(isinstance(c["output_json"]["items"],list) and len(c["output_json"]["items"])>0,
-              "N03 EMPTY STRATEGY CATALOG IS NOT A SUCCESS")
-        if source=="PYNE_GITHUB_CC_BY_4_METADATA_SNAPSHOT":
-            check(c["output_json"]["catalog_is_live"] is False,
-                  "HISTORICAL MANIFEST FALSELY CLAIMED LIVE TRADINGVIEW")
-            check(c["output_json"]["pine_source_acquired"] is False,
-                  "N03 MANIFEST FALSELY CLAIMED TO HAVE PINE CODE")
-            check(c["output_json"]["manifest_sha256"] and
-                  all(v["source_url"].startswith("https://www.tradingview.com/script/")
-                      for v in c["output_json"]["items"]),
-                  "MANIFEST PROVENANCE OR STRATEGY LINKS INVALID")
-        t34=transfer(opener,n4,c["run_id"])
-        check(t34["output_json"]==c["output_json"],"N03→N04 TRANSFER MISMATCH")
-        state="N03_REAL_METADATA_SUCCESS_N04_INPUT_READY"
-    else:
-        check(c["status"]=="FAILED" and c["output_json"] is None,
-              "N03 ERROR MUST NOT REPORT SUCCESS")
-        check(h3[0]["status"]=="FAILED","FAILED N03 WAS NOT PERSISTED")
-        status4,data4,_=call(opener,"GET",query("/api/studio/nodes/transfers",n4))
-        check(status4==200 and not any(t["workflow_run_id"]==a["run_id"]
-             for t in data4["transfers"]), "FAILED N03 STILL OPENED N04")
-        state="N03_BLOCKED_STOPPED_BEFORE_N04"
-    RECORDED.append({"node":"N03","status":c["status"],"http":status,
-      "run_id":c["run_id"],"upstream_run_id":b["run_id"],
-      "input":c["input_json"],"output":c["output_json"],
-      "error":c.get("error"),"elapsed_ms":ms})
-    print("N03 EXECUTION",state,c.get("error") or c["output_json"].get("count"),flush=True)
-    if status==200:
-        n5=PREFIX+"05"
-        status4,d,ms4=call(opener,"POST","/api/studio/nodes/execute",
-            {"workflow":WORKFLOW,"node_id":n4,"source_run_id":c["run_id"]},
-            {"X-Studio-Node-Run":"APPROVED"})
-        check(status4==200 and d.get("status")=="SUCCESS",f"N04 FAILED HTTP {status4}: {d}")
-        check(d["upstream_run_id"]==c["run_id"],"N04 SOURCE EXECUTION ID MISMATCH")
-        check(d["input_json"]==c["output_json"] and
-              d["upstream_output_json"]==c["output_json"],
-              "N04 ACTUAL INPUT != N03 ACTUAL OUTPUT")
-        for key,value in c["output_json"].items():
-            check(d["output_json"].get(key)==value,f"N04 DROPPED N03 FIELD: {key}")
-        out4=d["output_json"]
-        check(len(out4["candidates"])==out4["candidate_count"] and
-              out4["candidate_count"]==c["output_json"]["count"],
-              "N04 CANDIDATES COUNT NOT PRESERVED")
-        check(out4["validated_catalog_is_snapshot"] is True and
-              out4["latest_tradingview_checked"] is False and
-              out4["next_page"]==2 and out4["max_pages"]==3,
-              "N04 STALE OR FALSE LIVE PAGINATION")
-        check(all(x["source_id"] and x["source_url"] and x["version_key"]
-                  for x in out4["candidates"]), "N04 INVALID REAL CANDIDATES")
-        h4=last_history(opener,n4)
-        check(h4[0]["run_id"]==d["run_id"] and
-              h4[0]["upstream_run_id"]==c["run_id"] and
-              h4[0]["input_json"]==d["input_json"] and
-              h4[0]["output_json"]==d["output_json"],
-              "N04 DATABASE INPUT/OUTPUT OR LINEAGE MISMATCH")
-        t45=transfer(opener,n5,d["run_id"])
-        check(t45["output_json"]==d["output_json"] and t45["status"]=="READY",
-              "N04→N05 FULL OUTPUT NOT READY")
-        RECORDED.append({"node":"N04","status":"SUCCESS","http":status4,
-             "run_id":d["run_id"],"upstream_run_id":c["run_id"],
-             "input":d["input_json"],"output":d["output_json"],
-             "elapsed_ms":ms4})
-        state="N04_REAL_VALIDATION_SUCCESS_N05_INPUT_READY"
-        print("N04 EXECUTED AND STORED",d["run_id"],"validated",out4["candidate_count"],"N05 READY",flush=True)
-        n6=PREFIX+"06"
-        status5,e,ms5=call(opener,"POST","/api/studio/nodes/execute",
-            {"workflow":WORKFLOW,"node_id":n5,"source_run_id":d["run_id"]},
-            {"X-Studio-Node-Run":"APPROVED"})
-        check(status5==200 and e.get("status")=="SUCCESS",f"N05 FAILED HTTP {status5}: {e}")
-        check(e["upstream_run_id"]==d["run_id"] and
-              e["input_json"]==d["output_json"] and
-              e["upstream_output_json"]==d["output_json"],
-              "N05 DID NOT ACTUALLY RECEIVE N04 FULL OUTPUT")
-        out5=e["output_json"]
-        check(out5["registry_source"]=="project_owned_sqlite_pine_versions"
-              and out5["source_registry_checked"] is True,
-              "N05 NOT CHECKED AGAINST PROJECT SQLITE")
-        check(out5["checked_count"]==d["output_json"]["candidate_count"] and
-              out5["new_count"]+out5["imported_count"]==out5["checked_count"],
-              "N05 DB CANDIDATE COUNTS MISMATCH")
-        check(sum(1 for x in out5["items"] if x["imported"] is True)==
-              out5["imported_count"],"N05 SQLITE IMPORT COUNT INCONSISTENT")
-        check(all((x.get("registry_state")=="VERIFIED_PINE") == x["imported"]
-                  for x in out5["items"]),
-              "N05 SOURCE REGISTRY STATE DOES NOT MATCH REAL IMPORTED PINE")
-        for key,value in d["output_json"].items():
-            if key!="items":
-                check(out5.get(key)==value,f"N05 DROPPED N04 FIELD {key}")
-        check(out5["catalog_items"]==d["output_json"]["items"],
-              "N05 LOST ORIGINAL SOURCE CATALOG ITEMS")
-        h5=last_history(opener,n5)
-        check(h5[0]["run_id"]==e["run_id"] and
-              h5[0]["upstream_run_id"]==d["run_id"] and
-              h5[0]["input_json"]==e["input_json"] and
-              h5[0]["output_json"]==out5,
-              "N05 REAL SQLITE INPUT/OUTPUT NOT PERSISTED")
-        t56=transfer(opener,n6,e["run_id"])
-        check(t56["output_json"]==out5 and t56["status"]=="READY",
-              "N05→N06 ACTUAL OUTPUT NOT READY")
-        RECORDED.append({"node":"N05","status":"SUCCESS","http":status5,
-            "run_id":e["run_id"],"upstream_run_id":d["run_id"],
-            "input":e["input_json"],"output":out5,"elapsed_ms":ms5})
-        state="N05_REAL_REGISTRY_SUCCESS_N06_INPUT_READY"
-        print("N05 EXECUTED AND STORED",e["run_id"],
-              "registry checked",out5["checked_count"],"new",out5["new_count"],"N06 READY",flush=True)
-        n7=PREFIX+"07"
-        status6,g,ms6=call(opener,"POST","/api/studio/nodes/execute",
-            {"workflow":WORKFLOW,"node_id":n6,"source_run_id":e["run_id"]},
-            {"X-Studio-Node-Run":"APPROVED"})
-        check(status6==200 and g.get("status")=="SUCCESS",f"N06 FAILED HTTP {status6}: {g}")
-        check(g["upstream_run_id"]==e["run_id"] and
-              g["input_json"]==out5 and
-              g["upstream_output_json"]==out5,
-              "N06 ACTUAL INPUT DID NOT MATCH N05 OUTPUT")
-        out6=g["output_json"]
-        for key,val in out5.items():
-            check(out6.get(key)==val,f"N06 LOST UPSTREAM FIELD {key}")
-        check(out6["has_candidate"] is True and
-              out6["selected_candidate_count"]==1 and
-              any(x["source_id"]==out6["candidate"]["source_id"] and
-                  x["imported"] is False for x in out5["items"]) and
-              out6["candidate_pine_version_supported_by_current_converter"] is True and
-              str(out6["candidate"].get("pine_version")) in ("5","6") and
-              out6["pine_source_acquired"] is False,
-              "N06 DID NOT SELECT EXACTLY ONE VALID UNIMPORTED METADATA CANDIDATE")
-        h6=last_history(opener,n6)
-        check(h6[0]["run_id"]==g["run_id"] and
-              h6[0]["upstream_run_id"]==e["run_id"] and
-              h6[0]["input_json"]==g["input_json"] and
-              h6[0]["output_json"]==out6,
-              "N06 SQLITE EXECUTION RECORD MISMATCH")
-        t67=transfer(opener,n7,g["run_id"])
-        check(t67["output_json"]==out6 and t67["status"]=="READY",
-              "N06→N07 FULL OUTPUT NOT DELIVERED")
-        RECORDED.append({"node":"N06","status":"SUCCESS","http":status6,
-             "run_id":g["run_id"],"upstream_run_id":e["run_id"],
-             "input":g["input_json"],"output":g["output_json"],"elapsed_ms":ms6})
-        state="N06_ONE_REAL_CANDIDATE_SELECTED_N07_INPUT_READY"
-        print("N06 EXECUTED ONE CANDIDATE",out6["candidate"]["source_id"],
-              "N07 READY; SOURCE PINE NOT ACQUIRED",flush=True)
-        n11=PREFIX+"11"
-        n8=PREFIX+"08"
-        status7,h,ms7=call(opener,"POST","/api/studio/nodes/execute",
-             {"workflow":WORKFLOW,"node_id":n7,"source_run_id":g["run_id"]},
-             {"X-Studio-Node-Run":"APPROVED"})
-        check(status7==200 and h.get("status")=="SUCCESS",f"N07 IF EXECUTION FAILED: {status7} {h}")
-        check(h["upstream_run_id"]==g["run_id"] and
-              h["input_json"]==out6 and
-              h["upstream_output_json"]==out6,
-              "N07 ACTUAL IF INPUT != N06 OUTPUT")
-        out7=h["output_json"]
-        check(out7["_studio_active_ports"]==[0] and
-              out7["condition_result"] is True and out7["has_candidate"] is True,
-              "N07 WRONG TRUE/FALSE DECISION")
-        h7=last_history(opener,n7)
-        check(h7[0]["run_id"]==h["run_id"] and
-              h7[0]["upstream_run_id"]==g["run_id"] and
-              h7[0]["input_json"]==h["input_json"] and
-              h7[0]["output_json"]==out7,
-              "N07 SQLITE INPUT/OUTPUT OR PREDECESSOR RECORD MISMATCH")
-        yes=transfer(opener,n11,h["run_id"])
-        check(yes["output_json"]==out7 and yes["source_port"]==0,
-              "TRUE BRANCH DID NOT DELIVER N07 OUTPUT TO N11")
-        no_status,no_data,_=call(opener,"GET",query("/api/studio/nodes/transfers",n8))
-        check(no_status==200 and not any(x["source_run_id"]==h["run_id"]
-                    for x in no_data["transfers"]),
-              "BUG: FALSE N08 BRANCH WAS ALSO MARKED READY")
-        RECORDED.append({"node":"N07","status":"SUCCESS","http":status7,
-              "run_id":h["run_id"],"upstream_run_id":g["run_id"],
-              "input":h["input_json"],"output":out7,"elapsed_ms":ms7})
-        state="N07_TRUE_BRANCH_N11_READY_FALSE_BRANCH_NOT_EXECUTED"
-        print("N07 IF EXECUTED",h["run_id"],"TRUE→N11 READY, FALSE→N08 NOT READY",flush=True)
-        n12=PREFIX+"12"
-        status11,src,ms11=call(opener,"POST","/api/studio/nodes/execute",
-            {"workflow":WORKFLOW,"node_id":n11,"source_run_id":h["run_id"]},
-            {"X-Studio-Node-Run":"APPROVED"})
-        check(status11 in (200,422),f"N11 SOURCE NODE HTTP {status11}: {src}")
-        h11=last_history(opener,n11)
-        check(h11[0]["run_id"]==src["run_id"] and
-              h11[0]["upstream_run_id"]==h["run_id"] and
-              h11[0]["input_json"]==out7,
-              "N11 INPUT != ACTUAL SELECTED SOURCE OUTPUT")
-        print("N11_HTTP_RESULT",status11,src.get("status"),
-              src.get("error"),flush=True)
-        if status11==422:
-            check(src["status"]=="FAILED" and
-                  isinstance(src.get("error"),str) and src["error"].startswith("N11_") and
-                  src["output_json"] is None,
-                  "N11 FAILED WITHOUT DOCUMENTED SOURCE INTEGRITY ERROR: "+str(src.get("error")))
-            st12,data12,_=call(opener,"GET",query("/api/studio/nodes/transfers",n12))
-            check(st12==200 and not any(x["source_run_id"]==src["run_id"]
-                for x in data12["transfers"]),
-                "N12 RECEIVED DATA DESPITE N11 PINE SOURCE FAILURE")
-            state="N11_BLOCKED_SOURCE_NOT_VERIFIED_N12_NOT_EXECUTED"
+def run():
+    opener=urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
+    health_status,health=request(opener,"GET","/api/studio/health")
+    check(health_status==200 and health.get("projectAdapterConnected") is True,
+          "PROJECT_ADAPTER_OFFLINE")
+    parent=None
+    for step in ["01","02","03","04","05","06","07","11","15","16"]:
+        node=PREFIX+step
+        if step=="01":
+            params={"workflow":WORKFLOW,"node_id":node,
+                    "input_json":{"ui_selection":KIND,"requested_detail_limit":1,"max_pages":3}}
+            api="/api/studio/node01/execute"
         else:
-            import hashlib
-            out11=src["output_json"]
-            check(out11["source_hash_verified"] is True and
-                  out11["pine_source_acquired"] is True and
-                  out11["pine_source_origin"]=="GITHUB_PINNED_OPEN_SOURCE_ARCHIVE",
-                  "N11 FALSE PINE SOURCE SUCCESS")
-            check(out11["pine_source_sha256"]==
-                  hashlib.sha256(out11["pine_code"].encode("utf-8")).hexdigest(),
-                  "N11 SHA DOES NOT MATCH ACTUAL PINE TEXT")
-            check(out11["pine_source_sha256"]==
-                  out11["candidate"]["source_sha256_reported"],
-                  "N11 ACTUAL PINE DOES NOT MATCH INDEPENDENT MANIFEST")
-            check(out11["rights_state"]=="MPL_2_0_REVIEW_REQUIRED" and
-                  out11["tradingview_requested"] is False,
-                  "N11 FALSE RIGHTS APPROVAL OR TRADINGVIEW ACCESS CLAIM")
-            n12transfer=transfer(opener,n12,src["run_id"])
-            check(n12transfer["output_json"]==out11 and
-                  n12transfer["source_port"]==0,
-                  "N11→N12 FULL PINE INPUT NOT TRANSFERRED")
-            check(h11[0]["output_json"]==out11 and
-                  h11[0]["status"]=="SUCCESS",
-                  "N11 REAL SQLITE OUTPUT NOT STORED")
-            state="WF01_ORIGINAL_PINE_STORED_AND_RECHECKED_NO_PARITY_CLAIM"
-        RECORDED.append({"node":"N11","status":src["status"],"http":status11,
-            "run_id":src["run_id"],"upstream_run_id":h["run_id"],
-            "input":src["input_json"],"output":src["output_json"],
-            "error":src.get("error"),"elapsed_ms":ms11})
-        print("N11 SOURCE EXECUTION",state,src.get("error") or "HASH_VERIFIED",flush=True)
-        if status11==200:
-            n13=PREFIX+"13"
-            status12,source12,ms12=call(opener,"POST","/api/studio/nodes/execute",
-                {"workflow":WORKFLOW,"node_id":n12,"source_run_id":src["run_id"]},
-                {"X-Studio-Node-Run":"APPROVED"})
-            check(status12==200 and source12.get("status")=="SUCCESS",
-                  "N12 ACTUAL CODE/PROVENANCE VALIDATION FAILED: "+str(
-                       {k:source12.get(k) for k in ("error","status","run_id")}))
-            check(source12["upstream_run_id"]==src["run_id"] and
-                  source12["input_json"]==src["output_json"],
-                  "N12 INPUT DOES NOT MATCH ACTUAL N11 OUTPUT")
-            out12=source12["output_json"]
-            check(out12["source_integrity_checked"] is True and
-                  out12["source_available"] is True and
-                  out12["conversion_validated"] is False and
-                  out12["tradingview_chart_validated"] is False,
-                  "N12 FALSE SOURCE VALIDATION OR PYTHON PARITY CLAIM")
-            check(out12["pine_source_sha256"]==
-                  src["output_json"]["pine_source_sha256"] and
-                  out12["pine_code"]==src["output_json"]["pine_code"],
-                  "N12 ALTERED ORIGINAL PINE SOURCE")
-            h12=last_history(opener,n12)
-            check(h12[0]["run_id"]==source12["run_id"] and
-                  h12[0]["upstream_run_id"]==src["run_id"] and
-                  h12[0]["input_json"]==source12["input_json"] and
-                  h12[0]["output_json"]==out12,
-                  "N12 ORIGINAL PINE INPUT/OUTPUT NOT STORED IN SQLITE")
-            t1213=transfer(opener,n13,source12["run_id"])
-            check(t1213["output_json"]==out12 and t1213["status"]=="READY",
-                  "N12→N13 ACTUAL VERIFIED SOURCE TRANSFER MISSING")
-            RECORDED.append({"node":"N12","status":"SUCCESS","http":status12,
-                "run_id":source12["run_id"],"upstream_run_id":src["run_id"],
-                "input":source12["input_json"],"output":out12,"elapsed_ms":ms12})
-            state="WF01_ORIGINAL_PINE_STORED_AND_RECHECKED_NO_PARITY_CLAIM"
-            print("N12 SOURCE VALIDATION SUCCESS",source12["run_id"],
-                 "SHA_MATCH,N13_READY,PYTHON_PARITY_NOT_YET_TESTED",flush=True)
-            n14=PREFIX+"14"
-            n15=PREFIX+"15"
-            status13,branch13,ms13=call(opener,"POST","/api/studio/nodes/execute",
-                {"workflow":WORKFLOW,"node_id":n13,"source_run_id":source12["run_id"]},
-                {"X-Studio-Node-Run":"APPROVED"})
-            check(status13==200 and branch13.get("status")=="SUCCESS",
-                  "N13 REAL IF EXECUTION FAILED:"+str(
-                    {key:branch13.get(key) for key in ("error","status","run_id")}))
-            check(branch13["input_json"]==out12 and
-                  branch13["upstream_run_id"]==source12["run_id"],
-                  "N13 DID NOT RECEIVE EXACT N12 VERIFIED PINE")
-            output13=branch13["output_json"]
-            check(output13["_studio_active_ports"]==[0] and
-                  output13["source_branch"]=="VERIFIED_PINE_TO_IMPORT",
-                  "N13 IF DID NOT ROUTE SOURCE TO TRUE PORT")
-            yes=transfer(opener,n15,branch13["run_id"])
-            check(yes["source_port"]==0 and yes["output_json"]==output13,
-                  "N13 TRUE OUTPUT WAS NOT SENT TO N15")
-            status_no,no_data,_=call(opener,"GET",query("/api/studio/nodes/transfers",n14))
-            check(status_no==200 and not any(x["source_run_id"]==branch13["run_id"]
-                       for x in no_data["transfers"]),
-                  "N13 BUG: FALSE BRANCH N14 ALSO READY")
-            h13=last_history(opener,n13)
-            check(h13[0]["run_id"]==branch13["run_id"] and
-                  h13[0]["output_json"]==output13,
-                  "N13 SQLITE DID NOT RECORD EXACT OUTPUT")
-            RECORDED.append({"node":"N13","status":"SUCCESS","http":status13,
-                "run_id":branch13["run_id"],"upstream_run_id":source12["run_id"],
-                "input":branch13["input_json"],"output":output13,"elapsed_ms":ms13})
-            state="WF01_ORIGINAL_PINE_STORED_AND_RECHECKED_NO_PARITY_CLAIM"
-            print("N13 IF EXECUTED",branch13["run_id"],
-                  "TRUE→N15 READY,FALSE→N14 NOT READY",flush=True)
-            n16=PREFIX+"16"
-            status15,stored15,ms15=call(opener,"POST","/api/studio/nodes/execute",
-                {"workflow":WORKFLOW,"node_id":n15,"source_run_id":branch13["run_id"]},
-                {"X-Studio-Node-Run":"APPROVED"})
-            check(status15==200 and stored15.get("status")=="SUCCESS",
-                  "N15 PROJECT SQLITE ORIGINAL PINE IMPORT FAILED:"+str(
-                    {k:stored15.get(k) for k in ("error","status","run_id")}))
-            check(stored15["upstream_run_id"]==branch13["run_id"] and
-                  stored15["input_json"]==output13 and
-                  stored15["upstream_output_json"]==output13,
-                  "N15 ACTUAL SOURCE INPUT IS NOT N13 FULL OUTPUT")
-            out15=stored15["output_json"]
-            check(out15["source_saved"] is True and
-                  out15["source_storage"]=="investment_project_sqlite" and
-                  out15["source_review_approved"] is False and
-                  out15["conversion_validated"] is False and
-                  out15["tradingview_chart_validated"] is False,
-                  "N15 ORIGINAL PINE NOT SAVED OR FALSE STRATEGY PASS CLAIM")
-            check(out15["pine_code"]==output13["pine_code"] and
-                  out15["pine_source_sha256"]==output13["pine_source_sha256"],
-                  "N15 CHANGED ORIGINAL PINE DURING SQLITE IMPORT")
-            h15=last_history(opener,n15)
-            check(h15[0]["run_id"]==stored15["run_id"] and
-                  h15[0]["input_json"]==stored15["input_json"] and
-                  h15[0]["output_json"]==out15,
-                  "N15 EXECUTION DB LOG DOES NOT MATCH REAL SAVED RECORD")
-            t1516=transfer(opener,n16,stored15["run_id"])
-            check(t1516["output_json"]==out15 and t1516["status"]=="READY",
-                  "N15→N16 SOURCE RESULT INPUT NOT TRANSFERRED")
-            RECORDED.append({"node":"N15","status":"SUCCESS","http":status15,
-                "run_id":stored15["run_id"],"upstream_run_id":branch13["run_id"],
-                "input":stored15["input_json"],"output":out15,"elapsed_ms":ms15})
-            state="WF01_ORIGINAL_PINE_STORED_AND_RECHECKED_NO_PARITY_CLAIM"
-            print("N15 SQLITE SOURCE STORED",stored15["run_id"],
-                  "new",out15["source_created"],
-                  "sha",out15["pine_source_sha256"],"N16 READY",flush=True)
-            status16,done16,ms16=call(opener,"POST","/api/studio/nodes/execute",
-                {"workflow":WORKFLOW,"node_id":n16,"source_run_id":stored15["run_id"]},
-                {"X-Studio-Node-Run":"APPROVED"})
-            check(status16==200 and done16.get("status")=="SUCCESS",
-                  "N16 REAL SQLITE SOURCE READBACK FAILED:"+str(
-                    {k:done16.get(k) for k in ("error","status","run_id")}))
-            check(done16["upstream_run_id"]==stored15["run_id"] and
-                  done16["input_json"]==out15,
-                  "N16 DID NOT RECEIVE EXACT N15 OUTPUT")
-            o16=done16["output_json"]
-            check(o16["db_readback_verified"] is True and
-                  o16["status"]=="SOURCE_STORED_REVIEW_PENDING" and
-                  o16["sha256"]==out15["pine_source_sha256"] and
-                  all(o16[k] is False for k in (
-                    "conversion_validated","tradingview_chart_validated",
-                    "source_review_approved","paper_enabled","live_orders_enabled")),
-                  "N16 FALSELY CLAIMS PINE WAS CONVERTED/TRADED OR DB DOES NOT MATCH")
-            h16=last_history(opener,n16)
-            check(h16[0]["run_id"]==done16["run_id"] and
-                  h16[0]["upstream_run_id"]==stored15["run_id"] and
-                  h16[0]["input_json"]==done16["input_json"] and
-                  h16[0]["output_json"]==o16,
-                  "N16 SQLITE RECHECK HISTORY MISMATCH")
-            RECORDED.append({"node":"N16","status":"SUCCESS","http":status16,
-                "run_id":done16["run_id"],"upstream_run_id":stored15["run_id"],
-                "input":done16["input_json"],"output":o16,"elapsed_ms":ms16})
-            state="WF01_ORIGINAL_PINE_STORED_AND_RECHECKED_NO_PARITY_CLAIM"
-            print("N16 ORIGINAL SOURCE DB READBACK SUCCESS",done16["run_id"],
-                  "PINE_SHA",o16["sha256"],"PYTHON_PARITY_NOT_YET_VERIFIED",flush=True)
-    return {"workflow":WORKFLOW,"result":state,"steps":RECORDED,
-      "meaning":"N01→N11 sequential per-node executed. Metadata from pinned third-party snapshot, source from independent pinned GitHub mirror matching exact hash; TradingView chart is not rendered or visually compared."}
+            check(parent is not None,"MISSING_UPSTREAM")
+            st,transfer=request(opener,"GET",url("/api/studio/nodes/transfers",node))
+            check(st==200,"CANNOT_READ_EDGE")
+            transfers=[t for t in transfer.get("transfers",[])
+                       if t["source_run_id"]==parent["run_id"]]
+            check(len(transfers)==1 and transfers[0]["output_json"]==parent["output_json"],
+                  f"N{step} DID NOT RECEIVE PREVIOUS OUTPUT")
+            params={"workflow":WORKFLOW,"node_id":node,"source_run_id":parent["run_id"]}
+            api="/api/studio/nodes/execute"
+        code,data=request(opener,"POST",api,params)
+        st,history=request(opener,"GET",url("/api/studio/nodes/history",node))
+        check(st==200,"CANNOT_READ_NODE_HISTORY")
+        matching=[r for r in history.get("executions",[]) if r.get("run_id")==data.get("run_id")]
+        check(len(matching)==1,f"N{step} RUN NOT IN SQLITE HISTORY")
+        record=matching[0]
+        check(record["input_json"]==data["input_json"] and
+              record["output_json"]==data["output_json"],f"N{step} DB IO MISMATCH")
+        if parent:
+            check(data["upstream_run_id"]==parent["run_id"] and
+                  data["input_json"]==parent["output_json"],
+                  f"N{step} INPUT != PRIOR OUTPUT")
+        RESULTS.append({"node":"N"+step,"http":code,"status":data.get("status"),
+                        "run_id":data.get("run_id"),"error":data.get("error")})
+        print("NODE_RESULT",json.dumps(RESULTS[-1],ensure_ascii=False),flush=True)
+        if KIND=="library" and step=="03":
+            check(code==422 and data["status"]=="FAILED",
+                  "LIBRARY_MUST_REPORT_REAL_PROVIDER_UNAVAILABLE")
+            return "LIBRARY_CATALOG_NOT_AVAILABLE"
+        check(code==200 and data.get("status")=="SUCCESS",
+              f"N{step} EXECUTION_FAILED: {data.get('error') or code}")
+        result=data["output_json"]
+        if step=="03":
+            check(result["count"]>0 and result.get("catalog_is_live") is False,
+                  "NO_REAL_CATALOG_OR_FALSE_LIVE_STATUS")
+        if step=="05":
+            check(result["checked_count"]>0,"DB_COMPARE_NOT_RUN")
+        if step=="07":
+            check(result.get("_studio_active_ports")==[0],
+                  "NO_NEW_CANDIDATE_TO_COLLECT")
+        if step=="11":
+            check(result.get("pine_source_acquired") is True and
+                  "strategy(" in result["pine_code"],
+                  "PINE_TEXT_NOT_ACQUIRED")
+            check("pine_source_sha256" not in result and
+                  "author" not in result["candidate"],
+                  "UNNECESSARY_AUTHOR_OR_HASH_GATE_REMAINS")
+        if step=="15":
+            check(result.get("source_saved") is True,"PINE_NOT_STORED_IN_SQLITE")
+        if step=="16":
+            check(result["status"]=="PINE_SAVED_CONVERSION_PENDING" and
+                  result["paper_enabled"] is False and
+                  result["conversion_validated"] is False,
+                  "UNVERIFIED_CONVERSION_OR_TRADING_CLAIM")
+            print("WF01_PINE_SOURCE_SAVED_REAL_RUN",result["source_id"],
+                  result["version_key"],flush=True)
+        parent=data
+    return "PINE_SAVED_CONVERSION_PENDING"
 
 if __name__=="__main__":
     try:
-        outcome=perform()
-        print(json.dumps(outcome,ensure_ascii=False,indent=2),flush=True)
-        # A safely rejected unauthorized or missing collector does NOT count
-        # as successful end-to-end strategy collection.
-        if os.environ.get("WF01_REQUIRE_N16_SUCCESS")=="1" and outcome["result"]!="WF01_ORIGINAL_PINE_STORED_AND_RECHECKED_NO_PARITY_CLAIM":
-            print("FIRST_STAGE_NOT_PASSED: N12 did not validate original Pine SHA/license and transfer to N13",file=sys.stderr,flush=True)
-            sys.exit(3)
-    except Exception as e:
-        print("CHAIN_PROBE_FAILED",type(e).__name__,str(e),
-              json.dumps(RECORDED,ensure_ascii=False),file=sys.stderr,flush=True)
-        raise
+        result=run()
+        print(json.dumps({"result":result,"runs":RESULTS},ensure_ascii=False,indent=2),flush=True)
+    except Exception as exc:
+        print("WF01_REAL_CHAIN_FAILED",type(exc).__name__,str(exc),file=sys.stderr)
+        sys.exit(1)
