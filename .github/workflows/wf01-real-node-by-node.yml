@@ -32,7 +32,7 @@ jobs:
                   raw=json.load(urllib.request.urlopen(path,timeout=8))
                   node=next(n for n in raw["workflow"]["nodes"] if n["id"]=="wf01-strategy-03")
                   binding=node["parameters"]["studioPython"]
-                  if binding["python_function"]=="execute_node03" and binding["code_version"]=="wf01-n03-authorized-catalog-v1":
+                  if binding["python_function"]=="execute_node03" and binding["code_version"]=="wf01-n03-licensed-manifest-v2":
                       print("N03_REALLY_DEPLOYED_IN_RAILWAY");break
               except Exception as exc:
                   print("N03_DEPLOY_WAIT",type(exc).__name__,str(exc)[:120],flush=True)
@@ -43,11 +43,25 @@ jobs:
         run: |
           set -o pipefail
           PYTHONPATH=n8n/editor-adapter WF01_KIND=strategy WF01_REQUIRE_N03_SUCCESS=1 python3 n8n/editor-adapter/probe_real_chain.py | tee /tmp/wf01-real-strategy.log
-      - name: Actually execute N01 then pass output to N02 then attempt N03 (library)
+      - name: Diagnose library N01 -> N02 -> N03 separately (manifest contains strategies only; must remain BLOCKED)
         if: always()
         run: |
           set -o pipefail
-          PYTHONPATH=n8n/editor-adapter WF01_KIND=library WF01_REQUIRE_N03_SUCCESS=1 python3 n8n/editor-adapter/probe_real_chain.py | tee /tmp/wf01-real-library.log
+          PYTHONPATH=n8n/editor-adapter WF01_KIND=library WF01_REQUIRE_N03_SUCCESS=0 python3 n8n/editor-adapter/probe_real_chain.py | tee /tmp/wf01-real-library.log
+      - name: Explicitly require nonempty strategy metadata (historical snapshot, not live TradingView)
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import pathlib
+          log=pathlib.Path("/tmp/wf01-real-strategy.log")
+          if not log.exists(): raise AssertionError("STRATEGY_RUN_LOG_MISSING")
+          text=log.read_text()
+          assert "N03_REAL_METADATA_SUCCESS_N04_INPUT_READY" in text, "N03 strategy metadata NOT executed successfully"
+          assert "PYNE_GITHUB_CC_BY_4_METADATA_SNAPSHOT" in text
+          assert '"catalog_is_live": false' in text
+          assert '"pine_source_acquired": false' in text
+          print("N03_STORED_REAL_METADATA_PROVENANCE_VERIFIED")
+          PY
       - name: Archive real service execution logs
         if: always()
         uses: actions/upload-artifact@v4
