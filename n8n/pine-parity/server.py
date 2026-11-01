@@ -42,6 +42,25 @@ class Handler(BaseHTTPRequestHandler):
     def log_message(self,fmt,*args):
         print(json.dumps({"type":"HTTP","at":datetime.now(timezone.utc).isoformat(),
             "client":self.client_address[0],"message":fmt%args}),flush=True)
+    def cors_origin(self):
+        origin=self.headers.get("Origin","")
+        allowed={
+          "https://investment-n8n-native-editor-production.up.railway.app",
+        }
+        return origin if origin in allowed else None
+    def do_OPTIONS(self):
+        if urlparse(self.path).path!="/api/compare":
+            return self.response(404,{"error":"NOT_FOUND"})
+        if not self.cors_origin():
+            return self.response(403,{"error":"CORS_ORIGIN_FORBIDDEN"})
+        self.send_response(204)
+        self.send_header("Access-Control-Allow-Origin",self.cors_origin())
+        self.send_header("Access-Control-Allow-Methods","GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers","Content-Type")
+        self.send_header("Vary","Origin")
+        self.send_header("Access-Control-Max-Age","600")
+        self.send_header("Content-Length","0")
+        self.end_headers()
     def response(self,status,body,content_type="application/json; charset=utf-8"):
         data=(json.dumps(body,ensure_ascii=False,allow_nan=False).encode() if isinstance(body,(dict,list))
               else body.encode() if isinstance(body,str) else body)
@@ -50,6 +69,9 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Content-Length",str(len(data)))
         self.send_header("Cache-Control","no-store")
         self.send_header("X-Content-Type-Options","nosniff")
+        if self.cors_origin():
+            self.send_header("Access-Control-Allow-Origin",self.cors_origin())
+            self.send_header("Vary","Origin")
         self.send_header("Content-Security-Policy","default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self'; object-src 'none'; frame-ancestors 'none'")
         self.end_headers()
         self.wfile.write(data)
@@ -98,7 +120,7 @@ class Handler(BaseHTTPRequestHandler):
             return self.response(404,{"error":"NOT_FOUND"})
         origin=self.headers.get("Origin")
         host=self.headers.get("Host")
-        if origin and urlparse(origin).netloc!=host:
+        if origin and urlparse(origin).netloc!=host and not self.cors_origin():
             return self.response(403,{"error":"SAME_ORIGIN_ONLY"})
         if not self.headers.get("Content-Type","").startswith("application/json"):
             return self.response(415,{"error":"JSON_REQUIRED"})
