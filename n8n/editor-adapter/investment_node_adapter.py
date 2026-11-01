@@ -318,10 +318,10 @@ def execute_node11(input_json,*,workflow_kind):
     code=input_json.get("pine_code")
     if not isinstance(code,str) or not code.strip():
         code=acquire_verified_pine(candidate)["pine_code"]
-    if len(code.encode("utf-8"))>60000 or not re.search(r"(?m)^\\s*//@version=[456]\\s*$",code):
+    if len(code.encode("utf-8"))>60000 or not re.search(r"(?m)^\s*//@version=[456]\s*$",code):
         raise ValueError("N11_INVALID_PINE_CONTENT")
     declaration="library" if workflow_kind=="library" else "strategy"
-    if not re.search(r"(?m)^\\s*"+declaration+r"\\s*\\(",code):
+    if not re.search(r"(?m)^\s*"+declaration+r"\s*\(",code):
         raise ValueError("N11_WRONG_PINE_SCRIPT_TYPE")
     return {
         "kind":workflow_kind,
