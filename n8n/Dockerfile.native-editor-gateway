@@ -26,6 +26,7 @@ COPY n8n/editor-adapter/investment_node_adapter.py /app/investment_node_adapter.
 COPY n8n/editor-adapter/licensed_strategy_manifest.py /app/licensed_strategy_manifest.py
 COPY n8n/editor-adapter/investment_source_registry.py /app/investment_source_registry.py
 COPY n8n/editor-adapter/verified_pine_archive.py /app/verified_pine_archive.py
+COPY n8n/editor-adapter/verified_pine_archive_index.json /app/verified_pine_archive_index.json
 COPY n8n/editor-adapter/investment_pine_store.py /app/investment_pine_store.py
 COPY --from=build /app/shared/server/node_workspace_store.py /app/node_workspace_store.py
 RUN python3 -m py_compile /app/studio_server.py /app/node_workspace_store.py /app/node_run_store.py /app/project_adapter_runtime.py /app/investment_node_adapter.py /app/licensed_strategy_manifest.py /app/investment_source_registry.py /app/verified_pine_archive.py
