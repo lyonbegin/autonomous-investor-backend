@@ -319,9 +319,15 @@
               }
             }
           ]
+        },
+        "studioPython": {
+          "python_module": "investment_node_adapter",
+          "python_function": "execute_node13",
+          "code_version": "wf01-n13-conditional-source-v1",
+          "node_character": "conditional_route"
         }
       },
-      "notes": ""
+      "notes": "N12에서 검증한 실제 Pine source_available=true와 source_hash_verified=true면 N15 소스 저장 경로(참 출력 0번)만 READY. 미확보 또는 무결성 실패면 거짓 출력 N14만 READY. 공통 IF 활성 포트 제한 기능으로 양쪽 동시 활성화 방지."
     },
     {
       "id": "wf01-strategy-14",
@@ -563,6 +569,7 @@
     "node06PythonExecutionEnabled": true,
     "node07PythonExecutionEnabled": true,
     "node11PythonExecutionEnabled": true,
-    "node12PythonExecutionEnabled": true
+    "node12PythonExecutionEnabled": true,
+    "node13PythonExecutionEnabled": true
   }
 }
