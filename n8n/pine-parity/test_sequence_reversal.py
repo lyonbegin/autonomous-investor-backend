@@ -111,7 +111,8 @@ class RSISequenceConversion(unittest.TestCase):
     def test_chart_renders_signal_without_inventing_tradingview_baseline(self):
         from engine import analyze
         rows=["time,open,high,low,close"]
-        for i,b in enumerate(fixture()):
+        extended=fixture()+[bar(i,100,100) for i in range(9,16)]
+        for i,b in enumerate(extended):
             rows.append(f"{b['time']},{b['open']},{b['high']},{b['low']},{b['close']}")
         report=analyze(PINE,"\n".join(rows)+"\n",{},"Synthetic candle check")
         self.assertEqual(report["status"],"REFERENCE_COLUMNS_REQUIRED")
