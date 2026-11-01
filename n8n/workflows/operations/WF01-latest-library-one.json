@@ -171,9 +171,15 @@
               }
             }
           ]
+        },
+        "studioPython": {
+          "python_module": "investment_node_adapter",
+          "python_function": "execute_node07",
+          "code_version": "wf01-n07-if-v1",
+          "node_character": "conditional_route"
         }
       },
-      "notes": ""
+      "notes": "N06의 실제 has_candidate 값으로 n8n IF 참(0번 포트) 또는 거짓(1번 포트) 단 한쪽에만 output 전달. 공통 edge_transfer에서 선택된 포트만 READY로 저장. 참→N11, 거짓→N08. 아직 N11 원본 Pine 취득은 미구현."
     },
     {
       "id": "wf01-library-08",
@@ -542,6 +548,7 @@
     "node03PythonExecutionEnabled": true,
     "node04PythonExecutionEnabled": true,
     "node05PythonExecutionEnabled": true,
-    "node06PythonExecutionEnabled": true
+    "node06PythonExecutionEnabled": true,
+    "node07PythonExecutionEnabled": true
   }
 }
