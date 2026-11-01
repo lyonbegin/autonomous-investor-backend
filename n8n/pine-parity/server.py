@@ -77,7 +77,7 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(data)
     def do_GET(self):
         path=urlparse(self.path).path
-        if path=="/health":return self.response(200,{"status":"ok","mode":"STRICT_SUBSET_NO_LIVE_TV_AUTOMATION","release":"pine-parity-stage1-r1"})
+        if path=="/health":return self.response(200,{"status":"ok","mode":"STRICT_SUBSET_NO_LIVE_TV_AUTOMATION","release":"pine-parity-stage2-rsi-run-v1"})
         if path in ("/","/index.html"):
             return self.response(200,(HERE/"index.html").read_bytes(),"text/html; charset=utf-8")
         if path=="/app.js":
