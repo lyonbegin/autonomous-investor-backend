@@ -45,6 +45,10 @@ def node_binding(workflow_path,node_id):
         return {"python_module":"investment_node_adapter",
           "python_function":"execute_node06","code_version":"wf01-n06-select-one-v1",
           "node_character":"choose_single_new_strategy"}
+    if node_id==prefix+"07":
+        return {"python_module":"investment_node_adapter",
+          "python_function":"execute_node07","code_version":"wf01-n07-if-v1",
+          "node_character":"conditional_route"}
     return None
 
 def node_type(workflow_path,node_id):
@@ -57,6 +61,7 @@ def node_type(workflow_path,node_id):
       "wf01-"+kind+"-04":"n8n-nodes-base.code",
       "wf01-"+kind+"-05":"n8n-nodes-base.httpRequest",
       "wf01-"+kind+"-06":"n8n-nodes-base.code",
+      "wf01-"+kind+"-07":"n8n-nodes-base.if",
     }.get(node_id)
 
 def execute_node01(input_json,*,workflow_kind):
@@ -302,6 +307,27 @@ def execute_node06(input_json,*,workflow_kind):
       "node06_selected_at":datetime.now(timezone.utc).isoformat(),
       "next_node_executed":False}
 
+def execute_node07(input_json,*,workflow_kind):
+    """Actual IF routing: choose exactly one native n8n output handle."""
+    if not isinstance(input_json,dict) or input_json.get("kind")!=workflow_kind:
+        raise ValueError("N07_UPSTREAM_KIND_MISMATCH")
+    has_candidate=input_json.get("has_candidate")
+    if type(has_candidate) is not bool:
+        raise ValueError("N07_BOOLEAN_CONDITION_REQUIRED")
+    if input_json.get("source_registry_checked") is not True:
+        raise ValueError("N07_MISSING_REGISTRY_CHECK")
+    if has_candidate and not isinstance(input_json.get("candidate"),dict):
+        raise ValueError("N07_TRUE_BRANCH_REQUIRES_REAL_CANDIDATE")
+    if not has_candidate and input_json.get("candidate") is not None:
+        raise ValueError("N07_FALSE_BRANCH_REQUIRES_NO_CANDIDATE")
+    selected=0 if has_candidate else 1
+    return {**input_json,
+        "_studio_active_ports":[selected],
+        "condition_result":has_candidate,
+        "branch_label":"HAS_NEW_CANDIDATE" if has_candidate else "NO_CANDIDATE",
+        "branch_decided_at":datetime.now(timezone.utc).isoformat(),
+        "next_node_executed":False}
+
 def execute_node(workflow_path,node_id,input_json):
     kind=WF01_MODES.get(workflow_path)
     binding=node_binding(workflow_path,node_id)
@@ -310,7 +336,8 @@ def execute_node(workflow_path,node_id,input_json):
                "execute_node03":execute_node03,
                "execute_node04":execute_node04,
                "execute_node05":execute_node05,
-               "execute_node06":execute_node06}
+               "execute_node06":execute_node06,
+               "execute_node07":execute_node07}
     func=functions[binding["python_function"]]
     return func(input_json,workflow_kind=kind)
 
@@ -319,6 +346,6 @@ def default_node_input(workflow_path,node_id):
     if not kind:return None
     if node_id=="wf01-"+kind+"-01":
         return {"ui_selection":kind,"requested_detail_limit":1}
-    if node_id in ("wf01-"+kind+"-02","wf01-"+kind+"-03","wf01-"+kind+"-04","wf01-"+kind+"-05","wf01-"+kind+"-06"):
+    if node_id in ("wf01-"+kind+"-02","wf01-"+kind+"-03","wf01-"+kind+"-04","wf01-"+kind+"-05","wf01-"+kind+"-06","wf01-"+kind+"-07"):
         return {}
     return None
