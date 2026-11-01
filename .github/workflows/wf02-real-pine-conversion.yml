@@ -1,0 +1,57 @@
+name: WF02 actual saved Pine to Python
+on:
+  push:
+    branches: [feature/editor-wf01-canvas-20261029]
+    paths:
+      - 'n8n/editor-adapter/**'
+      - 'n8n/pine-parity/engine.py'
+      - 'n8n/workflows/operations/WF02-pine-to-python.json'
+      - 'n8n/Dockerfile.native-editor-gateway'
+      - '.github/workflows/wf02-real-pine-conversion.yml'
+  workflow_dispatch:
+concurrency:
+  group: wf02-pine-${{ github.ref }}
+  cancel-in-progress: true
+permissions:
+  contents: read
+jobs:
+  unit-and-live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Syntax, unit and strategy signal parity against engine
+        run: |
+          python3 -m py_compile n8n/editor-adapter/investment_wf02.py n8n/editor-adapter/investment_node_adapter.py n8n/pine-parity/engine.py
+          PYTHONPATH=n8n/editor-adapter:n8n/pine-parity python3 -m unittest discover -s n8n/editor-adapter -p 'test_*.py' -v
+          PYTHONPATH=n8n/pine-parity python3 -m unittest discover -s n8n/pine-parity -p 'test_*.py' -v
+      - name: Wait until real Railway WF02 workflow is present
+        run: |
+          python3 - <<'PY'
+          import json,time,urllib.request
+          url="https://investment-n8n-native-editor-production.up.railway.app/api/studio/workflows/operations/WF02-pine-to-python.json"
+          for i in range(45):
+              try:
+                  with urllib.request.urlopen(url,timeout=9) as r: wf=json.load(r)["workflow"]
+                  nodes={n["id"]:n for n in wf["nodes"]}
+                  if (len(nodes)==3 and
+                      nodes["wf02-01"]["parameters"]["studioPython"]["python_function"]=="execute_wf02_node01" and
+                      nodes["wf02-02"]["parameters"]["studioPython"]["python_function"]=="execute_wf02_node02"):
+                      print("WF02_REAL_NODES_DEPLOYED",flush=True)
+                      break
+              except Exception as exc: print("WF02_DEPLOY_WAIT",type(exc).__name__,flush=True)
+              time.sleep(4)
+          else: raise RuntimeError("WF02_NODES_NOT_DEPLOYED")
+          PY
+      - name: Execute actual saved Pine node by node - do not claim unsupported converted
+        run: |
+          set -o pipefail
+          PYTHONPATH=n8n/editor-adapter:n8n/pine-parity WF02_REQUIRE_REAL_CONVERSION=0 python3 n8n/editor-adapter/probe_wf02_real.py | tee /tmp/wf02-real.log
+          grep -Eq 'WF02_REAL_PINE_PYTHON_GENERATED_REQUIRES_TV_PARITY|WF02_REAL_SOURCE_UNSUPPORTED_NOT_CONVERTED' /tmp/wf02-real.log
+      - name: Retain live execution evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wf02-actual-saved-pine-conversion
+          path: /tmp/wf02-real.log
+          if-no-files-found: ignore
