@@ -165,6 +165,15 @@ async function run(page){
     throw Error('Postgres canonical exact version did not match user selection');
   if(await page.locator('#integrated-final-review').count()!==1)
     throw Error('Missing persistent final side-by-side comparison panel');
+  const displayedIdentity=await page.locator('#integrated-source-identity').innerText();
+  if(!displayedIdentity.includes('source_id: '+sourceMeta.source_id)||
+     !displayedIdentity.includes('version_key: '+sourceMeta.version_key)||
+     !displayedIdentity.includes('script_version_id (PostgreSQL UUID): '+exact.canonical_postgres.script_version_id))
+    throw Error('Selected source identifier mutated between selector and final review: '+displayedIdentity);
+  const summaryText=await page.locator('#integrated-summary').innerText();
+  if(exact.status==='PARTIAL_BLOCKED'&&
+     (!summaryText.includes('차단/미지원')||!summaryText.includes('전체 검증 미완료')))
+    throw Error('Summary conceals blocked stages: '+summaryText);
   if(exact.result.chart==null&&await page.locator('#integrated-left-chart img').count())
     throw Error('Fake TradingView screenshot displayed without reference');
   if(exact.result?.stages?.python==='PYTHON_GENERATED'&&
