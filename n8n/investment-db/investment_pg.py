@@ -177,6 +177,35 @@ def record_conversion(source_id,version,python_code,converter_version,scope=""):
     return {"conversion_id":str(cid),"script_version_id":str(source_version),
             "python_artifact_id":str(aid),"dependency_lock_hash":lock}
 
+def dependencies_for_source(source_id,version):
+    with connect() as db:
+        row=db.execute("""SELECT sv.script_version_id FROM catalog.scripts s
+           JOIN catalog.script_versions sv ON sv.script_id=s.script_id
+           WHERE s.external_script_key=%s AND sv.provider_version=%s
+           ORDER BY sv.acquired_at DESC LIMIT 1""",(source_id,version)).fetchone()
+        if not row:raise ValueError("SOURCE_VERSION_NOT_IN_CANONICAL_DB")
+        deps=db.execute("""SELECT import_name,resolution_state,
+            COALESCE(resolved_version_id::text,'') FROM catalog.script_dependencies
+            WHERE from_version_id=%s ORDER BY import_name""",(row[0],)).fetchall()
+    return {"script_version_id":str(row[0]),
+            "dependencies":[{"import_name":x[0],"state":x[1],"resolved_version_id":x[2]} for x in deps],
+            "all_pinned":all(x[1]=="PINNED" for x in deps)}
+
+def comparison_for_source(source_id,version):
+    with connect() as db:
+        row=db.execute("""SELECT cc.comparison_id,cc.status,cc.numeric_match,
+             cc.visual_verdict,r.reference_id FROM catalog.scripts s
+            JOIN catalog.script_versions sv ON sv.script_id=s.script_id
+            JOIN research.conversions c ON c.script_version_id=sv.script_version_id
+            JOIN research.chart_comparisons cc ON cc.conversion_id=c.conversion_id
+            JOIN research.tv_references r ON r.reference_id=cc.reference_id
+              AND r.script_version_id=sv.script_version_id
+            WHERE s.external_script_key=%s AND sv.provider_version=%s
+            ORDER BY cc.computed_at DESC LIMIT 1""",(source_id,version)).fetchone()
+    return ({"comparison_id":str(row[0]),"status":row[1],
+             "numeric_match":row[2],"visual_verdict":row[3],
+             "reference_id":str(row[4])} if row else None)
+
 def get_source(source_id,version):
     """Fetch the exact canonical immutable Pine version, not a random latest row."""
     with connect() as db:
