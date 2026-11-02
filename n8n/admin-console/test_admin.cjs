@@ -83,6 +83,33 @@ async function run(page){
   console.log('PASS WF02 parity separate page opens and receives actual DB Pine; no fake TradingView image');
   await popup.close();
 
+  // One click performs four actual stages with a stable selected strategy ID.
+  const integrated=page.locator('#integrated-start');
+  if(await integrated.count()!==1)throw Error('One-click entire pipeline control missing');
+  await integrated.click();
+  await page.waitForFunction(()=>{
+    const text=document.querySelector('#integrated-label')?.textContent||'';
+    return /PARTIAL_BLOCKED|REVIEW_REQUIRED|FAILED/.test(text);
+  },null,{timeout:180000});
+  const pipeline=await page.evaluate(async()=>{
+    const r=await fetch('/api/investment/pipeline',{credentials:'same-origin',cache:'no-store'});
+    return r.json();
+  });
+  const events=pipeline.events||[],stages=pipeline.result?.stages||{};
+  for(const name of ['strategy','library','python','chart']){
+    if(!events.some(e=>e.stage===name))throw Error('No real stage persisted: '+name);
+  }
+  if(pipeline.result?.converted_source){
+    const selected=pipeline.result.selected_source,converted=pipeline.result.converted_source;
+    if(selected.source_id!==converted.source_id||selected.version_key!==converted.version_key)
+      throw Error('Pipeline wrongly replaced selected source with unrelated strategy');
+  }
+  if(stages.chart==='BLOCKED_REAL_TV_CHART_CSV_MISSING'&&pipeline.status==='REVIEW_REQUIRED')
+     throw Error('False chart verification despite missing actual TV input');
+  console.log('PASS one-click persisted four-stage pipeline',JSON.stringify({
+    status:pipeline.status,stages,events:events.length
+  }));
+
   const href=await page.locator('#flow-panel a[href*="workflow="]').first().getAttribute('href');
   if(!href?.includes('WF02-chart-parity-first-stage.json'))throw Error('Parity deep link wrong '+href);
   await nav(page,BASE+href);
