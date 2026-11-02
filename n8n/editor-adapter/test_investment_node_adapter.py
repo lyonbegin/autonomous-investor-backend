@@ -47,6 +47,28 @@ class WF01UsefulNodes(unittest.TestCase):
         self.assertNotIn("pine_source_sha256",got)
         self.assertEqual(got["rights_state"],"PENDING_REVIEW")
 
+    def test_large_pine_propagates_from_n11_into_actual_sqlite_n15_n16(self):
+        from investment_node_adapter import execute_node15,execute_node16
+        from verified_pine_archive import MAX_PINE_BYTES
+        from sqlite3 import connect
+        large="//@version=6\\nstrategy('Long Pine')\\n" + "// extra calculations\\n"*8500
+        self.assertGreater(len(large.encode("utf-8")),60000)
+        self.assertLess(len(large.encode("utf-8")),MAX_PINE_BYTES)
+        with tempfile.TemporaryDirectory() as folder,patch.dict(
+            os.environ,{"STUDIO_DB_PATH":folder+"/store.db"}):
+            n11=execute_node11({"kind":"strategy","has_candidate":True,
+               "candidate":{"kind":"strategy","source_id":"PUB;long-script",
+               "version_key":"1.0"},"pine_code":large},workflow_kind="strategy")
+            self.assertEqual(n11["pine_code"],large)
+            n15=execute_node15(n11,workflow_kind="strategy")
+            n16=execute_node16(n15,workflow_kind="strategy")
+            self.assertTrue(n15["source_saved"])
+            self.assertEqual(n16["status"],"PINE_SAVED_CONVERSION_PENDING")
+            with connect(folder+"/store.db") as db:
+                self.assertEqual(db.execute(
+                  "SELECT pine_code FROM investment_pine_payloads WHERE source_id=?",
+                  ("PUB;long-script",)).fetchone()[0],large)
+
     def test_no_fetchable_pine_moves_to_next_catalog_page(self):
         from investment_node_adapter import (execute_node06,execute_node07,
                                                execute_node08,execute_node09,execute_node10)
