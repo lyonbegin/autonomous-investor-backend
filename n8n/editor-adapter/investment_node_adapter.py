@@ -43,6 +43,11 @@ def investment_database_status():
     from investment_pg import counts
     return counts()
 
+def pipeline_exact_source(source_id,version_key):
+    from investment_pipeline import exact_stored_pine
+    return exact_stored_pine(source_id,version_key)
+
+
 def pipeline_sources():
     from investment_pipeline import saved_sources
     return saved_sources()
