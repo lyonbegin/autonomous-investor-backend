@@ -50,22 +50,8 @@ jobs:
                   db.execute("INSERT INTO untouched_legacy(value) VALUES('PRESERVE')")
               health=pg.bootstrap()
               assert health['tables']==38,health
-              source='''//@version=6
-          strategy("SMA/EMA cross",overlay=true)
-          fastLen = input.int(3, "fast")
-          slowLen = input.int(7, "slow")
-          fastMA = ta.sma(close, fastLen)
-          slowMA = ta.ema(close, slowLen)
-          longSignal = ta.crossover(fastMA, slowMA)
-          shortSignal = ta.crossunder(fastMA, slowMA)
-          if (longSignal)
-              strategy.entry("Long", strategy.long)
-          if (shortSignal)
-              strategy.entry("Short", strategy.short)
-          plot(fastMA)
-          plot(slowMA)
-          '''
-              source='\\n'.join(x.strip() for x in source.splitlines() if x.strip())+'\\n'
+              from test_investment_wf02 import SUPPORTED
+              source=SUPPORTED
               payload={'candidate':{'source_id':'PUB;db-integration-one','version_key':'1.0',
                  'source_url':'https://www.tradingview.com/script/ABCDEFGH/','title':'DB TEST'},
                  'pine_code':source}
