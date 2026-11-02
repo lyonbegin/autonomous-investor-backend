@@ -42,6 +42,7 @@ jobs:
           with tempfile.TemporaryDirectory() as folder:
               os.environ['STUDIO_DB_PATH']=folder+'/studio.sqlite3'
               os.environ['INVESTMENT_ARTIFACT_ROOT']=folder+'/artifacts'
+              os.environ['INVESTMENT_BACKUP_ROOT']=folder+'/backups'
               import investment_pg as pg
               from investment_pine_store import save_verified_source
               from investment_wf02 import execute_wf02_node01,execute_wf02_node02
