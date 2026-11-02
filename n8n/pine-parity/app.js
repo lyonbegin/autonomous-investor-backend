@@ -1,4 +1,28 @@
 const $=id=>document.getElementById(id);
+
+const INVESTMENT_ADMIN_ORIGIN='https://investment-n8n-native-editor-production.up.railway.app';
+window.addEventListener('message',e=>{
+ if(e.origin!==INVESTMENT_ADMIN_ORIGIN||e.source!==window.opener||e.data?.type!=='AUTONOMOUS_PINE_IMPORT')return;
+ const code=e.data?.pine_code;
+ if(typeof code!=='string'||!code.trim()||new TextEncoder().encode(code).length>512*1024)return;
+ $('pine').value=code;
+ $('sourceUrl').value='';
+ $('csv').value='';$('screenshot').value='';
+ csvText='';screenshotData='';
+ $('csvInfo').textContent='실제 TradingView OHLC·플롯 CSV를 업로드하세요';
+ $('screenshotInfo').textContent='원본 TradingView 차트 캡처를 업로드하세요';
+ $('leftChart').innerHTML='<div class="noChart">원본 Pine 코드를 불러왔습니다. 실제 TradingView 전략 적용 이미지가 아직 없습니다.</div>';
+ $('leftBadge').textContent='원본 이미지 미제공';
+ $('symbol').value='';
+ $('timeframe').value='';
+ updateOverlay();
+ setStatus('저장된 Pine 원본 전달 완료 · 실제 TradingView 차트·CSV·종목·시간봉을 입력하고 수치 검증하세요');
+});
+if(window.opener){
+ try{window.opener.postMessage({type:'PARITY_READY'},INVESTMENT_ADMIN_ORIGIN);}
+ catch(e){console.warn('Admin-to-parity handshake unavailable',e);}
+}
+
 let csvText='',screenshotData='';
 function setStatus(s,state='pending'){$('status').textContent=s;$('status').dataset.state=state;}
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
