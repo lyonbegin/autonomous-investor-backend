@@ -196,6 +196,16 @@ async function run(page){
   if(!iframeSrc.includes(encodeURIComponent(sourceMeta.source_id))||
       !iframeSrc.includes(sourceMeta.source_sha256))
     throw Error('Embedded native/Python comparison not pinned to exact Pine source');
+  const comparison=page.frameLocator('#native-compare-target iframe');
+  await comparison.locator('.pine-compare-page').waitFor({state:'visible',timeout:120000});
+  await comparison.locator('.native-pine-chart').waitFor({state:'visible',timeout:120000});
+  await comparison.locator('.pine-chart-wrap').waitFor({state:'visible',timeout:120000});
+  const frameText=await comparison.locator('.pine-compare-page').innerText();
+  if(!frameText.includes('같은 OHLCV 사용')||!frameText.includes('거래 수 '))
+    throw Error('Native Pine and Python charts are not both populated in final workflow');
+  if(!frameText.includes(sourceMeta.source_id)||!frameText.includes(sourceMeta.source_sha256))
+    throw Error('Embedded charts switched strategy ID or SHA');
+  console.log('PASS final workflow iframe rendered native PineTS + Python price charts on same real OHLCV');
   console.log('PASS exact canonical source SHA and original Pine/Python chart linked',JSON.stringify({
      sha:sourceMeta.source_sha256,bars:restored.chart.bars.length,
      markers:restored.chart.visual.markers.length,
