@@ -26,7 +26,7 @@ class PineFetchTests(unittest.TestCase):
 
     def test_realistic_127kb_pine_source_is_not_truncated(self):
         item={"source_url":"https://www.tradingview.com/script/nmnHkA02/"}
-        content=("//@version=6\\nstrategy('Long Pine')\\n" + "// substantial Pine logic\\n"*8500).encode("utf-8")
+        content=("//@version=6\nstrategy('Long Pine')\n" + "// substantial Pine logic\n"*8500).encode("utf-8")
         self.assertGreater(len(content),60000)
         self.assertLess(len(content),MAX_PINE_BYTES)
         with patch("verified_pine_archive.urllib.request.urlopen",
