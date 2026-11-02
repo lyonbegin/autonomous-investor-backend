@@ -107,6 +107,8 @@ CREATE TABLE IF NOT EXISTS research.chart_comparisons(
  computed_at timestamptz NOT NULL DEFAULT now(),
  UNIQUE(conversion_id,reference_id,comparison_algorithm_version)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS idx_tv_reference_artifact_identity
+ ON research.tv_references(script_version_id,dataset_id,parameters_hash,chart_settings_hash,tv_csv_artifact_id,tv_screenshot_artifact_id);
 CREATE TABLE IF NOT EXISTS research.parameter_sets(
  parameter_set_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),param_hash char(64) UNIQUE NOT NULL,
  params jsonb NOT NULL,created_at timestamptz NOT NULL DEFAULT now()
