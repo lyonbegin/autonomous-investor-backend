@@ -281,6 +281,62 @@ def lookup_reference(source_url,code):
     except (OSError,TimeoutError,ValueError) as exc:
         return None,"PARITY_LOOKUP_ERROR_"+type(exc).__name__
 
+def actual_python_chart_for_exact_source(selected):
+    """Execute the restored original-source Python chart path on real market OHLCV.
+    This is research/visual review, never TradingView website plot parity.
+    """
+    pine=exact_stored_pine(selected["source_id"],selected["version_key"])
+    symbol=os.environ.get("INVESTMENT_CHART_SYMBOL","NASDAQ:NVDA")
+    horizon=os.environ.get("INVESTMENT_CHART_HORIZON","2h")
+    if not 1<=len(symbol)<=100 or not 1<=len(horizon)<=12:
+        raise ValueError("CHART_SYMBOL_OR_HORIZON_INVALID")
+    public=os.environ.get("INVESTMENT_PUBLIC_API",
+        "https://autonomous-investor-public-api-production.up.railway.app").rstrip("/")
+    params=urllib.parse.urlencode({"version":selected["version_key"],
+       "sha256":pine["source_sha256"],"symbol":symbol,"horizon":horizon})
+    url=public+"/api/public/scripts/"+urllib.parse.quote(selected["source_id"],safe="")+"/compare-exact?"+params
+    req=urllib.request.Request(url,headers={"User-Agent":"investment-WF02-chart-v1",
+                                             "Accept":"application/json"})
+    try:
+        with urllib.request.urlopen(req,timeout=100) as response:
+            data=json.load(response)
+    except urllib.error.HTTPError as exc:
+        raise ValueError("EXACT_CHART_API_HTTP_"+str(exc.code)) from exc
+    except (OSError,TimeoutError,ValueError) as exc:
+        raise ValueError("EXACT_CHART_API_NOT_READY_"+type(exc).__name__) from exc
+    if data.get("mode")!="EXACT_PINNED_STUDIO_SOURCE":
+        raise ValueError("CHART_NOT_PINNED_TO_STUDIO_DB")
+    chart=data.get("chart") or {}
+    source=data.get("source") or {}
+    if (chart.get("source_hash")!=pine["source_sha256"] or
+        source.get("source_sha256")!=pine["source_sha256"] or
+        source.get("version_key")!=selected["version_key"] or
+        chart.get("script_id")!=selected["source_id"]):
+        raise ValueError("CHART_SOURCE_VERSION_MISMATCH")
+    bars=chart.get("bars") or []
+    visual=chart.get("visual") or {}
+    if len(bars)<50 or visual.get("adapter") in (None,"unsupported") or visual.get("error"):
+        raise ValueError("REAL_MARKET_OR_PYTHON_CHART_UNSUPPORTED:"+str(visual.get("error"))[:180])
+    meta=chart.get("market_data") or {}
+    if not meta.get("provider") or not meta.get("count"):
+        raise ValueError("CHART_MARKET_PROVENANCE_MISSING")
+    preview_url=("https://autonomous-investor-public-production.up.railway.app/compare/"+
+         urllib.parse.quote(selected["source_id"],safe="")+"?"+
+         urllib.parse.urlencode({"version":selected["version_key"],
+             "sha256":pine["source_sha256"],"symbol":symbol,"horizon":horizon}))
+    return {"status":"CHART_PREVIEW_READY_TV_PARITY_PENDING",
+       "source_id":selected["source_id"],"version_key":selected["version_key"],
+       "source_sha256":pine["source_sha256"],
+       "script_version_id":pine["script_version_id"],
+       "symbol":chart.get("symbol"),"horizon":chart.get("horizon"),
+       "market_provider":meta["provider"],"bar_count":len(bars),
+       "python_adapter":visual["adapter"],
+       "python_markers":len(visual.get("markers") or []),
+       "python_trade_count":len(visual.get("trades") or []),
+       "preview_url":preview_url,"same_ohlcv":data.get("same_ohlcv") is True,
+       "tv_website_parity_verified":False,"data_provider":meta["provider"]}
+
+
 def process(run_id,sid,requested_source=None):
     statuses={}
     selected=None
@@ -400,16 +456,31 @@ def process(run_id,sid,requested_source=None):
                 statuses["chart"]="REFERENCE_FOUND_REVIEW_REQUIRED"
                 stage(run_id,"chart",PARITY,statuses["chart"],chart)
             else:
-                statuses["chart"]="BLOCKED_REAL_TV_CHART_CSV_MISSING"
-                stage(run_id,"chart",PARITY,statuses["chart"],{
-                    "source_id":converted["source_id"],"version_key":converted["version_key"],
-                    "reason":error or "CANONICAL_REFERENCE_OR_COMPARISON_MISSING",
-                    "source_url":source.get("source_url") if source else None})
-        final=("REVIEW_REQUIRED" if (
-           statuses.get("library") in ("NOT_REQUIRED","DEPENDENCIES_PINNED")
-           and statuses.get("python")=="PYTHON_GENERATED"
-           and statuses.get("chart")=="REFERENCE_FOUND_REVIEW_REQUIRED")
-           else "PARTIAL_BLOCKED")
+                # A real chart preview is possible even when the TV.com
+                # exported benchmark is absent. Execute the EXISTING Python
+                # OHLCV engine on the exact pinned Pine; do not invent TV CSV.
+                try:
+                    chart=actual_python_chart_for_exact_source(converted)
+                    statuses["chart"]="CHART_PREVIEW_READY_TV_PARITY_PENDING"
+                    stage(run_id,"chart",PARITY,statuses["chart"],
+                          {**chart,"official_tv_reference":error or "NOT_IN_DATABASE"})
+                except Exception as exc:
+                    statuses["chart"]="BLOCKED_REAL_CHART_PREVIEW_UNAVAILABLE"
+                    stage(run_id,"chart",PARITY,statuses["chart"],{
+                        "source_id":converted["source_id"],
+                        "version_key":converted["version_key"],
+                        "reason":str(exc)[:450],
+                        "official_tv_reference":error or "NOT_IN_DATABASE"})
+        final=(
+            "REVIEW_REQUIRED" if (
+                statuses.get("library") in ("NOT_REQUIRED","DEPENDENCIES_PINNED")
+                and statuses.get("python")=="PYTHON_GENERATED"
+                and statuses.get("chart")=="REFERENCE_FOUND_REVIEW_REQUIRED")
+            else "TV_PARITY_PENDING" if (
+                statuses.get("library") in ("NOT_REQUIRED","DEPENDENCIES_PINNED")
+                and statuses.get("python")=="PYTHON_GENERATED"
+                and statuses.get("chart")=="CHART_PREVIEW_READY_TV_PARITY_PENDING")
+            else "PARTIAL_BLOCKED")
         with closing(open_registry()) as db:
             trace_failures=db.execute("""SELECT count(*) FROM investment_pipeline_events
                 WHERE run_id=? AND status='POSTGRES_TRACE_FAILED'""",(run_id,)).fetchone()[0]
