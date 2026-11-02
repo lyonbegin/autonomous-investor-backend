@@ -6,7 +6,7 @@ window.addEventListener('message',e=>{
  const code=e.data?.pine_code;
  if(typeof code!=='string'||!code.trim()||new TextEncoder().encode(code).length>512*1024)return;
  $('pine').value=code;
- $('sourceUrl').value='';
+ $('sourceUrl').value=typeof e.data.source_url==='string'&&/^https:\/\/(?:www\.|kr\.)?tradingview\.com\/script\/[A-Za-z0-9]{8}\/?$/.test(e.data.source_url)?e.data.source_url:'';
  $('csv').value='';$('screenshot').value='';
  csvText='';screenshotData='';
  $('csvInfo').textContent='실제 TradingView OHLC·플롯 CSV를 업로드하세요';
