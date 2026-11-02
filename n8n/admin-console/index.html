@@ -274,9 +274,14 @@ async function executeFlow(){
    const progress=document.getElementById('progress');if(progress)progress.textContent='실행 중 · '+node.name;
    const body=prevRun?{workflow:flow,node_id:id,source_run_id:prevRun}:{workflow:flow,node_id:id,input_json:input};
    const path=prevRun?'/api/studio/nodes/execute':'/api/studio/node01/execute';
-   const r=await api(path,{method:'POST',
+   let r;
+   for(let attempt=0;attempt<4;attempt++){
+    r=await api(path,{method:'POST',
       headers:{'Content-Type':'application/json','X-Studio-Node-Run':prevRun?'APPROVED':'N01'},
       body:JSON.stringify(body)});
+    if(!(prevRun&&r.status===400&&r.data?.error==='CONNECTED_UPSTREAM_RUN_NOT_READY'))break;
+    if(attempt<3)await new Promise(resolve=>setTimeout(resolve,250*(attempt+1)));
+   }
    const d=r.data;
    session[id]={status:d.status||'FAILED',data:d};
    log(node.name+' · HTTP '+r.status+' · '+(d.status||'오류')+' · '+(d.run_id||'실행 ID 없음'),r.ok?'green':'red');
