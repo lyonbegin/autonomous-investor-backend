@@ -230,6 +230,17 @@ def mirror_node_event(run_id,stage_key,workflow,node_id,node_name,status,payload
                 (stage_run_id,node_id,node_name,status,output_ref,error_code)
                 VALUES(%s,%s,%s,%s,%s::jsonb,%s)""",(sr,node_id or stage_key,
                    node_name,status,json.dumps(clean,ensure_ascii=False,default=str),str(error)[:200] if error else None))
+            if node_id in ("wf01-strategy-16","wf01-library-16","wf02-03") or status=="FAILED":
+                finished_status=(str((payload or {}).get("status") or "SUCCESS")
+                    if status=="SUCCESS" else "FAILED")
+                cur.execute("""UPDATE operations.pipeline_runs
+                    SET status=%s,ended_at=now(),error_code=%s
+                    WHERE pipeline_run_id=%s""",
+                    (finished_status,str(error)[:200] if error else None,run_uuid))
+                cur.execute("""UPDATE operations.stage_runs
+                    SET status=%s,finished_at=now(),error_code=%s
+                    WHERE stage_run_id=%s""",
+                    (finished_status,str(error)[:200] if error else None,sr))
         db.commit()
 
 def backup_sqlite():
