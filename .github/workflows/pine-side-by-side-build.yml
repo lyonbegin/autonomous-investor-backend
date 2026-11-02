@@ -28,3 +28,27 @@ jobs:
           grep -q "NativePineChartControl" public_frontend/src/pages/scripts/PineSideBySidePage.tsx
           grep -q "PineChartControl" public_frontend/src/pages/scripts/PineSideBySidePage.tsx
           grep -q "source_hash" public_frontend/src/pages/scripts/PineSideBySidePage.tsx
+  live-api:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Check existing source and Python visualization on actual OHLCV
+        run: |
+          python3 - <<'PY'
+          import urllib.request,urllib.parse,json
+          root='https://autonomous-investor-public-api-production.up.railway.app/api/public/scripts/'
+          sid='PUB;67a1548c0960450086a19d5b0ef1d467'
+          src=root+urllib.parse.quote(sid,safe='')+'/source'
+          url=root+urllib.parse.quote(sid,safe='')+'/chart?'+urllib.parse.urlencode({'symbol':'NASDAQ:NVDA','horizon':'2h'})
+          with urllib.request.urlopen(src,timeout=35) as r:a=json.load(r)
+          assert a.get('source') and a.get('source_hash'),a
+          with urllib.request.urlopen(url,timeout=85) as r:b=json.load(r)
+          assert b.get('script_id')==sid,(b.get('script_id'),sid)
+          assert len(b.get('bars') or [])>50,('EMPTY_BARS',b.get('market_data'))
+          assert a.get('source_hash')==b.get('source_hash'),'SOURCE_HASH_MISMATCH'
+          print(json.dumps({'tested_script':sid,'source_hash':a.get('source_hash'),
+            'market_data':b.get('market_data'),'python_visual':{
+               'adapter':b.get('visual',{}).get('adapter'),
+               'error':b.get('visual',{}).get('error'),
+               'trades':len(b.get('visual',{}).get('trades') or [])}},ensure_ascii=False))
+          PY
