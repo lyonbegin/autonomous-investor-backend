@@ -229,7 +229,8 @@ async function refreshIntegrated(runId){
     if(chosen&&metadata?.source_sha256&&/^[0-9a-f]{64}$/.test(metadata.source_sha256)
        &&d.status!=='RUNNING'){
       const src='https://autonomous-investor-public-production.up.railway.app/compare/'+
-         encodeURIComponent(chosen.source_id)+'?sha256='+encodeURIComponent(metadata.source_sha256);
+         encodeURIComponent(chosen.source_id)+'?version='+encodeURIComponent(chosen.version_key)+
+         '&sha256='+encodeURIComponent(metadata.source_sha256);
       if(preview.dataset.loaded!==src){
         preview.dataset.loaded=src;
         preview.innerHTML='<p><a href="'+esc(src)+'" target="_blank" rel="noopener">기존 Pine↔Python 비교 화면 새 창 열기</a> · 저장 원본 해시가 다르면 차단됩니다.</p>'+
