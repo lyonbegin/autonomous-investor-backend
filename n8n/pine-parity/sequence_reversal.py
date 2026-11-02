@@ -69,7 +69,7 @@ ESSENTIAL=(
     'strategy.exit("ShortExit",from_entry="Short",stop=stopLossPrice,limit=takeProfitPrice)',
 )
 def parse_sequence_pine(code):
-    if not isinstance(code,str) or not code.strip() or len(code.encode("utf-8"))>60000:
+    if not isinstance(code,str) or not code.strip() or len(code.encode("utf-8"))>512*1024:
         raise UnsupportedSequencePine("PINE_SOURCE_REQUIRED")
     if not re.search(r"(?m)^\s*//@version=6\s*$",code):
         raise UnsupportedSequencePine("SEQUENCE_REQUIRES_PINE_V6")
