@@ -44,6 +44,17 @@ async function run(page){
   if(!pending.includes('URL·버전·Pine 원본을 입력'))throw Error('Library missing-source must be explicit and not fake success: '+pending);
   console.log('PASS WF01 library no-source blocked with honest manual-entry instructions');
 
+  // Large deliberately invalid Pine is not saved. It must reach the Python
+  // declaration validator instead of being rejected by the old 2KB HTTP cap.
+  await page.locator('#library-url').fill('https://www.tradingview.com/script/j7vCseM2-VisibleChart/');
+  await page.locator('#library-version').fill('ui-validation-only');
+  await page.locator('#library-pine').fill('INVALID_PINE\n'+'test comment line\n'.repeat(180));
+  logs=await run(page);
+  if(!logs.includes('HTTP 422')||!logs.includes('LIBRARY_PINE_DECLARATION_REQUIRED')||logs.includes('INPUT_SIZE_INVALID'))
+   throw Error('WF01 library 2KB API problem persists or wrong validator: '+logs.slice(0,900));
+  console.log('PASS WF01 library >2KB input is received and correctly rejected as invalid Pine; no fake library stored');
+
+
   await choose(page,'operations/WF02-pine-to-python.json');
   if(await page.locator('#node-list .step').count()!==3)throw Error('WF02 actual 3 nodes missing');
   logs=await run(page);
