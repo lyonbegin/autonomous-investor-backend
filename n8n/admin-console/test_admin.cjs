@@ -89,7 +89,7 @@ async function run(page){
   await integrated.click();
   await page.waitForFunction(()=>{
     const text=document.querySelector('#integrated-label')?.textContent||'';
-    return /PARTIAL_BLOCKED|REVIEW_REQUIRED|FAILED|실행 시작 실패|실행 조회 실패/.test(text);
+    return /TV_PARITY_PENDING|PARTIAL_BLOCKED|REVIEW_REQUIRED|FAILED|실행 시작 실패|실행 조회 실패/.test(text);
   },null,{timeout:180000});
   const firstStatus=await page.locator('#integrated-label').innerText();
   if(firstStatus.includes('실패'))throw Error('First one-click pipeline did not complete: '+firstStatus);
@@ -98,6 +98,22 @@ async function run(page){
     return r.json();
   });
   const events=pipeline.events||[],stages=pipeline.result?.stages||{};
+  if(stages.strategy==='NO_NEW_SOURCE'||
+     stages.strategy==='BLOCKED_NO_CONVERTIBLE_SAVED_SOURCE'||
+     stages.python!=='PYTHON_GENERATED'||
+     stages.chart!=='CHART_PREVIEW_READY_TV_PARITY_PENDING'||
+     pipeline.status!=='TV_PARITY_PENDING')
+    throw Error('AUTO MODE DID NOT EXECUTE COMPLETE REAL CONVERTIBLE STRATEGY TO CHART: '+
+      JSON.stringify({status:pipeline.status,source:pipeline.result?.selected_source,stages}));
+  if(!pipeline.result?.selected_source||!pipeline.result?.converted_source||
+     pipeline.result.selected_source.source_id!==pipeline.result.converted_source.source_id)
+    throw Error('AUTO MODE CHANGED SOURCE BEFORE PYTHON/CHART');
+  if(!pipeline.result.chart?.bar_count||
+     pipeline.result.chart?.python_adapter!=='sequence-reversal-python'||
+     pipeline.result.chart?.tv_website_parity_verified!==false)
+    throw Error('AUTO MODE NO REAL CHART PREVIEW OR FALSE TRADINGVIEW PARITY: '+
+      JSON.stringify(pipeline.result.chart));
+
   for(const name of ['strategy','library','python','chart']){
     if(!events.some(e=>e.stage===name))throw Error('No real stage persisted: '+name);
   }
@@ -149,7 +165,7 @@ async function run(page){
   await page.locator('#integrated-start').click();
   await page.waitForFunction((previousRunId)=>{
     const text=document.querySelector('#integrated-label')?.textContent||'';
-    return !text.includes(previousRunId) && /PARTIAL_BLOCKED|REVIEW_REQUIRED|FAILED|실행 시작 실패|실행 조회 실패/.test(text);
+    return !text.includes(previousRunId) && /TV_PARITY_PENDING|PARTIAL_BLOCKED|REVIEW_REQUIRED|FAILED|실행 시작 실패|실행 조회 실패/.test(text);
   },pipeline.run_id,{timeout:180000});
   const secondStatus=await page.locator('#integrated-label').innerText();
   if(secondStatus.includes('실패'))throw Error('Exact pinned one-click pipeline did not complete: '+secondStatus);
@@ -213,10 +229,11 @@ async function run(page){
   }));
   if(exact.result.chart==null&&await page.locator('#integrated-left-chart img').count())
     throw Error('Fake TradingView screenshot displayed without reference');
-  if(exact.result?.stages?.python==='PYTHON_GENERATED'&&
-     (exact.result?.stages?.chart!=='BLOCKED_REAL_TV_CHART_CSV_MISSING'&&
-      exact.result?.stages?.chart!=='REFERENCE_FOUND_REVIEW_REQUIRED'))
-    throw Error('Conversion status and real reference chart state are inconsistent');
+  if(exact.result?.stages?.python!=='PYTHON_GENERATED'||
+     exact.result?.stages?.chart!=='CHART_PREVIEW_READY_TV_PARITY_PENDING'||
+     exact.status!=='TV_PARITY_PENDING')
+    throw Error('Pinned strategy did not execute all four real stages up to chart preview: '+
+       JSON.stringify(exact.result?.stages));
   await page.screenshot({path:'/tmp/investment-4stage-pinned.png',fullPage:true});
   console.log('PASS exact pinned source used through four DB stages and side-by-side real-data-only panel',
     JSON.stringify({source:sourceMeta.source_id,version:sourceMeta.version_key,
