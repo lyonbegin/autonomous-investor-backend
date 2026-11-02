@@ -79,6 +79,20 @@ def event(run_id,stage,workflow,node_id,name,status,payload=None,error=None):
                              json.dumps(clean,ensure_ascii=False,default=str),
                              str(error)[:2000] if error else None,now()))
         db.commit()
+    if os.environ.get("INVESTMENT_DATABASE_URL"):
+        try:
+            from investment_pg import mirror_node_event
+            mirror_node_event(run_id,stage,workflow,node_id or stage,name,status,clean,error)
+        except Exception as exc:
+            with closing(open_registry()) as db:
+                db.execute("""INSERT INTO investment_pipeline_events
+                  (run_id,stage,workflow,node_id,node_name,status,payload_json,error,at)
+                  VALUES(?,?,?,?,?,'POSTGRES_TRACE_FAILED','{}',?,?)""",
+                  (run_id,stage,workflow,node_id or stage,"Canonical DB sync",
+                   (type(exc).__name__+": "+str(exc))[:450],now()))
+                db.commit()
+            print("PIPELINE_POSTGRES_NODE_SYNC_FAILED",run_id,stage,
+                  type(exc).__name__,str(exc)[:160],flush=True)
 
 def stage(run_id,label,workflow,status,detail=None,error=None):
     event(run_id,label,workflow,None,{"strategy":"WF-01 전략 수집",
@@ -278,8 +292,23 @@ def process(run_id,sid):
            and statuses.get("python")=="PYTHON_GENERATED"
            and statuses.get("chart")=="REFERENCE_FOUND_REVIEW_REQUIRED")
            else "PARTIAL_BLOCKED")
+        with closing(open_registry()) as db:
+            trace_failures=db.execute("""SELECT count(*) FROM investment_pipeline_events
+                WHERE run_id=? AND status='POSTGRES_TRACE_FAILED'""",(run_id,)).fetchone()[0]
+        if trace_failures:
+            final="FAILED_PERSISTENCE"
+        postgres_finish=None
+        if os.environ.get("INVESTMENT_DATABASE_URL"):
+            try:
+                from investment_pg import finish_pipeline_run
+                postgres_finish=finish_pipeline_run(run_id,final,selected)
+            except Exception as exc:
+                final="FAILED_PERSISTENCE"
+                postgres_finish={"status":"FAILED","reason":type(exc).__name__+": "+str(exc)[:200]}
         result={"status":final,"stages":statuses,"selected_source":selected,
                 "converted_source":converted,"chart":chart,
+                "postgres_sync":postgres_finish,
+                "postgres_trace_failures":trace_failures,
                 "note":"Only stored TradingView chart CSV/screenshots allow visual comparison; no synthetic TV data."}
         with closing(open_registry()) as db:
             db.execute("""UPDATE investment_pipeline_runs SET status=?,finished_at=?,
@@ -289,7 +318,16 @@ def process(run_id,sid):
                  json.dumps(result,ensure_ascii=False),run_id))
             db.commit()
     except Exception as exc:
-        event(run_id,"chart",PARITY,None,"전체 실행 오류","FAILED",error=str(exc))
+        try:
+            event(run_id,"chart",PARITY,None,"전체 실행 오류","FAILED",error=str(exc))
+        except Exception:
+            pass
+        if os.environ.get("INVESTMENT_DATABASE_URL"):
+            try:
+                from investment_pg import finish_pipeline_run
+                finish_pipeline_run(run_id,"FAILED",selected,str(exc))
+            except Exception as pg_exc:
+                print("PIPELINE_POSTGRES_FINALIZATION_FAILED",type(pg_exc).__name__,str(pg_exc)[:200],flush=True)
         with closing(open_registry()) as db:
             db.execute("""UPDATE investment_pipeline_runs
                  SET status='FAILED',finished_at=?,result_json=? WHERE run_id=?""",
