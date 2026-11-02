@@ -59,7 +59,15 @@ def save_verified_source(input_json,kind):
         except Exception:
             db.rollback()
             raise
+    postgres_result=None
+    if __import__("os").environ.get("INVESTMENT_DATABASE_URL"):
+        # SQLite remains a reversible legacy cache. Postgres is the canonical
+        # long-lived identity. A failed sync fails the node visibly.
+        from investment_pg import record_source
+        postgres_result=record_source(kind,source_id,version,code,
+            candidate.get("source_url"),"PENDING_REVIEW",candidate.get("title"))
     return {"source_saved":True,"source_created":inserted,"saved_count":int(inserted),
         "source_id":source_id,"version_key":version,
         "rights_state":"PENDING_REVIEW","conversion_validated":False,
-        "tradingview_chart_validated":False}
+        "tradingview_chart_validated":False,
+        "postgres_sync":postgres_result is not None,\n        "script_version_id":postgres_result["script_version_id"] if postgres_result else None}
