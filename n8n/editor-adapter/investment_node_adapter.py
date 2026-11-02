@@ -43,9 +43,14 @@ def investment_database_status():
     from investment_pg import counts
     return counts()
 
-def pipeline_start(sid):
+def pipeline_sources():
+    from investment_pipeline import saved_sources
+    return saved_sources()
+
+
+def pipeline_start(sid,selected_source=None):
     from investment_pipeline import start
-    return start(sid)
+    return start(sid,selected_source)
 
 def pipeline_read(sid,run_id=None):
     from investment_pipeline import read
