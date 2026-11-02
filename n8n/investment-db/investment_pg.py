@@ -177,6 +177,61 @@ def record_conversion(source_id,version,python_code,converter_version,scope=""):
     return {"conversion_id":str(cid),"script_version_id":str(source_version),
             "python_artifact_id":str(aid),"dependency_lock_hash":lock}
 
+def get_source(source_id,version):
+    """Fetch the exact canonical immutable Pine version, not a random latest row."""
+    with connect() as db:
+        row=db.execute("""SELECT sv.script_version_id,sv.content_sha256,
+           a.storage_uri FROM catalog.scripts s
+           JOIN catalog.script_versions sv ON sv.script_id=s.script_id
+           JOIN platform.artifacts a ON a.artifact_id=sv.source_artifact_id
+           WHERE s.external_script_key=%s AND sv.provider_version=%s
+           ORDER BY sv.acquired_at DESC LIMIT 1""",(source_id,version)).fetchone()
+    if not row:raise ValueError("POSTGRES_EXACT_SOURCE_NOT_FOUND")
+    source_version,sha,uri=row
+    if not uri.startswith("investment-file://"):raise ValueError("NONLOCAL_SOURCE_ARTIFACT")
+    fp=ARTIFACT_ROOT/uri.removeprefix("investment-file://")[:2]/uri.removeprefix("investment-file://")
+    raw=fp.read_bytes()
+    if hashlib.sha256(raw).hexdigest()!=sha.strip():raise ValueError("ARTIFACT_SHA_MISMATCH")
+    return {"pine_code":raw.decode("utf-8"),"script_version_id":str(source_version),"source_sha256":sha.strip()}
+
+def counts():
+    status=schema_health()
+    if status["status"]!="ok":return status
+    tables={"scripts":"catalog.scripts","versions":"catalog.script_versions",
+            "libraries":"catalog.scripts","conversions":"research.conversions",
+            "tv_references":"research.tv_references","comparisons":"research.chart_comparisons",
+            "pipeline_runs":"operations.pipeline_runs"}
+    with connect() as db:
+        for label,table in tables.items():
+            if label=="libraries":
+                status[label]=db.execute("SELECT count(*) FROM catalog.scripts WHERE script_kind='LIBRARY'").fetchone()[0]
+            else:
+                status[label]=db.execute("SELECT count(*) FROM "+table).fetchone()[0]
+    return status
+
+def mirror_node_event(run_id,stage_key,workflow,node_id,node_name,status,payload,error=None):
+    """Link the original node's run to Postgres operations trace by stable UUID."""
+    import uuid
+    run_uuid=uuid.UUID(hex=run_id)
+    clean={key:value for key,value in (payload or {}).items() if key not in (
+         "pine_code","python_code","manual_library","items","catalog_items")}
+    with connect() as db:
+        with db.cursor() as cur:
+            cur.execute("""INSERT INTO operations.pipeline_runs
+                  (pipeline_run_id,requested_by,status,correlation_id,policy_version)
+                  VALUES(%s,'internal-executor','RUNNING',%s,'db-v1')
+                  ON CONFLICT(pipeline_run_id) DO NOTHING""",(run_uuid,run_id))
+            sr=cur.execute("""INSERT INTO operations.stage_runs
+                (pipeline_run_id,stage_key,status,started_at)
+                VALUES(%s,%s,%s,now()) ON CONFLICT(pipeline_run_id,stage_key,stage_attempt)
+                DO UPDATE SET status=EXCLUDED.status RETURNING stage_run_id""",
+                (run_uuid,stage_key,status)).fetchone()[0]
+            cur.execute("""INSERT INTO operations.node_runs
+                (stage_run_id,node_id,node_name,status,output_ref,error_code)
+                VALUES(%s,%s,%s,%s,%s::jsonb,%s)""",(sr,node_id or stage_key,
+                   node_name,status,json.dumps(clean,ensure_ascii=False,default=str),str(error)[:200] if error else None))
+        db.commit()
+
 def backup_sqlite():
     if not SQLITE_PATH.exists():return None
     folder=Path("/data/investment-backups");folder.mkdir(parents=True,exist_ok=True)
