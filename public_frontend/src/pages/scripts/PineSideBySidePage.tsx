@@ -6,6 +6,17 @@ import {PineChartControl} from '../../components/PineChartControl';
 
 const clean=(v:string)=>String(v||'').trim().slice(0,160);
 const horizons=['1m','3m','5m','10m','15m','30m','1h','2h','4h','6h','8h','12h','1d'];
+function initialHorizon(interval:string|undefined){
+ const value=String(interval||'').toUpperCase();
+ if(value==='D'||value==='1D'||value==='1440')return '1d';
+ const mins=Number(value);
+ if(Number.isFinite(mins)&&mins>0){
+  const available=[1,3,5,10,15,30,60,120,240,360,480,720];
+  const nearest=available.find(x=>mins<=x)||1440;
+  return nearest===1440?'1d':nearest<60?nearest+'m':nearest/60+'h';
+ }
+ return '1h';
+}
 
 export function PineSideBySidePage({id,go}:{id:string,go:(p:string)=>void}){
   const query=new URLSearchParams(location.search);
@@ -21,13 +32,16 @@ export function PineSideBySidePage({id,go}:{id:string,go:(p:string)=>void}){
   useEffect(()=>{
     let alive=true;
     setError('');setFetching(true);setSource(null);setChart(null);setPine({state:'loading'});
-    api.scriptSource(id).then(s=>{
+    Promise.all([api.scriptSource(id),api.scriptMeta(id)]).then(([s,m])=>{
       if(!alive)return;
+      const currentSymbol=clean(query.get('symbol')||m.symbol||'BINANCE:BTCUSDT');
+      const currentHorizon=clean(query.get('horizon')||initialHorizon(m.interval));
+      setSymbol(currentSymbol);setHorizon(currentHorizon);
       if(!s.source)throw Error('기존 TradingView 데이터베이스에서 해당 Pine 원본을 찾지 못했습니다.');
       if(expectedSha&&s.source_hash?.toLowerCase()!==expectedSha)
         throw Error('선택한 PostgreSQL 원본 SHA-256과 TradingView 저장소의 원본 SHA-256이 다릅니다. 다른 버전의 차트는 실행하지 않습니다.');
       setSource(s);
-      return api.scriptChart(id,symbol,horizon).then(d=>{
+      return api.scriptChart(id,currentSymbol,currentHorizon).then(d=>{
         if(!alive)return;
         if(d.script_id!==id)throw Error('전략 ID가 일치하지 않습니다.');
         if(d.source_hash&&s.source_hash&&d.source_hash!==s.source_hash)
