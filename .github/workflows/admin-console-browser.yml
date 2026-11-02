@@ -31,6 +31,8 @@ jobs:
                 && grep -q 'WF-02 · Pine→Python 실제 노드 실행' /tmp/investment-admin.html \
                 && grep -q 'integrated-source' /tmp/investment-admin.html \
                 && grep -q 'const chartRunId=' /tmp/investment-admin.html \
+                && grep -q 'bootstrapManagement()' /tmp/investment-admin.html \
+                && curl -fsSL --max-time 12 'https://investment-n8n-native-editor-production.up.railway.app/api/investment/session' | grep -q '"session_initialized":true' \
                 && curl -fsSL --max-time 12 'https://investment-n8n-native-editor-production.up.railway.app/api/investment/sources' | grep -q '"sources"'; then
               echo 'LIVE_ADMIN_ROUTE_OK'
               exit 0
