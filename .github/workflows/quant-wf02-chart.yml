@@ -1,0 +1,63 @@
+name: Existing WF02 Sequence Python Chart on Real OHLCV
+on:
+  push:
+    branches: [quant-lab-control]
+    paths:
+      - app/core/pine_visual.py
+      - app/core/sequence_reversal.py
+      - .github/workflows/quant-wf02-chart.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify-parser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Reuse exact Pine and real OHLCV with existing WF02 Python execution
+        run: |
+          python3 - <<'PY'
+          import json,urllib.request,urllib.parse
+          from app.core.sequence_reversal import parse_sequence_pine,_run_sequence
+          sid='PUB;67a1548c0960450086a19d5b0ef1d467'
+          base='https://autonomous-investor-public-api-production.up.railway.app/api/public/scripts/'+urllib.parse.quote(sid,safe='')
+          with urllib.request.urlopen(base+'/source',timeout=25) as res:src=json.load(res)
+          with urllib.request.urlopen(base+'/chart?symbol=NASDAQ%3ANVDA&horizon=2h',timeout=80) as res:data=json.load(res)
+          s=parse_sequence_pine(src['source'])
+          bars=[{'time':str(b['timestamp']),'open':b['open'],'high':b['high'],
+                 'low':b['low'],'close':b['close']} for b in data['bars']]
+          result=_run_sequence(bars,s)
+          assert len(bars)>50 and result['status']=='SIGNALS_EXECUTED_NO_TV_PARITY'
+          assert result['execution_model']=='ILLUSTRATIVE_NEXT_BAR_OPEN_STOP_FIRST_NOT_TV_PARITY'
+          print('WF02_REUSED_PARSER_AND_REAL_OHLCV_PASS',json.dumps({
+           'script':sid,'bars':len(bars),'market':data['market_data'],
+           'signals':len(result['orders']),'fills':len(result['trades']),
+           'exits':len(result['exits']),'TV_parity':False},ensure_ascii=False))
+          PY
+  verify-deployed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Probe actual deployed Quant visual adapter after Railway deploy
+        run: |
+          python3 - <<'PY'
+          import json,urllib.request,time
+          url='https://autonomous-investor-public-api-production.up.railway.app/api/public/scripts/PUB%3B67a1548c0960450086a19d5b0ef1d467/chart?symbol=NASDAQ%3ANVDA&horizon=2h'
+          for i in range(35):
+           try:
+            with urllib.request.urlopen(url,timeout=55) as res: data=json.load(res)
+            adapter=data.get('visual',{}).get('adapter')
+            print('ADAPTER',adapter,'BARS',len(data.get('bars',[])),flush=True)
+            if adapter=='sequence-reversal-python':
+             assert len(data['bars'])>50 and data['visual']['metrics']['parity_verified'] is False
+             print('LIVE_PYTHON_CHART_READY',json.dumps({
+              'adapter':adapter,'bars':len(data['bars']),
+              'marks':len(data['visual']['markers']),
+              'provider':data['market_data']['provider'],
+              'script_id':data['script_id']},ensure_ascii=False))
+             break
+           except Exception as exc:print('RETRY',i,str(exc)[:90],flush=True)
+           time.sleep(7)
+          else:raise SystemExit('DEPLOYED_QUANT_CHART_ADAPTER_NOT_READY')
+          PY
