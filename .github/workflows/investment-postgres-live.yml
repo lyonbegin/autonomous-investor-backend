@@ -1,0 +1,54 @@
+name: Live Railway investment PostgreSQL and node trace verification
+on:
+  push:
+    branches: [feature/editor-wf01-canvas-20261029]
+    paths:
+      - '.github/workflows/investment-postgres-live.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify-live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify isolated database + non-destructive source migration actually deployed
+        run: |
+          python3 - <<'PY'
+          import json,time,urllib.request
+          root='https://investment-n8n-native-editor-production.up.railway.app'
+          for i in range(48):
+              try:
+                  request=urllib.request.Request(root+'/api/investment/database/status',
+                    headers={'Accept':'application/json','User-Agent':'investment-postgres-live-probe/1'})
+                  with urllib.request.urlopen(request,timeout=10) as resp: result=json.load(resp)
+                  print('PG_STATUS',json.dumps(result),flush=True)
+                  if (result.get('status')=='ok' and result.get('database')=='autonomous_investment'
+                      and result.get('tables')==38 and result.get('n8n_database_untouched') is True
+                      and result.get('sqlite_untouched') is True):
+                      print('LIVE_POSTGRES_38_TABLES_VERIFIED',flush=True)
+                      break
+              except Exception as exc:print('RETRY',type(exc).__name__,str(exc)[:90],flush=True)
+              time.sleep(5)
+          else:raise SystemExit('LIVE_POSTGRES_NOT_READY_OR_NOT_INDEPENDENT')
+          PY
+      - name: Verify real WF02 conversion using persisted Railway source and PostgreSQL IDs
+        run: |
+          set -o pipefail
+          PYTHONPATH=n8n/editor-adapter:n8n/pine-parity \
+            WF02_REQUIRE_REAL_CONVERSION=1 \
+            WF02_EXPECT_SCOPE=PINE_V6_RSI_REVERSAL_RUN_SIGNAL \
+            WF02_SOURCE_ID='PUB;67a1548c0960450086a19d5b0ef1d467' \
+            WF02_VERSION_KEY=1.0 \
+            python3 n8n/editor-adapter/probe_wf02_real.py | tee /tmp/actual-db-wf02.log
+          grep -q WF02_REAL_PINE_PYTHON_GENERATED_REQUIRES_TV_PARITY /tmp/actual-db-wf02.log
+      - name: Inspect PostgreSQL for registered conversion identity
+        run: |
+          python3 - <<'PY'
+          import json,urllib.request
+          base='https://investment-n8n-native-editor-production.up.railway.app/api/investment/database/status'
+          with urllib.request.urlopen(base,timeout=15) as response:d=json.load(response)
+          assert d['status']=='ok' and d['conversions']>=1 and d['versions']>=1,d
+          print('LIVE_POSTGRES_WF02_CONVERSIONS',d['conversions'],'VERSIONS',d['versions'])
+          PY
