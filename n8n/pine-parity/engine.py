@@ -13,7 +13,7 @@ from dataclasses import dataclass
 
 MAX_BARS=5000
 MAX_CSV_BYTES=1000000
-MAX_PINE_BYTES=60000
+MAX_PINE_BYTES=512 * 1024
 CSS_COLORS=("#1c9e7e","#e05d6f")
 ASSIGN=re.compile(r"^\s*([A-Za-z_]\w*)\s*=\s*(.+?)\s*$")
 INPUT=re.compile(r"input\.int\(\s*(\d+)")
