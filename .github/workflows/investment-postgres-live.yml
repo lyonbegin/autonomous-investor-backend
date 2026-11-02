@@ -25,7 +25,7 @@ jobs:
                   with urllib.request.urlopen(request,timeout=10) as resp: result=json.load(resp)
                   print('PG_STATUS',json.dumps(result),flush=True)
                   if (result.get('status')=='ok' and result.get('database')=='autonomous_investment'
-                      and result.get('tables')==38 and result.get('n8n_database_untouched') is True
+                      and result.get('tables')==38 and 'node_runs' in result and result.get('n8n_database_untouched') is True
                       and result.get('sqlite_untouched') is True):
                       print('LIVE_POSTGRES_38_TABLES_VERIFIED',flush=True)
                       break
