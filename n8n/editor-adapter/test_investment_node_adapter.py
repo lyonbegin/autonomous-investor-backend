@@ -51,7 +51,7 @@ class WF01UsefulNodes(unittest.TestCase):
         from investment_node_adapter import execute_node15,execute_node16
         from verified_pine_archive import MAX_PINE_BYTES
         from sqlite3 import connect
-        large="//@version=6\\nstrategy('Long Pine')\\n" + "// extra calculations\\n"*8500
+        large="//@version=6\nstrategy('Long Pine')\n" + "// extra calculations\n"*8500
         self.assertGreater(len(large.encode("utf-8")),60000)
         self.assertLess(len(large.encode("utf-8")),MAX_PINE_BYTES)
         with tempfile.TemporaryDirectory() as folder,patch.dict(
