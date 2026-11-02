@@ -135,7 +135,7 @@ def execute_node01(input_json,*,workflow_kind):
             raise ValueError("LIBRARY_PINE_DECLARATION_REQUIRED")
     pages=input_json.get("max_pages",3)
     if type(pages) is not int or not 1<=pages<=3:raise ValueError("MAX_PAGES_MUST_BE_1_TO_3")
-    return {"kind":workflow_kind,"page":1,"max_pages":pages,
+    return {**({"manual_library":manual} if workflow_kind=="library" and manual else {}),"kind":workflow_kind,"page":1,"max_pages":pages,
         "max_detail_success":1,"sort":"recent_extended",
         "execution_mode":"ONE_NODE_ONLY","tradingview_requested":False,
         "next_node_executed":False}
