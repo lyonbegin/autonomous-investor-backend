@@ -1,0 +1,30 @@
+name: Pine Native and Python Side-by-side Build
+on:
+  push:
+    branches: [public-frontend-react]
+    paths:
+      - public_frontend/**
+      - .github/workflows/pine-side-by-side-build.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check native Pine and Python chart component integration
+        working-directory: public_frontend
+        run: |
+          npm install --no-audit --no-fund
+          npm run build
+      - name: Verify side by side page wired to existing Pine and Python components
+        run: |
+          grep -q "PineSideBySidePage" public_frontend/src/App.tsx
+          grep -q "NativePineChartControl" public_frontend/src/pages/scripts/PineSideBySidePage.tsx
+          grep -q "PineChartControl" public_frontend/src/pages/scripts/PineSideBySidePage.tsx
+          grep -q "source_hash" public_frontend/src/pages/scripts/PineSideBySidePage.tsx
