@@ -37,7 +37,14 @@ def execute_wf02_node01(input_json,*,workflow_kind):
               AND source_id=? AND version_key=?""",(source_id,version_key)).fetchone()
     if not row or not row["pine_code"].strip():
         raise ValueError("WF02_PINE_NOT_IN_DATABASE")
-    return {"kind":"strategy","source_id":row["source_id"],
+    canonical=None
+    if __import__("os").environ.get("INVESTMENT_DATABASE_URL"):
+        from investment_pg import get_source
+        canonical=get_source(row["source_id"],row["version_key"])
+        if canonical["pine_code"]!=row["pine_code"]:
+            raise ValueError("POSTGRES_SQLITE_SOURCE_CONTENT_MISMATCH")
+    return {"kind":"strategy","script_version_id":canonical["script_version_id"] if canonical else None,
+        "source_id":row["source_id"],
         "version_key":row["version_key"],"pine_code":row["pine_code"],
         "status":"PINE_LOADED","conversion_validated":False,
         "tradingview_chart_validated":False}
@@ -85,8 +92,16 @@ def execute_wf02_node02(input_json,*,workflow_kind):
             ("strategy",input_json["source_id"],input_json["version_key"],python_code,
              spec["supported_subset"],datetime.now(timezone.utc).isoformat()))
         db.commit()
+    pg_result=None
+    if __import__("os").environ.get("INVESTMENT_DATABASE_URL"):
+        from investment_pg import record_conversion
+        pg_result=record_conversion(input_json["source_id"],input_json["version_key"],
+            python_code, "wf02-n02-convert-v2-nonoverlay",spec["supported_subset"])
     return {"kind":"strategy","source_id":input_json["source_id"],
         "version_key":input_json["version_key"],
+        "conversion_id":pg_result["conversion_id"] if pg_result else None,
+        "script_version_id":pg_result["script_version_id"] if pg_result else input_json.get("script_version_id"),
+        "postgres_sync":pg_result is not None,
         "status":"PYTHON_GENERATED","python_code":python_code,
         "converter_scope":spec["supported_subset"],
         "strategy_spec":spec,"conversion_validated":False,
