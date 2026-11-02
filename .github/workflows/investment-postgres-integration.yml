@@ -38,13 +38,13 @@ jobs:
           python3 - <<'PY'
           import os,sys,sqlite3,tempfile,pathlib
           from unittest.mock import patch
-          import investment_pg as pg
-          from investment_pine_store import save_verified_source
-          from investment_wf02 import execute_wf02_node01,execute_wf02_node02
           from psycopg import sql
           with tempfile.TemporaryDirectory() as folder:
               os.environ['STUDIO_DB_PATH']=folder+'/studio.sqlite3'
               os.environ['INVESTMENT_ARTIFACT_ROOT']=folder+'/artifacts'
+              import investment_pg as pg
+              from investment_pine_store import save_verified_source
+              from investment_wf02 import execute_wf02_node01,execute_wf02_node02
               with sqlite3.connect(os.environ['STUDIO_DB_PATH']) as db:
                   db.execute('CREATE TABLE untouched_legacy(id INTEGER PRIMARY KEY,value TEXT)')
                   db.execute("INSERT INTO untouched_legacy(value) VALUES('PRESERVE')")
