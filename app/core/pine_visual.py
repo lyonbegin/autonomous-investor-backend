@@ -282,6 +282,43 @@ def _strategy_visual(script_id: str, source: str, bars: list[dict[str, Any]]) ->
     }
 
 
+def _sequence_reversal_python_visual(source: str, bars: list[dict[str, Any]]) -> dict[str, Any]:
+    """Reuse WF02's narrow verified parser, never evaluate untrusted Pine directly."""
+    from app.core.sequence_reversal import parse_sequence_pine, _run_sequence
+    spec = parse_sequence_pine(source)
+    source_bars = [
+        {"time": str(int(b["timestamp"])), "open": float(b["open"]),
+         "high": float(b["high"]), "low": float(b["low"]), "close": float(b["close"])}
+        for b in bars
+    ]
+    results = _run_sequence(source_bars, spec)
+    markers = []
+    for item in results.get("trades", []):
+        is_long = item["direction"] == "long"
+        markers.append({"time": int(item["time"]),
+           "position": "belowBar" if is_long else "aboveBar",
+           "shape": "arrowUp" if is_long else "arrowDown",
+           "text": "LONG" if is_long else "SHORT"})
+    for item in results.get("exits", []):
+        markers.append({"time": int(item["time"]),
+           "position": "aboveBar" if item["direction"] == "long" else "belowBar",
+           "shape": "circle", "text": "EXIT"})
+    return {
+       "runtime": "python-wf02-rsi-sequence-v1",
+       "adapter": "sequence-reversal-python",
+       "spec": spec,
+       "metrics": {"fills": len(results.get("trades", [])),
+                   "exits": len(results.get("exits", [])),
+                   "parity_verified": False,
+                   "fills_are_illustrative": True},
+       "trades": results.get("trades", []),
+       "exits": results.get("exits", []),
+       "markers": markers,
+       "equity_curve": [],
+       "execution_model": results.get("execution_model"),
+    }
+
+
 def visualize_pine_script(
     script_id: str,
     *,
@@ -313,12 +350,19 @@ def visualize_pine_script(
         try:
             visual = _strategy_visual(script_id, source, bars)
         except StrategySpecError as exc:
-            visual = {
-                "runtime": "pine-strategy-spec-v1",
-                "adapter": "unsupported",
-                "error": str(exc),
-                "markers": [],
-            }
+            # The existing WF02 RSI reversal strategy is supported by a
+            # separate strict parser. Reuse that implementation for the
+            # identical market bars rather than inventing a substitute.
+            try:
+                visual = _sequence_reversal_python_visual(source, bars)
+            except (ValueError, TypeError, KeyError) as seq_exc:
+                visual = {
+                    "runtime": "pine-strategy-spec-v1",
+                    "adapter": "unsupported",
+                    "error": str(exc),
+                    "wf02_reversal_fallback_error": str(seq_exc),
+                    "markers": [],
+                }
     else:
         visual = {
             "runtime": "pine-visual-v1",
