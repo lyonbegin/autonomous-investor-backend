@@ -28,7 +28,9 @@ jobs:
           for i in $(seq 1 36); do
             if curl -fsSL --max-time 12 'https://investment-n8n-native-editor-production.up.railway.app/admin/index.html' -o /tmp/investment-admin.html \
                 && grep -q 'AUTONOMOUS INVESTOR' /tmp/investment-admin.html \
-                && grep -q 'WF-02 · Pine→Python 실제 노드 실행' /tmp/investment-admin.html; then
+                && grep -q 'WF-02 · Pine→Python 실제 노드 실행' /tmp/investment-admin.html \
+                && grep -q 'integrated-source' /tmp/investment-admin.html \
+                && curl -fsSL --max-time 12 'https://investment-n8n-native-editor-production.up.railway.app/api/investment/sources' | grep -q '"sources"'; then
               echo 'LIVE_ADMIN_ROUTE_OK'
               exit 0
             fi
