@@ -368,7 +368,16 @@ def read(sid,run_id=None):
         if not row:return {"status":"NOT_STARTED","events":[]}
         events=db.execute("""SELECT event_id,stage,workflow,node_id,node_name,status,payload_json,error,at
           FROM investment_pipeline_events WHERE run_id=? ORDER BY event_id""",(row["run_id"],)).fetchall()
+    canonical={"status":"NOT_CONFIGURED"}
+    if os.environ.get("INVESTMENT_DATABASE_URL"):
+        try:
+            from investment_pg import canonical_pipeline_record
+            canonical=canonical_pipeline_record(row["run_id"])
+        except Exception as exc:
+            canonical={"status":"READ_FAILED","reason":type(exc).__name__+": "+str(exc)[:180]}
+    if row["status"] not in ("RUNNING","INTERRUPTED") and canonical.get("status")!=row["status"]:
+        canonical["status_mismatch"]=True
     return {"run_id":row["run_id"],"status":row["status"],
       "started_at":row["started_at"],"finished_at":row["finished_at"],
-      "result":json.loads(row["result_json"]),
+      "result":json.loads(row["result_json"]), "canonical_postgres":canonical,
       "events":[{**dict(e),"payload":json.loads(e["payload_json"])} for e in events]}
