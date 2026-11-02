@@ -14,7 +14,7 @@ from urllib.parse import quote
 ARCHIVE_REPO="venkatalokeshanne/trading_strategies_indicators"
 ARCHIVE_REV="a9a6f4a9145de22bacacc24b827fb4095a3a425c"
 INDEX_PATH=Path(__file__).with_name("verified_pine_archive_index.json")
-MAX_PINE_BYTES=60000
+MAX_PINE_BYTES=512 * 1024
 
 def archive_path_for(candidate):
     if not isinstance(candidate,dict):
@@ -58,8 +58,10 @@ def acquire_verified_pine(candidate):
         raise
     except Exception as exc:
         raise ValueError("PINE_SOURCE_FETCH_FAILED:"+type(exc).__name__) from exc
-    if not raw or len(raw)>MAX_PINE_BYTES:
-        raise ValueError("PINE_SOURCE_EMPTY_OR_TOO_LARGE")
+    if not raw:
+        raise ValueError("PINE_SOURCE_EMPTY")
+    if len(raw)>MAX_PINE_BYTES:
+        raise ValueError("PINE_SOURCE_TOO_LARGE")
     try:
         code=raw.decode("utf-8")
     except UnicodeDecodeError as exc:
