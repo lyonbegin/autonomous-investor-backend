@@ -99,3 +99,12 @@
 .runtime-fallback-head b{font-size:13px}
 .runtime-fallback-head span{font-size:11px;color:#64748b}
 @media(max-width:720px){.native-pine-shell,.native-pine-chart{height:520px;min-height:520px}.runtime-fallback-head{display:block}.runtime-fallback-head span{display:block;margin-top:4px}}
+
+/* Uses original Pine runtime and existing Python chart controls with the same OHLCV. */
+.pine-compare-page{max-width:1760px;margin:auto;padding:18px 22px}
+.pine-compare-page .panel{min-width:0}
+.pine-compare-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;align-items:start}
+.pine-compare-grid .native-pine-chart,.pine-compare-grid .pine-chart-host{min-height:470px}
+.pine-compare-grid .native-pine-shell,.pine-compare-grid .pine-chart-wrap{width:100%;overflow:hidden}
+.pine-compare-page code{overflow-wrap:anywhere}
+@media(max-width:900px){.pine-compare-grid{grid-template-columns:minmax(0,1fr)}}
