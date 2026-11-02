@@ -130,7 +130,7 @@ export function ScriptDetailPage({id,go}:{id:string;go:(p:string)=>void}){
           </select>
         </label>
         <button onClick={runChart} disabled={chartLoading||!symbol.trim()}>{chartLoading?'계산 중...':'스크립트 실행'}</button>
-        <button onClick={()=>{history.pushState({},'', '/compare/'+encodeURIComponent(id)+'?symbol='+encodeURIComponent(symbol)+'&horizon='+encodeURIComponent(horizon)); go('/compare/'+encodeURIComponent(id)+'?symbol='+encodeURIComponent(symbol)+'&horizon='+encodeURIComponent(horizon))}}>원본 Pine ↔ Python 좌우 비교</button>
+        <button onClick={()=>go('/compare/'+encodeURIComponent(id)+'?symbol='+encodeURIComponent(symbol)+'&horizon='+encodeURIComponent(horizon))}>원본 Pine ↔ Python 좌우 비교</button>
       </div>
 
       {chartLoading&&!chart?<div className="loading runtime-loading">트레이딩부 데이터를 가져와 Pine 계산 중...</div>:null}
