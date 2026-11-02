@@ -119,7 +119,12 @@ def saved_sources(limit=80):
         if "investment_python_conversions" in names:
             already={(x["source_id"],x["version_key"]) for x in db.execute(
                 "SELECT source_id,version_key FROM investment_python_conversions WHERE kind='strategy'")}
+        hashes={(row["source_id"],row["version_key"]):
+                hashlib.sha256(row["pine_code"].encode("utf-8")).hexdigest()
+                for row in db.execute("""SELECT source_id,version_key,pine_code
+                         FROM investment_pine_payloads WHERE kind='strategy'""")}
     result=[{**{k:row[k] for k in ("source_id","version_key","rights_state","saved_at","chars")},
+        "source_sha256":hashes.get((row["source_id"],row["version_key"])),
         "python_code_stored":(row["source_id"],row["version_key"]) in already}
         for row in records]
     result.sort(key=lambda x:(not x["python_code_stored"],x["source_id"]))
