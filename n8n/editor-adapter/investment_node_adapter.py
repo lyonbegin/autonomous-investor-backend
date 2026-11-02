@@ -110,12 +110,29 @@ def node_type(workflow_path,node_id):
 def execute_node01(input_json,*,workflow_kind):
     if not isinstance(input_json,dict):raise ValueError("INPUT_JSON_OBJECT_REQUIRED")
     if workflow_kind not in ("strategy","library"):raise ValueError("UNSUPPORTED_WORKFLOW_KIND")
-    allowed={"ui_selection","requested_detail_limit","max_pages"}
+    allowed={"ui_selection","requested_detail_limit","max_pages"} | ({"manual_library"} if workflow_kind=="library" else set())
     if not {"ui_selection","requested_detail_limit"}.issubset(input_json) or set(input_json)-allowed:
         raise ValueError("INPUT_FIELDS_MISMATCH: ui_selection, requested_detail_limit")
     if input_json["ui_selection"]!=workflow_kind:raise ValueError("COLLECTION_KIND_MISMATCH")
     if type(input_json["requested_detail_limit"]) is not int or input_json["requested_detail_limit"]!=1:
         raise ValueError("DETAIL_LIMIT_MUST_EQUAL_ONE")
+    manual=input_json.get("manual_library")
+    if workflow_kind=="library" and manual is not None:
+        if not isinstance(manual,dict) or set(manual)!={"source_url","version_key","pine_code"}:
+            raise ValueError("LIBRARY_MANUAL_INPUT_REQUIRED")
+        url=urllib.parse.urlsplit(manual["source_url"]) if isinstance(manual["source_url"],str) else None
+        if not url or url.scheme!="https" or url.hostname not in (
+            "www.tradingview.com","tradingview.com","kr.tradingview.com"
+        ) or not re.fullmatch(r"/script/[A-Za-z0-9]{8}/?",url.path):
+            raise ValueError("LIBRARY_TRADINGVIEW_SCRIPT_URL_REQUIRED")
+        if not isinstance(manual["version_key"],str) or not manual["version_key"].strip() or len(manual["version_key"])>150:
+            raise ValueError("LIBRARY_VERSION_REQUIRED")
+        code=manual["pine_code"]
+        from verified_pine_archive import MAX_PINE_BYTES
+        if not isinstance(code,str) or not code.strip() or len(code.encode("utf-8"))>MAX_PINE_BYTES:
+            raise ValueError("LIBRARY_PINE_CODE_REQUIRED_OR_TOO_LARGE")
+        if not re.search(r"(?m)^\s*//@version=[456]\s*$",code) or not re.search(r"(?m)^\s*library\s*\(",code):
+            raise ValueError("LIBRARY_PINE_DECLARATION_REQUIRED")
     pages=input_json.get("max_pages",3)
     if type(pages) is not int or not 1<=pages<=3:raise ValueError("MAX_PAGES_MUST_BE_1_TO_3")
     return {"kind":workflow_kind,"page":1,"max_pages":pages,
@@ -163,6 +180,16 @@ def execute_node03(input_json,*,workflow_kind):
     if input_json.get("sort")!="recent_extended":
         raise ValueError("N03_SORT_MISMATCH")
 
+    manual=input_json.get("manual_library")
+    if workflow_kind=="library" and isinstance(manual,dict):
+        script_id=urllib.parse.urlsplit(manual["source_url"]).path.strip("/").split("/")[1]
+        row={"kind":"library","source_id":"USER_SUBMITTED_LIBRARY:"+script_id,
+             "source_url":manual["source_url"],"version_key":manual["version_key"],
+             "title":"사용자 제공 공개 라이브러리 "+script_id,"access":"user_supplied_code"}
+        return {**input_json,"status":"ok","items":[row],"count":1,
+            "has_more":False,"catalog_source":"USER_SUBMITTED_LIBRARY_SOURCE",
+            "catalog_is_live":False,"tradingview_requested":False,
+            "pine_source_acquired":False,"next_node_executed":False}
     url=os.environ.get("TRADINGVIEW_AUTHORIZED_CATALOG_URL","").strip()
     if not url:
         # Public, attributed metadata only. It is a dated corpus snapshot,
@@ -304,7 +331,10 @@ def execute_node06(input_json,*,workflow_kind):
         raise ValueError("N06_REGISTRY_UNAVAILABLE")
     new=[item for item in rows if item.get("imported") is False]
     # Prefer a known mirror path to avoid selecting an unavailable Pine file.
-    fetchable=[item for item in new if archive_path_for(item)]
+    manual=input_json.get("manual_library")
+    fetchable=[item for item in new if archive_path_for(item) or (
+        workflow_kind=="library" and isinstance(manual,dict) and
+        item.get("source_url")==manual.get("source_url"))]
     one=fetchable[0] if fetchable else None
     return {**input_json,"candidate":one,"has_candidate":one is not None,
         "selected_candidate_count":1 if one else 0,
@@ -371,6 +401,11 @@ def execute_node11(input_json,*,workflow_kind):
     if candidate.get("kind")!=workflow_kind:
         raise ValueError("N11_CANDIDATE_KIND_MISMATCH")
     code=input_json.get("pine_code")
+    manual=input_json.get("manual_library")
+    if workflow_kind=="library" and isinstance(manual,dict):
+        if candidate.get("source_url")!=manual.get("source_url"):
+            raise ValueError("LIBRARY_CANDIDATE_SOURCE_MISMATCH")
+        code=manual.get("pine_code")
     if not isinstance(code,str) or not code.strip():
         code=acquire_verified_pine(candidate)["pine_code"]
     if len(code.encode("utf-8"))>MAX_PINE_BYTES:
