@@ -177,6 +177,31 @@ def experiment_symbols(experiment_id: str, body: SymbolUpdate) -> dict:
         raise HTTPException(status_code=404, detail=f"experiment not found: {experiment_id}") from exc
 
 
+class ExactPineVisualRequest(BaseModel):
+    source_id: str = Field(min_length=5,max_length=240)
+    version_key: str = Field(min_length=1,max_length=150)
+    source_sha256: str = Field(min_length=64,max_length=64,pattern=r"^[0-9a-f]{64}$")
+    pine_code: str = Field(min_length=1,max_length=524288)
+    symbol: str = Field(min_length=1,max_length=100)
+    horizon: str = Field(min_length=1,max_length=12)
+
+
+@router.post("/pine/visualize-exact")
+def pine_visualize_exact(body: ExactPineVisualRequest) -> dict:
+    """Render exact saved version with trusted restricted Python engines, not a latest-ID lookup."""
+    try:
+        result=visualize_pine_script(
+            body.source_id,symbol=body.symbol,horizon=body.horizon,
+            source_override=body.pine_code,source_sha256=body.source_sha256)
+        result["version_key"]=body.version_key
+        return result
+    except ValueError as exc:
+        raise HTTPException(status_code=422,detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=502,
+          detail=f"Exact Pine visualization failed: {type(exc).__name__}: {exc}") from exc
+
+
 @router.get("/pine/self_test")
 def pine_visual_self_test() -> dict:
     result = visualize_pine_script(
