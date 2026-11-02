@@ -143,10 +143,10 @@ async function run(page){
     return (await r.json()).sources[0];
   });
   await page.locator('#integrated-start').click();
-  await page.waitForFunction(()=>{
+  await page.waitForFunction((previousRunId)=>{
     const text=document.querySelector('#integrated-label')?.textContent||'';
-    return /PARTIAL_BLOCKED|REVIEW_REQUIRED|FAILED|실행 시작 실패|실행 조회 실패/.test(text);
-  },null,{timeout:180000});
+    return !text.includes(previousRunId) && /PARTIAL_BLOCKED|REVIEW_REQUIRED|FAILED|실행 시작 실패|실행 조회 실패/.test(text);
+  },pipeline.run_id,{timeout:180000});
   const secondStatus=await page.locator('#integrated-label').innerText();
   if(secondStatus.includes('실패'))throw Error('Exact pinned one-click pipeline did not complete: '+secondStatus);
   const exact=await page.evaluate(async()=>
