@@ -234,7 +234,7 @@ def mirror_node_event(run_id,stage_key,workflow,node_id,node_name,status,payload
 
 def backup_sqlite():
     if not SQLITE_PATH.exists():return None
-    folder=Path("/data/investment-backups");folder.mkdir(parents=True,exist_ok=True)
+    folder=Path(os.getenv("INVESTMENT_BACKUP_ROOT","/data/investment-backups"));folder.mkdir(parents=True,exist_ok=True)
     name="studio_before_investment_pg_"+datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")+".sqlite3"
     dest=folder/name
     with sqlite3.connect(str(SQLITE_PATH),timeout=30) as src:
