@@ -70,4 +70,5 @@ def save_verified_source(input_json,kind):
         "source_id":source_id,"version_key":version,
         "rights_state":"PENDING_REVIEW","conversion_validated":False,
         "tradingview_chart_validated":False,
-        "postgres_sync":postgres_result is not None,\n        "script_version_id":postgres_result["script_version_id"] if postgres_result else None}
+        "postgres_sync":postgres_result is not None,
+        "script_version_id":postgres_result["script_version_id"] if postgres_result else None}
