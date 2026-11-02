@@ -113,9 +113,19 @@ def saved_sources(limit=80):
     if type(limit) is not int or not 1<=limit<=120:
         raise ValueError("INVALID_SOURCE_PAGE_LIMIT")
     records=select_from_db("strategy")[:limit]
-    return {"status":"ok","sources":[
-        {k:row[k] for k in ("source_id","version_key","rights_state","saved_at","chars")}
-        for row in records],"count":len(records),"source":"EXISTING_SQLITE_SOURCE_REGISTRY"}
+    with closing(open_registry()) as db:
+        names={r[0] for r in db.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+        already=set()
+        if "investment_python_conversions" in names:
+            already={(x["source_id"],x["version_key"]) for x in db.execute(
+                "SELECT source_id,version_key FROM investment_python_conversions WHERE kind='strategy'")}
+    result=[{**{k:row[k] for k in ("source_id","version_key","rights_state","saved_at","chars")},
+        "python_code_stored":(row["source_id"],row["version_key"]) in already}
+        for row in records]
+    result.sort(key=lambda x:(not x["python_code_stored"],x["source_id"]))
+    return {"status":"ok","sources":result,"count":len(result),
+            "source":"EXISTING_SQLITE_SOURCE_REGISTRY",
+            "note":"python_code_stored means code was generated previously, NOT TradingView parity verified"}
 
 
 def validate_selected(source):
