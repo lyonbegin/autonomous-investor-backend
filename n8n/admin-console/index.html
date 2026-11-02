@@ -75,7 +75,7 @@ const isTest=['automation','tests','source','convert'].includes(id);
 return '<section class="hero"><h2>'+esc(MENUS.find(x=>x[0]===id)[1])+'</h2><p class="muted">'+esc(MENUS.find(x=>x[0]===id)[2])+'</p></section><div class="grid2"><section class="panel"><h3>기능 영역</h3><div class="stack">'+area.items.map(x=>'<div class="area"><b>'+esc(x)+'</b></div>').join('')+'</div><h3 style="margin-top:22px">연결된 운영 워크플로</h3><div class="flow-list">'+flowButtons+'</div></section><section class="panel" id="flow-panel"><h3>운영 흐름 및 실행 기록</h3><div class="notice">해당 업무의 실제 그래프를 열면 기존 n8n 편집기로 연결됩니다. 노드 실행은 WF-01의 허용된 Python API에만 연결됩니다.</div>'+ (area.flows.length?link(area.flows[0]):'<p class="muted">연결된 실행 API가 없습니다.</p>')+'</section></div>'+(isTest?'<div class="panel"><h3>통합 PostgreSQL 데이터베이스</h3><div class="muted" id="database-status">실제 연결 확인 중</div></div>'+(id==='tests'?integratedHtml():'')+'<div id="execution-area"></div>':'')+'<p class="footer">실행 기록이 없거나 서버 연결이 끊긴 경우에는 완료로 표시하지 않습니다.</p>'}
 async function api(path,opt){const r=await fetch(path,{credentials:'same-origin',cache:'no-store',...opt});let obj;try{obj=await r.json()}catch{throw Error('HTTP '+r.status+' (JSON 응답 아님)')}return {status:r.status,ok:r.ok,data:obj}}
 const INTEGRATED=[
- {id:'strategy',name:'① 전략 원본 수집',workflow:W.strategy},
+ {id:'strategy',name:'① 전략 원본 수집·DB 재사용',workflow:W.strategy},
  {id:'library',name:'② 선택한 전략의 Library 의존성',workflow:W.library},
  {id:'python',name:'③ 동일 Pine → Python 변환',workflow:W.pine},
  {id:'chart',name:'④ TradingView 원본 ↔ Python 차트 비교',workflow:W.parity}
@@ -87,6 +87,7 @@ function integratedHtml(){
  '<p class="helper" id="source-choice-state">SQLite에 보존된 전략 목록을 확인 중입니다.</p>'+
  '<div class="actions"><button class="btn primary" id="integrated-start" data-action="integrated-start">▶ 전체 4단계 한 번에 실행</button>'+
  '<button class="btn" data-action="integrated-refresh">실행 이력 갱신</button><span class="status" id="integrated-label">이력 조회 전</span></div>'+
+ '<div class="notice" id="integrated-summary">각 단계의 실제 실행 결과를 표시합니다.</div>'+
  '<div class="notice" id="canonical-pg-status">PostgreSQL 기준 실행 이력 대조 중</div>'+
  '<div class="notice warn" id="tradingview-source-status">TradingView 실시간 수집 여부 확인 전</div>'+
  '<div class="grid2"><div class="stack" id="integrated-stages">'+INTEGRATED.map(s=>'<div class="area"><b>'+s.name+'</b><p>실행 전</p></div>').join('')+
@@ -127,15 +128,33 @@ async function refreshIntegrated(runId){
   const pg=document.getElementById('canonical-pg-status');
   if(pg){
     const synced=canonical.status===d.status&&!canonical.status_mismatch;
-    const display='기준 PostgreSQL · '+canonical.status+
-      ' · 노드 '+(canonical.node_runs??0)+'건'+
-      (canonical.script_version_id?' · 원본 버전 '+canonical.script_version_id:' · 선택 버전 없음')+
+    const display='기준 PostgreSQL · 실행 상태 '+canonical.status+
+      ' · 노드 실행 기록 '+(canonical.node_runs??0)+'건'+
+      (canonical.script_version_id?' · PostgreSQL 전략 버전 UUID '+canonical.script_version_id:' · 전략 버전 UUID 없음')+
       (canonical.status_mismatch?' · SQLite/PG 상태 불일치':'');
     pg.textContent=display;
     pg.classList.toggle('warn',!synced);
   }
   const label=document.getElementById('integrated-label');
-  if(label)label.textContent=(d.status||'미실행')+(d.run_id?' · '+d.run_id:'');
+  if(label)label.textContent='전체 실행 상태 '+(d.status||'미실행')+
+    (d.run_id?' · 실행 ID '+d.run_id:'');
+  const summary=document.getElementById('integrated-summary');
+  if(summary){
+    const completed=INTEGRATED.filter(s=>['SOURCE_SAVED','REUSED_EXACT_DB_SOURCE',
+      'REUSED_SAVED_SOURCE','NO_NEW_SOURCE','NOT_REQUIRED','DEPENDENCIES_PINNED',
+      'PYTHON_GENERATED','REFERENCE_FOUND_REVIEW_REQUIRED'].includes(states[s.id])).length;
+    const blocked=INTEGRATED.filter(s=>String(states[s.id]||'').startsWith('BLOCKED_')||
+      String(states[s.id]||'').includes('UNSUPPORTED')||states[s.id]==='FAILED');
+    const key=blocked.map(s=>s.name+': '+states[s.id]).join(' / ');
+    summary.textContent=d.status==='RUNNING'
+      ?'실행 중 · 완료 처리된 단계 '+completed+'/4'
+      :d.status==='NOT_STARTED'
+      ?'아직 전체 실행 기록이 없습니다.'
+      :'4개 중 정상/재사용 단계 '+completed+'개, 차단/미지원 '+blocked.length+'개'+
+       (key?' · 차단 원인 '+key:'')+
+       (d.status==='PARTIAL_BLOCKED'?' · 전체 검증 미완료':'');
+    summary.classList.toggle('warn',blocked.length>0||d.status==='PARTIAL_BLOCKED');
+  }
   const button=document.getElementById('integrated-start');
   if(button)button.disabled=d.status==='RUNNING';
   const feed=events.find(e=>e.node_id==='wf01-strategy-03'&&e.payload?.catalog_source);
@@ -170,8 +189,8 @@ async function refreshIntegrated(runId){
   const identity=document.getElementById('integrated-source-identity');
   if(identity)identity.textContent=chosen?
     (d.result?.selection_mode==='EXPLICIT_PINNED'?'관리자가 지정한 DB 전략 ':'자동 수집 후 DB에서 선택된 전략 ')+
-    chosen.source_id+' · 버전 '+chosen.version_key+
-    ' · PostgreSQL '+(canonical.script_version_id||'연결 실패')+
+    'source_id: '+chosen.source_id+' · version_key: '+chosen.version_key+
+    ' · script_version_id (PostgreSQL UUID): '+(canonical.script_version_id||'연결 실패')+
     (states.python==='UNSUPPORTED_SELECTED_PINE'?' · 현재 변환기에서 지원하지 않는 Pine':''):
     '선택된 저장 원본 없음 · 실제 수집 및 DB 확보 필요';
   const comparison=d.result?.chart||null;
