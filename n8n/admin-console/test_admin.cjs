@@ -174,6 +174,23 @@ async function run(page){
   if(exact.status==='PARTIAL_BLOCKED'&&
      (!summaryText.includes('차단/미지원')||!summaryText.includes('전체 검증 미완료')))
     throw Error('Summary conceals blocked stages: '+summaryText);
+  if(!/^[0-9a-f]{64}$/.test(sourceMeta.source_sha256||''))
+    throw Error('Exact Pine version lacks immutable SHA-256 in DB source picker');
+  const publicEndpoint='https://autonomous-investor-public-api-production.up.railway.app/api/public/scripts/'+
+      encodeURIComponent(sourceMeta.source_id)+'/source';
+  const publicResult=await page.request.get(publicEndpoint,{timeout:35000});
+  if(!publicResult.ok())throw Error('Restored TradingView source API unavailable: HTTP '+publicResult.status());
+  const sameSource=await publicResult.json();
+  if(sameSource.source_hash!==sourceMeta.source_sha256)
+    throw Error('Source SHA mismatch: studio='+sourceMeta.source_sha256+
+        ' tradingview='+sameSource.source_hash+'; do not render unrelated Pine source');
+  const embedded=page.locator('#native-compare-target iframe');
+  if(await embedded.count()!==1)throw Error('Existing side-by-side Pine/Python chart not linked to four-stage run');
+  const iframeSrc=await embedded.getAttribute('src');
+  if(!iframeSrc.includes(encodeURIComponent(sourceMeta.source_id))||
+      !iframeSrc.includes(sourceMeta.source_sha256))
+    throw Error('Embedded native/Python comparison not pinned to exact Pine source');
+  console.log('PASS exact canonical source SHA and original Pine/Python chart linked',sourceMeta.source_sha256);
   if(exact.result.chart==null&&await page.locator('#integrated-left-chart img').count())
     throw Error('Fake TradingView screenshot displayed without reference');
   if(exact.result?.stages?.python==='PYTHON_GENERATED'&&
