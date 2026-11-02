@@ -23,6 +23,14 @@ WF01_MODES={
     WF02_PATH:"strategy",
 }
 
+def pipeline_start(sid):
+    from investment_pipeline import start
+    return start(sid)
+
+def pipeline_read(sid,run_id=None):
+    from investment_pipeline import read
+    return read(sid,run_id)
+
 def root_input_limit(workflow_path,node_id):
     # Only explicit manual library registration carries a complete Pine text.
     return 600000 if (
