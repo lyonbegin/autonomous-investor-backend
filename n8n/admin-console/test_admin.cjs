@@ -106,8 +106,19 @@ async function run(page){
   }
   if(stages.chart==='BLOCKED_REAL_TV_CHART_CSV_MISSING'&&pipeline.status==='REVIEW_REQUIRED')
      throw Error('False chart verification despite missing actual TV input');
+  if(!pipeline.result?.postgres_sync||pipeline.result.postgres_sync.postgres_sync!=='SYNCED')
+    throw Error('Integrated run not finalized in canonical Postgres: '+JSON.stringify(pipeline.result?.postgres_sync));
+  if(pipeline.result.postgres_trace_failures)
+    throw Error('Individual stages did not persist in PostgreSQL: '+pipeline.result.postgres_trace_failures);
+  const dbstatus=await page.evaluate(async()=>{
+    const response=await fetch('/api/investment/database/status',{credentials:'same-origin',cache:'no-store'});
+    return response.json();
+  });
+  if(dbstatus.status!=='ok'||dbstatus.node_runs<events.length||dbstatus.pipeline_runs<1)
+    throw Error('Canonical DB stage/node execution counts missing: '+JSON.stringify(dbstatus));
   console.log('PASS one-click persisted four-stage pipeline',JSON.stringify({
-    status:pipeline.status,stages,events:events.length
+    status:pipeline.status,stages,events:events.length,
+    postgres_node_runs:dbstatus.node_runs,postgres_pipeline_runs:dbstatus.pipeline_runs
   }));
 
   const href=await page.locator('#flow-panel a[href*="workflow="]').first().getAttribute('href');
