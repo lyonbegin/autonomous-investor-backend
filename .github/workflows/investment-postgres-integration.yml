@@ -4,6 +4,8 @@ on:
     branches: [feature/editor-wf01-canvas-20261029]
     paths:
       - 'n8n/investment-db/**'
+      - 'n8n/pine-parity/pg_bridge.py'
+      - 'n8n/pine-parity/test_pg_bridge.py'
       - 'n8n/editor-adapter/investment_pine_store.py'
       - 'n8n/editor-adapter/investment_wf02.py'
       - 'n8n/Dockerfile.native-editor-gateway'
@@ -82,6 +84,9 @@ jobs:
                   assert fk>=40,fk
               print('POSTGRES_38_TABLES_AND_REAL_WF01_WF02_SYNC_PASS',counts,'FK',fk)
           PY
+      - name: Link synthetic TV-reference fixture to exact converted strategy and verify DB idempotence
+        run: |
+          python3 -m unittest n8n/pine-parity/test_pg_bridge.py -v
       - name: Ensure n8n database remains independent
         run: |
           python3 - <<'PY'
