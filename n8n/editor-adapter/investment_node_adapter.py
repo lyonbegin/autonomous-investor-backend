@@ -129,7 +129,7 @@ def execute_node01(input_json,*,workflow_kind):
         url=urllib.parse.urlsplit(manual["source_url"]) if isinstance(manual["source_url"],str) else None
         if not url or url.scheme!="https" or url.hostname not in (
             "www.tradingview.com","tradingview.com","kr.tradingview.com"
-        ) or not re.fullmatch(r"/script/[A-Za-z0-9]{8}/?",url.path):
+        ) or not re.fullmatch(r"/script/[A-Za-z0-9]{8}(?:-[A-Za-z0-9._-]+)?/?",url.path):
             raise ValueError("LIBRARY_TRADINGVIEW_SCRIPT_URL_REQUIRED")
         if not isinstance(manual["version_key"],str) or not manual["version_key"].strip() or len(manual["version_key"])>150:
             raise ValueError("LIBRARY_VERSION_REQUIRED")
@@ -188,7 +188,7 @@ def execute_node03(input_json,*,workflow_kind):
 
     manual=input_json.get("manual_library")
     if workflow_kind=="library" and isinstance(manual,dict):
-        script_id=urllib.parse.urlsplit(manual["source_url"]).path.strip("/").split("/")[1]
+        script_id=re.match(r"/script/([A-Za-z0-9]{8})",urllib.parse.urlsplit(manual["source_url"]).path).group(1)
         row={"kind":"library","source_id":"USER_SUBMITTED_LIBRARY:"+script_id,
              "source_url":manual["source_url"],"version_key":manual["version_key"],
              "title":"사용자 제공 공개 라이브러리 "+script_id,"access":"user_supplied_code"}
