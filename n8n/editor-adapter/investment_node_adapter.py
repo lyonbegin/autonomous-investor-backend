@@ -23,6 +23,20 @@ WF01_MODES={
     WF02_PATH:"strategy",
 }
 
+def record_node_execution(workflow,workflow_run_id,node_id,node_name,status,output,error=None):
+    """Mirror existing allowlisted node runs to canonical operations tables."""
+    if not os.environ.get("INVESTMENT_DATABASE_URL"):
+        return {"status":"NOT_CONFIGURED"}
+    from investment_pg import mirror_node_event
+    stage_key=("WF02_PINE_PYTHON" if workflow==WF02_PATH else
+               "WF01_STRATEGY" if workflow=="operations/WF01-latest-strategy-one.json" else
+               "WF01_LIBRARY" if workflow=="operations/WF01-latest-library-one.json" else "UNKNOWN")
+    if stage_key=="UNKNOWN":
+        raise ValueError("POSTGRES_UNREGISTERED_WORKFLOW")
+    mirror_node_event(workflow_run_id,stage_key,workflow,node_id,
+                      node_name,status,output,error)
+    return {"status":"SYNCED","stage_key":stage_key}
+
 def investment_database_status():
     if not os.environ.get("INVESTMENT_DATABASE_URL"):
         return {"status":"NOT_CONFIGURED","database":"autonomous_investment"}
