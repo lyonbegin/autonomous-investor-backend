@@ -28,7 +28,7 @@ jobs:
           for i in $(seq 1 36); do
             if curl -fsSL --max-time 12 'https://investment-n8n-native-editor-production.up.railway.app/admin/index.html' -o /tmp/investment-admin.html \
                 && grep -q 'AUTONOMOUS INVESTOR' /tmp/investment-admin.html \
-                && grep -q 'WF-01 · 실제 노드 순차 실행' /tmp/investment-admin.html; then
+                && grep -q 'WF-02 · Pine→Python 실제 노드 실행' /tmp/investment-admin.html; then
               echo 'LIVE_ADMIN_ROUTE_OK'
               exit 0
             fi
@@ -36,5 +36,5 @@ jobs:
           done
           echo 'LIVE_ADMIN_ROUTE_NOT_DEPLOYED'
           exit 1
-      - name: Chrome actual user navigation, N01-N02 execution and JSON inspection
+      - name: Chrome real workflow and parity source-transfer verification
         run: node n8n/admin-console/test_admin.cjs
