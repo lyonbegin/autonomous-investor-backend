@@ -23,6 +23,12 @@ WF01_MODES={
     WF02_PATH:"strategy",
 }
 
+def root_input_limit(workflow_path,node_id):
+    # Only explicit manual library registration carries a complete Pine text.
+    return 600000 if (
+        workflow_path=="operations/WF01-latest-library-one.json"
+        and node_id=="wf01-library-01") else 2048
+
 def node_binding(workflow_path,node_id):
     if workflow_path==WF02_PATH:
         commands={
