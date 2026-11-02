@@ -1,0 +1,40 @@
+name: Admin console real browser smoke
+on:
+  push:
+    branches: [feature/editor-wf01-canvas-20261029]
+    paths:
+      - 'n8n/admin-console/**'
+      - 'n8n/Dockerfile.native-editor-gateway'
+      - '.github/workflows/admin-console-browser.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: admin-console-browser-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  live-admin:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install browser for real UI tests
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Wait for deployed admin route (no synthetic success fallback)
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 36); do
+            if curl -fsSL --max-time 12 'https://investment-n8n-native-editor-production.up.railway.app/admin/index.html' -o /tmp/investment-admin.html \
+                && grep -q 'AUTONOMOUS INVESTOR' /tmp/investment-admin.html \
+                && grep -q 'WF-01 · 실제 노드 순차 실행' /tmp/investment-admin.html; then
+              echo 'LIVE_ADMIN_ROUTE_OK'
+              exit 0
+            fi
+            sleep 5
+          done
+          echo 'LIVE_ADMIN_ROUTE_NOT_DEPLOYED'
+          exit 1
+      - name: Chrome actual user navigation, N01-N02 execution and JSON inspection
+        run: node n8n/admin-console/test_admin.cjs
