@@ -21,6 +21,12 @@ def save_verified_source(input_json,kind):
           pine_code TEXT NOT NULL, rights_state TEXT NOT NULL,
           saved_at TEXT NOT NULL, PRIMARY KEY(kind,source_id,version_key)
         )""")
+        db.execute("""CREATE TABLE IF NOT EXISTS investment_source_context (
+          kind TEXT NOT NULL, source_id TEXT NOT NULL, version_key TEXT NOT NULL,
+          source_url TEXT NOT NULL, source_title TEXT,
+          observed_at TEXT NOT NULL,
+          PRIMARY KEY(kind,source_id,version_key)
+        )""")
         db.execute("BEGIN IMMEDIATE")
         try:
             row=db.execute("""SELECT pine_code FROM investment_pine_payloads
@@ -37,6 +43,18 @@ def save_verified_source(input_json,kind):
                     VALUES(?,?,?,?,?,?)""",
                     (kind,source_id,version,code,"PENDING_REVIEW",created))
                 inserted=True
+            source_url=candidate.get("source_url")
+            if isinstance(source_url,str) and source_url.startswith((
+                    "https://www.tradingview.com/script/",
+                    "https://tradingview.com/script/",
+                    "https://kr.tradingview.com/script/")):
+                db.execute("""INSERT INTO investment_source_context
+                    (kind,source_id,version_key,source_url,source_title,observed_at)
+                    VALUES(?,?,?,?,?,?) ON CONFLICT(kind,source_id,version_key)
+                    DO UPDATE SET source_url=excluded.source_url,
+                                  source_title=excluded.source_title,
+                                  observed_at=excluded.observed_at""",
+                    (kind,source_id,version,source_url,str(candidate.get("title",""))[:300],created))
             db.commit()
         except Exception:
             db.rollback()
