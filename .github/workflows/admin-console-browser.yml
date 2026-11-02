@@ -43,3 +43,13 @@ jobs:
           exit 1
       - name: Chrome real workflow and parity source-transfer verification
         run: node n8n/admin-console/test_admin.cjs
+      - name: Archive real Chromium screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: investment-four-stage-real-browser
+          path: |
+            /tmp/investment-4stage-default.png
+            /tmp/investment-4stage-pinned.png
+          if-no-files-found: ignore
+          retention-days: 7
