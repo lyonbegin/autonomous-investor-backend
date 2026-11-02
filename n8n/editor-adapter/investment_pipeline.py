@@ -108,6 +108,31 @@ def select_from_db(kind="strategy"):
                  WHERE kind=? ORDER BY saved_at DESC, rowid DESC LIMIT 120""",(kind,)).fetchall()
     return [dict(x) for x in rows]
 
+def saved_sources(limit=80):
+    """Public metadata, no Pine source body; caller may pin an exact DB version."""
+    if type(limit) is not int or not 1<=limit<=120:
+        raise ValueError("INVALID_SOURCE_PAGE_LIMIT")
+    records=select_from_db("strategy")[:limit]
+    return {"status":"ok","sources":[
+        {k:row[k] for k in ("source_id","version_key","rights_state","saved_at","chars")}
+        for row in records],"count":len(records),"source":"EXISTING_SQLITE_SOURCE_REGISTRY"}
+
+
+def validate_selected(source):
+    if source is None:return None
+    if not isinstance(source,dict) or set(source)!={"source_id","version_key"}:
+        raise ValueError("EXACT_SOURCE_ID_AND_VERSION_REQUIRED")
+    sid,version=source["source_id"],source["version_key"]
+    if not isinstance(sid,str) or not isinstance(version,str) or not (1<=len(sid)<=240 and 1<=len(version)<=150):
+        raise ValueError("INVALID_EXPLICIT_SOURCE_ID_OR_VERSION")
+    with closing(open_registry()) as db:
+        exists=db.execute("""SELECT 1 FROM investment_pine_payloads
+             WHERE kind='strategy' AND source_id=? AND version_key=?""",
+             (sid,version)).fetchone()
+    if not exists:raise ValueError("EXPLICIT_SOURCE_VERSION_NOT_IN_DATABASE")
+    return dict(source)
+
+
 def context_for_source(source_id,version):
     with closing(open_registry()) as db:
         tables={r[0] for r in db.execute("SELECT name FROM sqlite_master WHERE type='table'")}
@@ -173,34 +198,39 @@ def lookup_reference(source_url,code):
     except (OSError,TimeoutError,ValueError) as exc:
         return None,"PARITY_LOOKUP_ERROR_"+type(exc).__name__
 
-def process(run_id,sid):
+def process(run_id,sid,requested_source=None):
     statuses={}
     selected=None
     converted=None
     chart=None
     try:
         stage(run_id,"strategy",STRATEGY,"RUNNING")
-        try:
-            result=run_graph(run_id,"strategy",STRATEGY,
-              {"ui_selection":"strategy","requested_detail_limit":1,"max_pages":3})
-            if result.get("source_id") and result.get("version_key") and result.get("status")=="PINE_SAVED_CONVERSION_PENDING":
-                selected={"source_id":result["source_id"],"version_key":result["version_key"]}
-                statuses["strategy"]="SOURCE_SAVED"
-            elif result.get("status")=="NO_FETCHABLE_NEW_PINE":
-                statuses["strategy"]="NO_NEW_SOURCE"
-            else:
-                statuses["strategy"]="UNEXPECTED_RESULT"
-            stage(run_id,"strategy",STRATEGY,statuses["strategy"],selected or result)
-        except Exception as exc:
-            statuses["strategy"]="FAILED"
-            stage(run_id,"strategy",STRATEGY,"FAILED",error=str(exc))
-        if not selected:
-            previous=select_from_db("strategy")
-            if previous:
-                selected={k:previous[0][k] for k in ("source_id","version_key")}
-                stage(run_id,"strategy",STRATEGY,"REUSED_SAVED_SOURCE",selected)
-            else:
-                stage(run_id,"strategy",STRATEGY,"BLOCKED_NO_SOURCE")
+        if requested_source:
+            selected=dict(requested_source)
+            statuses["strategy"]="REUSED_EXACT_DB_SOURCE"
+            stage(run_id,"strategy",STRATEGY,statuses["strategy"],selected)
+        else:
+            try:
+                result=run_graph(run_id,"strategy",STRATEGY,
+                  {"ui_selection":"strategy","requested_detail_limit":1,"max_pages":3})
+                if result.get("source_id") and result.get("version_key") and result.get("status")=="PINE_SAVED_CONVERSION_PENDING":
+                    selected={"source_id":result["source_id"],"version_key":result["version_key"]}
+                    statuses["strategy"]="SOURCE_SAVED"
+                elif result.get("status")=="NO_FETCHABLE_NEW_PINE":
+                    statuses["strategy"]="NO_NEW_SOURCE"
+                else:
+                    statuses["strategy"]="UNEXPECTED_RESULT"
+                stage(run_id,"strategy",STRATEGY,statuses["strategy"],selected or result)
+            except Exception as exc:
+                statuses["strategy"]="FAILED"
+                stage(run_id,"strategy",STRATEGY,"FAILED",error=str(exc))
+            if not selected:
+                previous=select_from_db("strategy")
+                if previous:
+                    selected={k:previous[0][k] for k in ("source_id","version_key")}
+                    stage(run_id,"strategy",STRATEGY,"REUSED_SAVED_SOURCE",selected)
+                else:
+                    stage(run_id,"strategy",STRATEGY,"BLOCKED_NO_SOURCE")
         # Library is a dependency resolution stage for the EXACT selected
         # strategy. Never collect unrelated "one library" as fake progress.
         stage(run_id,"library",LIBRARY,"RUNNING")
@@ -338,8 +368,9 @@ def process(run_id,sid):
         with _running_lock:
             _active.discard(run_id)
 
-def start(sid):
+def start(sid,selected_source=None):
     if not isinstance(sid,str) or len(sid)!=48:raise ValueError("PIPELINE_SESSION_REQUIRED")
+    selected_source=validate_selected(selected_source)
     with _running_lock:
         with closing(open_registry()) as db:
             latest=db.execute("""SELECT run_id FROM investment_pipeline_runs
@@ -350,11 +381,11 @@ def start(sid):
             if recent>=100:raise ValueError("PIPELINE_DAILY_SAFETY_LIMIT")
             run_id=secrets.token_hex(16)
             db.execute("""INSERT INTO investment_pipeline_runs
-                (run_id,sid,status,started_at) VALUES(?,?,'RUNNING',?)""",
-                (run_id,sid,now()))
+                (run_id,sid,status,started_at,result_json) VALUES(?,?,'RUNNING',?,?)""",
+                (run_id,sid,now(),json.dumps({"requested_source":selected_source},ensure_ascii=False)))
             db.commit()
         _active.add(run_id)
-        threading.Thread(target=process,args=(run_id,sid),daemon=True,name="investment-pipeline-"+run_id[:8]).start()
+        threading.Thread(target=process,args=(run_id,sid,selected_source),daemon=True,name="investment-pipeline-"+run_id[:8]).start()
     return {"run_id":run_id,"status":"RUNNING"}
 
 def read(sid,run_id=None):
