@@ -226,7 +226,17 @@ class Handler(BaseHTTPRequestHandler):
                   (run_id,now,source_url,symbol,timeframe,status,
                    json.dumps(result,ensure_ascii=False),json.dumps(events,ensure_ascii=False),
                    result["pine_sha256"],result["csv_sha256"],image_kind))
-            return self.response(200,{"run_id":run_id,"status":status,"numeric_match":result["numeric_match"],
+            pg_sync={"status":"NOT_CONFIGURED"}
+            if os.environ.get("INVESTMENT_DATABASE_URL"):
+                try:
+                    from pg_bridge import sync_saved_run
+                    pg_sync=sync_saved_run(run_id)
+                except Exception as exc:
+                    # Keep original run/artifacts; never claim that PostgreSQL
+                    # received a chart record if sync failed.
+                    pg_sync={"status":"SYNC_BLOCKED","reason":str(exc)[:200]}
+                    print("PARITY_POSTGRES_PENDING",run_id,type(exc).__name__,str(exc)[:200],flush=True)
+            return self.response(200,{"run_id":run_id,"postgres_sync":pg_sync,"status":status,"numeric_match":result["numeric_match"],
                 "visual_verdict":"NOT_YET_VERIFIED","comparison":result["comparison"],
                 "bars":result["bars"],"trade_count":result["trade_count"],
                 "reference_screenshot_url":f"/artifacts/{run_id}/reference" if image_bytes else None,
@@ -244,6 +254,12 @@ class Handler(BaseHTTPRequestHandler):
 
 if __name__=="__main__":
     init()
+    if os.environ.get("INVESTMENT_DATABASE_URL"):
+        try:
+            from pg_bridge import reconcile
+            print("PARITY_POSTGRES_RECONCILIATION",json.dumps(reconcile(),ensure_ascii=False),flush=True)
+        except Exception as exc:
+            print("PARITY_POSTGRES_RECONCILIATION_BLOCKED",type(exc).__name__,str(exc)[:200],flush=True)
     port=int(os.environ.get("PORT","3000"))
     print(f"Pine parity visual review listening on :{port}",flush=True)
     ThreadingHTTPServer(("0.0.0.0",port),Handler).serve_forever()
