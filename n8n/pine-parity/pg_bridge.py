@@ -118,6 +118,8 @@ def sync_saved_run(run_id):
                 VALUES (%s,%s,%s,%s,%s,%s,%s,%s,'USER_UPLOAD',
                        'USER_SUBMITTED_UNVERIFIED',%s,
                        'Chart settings and screenshot provenance not independently authenticated')
+                ON CONFLICT(script_version_id,dataset_id,parameters_hash,chart_settings_hash,tv_csv_artifact_id,tv_screenshot_artifact_id)
+                DO UPDATE SET comment=research.tv_references.comment
                 RETURNING reference_id""",
                 (sv,instrument,dataset,row["timeframe"],params_sha,settings_sha,csv_id,ref_id,
                  datetime.fromisoformat(row["created_at"]))).fetchone()[0]
@@ -129,6 +131,10 @@ def sync_saved_run(run_id):
                 (conversion_id,reference_id,comparison_algorithm_version,status,
                  numeric_match,mismatch_metrics,python_chart_artifact_id,visual_verdict)
                 VALUES(%s,%s,'parity-v1',%s,%s,%s::jsonb,%s,'PENDING')
+                ON CONFLICT(conversion_id,reference_id,comparison_algorithm_version)
+                DO UPDATE SET status=EXCLUDED.status,numeric_match=EXCLUDED.numeric_match,
+                  mismatch_metrics=EXCLUDED.mismatch_metrics,
+                  python_chart_artifact_id=EXCLUDED.python_chart_artifact_id
                 RETURNING comparison_id""",
                 (conv[0],reference,status,match,
                  json.dumps({"comparison":summary.get("comparison",[])},ensure_ascii=False),svg_id)).fetchone()[0]
