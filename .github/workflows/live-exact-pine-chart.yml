@@ -1,0 +1,61 @@
+name: Live Exact Saved Pine Version to Python Side-by-side
+on:
+  push:
+    branches: [feature/editor-wf01-canvas-20261029]
+    paths:
+      - 'n8n/editor-adapter/investment_pipeline.py'
+      - 'n8n/editor-adapter/investment_node_adapter.py'
+      - 'n8n/Dockerfile.native-editor-gateway'
+      - '.github/workflows/live-exact-pine-chart.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  end-to-end:
+    runs-on: ubuntu-latest
+    timeout-minutes: 11
+    steps:
+      - name: Verify same canonical SHA and real Python OHLCV on restored services
+        run: |
+          python3 - <<'PY'
+          import json,urllib.request,urllib.parse,time,hashlib
+          sid='PUB;67a1548c0960450086a19d5b0ef1d467'
+          studio='https://investment-n8n-native-editor-production.up.railway.app'
+          public='https://autonomous-investor-public-api-production.up.railway.app'
+          def read(url,timeout=65):
+            with urllib.request.urlopen(urllib.request.Request(url,headers={
+              'User-Agent':'Pine-Exact-Chart-E2E/1','Accept':'application/json'}),timeout=timeout) as r:
+              return json.load(r)
+          for attempt in range(36):
+            try:
+              source_list=read(studio+'/api/investment/sources')
+              item=next(x for x in source_list['sources'] if x['source_id']==sid and x['version_key']=='1.0')
+              sha=item['source_sha256']
+              assert len(sha)==64,(item,'SOURCE_SHA_UNAVAILABLE')
+              params=urllib.parse.urlencode({'source_id':sid,'version_key':'1.0','source_sha256':sha})
+              src=read(studio+'/api/investment/source-exact?'+params)
+              assert src['source_id']==sid and src['version_key']=='1.0'
+              assert hashlib.sha256(src['source'].encode()).hexdigest()==sha
+              params=urllib.parse.urlencode({'version':'1.0','sha256':sha,'symbol':'NASDAQ:NVDA','horizon':'2h'})
+              url=public+'/api/public/scripts/'+urllib.parse.quote(sid,safe='')+'/compare-exact?'+params
+              data=read(url,timeout=120)
+              chart=data['chart']
+              assert data['source']['source_sha256']==sha
+              assert chart['source_hash']==sha and chart['script_id']==sid
+              assert len(chart['bars'])>200 and chart['source_origin']=='EXACT_SAVED_PINE_VERSION'
+              visual=chart['visual']
+              assert visual['adapter']=='sequence-reversal-python',visual
+              assert visual['metrics']['parity_verified'] is False
+              print('LIVE_PINNED_PINE_TO_PYTHON_CHART_PASS',json.dumps({
+                  'source_id':sid,'version':'1.0','source_sha256':sha,
+                  'postgres_version_id':src.get('script_version_id'),
+                  'provider':chart['market_data']['provider'],
+                  'bars':len(chart['bars']),'adapter':visual['adapter'],
+                  'markers':len(visual.get('markers') or []),
+                  'tv_website_parity':False},ensure_ascii=False),flush=True)
+              break
+            except Exception as exc:
+              print('RETRY',attempt,type(exc).__name__,str(exc)[:250],flush=True)
+              time.sleep(7)
+          else:raise SystemExit('PINNED_PINE_CHART_E2E_FAILED')
+          PY
