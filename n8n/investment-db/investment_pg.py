@@ -200,7 +200,7 @@ def counts():
     tables={"scripts":"catalog.scripts","versions":"catalog.script_versions",
             "libraries":"catalog.scripts","conversions":"research.conversions",
             "tv_references":"research.tv_references","comparisons":"research.chart_comparisons",
-            "pipeline_runs":"operations.pipeline_runs"}
+            "pipeline_runs":"operations.pipeline_runs","node_runs":"operations.node_runs"}
     with connect() as db:
         for label,table in tables.items():
             if label=="libraries":
