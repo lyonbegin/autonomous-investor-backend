@@ -272,6 +272,36 @@ def mirror_node_event(run_id,stage_key,workflow,node_id,node_name,status,payload
                     (finished_status,str(error)[:200] if error else None,sr))
         db.commit()
 
+def canonical_pipeline_record(run_id):
+    """Read back the canonical Postgres row and its linked stage/node events."""
+    import uuid
+    uuid_value=uuid.UUID(hex=run_id)
+    with connect() as db:
+        row=db.execute("""SELECT p.pipeline_run_id,p.status,p.selected_script_version_id,
+             p.initiated_at,p.ended_at,p.error_code,
+             s.external_script_key,sv.provider_version
+             FROM operations.pipeline_runs p
+             LEFT JOIN catalog.script_versions sv ON sv.script_version_id=p.selected_script_version_id
+             LEFT JOIN catalog.scripts s ON s.script_id=sv.script_id
+             WHERE p.pipeline_run_id=%s""",(uuid_value,)).fetchone()
+        if not row:return {"status":"NOT_RECORDED"}
+        stage_rows=db.execute("""SELECT sr.stage_key,sr.status,sr.started_at,sr.finished_at,
+            count(n.node_run_id) FROM operations.stage_runs sr
+            LEFT JOIN operations.node_runs n ON n.stage_run_id=sr.stage_run_id
+            WHERE sr.pipeline_run_id=%s
+            GROUP BY sr.stage_run_id ORDER BY sr.stage_key""",(uuid_value,)).fetchall()
+        node_count=sum(int(x[4]) for x in stage_rows)
+    return {"status":row[1],"run_id":str(row[0]),
+            "script_version_id":str(row[2]) if row[2] else None,
+            "source_id":row[6],"version_key":row[7],
+            "started_at":row[3].isoformat() if row[3] else None,
+            "finished_at":row[4].isoformat() if row[4] else None,
+            "error":row[5],"node_runs":node_count,
+            "stages":[{"stage":x[0],"status":x[1],
+             "started_at":x[2].isoformat() if x[2] else None,
+             "finished_at":x[3].isoformat() if x[3] else None,
+             "node_runs":int(x[4])} for x in stage_rows]}
+
 def finish_pipeline_run(run_id,status,selected=None,error=None):
     import uuid
     run_uuid=uuid.UUID(hex=run_id)
