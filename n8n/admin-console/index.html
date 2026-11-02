@@ -85,6 +85,7 @@ function integratedHtml(){
  '<p class="helper">한 번 실행하면 실제 수집 → 해당 전략의 Library 의존성 확인 → 같은 전략 버전의 Python 변환 → 저장된 실제 TV 기준 차트 검증으로 이어집니다. 이전 저장 원본은 DB에서 재사용합니다.</p>'+
  '<div class="actions"><button class="btn primary" id="integrated-start" data-action="integrated-start">▶ 전체 4단계 한 번에 실행</button>'+
  '<button class="btn" data-action="integrated-refresh">실행 이력 갱신</button><span class="status" id="integrated-label">이력 조회 전</span></div>'+
+ '<div class="notice" id="canonical-pg-status">PostgreSQL 기준 실행 이력 대조 중</div>'+
  '<div class="grid2"><div class="stack" id="integrated-stages">'+INTEGRATED.map(s=>'<div class="area"><b>'+s.name+'</b><p>실행 전</p></div>').join('')+
  '</div><div class="panel" style="margin:0"><h3>실제 노드·DB 처리 추적</h3><div class="log" id="integrated-events">실행 결과가 여기에 나타납니다.</div>'+
  '<div class="actions" id="integrated-charts"></div></div></div>'+
@@ -98,6 +99,17 @@ async function refreshIntegrated(runId){
   if(!r.ok)throw Error('HTTP '+r.status);
   const d=r.data,states=d.result?.stages||{},events=d.events||[];
   if(d.run_id)integratedRunId=d.run_id;
+  const canonical=d.canonical_postgres||{status:'NOT_RECORDED'};
+  const pg=document.getElementById('canonical-pg-status');
+  if(pg){
+    const synced=canonical.status===d.status&&!canonical.status_mismatch;
+    const display='기준 PostgreSQL · '+canonical.status+
+      ' · 노드 '+(canonical.node_runs??0)+'건'+
+      (canonical.script_version_id?' · 원본 버전 '+canonical.script_version_id:' · 선택 버전 없음')+
+      (canonical.status_mismatch?' · SQLite/PG 상태 불일치':'');
+    pg.textContent=display;
+    pg.classList.toggle('warn',!synced);
+  }
   const label=document.getElementById('integrated-label');
   if(label)label.textContent=(d.status||'미실행')+(d.run_id?' · '+d.run_id:'');
   const button=document.getElementById('integrated-start');
