@@ -108,6 +108,40 @@ def select_from_db(kind="strategy"):
                  WHERE kind=? ORDER BY saved_at DESC, rowid DESC LIMIT 120""",(kind,)).fetchall()
     return [dict(x) for x in rows]
 
+def select_supported_saved_strategy():
+    """Automatic fallback chooses a DB source that has an actual saved Python
+    conversion AND is still parseable from its current immutable Pine bytes.
+    Do not silently replace an explicitly selected or newly collected strategy.
+    """
+    from engine import parse_pine, UnsupportedPine
+    from sequence_reversal import parse_sequence_pine, UnsupportedSequencePine
+    with closing(open_registry()) as db:
+        tables={x[0] for x in db.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+        if "investment_python_conversions" not in tables:return None
+        candidates=db.execute("""SELECT p.source_id,p.version_key,p.pine_code,
+             c.converter_scope,c.converted_at
+             FROM investment_pine_payloads p
+             INNER JOIN investment_python_conversions c
+              ON c.kind=p.kind AND c.source_id=p.source_id AND c.version_key=p.version_key
+             WHERE p.kind='strategy' AND length(c.python_code)>0
+             ORDER BY c.converted_at DESC,p.saved_at DESC LIMIT 120""").fetchall()
+    for item in candidates:
+        pine=item["pine_code"]
+        try:
+            try:
+                spec=parse_pine(pine)
+            except UnsupportedPine:
+                spec=parse_sequence_pine(pine)
+            if spec.get("supported_subset")!=item["converter_scope"]:
+                continue
+        except (UnsupportedPine,UnsupportedSequencePine,ValueError,KeyError,TypeError):
+            continue
+        return {"source_id":item["source_id"],"version_key":item["version_key"],
+                "selection_basis":"STORED_PYTHON_CONVERSION_RECHECKED_AGAINST_CURRENT_PINE",
+                "source_sha256":hashlib.sha256(pine.encode("utf-8")).hexdigest()}
+    return None
+
+
 def exact_stored_pine(source_id,version_key):
     """Return EXACT pinned Pine used by the DB workflow, never a same-ID latest fallback."""
     if not isinstance(source_id,str) or not 1<=len(source_id)<=240:
@@ -274,12 +308,17 @@ def process(run_id,sid,requested_source=None):
                 statuses["strategy"]="FAILED"
                 stage(run_id,"strategy",STRATEGY,"FAILED",error=str(exc))
             if not selected:
-                previous=select_from_db("strategy")
-                if previous:
-                    selected={k:previous[0][k] for k in ("source_id","version_key")}
-                    stage(run_id,"strategy",STRATEGY,"REUSED_SAVED_SOURCE",selected)
+                usable=select_supported_saved_strategy()
+                if usable:
+                    selected={k:usable[k] for k in ("source_id","version_key")}
+                    statuses["strategy"]="REUSED_SAVED_SUPPORTED_SOURCE"
+                    stage(run_id,"strategy",STRATEGY,statuses["strategy"],
+                          {**usable,"note":"AUTO_FALLBACK_ONLY_AFTER_NO_NEW_PINE; EXACT_SOURCE_PINNED_FOR_ALL_NEXT_STAGES"})
                 else:
-                    stage(run_id,"strategy",STRATEGY,"BLOCKED_NO_SOURCE")
+                    statuses["strategy"]="BLOCKED_NO_CONVERTIBLE_SAVED_SOURCE"
+                    stage(run_id,"strategy",STRATEGY,statuses["strategy"],
+                          {"reason":"No DB Pine version with saved and still supported Python conversion"})
+
         # Library is a dependency resolution stage for the EXACT selected
         # strategy. Never collect unrelated "one library" as fake progress.
         stage(run_id,"library",LIBRARY,"RUNNING")
@@ -386,7 +425,8 @@ def process(run_id,sid,requested_source=None):
                 postgres_finish={"status":"FAILED","reason":type(exc).__name__+": "+str(exc)[:200]}
         result={"status":final,"stages":statuses,"selected_source":selected,
                 "requested_source":requested_source,
-                "selection_mode":"EXPLICIT_PINNED" if requested_source else "AUTO_NEW_OR_LATEST_DB_FALLBACK",
+                "selection_mode":"EXPLICIT_PINNED" if requested_source else
+                   "AUTO_NEW_OR_PREVIOUSLY_CONVERTED_DB_SOURCE",
                 "converted_source":converted,"chart":chart,
                 "postgres_sync":postgres_finish,
                 "postgres_trace_failures":trace_failures,
