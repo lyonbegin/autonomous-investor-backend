@@ -86,11 +86,18 @@ async function run(page){
   // One click performs four actual stages with a stable selected strategy ID.
   const integrated=page.locator('#integrated-start');
   if(await integrated.count()!==1)throw Error('One-click entire pipeline control missing');
+  const beforeAuto=await page.evaluate(async()=>{
+    const r=await fetch('/api/investment/pipeline',{credentials:'same-origin',cache:'no-store'});
+    const j=await r.json();return j.run_id||null;
+  });
   await integrated.click();
-  await page.waitForFunction(()=>{
+  await page.waitForFunction((oldId)=>{
     const text=document.querySelector('#integrated-label')?.textContent||'';
-    return /TV_PARITY_PENDING|PARTIAL_BLOCKED|REVIEW_REQUIRED|FAILED|실행 시작 실패|실행 조회 실패/.test(text);
-  },null,{timeout:180000});
+    if(/실행 시작 실패|실행 조회 실패/.test(text))return true;
+    const match=text.match(/실행 ID ([0-9a-f]{32})/);
+    return match&&match[1]!==oldId&&
+      /TV_PARITY_PENDING|PARTIAL_BLOCKED|REVIEW_REQUIRED|FAILED/.test(text);
+  },beforeAuto,{timeout:240000});
   const firstStatus=await page.locator('#integrated-label').innerText();
   if(firstStatus.includes('실패'))throw Error('First one-click pipeline did not complete: '+firstStatus);
   const pipeline=await page.evaluate(async()=>{
