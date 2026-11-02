@@ -50,5 +50,7 @@ jobs:
           base='https://investment-n8n-native-editor-production.up.railway.app/api/investment/database/status'
           with urllib.request.urlopen(base,timeout=15) as response:d=json.load(response)
           assert d['status']=='ok' and d['conversions']>=1 and d['versions']>=1,d
+          assert d['node_runs']>=3 and d['pipeline_runs']>=1,d
           print('LIVE_POSTGRES_WF02_CONVERSIONS',d['conversions'],'VERSIONS',d['versions'])
+          print('LIVE_POSTGRES_NODE_TRACES',d['node_runs'],'PIPELINES',d['pipeline_runs'])
           PY
