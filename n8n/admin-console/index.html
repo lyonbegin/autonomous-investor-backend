@@ -82,7 +82,7 @@ const INTEGRATED=[
 ];
 function integratedHtml(){
  return '<section class="panel" id="integrated-section"><h3>전체 자동화 4단계 연속 실행</h3>'+
- '<p class="helper">실행: 승인 공급원 목록 조회(미설정 시 과거 스냅샷) → 저장 원본/Library 의존성 확인 → 같은 버전의 Python 변환 → 기존 TradingView 기준 차트 비교 기록 조회. 현재 ④는 새 차트를 자동 수집·생성하는 실행이 아닙니다.</p>'+
+ '<p class="helper">실행: 승인 원본 목록 조회(미설정 시 과거 스냅샷) → 신규 원본이 없으면 DB의 실제 변환 가능한 저장 전략을 검증 후 선택 → Library 확인 → 같은 Pine 버전의 Python 생성 → 동일한 실제 OHLCV로 Pine/Python 차트 계산. TradingView 사이트의 공식 CSV 동등성 검증은 별도입니다.</p>'+
  '<label class="form-field" for="integrated-source">실행할 전략 원본 버전 · 통합 DB 등록 결과<input type="hidden" id="selected-source-hidden"><select class="form-control" id="integrated-source"><option value="">자동 수집 → DB 기존 원본 재사용</option></select></label>'+
  '<p class="helper" id="source-choice-state">SQLite에 보존된 전략 목록을 확인 중입니다.</p>'+
  '<div class="actions"><button class="btn primary" id="integrated-start" data-action="integrated-start">▶ 전체 4단계 한 번에 실행</button>'+
@@ -118,7 +118,7 @@ async function loadSavedSources(){
       ' · '+esc(s.saved_at||'')+'</option>').join('');
   if(current&&Number(current)<availableSources.length)menu.value=current;
   if(integratedRunId&&page==='tests')refreshIntegrated(integratedRunId);
-  if(note)note.textContent=availableSources.length+'개 저장 원본 확인 · 선택하면 수집 재실행 대신 해당 버전을 그대로 사용합니다. Pine 미지원 여부는 실행 결과로 확인합니다.';
+  if(note)note.textContent=availableSources.length+'개 저장 원본 확인 · 자동 모드는 신규 원본이 없으면 저장된 Python 변환 이력과 Pine 실제 문법을 재확인해 적용 가능한 버전을 선택합니다. 직접 선택한 원본은 자동 교체하지 않습니다.';
  }catch(e){if(note)note.textContent='저장 전략 목록 조회 실패 · '+e.message;}
 }
 async function refreshIntegrated(runId){
@@ -147,8 +147,9 @@ async function refreshIntegrated(runId){
   const summary=document.getElementById('integrated-summary');
   if(summary){
     const completed=INTEGRATED.filter(s=>['SOURCE_SAVED','REUSED_EXACT_DB_SOURCE',
-      'REUSED_SAVED_SOURCE','NO_NEW_SOURCE','NOT_REQUIRED','DEPENDENCIES_PINNED',
-      'PYTHON_GENERATED','REFERENCE_FOUND_REVIEW_REQUIRED'].includes(states[s.id])).length;
+      'REUSED_SAVED_SUPPORTED_SOURCE','NO_NEW_SOURCE','NOT_REQUIRED','DEPENDENCIES_PINNED',
+      'PYTHON_GENERATED','REFERENCE_FOUND_REVIEW_REQUIRED',
+      'CHART_PREVIEW_READY_TV_PARITY_PENDING'].includes(states[s.id])).length;
     const blocked=INTEGRATED.filter(s=>String(states[s.id]||'').startsWith('BLOCKED_')||
       String(states[s.id]||'').includes('UNSUPPORTED')||states[s.id]==='FAILED');
     const key=blocked.map(s=>s.name+': '+states[s.id]).join(' / ');
@@ -158,8 +159,9 @@ async function refreshIntegrated(runId){
       ?'아직 전체 실행 기록이 없습니다.'
       :'4개 중 정상/재사용 단계 '+completed+'개, 차단/미지원 '+blocked.length+'개'+
        (key?' · 차단 원인 '+key:'')+
-       (d.status==='PARTIAL_BLOCKED'?' · 전체 검증 미완료':'');
-    summary.classList.toggle('warn',blocked.length>0||d.status==='PARTIAL_BLOCKED');
+       (d.status==='TV_PARITY_PENDING'?' · 원본 Pine/Python 차트 준비 완료, TradingView 사이트 공식 동등성 검증은 별도 대기':
+       d.status==='PARTIAL_BLOCKED'?' · 전체 검증 미완료':'');
+    summary.classList.toggle('warn',blocked.length>0||d.status==='PARTIAL_BLOCKED'||d.status==='TV_PARITY_PENDING');
   }
   const button=document.getElementById('integrated-start');
   if(button)button.disabled=d.status==='RUNNING';
@@ -221,7 +223,7 @@ async function refreshIntegrated(runId){
     (states.python==='UNSUPPORTED_SELECTED_PINE'?
       '현재 선택한 Pine은 Python 코드가 생성되지 않았습니다. 다른 저장 원본을 직접 선택하거나 변환기 지원 범위를 늘려야 합니다.':
       states.python==='PYTHON_GENERATED'?
-      'Python 코드는 생성됐으나 실제 TradingView 원본 차트와 같은 구간의 CSV가 없어 좌우 차트를 아직 만들지 못했습니다.':
+      'Python 계산과 실제 시장 데이터 차트는 준비됐습니다. TradingView 웹사이트에서 내보낸 실제 캡처·CSV와 정식 동등성은 별도 미검증입니다.':
       '차트·플롯·동일 종목·시간봉의 실제 기준자료 미확보 · 아직 동등성 판정 불가');
   const preview=document.getElementById('native-compare-target');
   if(preview){
@@ -245,10 +247,16 @@ async function refreshIntegrated(runId){
   }
   const links=document.getElementById('integrated-charts');
   if(links){
-    const url=d.result?.chart?.comparison_url;
-    links.innerHTML=url&&url.startsWith('https://investment-pine-parity-review-production.up.railway.app/?run=')
-      ?'<a class="btn" href="'+esc(url)+'" target="_blank" rel="noopener">↗ 동일 실행 차트 결과</a>'
-      :'<span class="muted minor">검증된 원본 차트 결과 링크 없음 · 실제 기준자료 필요</span>';
+    const tvUrl=d.result?.chart?.comparison_url;
+    const chartUrl=d.result?.chart?.preview_url;
+    if(tvUrl&&tvUrl.startsWith('https://investment-pine-parity-review-production.up.railway.app/?run=')){
+      links.innerHTML='<a class="btn" href="'+esc(tvUrl)+'" target="_blank" rel="noopener">TradingView 캡처·CSV 수치 결과 보기</a>';
+    }else if(chartUrl&&chartUrl.startsWith('https://autonomous-investor-public-production.up.railway.app/compare/')){
+      links.innerHTML='<a class="btn" href="'+esc(chartUrl)+'" target="_blank" rel="noopener">실제 시장 OHLCV 기반 Pine ↔ Python 차트 보기</a>'+
+        '<span class="muted minor">TradingView 웹사이트에서 내보낸 기준 CSV와 동등성은 별도 검증 필요</span>';
+    }else{
+      links.innerHTML='<span class="muted minor">실제 Pine/Python 차트가 준비되지 않았습니다. 차단 사유를 확인하세요.</span>';
+    }
   }
   if(d.status==='RUNNING'&&page==='tests'){
     setTimeout(()=>{if(page==='tests'&&integratedRunId===d.run_id)refreshIntegrated(d.run_id)},1500);
