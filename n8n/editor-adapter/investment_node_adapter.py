@@ -23,6 +23,12 @@ WF01_MODES={
     WF02_PATH:"strategy",
 }
 
+def investment_database_status():
+    if not os.environ.get("INVESTMENT_DATABASE_URL"):
+        return {"status":"NOT_CONFIGURED","database":"autonomous_investment"}
+    from investment_pg import counts
+    return counts()
+
 def pipeline_start(sid):
     from investment_pipeline import start
     return start(sid)
