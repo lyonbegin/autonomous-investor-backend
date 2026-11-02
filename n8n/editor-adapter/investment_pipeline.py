@@ -108,6 +108,34 @@ def select_from_db(kind="strategy"):
                  WHERE kind=? ORDER BY saved_at DESC, rowid DESC LIMIT 120""",(kind,)).fetchall()
     return [dict(x) for x in rows]
 
+def exact_stored_pine(source_id,version_key):
+    """Return EXACT pinned Pine used by the DB workflow, never a same-ID latest fallback."""
+    if not isinstance(source_id,str) or not 1<=len(source_id)<=240:
+        raise ValueError("SOURCE_ID_REQUIRED")
+    if not isinstance(version_key,str) or not 1<=len(version_key)<=150:
+        raise ValueError("VERSION_KEY_REQUIRED")
+    with closing(open_registry()) as db:
+        row=db.execute("""SELECT pine_code,rights_state FROM investment_pine_payloads
+            WHERE kind='strategy' AND source_id=? AND version_key=?""",
+            (source_id,version_key)).fetchone()
+    if row is None:raise ValueError("EXACT_STRATEGY_VERSION_NOT_IN_DB")
+    code=row["pine_code"]
+    if not isinstance(code,str) or not code.strip() or len(code.encode("utf-8"))>512*1024:
+        raise ValueError("PINNED_SOURCE_EMPTY_OR_TOO_LARGE")
+    sha=hashlib.sha256(code.encode("utf-8")).hexdigest()
+    version_uuid=None
+    if os.environ.get("INVESTMENT_DATABASE_URL"):
+        from investment_pg import get_source
+        canonical=get_source(source_id,version_key)
+        if canonical["source_sha256"]!=sha or canonical["pine_code"]!=code:
+            raise ValueError("CANONICAL_PINE_VERSION_MISMATCH")
+        version_uuid=canonical["script_version_id"]
+    return {"source_id":source_id,"version_key":version_key,
+       "source_sha256":sha,"source":code,"kind":"strategy",
+       "rights_state":row["rights_state"],"script_version_id":version_uuid,
+       "original_record":"SQLITE_WITH_POSTGRES_READBACK" if version_uuid else "SQLITE_ONLY"}
+
+
 def saved_sources(limit=80):
     """Public metadata, no Pine source body; caller may pin an exact DB version."""
     if type(limit) is not int or not 1<=limit<=120:
