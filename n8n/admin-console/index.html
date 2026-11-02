@@ -97,7 +97,10 @@ function integratedHtml(){
  '<p class="muted minor" id="integrated-source-identity">실행 결과에 저장된 정확한 source_id · version_key를 표시합니다.</p>'+
  '<div class="grid2"><div class="area"><b>왼쪽 · 실제 TradingView 전략 적용 차트</b><div id="integrated-left-chart" class="empty">실제 TradingView 차트 캡처 없음 · 동일 실행 ID의 기준 이미지·CSV 확보 필요</div></div>'+
  '<div class="area"><b>오른쪽 · Python 변환 차트</b><div id="integrated-right-chart" class="empty">동일 전략·시장 데이터의 계산 결과가 준비되지 않음</div></div></div>'+
- '<p class="muted minor" id="integrated-comparison-note">두 차트와 가격·시간봉·파라미터가 동일해야 실제 비교 가능합니다. 미확보 자료를 가상으로 채우지 않습니다.</p></div>'+
+ '<p class="muted minor" id="integrated-comparison-note">TradingView 웹사이트의 실제 차트·CSV로 검증된 결과만 이 영역에 표시합니다.</p></div>'+
+ '<div class="panel" id="integrated-native-compare"><h3>기존 차트 엔진 연결 · 원본 Pine과 Python 계산 나란히</h3>'+
+ '<p class="helper">기존 Vela/PineTS + Python Quant 컴포넌트를 재사용해 실제 시장 OHLCV로 두 그래프를 실행합니다. 공식 TradingView 차트와의 수치 동등성 PASS는 아닙니다.</p>'+
+ '<div id="native-compare-target">실행된 DB 전략의 정확한 SHA-256을 확인하면 기존 차트 페이지를 자동으로 연결합니다.</div></div>'+
  '<div class="notice warn">Library가 필요 없으면 NOT_REQUIRED, 실제 참조가 없으면 WAITING_DEPENDENCY로 기록합니다. TradingView 실제 이미지·CSV가 없으면 차트는 BLOCKED로 기록하고 성공으로 표시하지 않습니다. 변환 불가 전략을 다른 전략으로 몰래 바꾸지 않습니다.</div></section>';
 }
 async function loadSavedSources(){
@@ -113,6 +116,7 @@ async function loadSavedSources(){
       ' · 버전 '+esc(s.version_key)+' · '+(s.python_code_stored?'Python 생성 이력 있음':'Python 변환 미확인')+
       ' · '+esc(s.saved_at||'')+'</option>').join('');
   if(current&&Number(current)<availableSources.length)menu.value=current;
+  if(integratedRunId&&page==='tests')refreshIntegrated(integratedRunId);
   if(note)note.textContent=availableSources.length+'개 저장 원본 확인 · 선택하면 수집 재실행 대신 해당 버전을 그대로 사용합니다. Pine 미지원 여부는 실행 결과로 확인합니다.';
  }catch(e){if(note)note.textContent='저장 전략 목록 조회 실패 · '+e.message;}
 }
@@ -218,6 +222,25 @@ async function refreshIntegrated(runId){
       states.python==='PYTHON_GENERATED'?
       'Python 코드는 생성됐으나 실제 TradingView 원본 차트와 같은 구간의 CSV가 없어 좌우 차트를 아직 만들지 못했습니다.':
       '차트·플롯·동일 종목·시간봉의 실제 기준자료 미확보 · 아직 동등성 판정 불가');
+  const preview=document.getElementById('native-compare-target');
+  if(preview){
+    const metadata=chosen&&availableSources.find(s=>
+      s.source_id===chosen.source_id&&s.version_key===chosen.version_key);
+    if(chosen&&metadata?.source_sha256&&/^[0-9a-f]{64}$/.test(metadata.source_sha256)
+       &&d.status!=='RUNNING'){
+      const src='https://autonomous-investor-public-production.up.railway.app/compare/'+
+         encodeURIComponent(chosen.source_id)+'?sha256='+encodeURIComponent(metadata.source_sha256);
+      if(preview.dataset.loaded!==src){
+        preview.dataset.loaded=src;
+        preview.innerHTML='<p><a href="'+esc(src)+'" target="_blank" rel="noopener">기존 Pine↔Python 비교 화면 새 창 열기</a> · 저장 원본 해시가 다르면 차단됩니다.</p>'+
+         '<iframe title="기존 Pine 원문과 Python 전략 동시 실행" src="'+esc(src)+
+         '" style="width:100%;height:780px;max-width:100%;border:1px solid #345;border-radius:10px;background:#fff" loading="eager"></iframe>';
+      }
+    }else if(!chosen||!metadata?.source_sha256){
+      preview.dataset.loaded='';
+      preview.textContent=chosen?'정확한 Pine 원본 SHA-256 확인 전 · 기존 차트를 대체 표시하지 않습니다.':'전략 원본 선택 또는 수집 결과가 필요합니다.';
+    }
+  }
   const links=document.getElementById('integrated-charts');
   if(links){
     const url=d.result?.chart?.comparison_url;
