@@ -16,7 +16,7 @@ def _conn():
     uri=os.getenv("INVESTMENT_DATABASE_URL","")
     if not uri:raise RuntimeError("INVESTMENT_DATABASE_URL_MISSING")
     u=urlsplit(uri)
-    return psycopg.connect(urlunsplit((u.scheme,u.netloc,"/autonomous_investment",u.query)),connect_timeout=10)
+    return psycopg.connect(urlunsplit((u.scheme,u.netloc,"/autonomous_investment",u.query,"")),connect_timeout=10)
 
 def _timestamp(value):
     s=str(value).strip()
