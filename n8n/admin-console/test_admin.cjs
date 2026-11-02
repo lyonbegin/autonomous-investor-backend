@@ -176,21 +176,31 @@ async function run(page){
     throw Error('Summary conceals blocked stages: '+summaryText);
   if(!/^[0-9a-f]{64}$/.test(sourceMeta.source_sha256||''))
     throw Error('Exact Pine version lacks immutable SHA-256 in DB source picker');
-  const publicEndpoint='https://autonomous-investor-public-api-production.up.railway.app/api/public/scripts/'+
-      encodeURIComponent(sourceMeta.source_id)+'/source';
-  const publicResult=await page.request.get(publicEndpoint,{timeout:35000});
-  if(!publicResult.ok())throw Error('Restored TradingView source API unavailable: HTTP '+publicResult.status());
-  const sameSource=await publicResult.json();
-  if(sameSource.source_hash!==sourceMeta.source_sha256)
-    throw Error('Source SHA mismatch: studio='+sourceMeta.source_sha256+
-        ' tradingview='+sameSource.source_hash+'; do not render unrelated Pine source');
+  const url='https://autonomous-investor-public-api-production.up.railway.app/api/public/scripts/'+
+      encodeURIComponent(sourceMeta.source_id)+'/compare-exact?version='+
+      encodeURIComponent(sourceMeta.version_key)+'&sha256='+sourceMeta.source_sha256+
+      '&symbol=NASDAQ%3ANVDA&horizon=2h';
+  const response=await page.request.get(url,{timeout:110000});
+  if(!response.ok())throw Error('Restored exact pinned Pine+Python API unavailable: HTTP '+
+     response.status()+' '+(await response.text()).slice(0,400));
+  const restored=await response.json();
+  if(restored.source?.source_sha256!==sourceMeta.source_sha256||
+     restored.chart?.source_hash!==sourceMeta.source_sha256||
+     restored.chart?.script_id!==sourceMeta.source_id)
+    throw Error('Exact source mismatch between studio, PostgreSQL and Quant comparison');
+  if(restored.chart?.visual?.adapter!=='sequence-reversal-python'||!restored.chart?.bars?.length)
+    throw Error('Saved Pine did not reach existing Python Quant chart adapter');
   const embedded=page.locator('#native-compare-target iframe');
   if(await embedded.count()!==1)throw Error('Existing side-by-side Pine/Python chart not linked to four-stage run');
   const iframeSrc=await embedded.getAttribute('src');
   if(!iframeSrc.includes(encodeURIComponent(sourceMeta.source_id))||
       !iframeSrc.includes(sourceMeta.source_sha256))
     throw Error('Embedded native/Python comparison not pinned to exact Pine source');
-  console.log('PASS exact canonical source SHA and original Pine/Python chart linked',sourceMeta.source_sha256);
+  console.log('PASS exact canonical source SHA and original Pine/Python chart linked',JSON.stringify({
+     sha:sourceMeta.source_sha256,bars:restored.chart.bars.length,
+     markers:restored.chart.visual.markers.length,
+     python_adapter:restored.chart.visual.adapter
+  }));
   if(exact.result.chart==null&&await page.locator('#integrated-left-chart img').count())
     throw Error('Fake TradingView screenshot displayed without reference');
   if(exact.result?.stages?.python==='PYTHON_GENERATED'&&
