@@ -59,21 +59,84 @@ const flowLabels={
  [W.agent]:'F03 · 에이전트 할당',
  [W.audit]:'F05 · 독립 감사'
 };
-let page='overview',flow=W.strategy,workflow=null,running=false,selectedNode=null,runEvents=[],session={},connected=false,lastPine=null,lastSavedSource=null,compareWindow=null,pendingCompare=null;
+let page='overview',flow=W.strategy,workflow=null,running=false,selectedNode=null,runEvents=[],session={},connected=false,lastPine=null,lastSavedSource=null,compareWindow=null,pendingCompare=null,integratedRunId=null;
 const PARITY_ORIGIN='https://investment-pine-parity-review-production.up.railway.app';
 window.addEventListener('message',event=>{if(event.origin!==PARITY_ORIGIN||!compareWindow||event.source!==compareWindow||event.data?.type!=='PARITY_READY'||!pendingCompare)return;compareWindow.postMessage({type:'AUTONOMOUS_PINE_IMPORT',...pendingCompare},PARITY_ORIGIN);pendingCompare=null;});
 const root=document.getElementById('content'),ttl=document.getElementById('page-title'),sub=document.getElementById('page-subtitle'),menu=document.getElementById('menu');
 function esc(s){return String(s??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;')}
 function editorUrl(f){return '/?workflow='+encodeURIComponent(f)}
 function link(f,label){return '<a class="btn small" href="'+esc(editorUrl(f))+'">↗ '+esc(label||'노드 흐름 보기')+'</a>'}
-function setPage(id){if(!MENUS.some(x=>x[0]===id))return;page=id;document.querySelectorAll('.nav').forEach(n=>n.classList.toggle('active',n.dataset.page===id));let meta=MENUS.find(x=>x[0]===id);ttl.textContent=meta[1];sub.textContent=meta[2];root.innerHTML=id==='overview'?overviewHtml():areaHtml(id);if(['automation','tests','source','convert'].includes(id)){const available=AREAS[id]?.flows||[];loadFlow(available.includes(flow)?flow:available[0]);}window.history.replaceState(null,'','/admin/index.html?section='+encodeURIComponent(id));loadDatabaseStatus();}
+function setPage(id){if(!MENUS.some(x=>x[0]===id))return;page=id;document.querySelectorAll('.nav').forEach(n=>n.classList.toggle('active',n.dataset.page===id));let meta=MENUS.find(x=>x[0]===id);ttl.textContent=meta[1];sub.textContent=meta[2];root.innerHTML=id==='overview'?overviewHtml():areaHtml(id);if(['automation','tests','source','convert'].includes(id)){const available=AREAS[id]?.flows||[];loadFlow(available.includes(flow)?flow:available[0]);}window.history.replaceState(null,'','/admin/index.html?section='+encodeURIComponent(id));loadDatabaseStatus();if(id==='tests')refreshIntegrated();}
 function overviewHtml(){return '<section class="hero"><h2>투자 자동화 · 전체 운영 관제</h2><div class="muted">TradingView 전략 확보 → Pine/Python 변환 → 12개 투자 엔진 → AI 에이전트 → Nautilus PAPER → 성과 재평가·진화.<br>n8n 노드 편집기는 이 전체 시스템의 하위 실행 관제 도구입니다.</div><div class="actions"><button class="btn primary" data-page="tests">실제 실행 테스트센터</button><button class="btn" data-page="source">전략센터</button><button class="btn" data-page="automation">노드 운영 흐름</button></div></section>'+
  '<div class="cards"><div class="card"><small>실행 API 연결</small><strong id="api-status">조회 중</strong><small>실제 서버 상태</small></div><div class="card"><small>통합 PostgreSQL 전략 수</small><strong id="pg-script-count">조회 중</strong><small>실제 DB catalog.scripts 행 수</small></div><div class="card"><small>에이전트 실가동</small><strong>미연결</strong><small>PAPER 런타임 검증 필요</small></div><div class="card"><small>12개 엔진 작업</small><strong>미연결</strong><small>실제 Worker 집계 연결 전</small></div></div>'+
  '<div class="grid2"><section class="panel"><h3>현재 검증할 수 있는 업무</h3><div class="stack"><div class="area"><b>WF-01 원본 전략 수집</b><p>노드 N01부터 SQLite 실행 이력을 조회하고, 실패 시 실제 응답을 확인합니다.</p><div class="actions"><button class="btn small primary" data-page="tests">노드 실실행 테스트</button>'+link(W.strategy)+'</div></div><div class="area"><b>WF-02 Pine 변환·차트 비교</b><p>기존 편집기의 차트 검증 흐름으로 이동하며, 실데이터 여부를 확인합니다.</p><div class="actions">'+link(W.parity)+'</div></div></div></section><section class="panel"><h3>업무별 운영 흐름 열기</h3><div class="stack">'+[['source','전략 수집'],['convert','Pine 변환'],['research','12개 투자 연구 엔진'],['agents','AI 에이전트'],['paper','PAPER 거래'],['evolution','성과·진화']].map(([id,name])=>'<button class="flow-option" data-page="'+id+'"><b>'+name+'</b><small>관리 기능 · 관련 노드 흐름 · 실행 상태</small></button>').join('')+'</div></section></div><div class="notice warn">현재 페이지는 실측되지 않은 수익률·전략·에이전트 숫자를 만들어 표시하지 않습니다. 노드 테스트도 TradingView 라이브 수집, 전체 n8n 운영 실행, 실거래의 성공으로 간주하지 않습니다.</div>'}
 function areaHtml(id){const area=AREAS[id];if(!area)return overviewHtml();let flowButtons=area.flows.length?area.flows.map(f=>'<button class="flow-option '+(flow===f?'active':'')+'" data-flow="'+esc(f)+'"><b>'+esc(flowLabels[f])+'</b><small>기존 편집기의 원본 노드 연결</small></button>').join(''):'<div class="empty">이 영역의 실제 실행 그래프·성과 API는 아직 연결되지 않았습니다.</div>';
 const isTest=['automation','tests','source','convert'].includes(id);
-return '<section class="hero"><h2>'+esc(MENUS.find(x=>x[0]===id)[1])+'</h2><p class="muted">'+esc(MENUS.find(x=>x[0]===id)[2])+'</p></section><div class="grid2"><section class="panel"><h3>기능 영역</h3><div class="stack">'+area.items.map(x=>'<div class="area"><b>'+esc(x)+'</b></div>').join('')+'</div><h3 style="margin-top:22px">연결된 운영 워크플로</h3><div class="flow-list">'+flowButtons+'</div></section><section class="panel" id="flow-panel"><h3>운영 흐름 및 실행 기록</h3><div class="notice">해당 업무의 실제 그래프를 열면 기존 n8n 편집기로 연결됩니다. 노드 실행은 WF-01의 허용된 Python API에만 연결됩니다.</div>'+ (area.flows.length?link(area.flows[0]):'<p class="muted">연결된 실행 API가 없습니다.</p>')+'</section></div>'+(isTest?'<div class="panel"><h3>통합 PostgreSQL 데이터베이스</h3><div class="muted" id="database-status">실제 연결 확인 중</div></div><div id="execution-area"></div>':'')+'<p class="footer">실행 기록이 없거나 서버 연결이 끊긴 경우에는 완료로 표시하지 않습니다.</p>'}
+return '<section class="hero"><h2>'+esc(MENUS.find(x=>x[0]===id)[1])+'</h2><p class="muted">'+esc(MENUS.find(x=>x[0]===id)[2])+'</p></section><div class="grid2"><section class="panel"><h3>기능 영역</h3><div class="stack">'+area.items.map(x=>'<div class="area"><b>'+esc(x)+'</b></div>').join('')+'</div><h3 style="margin-top:22px">연결된 운영 워크플로</h3><div class="flow-list">'+flowButtons+'</div></section><section class="panel" id="flow-panel"><h3>운영 흐름 및 실행 기록</h3><div class="notice">해당 업무의 실제 그래프를 열면 기존 n8n 편집기로 연결됩니다. 노드 실행은 WF-01의 허용된 Python API에만 연결됩니다.</div>'+ (area.flows.length?link(area.flows[0]):'<p class="muted">연결된 실행 API가 없습니다.</p>')+'</section></div>'+(isTest?'<div class="panel"><h3>통합 PostgreSQL 데이터베이스</h3><div class="muted" id="database-status">실제 연결 확인 중</div></div>'+(id==='tests'?integratedHtml():'')+'<div id="execution-area"></div>':'')+'<p class="footer">실행 기록이 없거나 서버 연결이 끊긴 경우에는 완료로 표시하지 않습니다.</p>'}
 async function api(path,opt){const r=await fetch(path,{credentials:'same-origin',cache:'no-store',...opt});let obj;try{obj=await r.json()}catch{throw Error('HTTP '+r.status+' (JSON 응답 아님)')}return {status:r.status,ok:r.ok,data:obj}}
+const INTEGRATED=[
+ {id:'strategy',name:'① 전략 원본 수집',workflow:W.strategy},
+ {id:'library',name:'② 선택한 전략의 Library 의존성',workflow:W.library},
+ {id:'python',name:'③ 동일 Pine → Python 변환',workflow:W.pine},
+ {id:'chart',name:'④ TradingView 원본 ↔ Python 차트 비교',workflow:W.parity}
+];
+function integratedHtml(){
+ return '<section class="panel" id="integrated-section"><h3>전체 자동화 4단계 연속 실행</h3>'+
+ '<p class="helper">한 번 실행하면 실제 수집 → 해당 전략의 Library 의존성 확인 → 같은 전략 버전의 Python 변환 → 저장된 실제 TV 기준 차트 검증으로 이어집니다. 이전 저장 원본은 DB에서 재사용합니다.</p>'+
+ '<div class="actions"><button class="btn primary" id="integrated-start" data-action="integrated-start">▶ 전체 4단계 한 번에 실행</button>'+
+ '<button class="btn" data-action="integrated-refresh">실행 이력 갱신</button><span class="status" id="integrated-label">이력 조회 전</span></div>'+
+ '<div class="grid2"><div class="stack" id="integrated-stages">'+INTEGRATED.map(s=>'<div class="area"><b>'+s.name+'</b><p>실행 전</p></div>').join('')+
+ '</div><div class="panel" style="margin:0"><h3>실제 노드·DB 처리 추적</h3><div class="log" id="integrated-events">실행 결과가 여기에 나타납니다.</div>'+
+ '<div class="actions" id="integrated-charts"></div></div></div>'+
+ '<div class="notice warn">Library가 필요 없으면 NOT_REQUIRED, 실제 참조가 없으면 WAITING_DEPENDENCY로 기록합니다. TradingView 실제 이미지·CSV가 없으면 차트는 BLOCKED로 기록하고 성공으로 표시하지 않습니다. 변환 불가 전략을 다른 전략으로 몰래 바꾸지 않습니다.</div></section>';
+}
+async function refreshIntegrated(runId){
+ const section=document.getElementById('integrated-section');if(!section)return;
+ try{
+  const target=runId||integratedRunId;
+  const r=await api('/api/investment/pipeline'+(target?'/'+encodeURIComponent(target):''));
+  if(!r.ok)throw Error('HTTP '+r.status);
+  const d=r.data,states=d.result?.stages||{},events=d.events||[];
+  if(d.run_id)integratedRunId=d.run_id;
+  const label=document.getElementById('integrated-label');
+  if(label)label.textContent=(d.status||'미실행')+(d.run_id?' · '+d.run_id:'');
+  const button=document.getElementById('integrated-start');
+  if(button)button.disabled=d.status==='RUNNING';
+  const cards=document.getElementById('integrated-stages');
+  if(cards)cards.innerHTML=INTEGRATED.map(s=>{
+   const record=events.filter(x=>x.stage===s.id).at(-1);
+   const state=states[s.id]||(record?.status||'대기');
+   return '<div class="area"><b>'+esc(s.name)+'</b><p>'+esc(state)+
+     ' · <a href="'+esc(editorUrl(s.workflow))+'" target="_blank" rel="noopener">해당 노드 흐름</a></p></div>';
+  }).join('');
+  const log=document.getElementById('integrated-events');
+  if(log)log.innerHTML=events.length?events.map(e=>'<div>'+
+    esc((e.node_id||e.stage).toUpperCase())+' · '+esc(e.node_name)+' · '+
+    esc(e.status)+(e.error?' · '+esc(e.error):'')+'</div>').join(''):'아직 실행 내역이 없습니다.';
+  const links=document.getElementById('integrated-charts');
+  if(links){
+    const url=d.result?.chart?.comparison_url;
+    links.innerHTML=url&&url.startsWith('https://investment-pine-parity-review-production.up.railway.app/?run=')
+      ?'<a class="btn" href="'+esc(url)+'" target="_blank" rel="noopener">↗ 동일 실행 차트 결과</a>'
+      :'<span class="muted minor">검증된 원본 차트 결과 링크 없음 · 실제 기준자료 필요</span>';
+  }
+  if(d.status==='RUNNING'&&page==='tests'){
+    setTimeout(()=>{if(page==='tests'&&integratedRunId===d.run_id)refreshIntegrated(d.run_id)},1500);
+  }
+ }catch(e){const label=document.getElementById('integrated-label');if(label)label.textContent='실행 조회 실패 · '+e.message;}
+}
+async function startIntegrated(){
+ const button=document.getElementById('integrated-start');
+ if(button)button.disabled=true;
+ try{
+  const r=await api('/api/investment/pipeline',{method:'POST',
+     headers:{'Content-Type':'application/json'},body:'{}'});
+  if(!r.ok)throw Error(r.data?.error||'HTTP '+r.status);
+  integratedRunId=r.data.run_id;
+  await refreshIntegrated(integratedRunId);
+ }catch(e){const label=document.getElementById('integrated-label');if(label)label.textContent='실행 시작 실패 · '+e.message;}
+ finally{if(button&&!integratedRunId)button.disabled=false;}
+}
 async function loadDatabaseStatus(){
  try{
   const response=await api('/api/investment/database/status');
@@ -251,6 +314,6 @@ async function executeFlow(){
  }
 }
 menu.innerHTML=MENUS.map(([id,label])=>'<button class="nav" data-page="'+esc(id)+'"><span>▧</span>'+esc(label)+'</button>').join('');
-document.addEventListener('click',e=>{const target=e.target.closest('[data-page],[data-flow],[data-node],[data-action]');if(!target)return;if(target.dataset.page)setPage(target.dataset.page);else if(target.dataset.flow)loadFlow(target.dataset.flow);else if(target.dataset.node)inspect(target.dataset.node);else if(target.dataset.action==='run')executeFlow();else if(target.dataset.action==='compare')openCompare();else if(target.dataset.action==='convert-next')setPage('convert');else if(target.dataset.action==='refresh')loadFlow(flow)});
+document.addEventListener('click',e=>{const target=e.target.closest('[data-page],[data-flow],[data-node],[data-action]');if(!target)return;if(target.dataset.page)setPage(target.dataset.page);else if(target.dataset.flow)loadFlow(target.dataset.flow);else if(target.dataset.node)inspect(target.dataset.node);else if(target.dataset.action==='run')executeFlow();else if(target.dataset.action==='compare')openCompare();else if(target.dataset.action==='convert-next')setPage('convert');else if(target.dataset.action==='integrated-start')startIntegrated();else if(target.dataset.action==='integrated-refresh')refreshIntegrated();else if(target.dataset.action==='refresh')loadFlow(flow)});
 setPage(new URLSearchParams(location.search).get('section')||'overview');health();
 </script></body></html>
