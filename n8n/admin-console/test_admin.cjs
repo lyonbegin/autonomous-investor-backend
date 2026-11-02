@@ -125,6 +125,10 @@ async function run(page){
   });
   if(dbstatus.status!=='ok'||dbstatus.node_runs<events.length||dbstatus.pipeline_runs<1)
     throw Error('Canonical DB stage/node execution counts missing: '+JSON.stringify(dbstatus));
+  if(stages.python==='UNSUPPORTED_SELECTED_PINE'&&!events.some(e=>
+       e.stage==='python'&&e.status==='UNSUPPORTED_PINE'))
+    throw Error('Converter unsupported outcome hidden behind generic SUCCESS');
+  await page.screenshot({path:'/tmp/investment-4stage-default.png',fullPage:true});
   console.log('PASS one-click persisted four-stage pipeline',JSON.stringify({
     status:pipeline.status,stages,events:events.length,
     postgres_node_runs:dbstatus.node_runs,postgres_pipeline_runs:dbstatus.pipeline_runs
@@ -163,6 +167,11 @@ async function run(page){
     throw Error('Missing persistent final side-by-side comparison panel');
   if(exact.result.chart==null&&await page.locator('#integrated-left-chart img').count())
     throw Error('Fake TradingView screenshot displayed without reference');
+  if(exact.result?.stages?.python==='PYTHON_GENERATED'&&
+     (exact.result?.stages?.chart!=='BLOCKED_REAL_TV_CHART_CSV_MISSING'&&
+      exact.result?.stages?.chart!=='REFERENCE_FOUND_REVIEW_REQUIRED'))
+    throw Error('Conversion status and real reference chart state are inconsistent');
+  await page.screenshot({path:'/tmp/investment-4stage-pinned.png',fullPage:true});
   console.log('PASS exact pinned source used through four DB stages and side-by-side real-data-only panel',
     JSON.stringify({source:sourceMeta.source_id,version:sourceMeta.version_key,
       status:exact.status,stages:exact.result?.stages}));
