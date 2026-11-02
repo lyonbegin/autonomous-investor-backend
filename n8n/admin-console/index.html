@@ -155,16 +155,16 @@ async function refreshIntegrated(runId){
     ' · PostgreSQL '+(canonical.script_version_id||'연결 실패'):
     '선택된 저장 원본 없음 · 실제 수집 및 DB 확보 필요';
   const comparison=d.result?.chart||null;
-  const runId=String(comparison?.parity_run_id||'');
-  const chartPresent=/^[0-9a-f]{24}$/.test(runId)&&comparison?.comparison_id;
+  const chartRunId=String(comparison?.parity_run_id||'');
+  const chartPresent=/^[0-9a-f]{24}$/.test(chartRunId)&&comparison?.comparison_id;
   const left=document.getElementById('integrated-left-chart');
   const right=document.getElementById('integrated-right-chart');
   const note=document.getElementById('integrated-comparison-note');
   if(left)left.innerHTML=chartPresent?
-    '<img src="'+PARITY_ORIGIN+'/artifacts/'+runId+'/reference" alt="제공된 실제 TradingView 전략 적용 차트" style="width:100%;height:auto;max-height:300px;object-fit:contain">':
+    '<img src="'+PARITY_ORIGIN+'/artifacts/'+chartRunId+'/reference" alt="제공된 실제 TradingView 전략 적용 차트" style="width:100%;height:auto;max-height:300px;object-fit:contain">':
     'TradingView 원본 차트·CSV가 확인되지 않음 · 검증 대기';
   if(right)right.innerHTML=chartPresent?
-    '<img src="'+PARITY_ORIGIN+'/artifacts/'+runId+'/python.svg" alt="동일 입력의 Python 전략 계산 차트" style="width:100%;height:auto;max-height:300px;object-fit:contain">':
+    '<img src="'+PARITY_ORIGIN+'/artifacts/'+chartRunId+'/python.svg" alt="동일 입력의 Python 전략 계산 차트" style="width:100%;height:auto;max-height:300px;object-fit:contain">':
     '동일 시장 데이터의 Python 차트가 준비되지 않음 · 허위 결과 미표시';
   if(note)note.textContent=comparison?
     '비교 ID '+(comparison.comparison_id||'없음')+' · 수치 판정 '+comparison.status+
