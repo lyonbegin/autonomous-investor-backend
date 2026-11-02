@@ -187,61 +187,66 @@ def process(run_id,sid):
                 stage(run_id,"strategy",STRATEGY,"REUSED_SAVED_SOURCE",selected)
             else:
                 stage(run_id,"strategy",STRATEGY,"BLOCKED_NO_SOURCE")
+        # Library is a dependency resolution stage for the EXACT selected
+        # strategy. Never collect unrelated "one library" as fake progress.
         stage(run_id,"library",LIBRARY,"RUNNING")
-        existing=select_from_db("library")
-        if existing:
-            library=existing[0]
-            statuses["library"]="REUSED_SAVED_LIBRARY"
-            stage(run_id,"library",LIBRARY,statuses["library"],library)
+        if not selected:
+            statuses["library"]="BLOCKED_NO_SELECTED_SOURCE"
+            stage(run_id,"library",LIBRARY,statuses["library"])
         else:
-            # Try actual configured provider. On a metadata-only strategy feed,
-            # fail cleanly and continue strategy-independent stages.
             try:
-                result=run_graph(run_id,"library",LIBRARY,
-                     {"ui_selection":"library","requested_detail_limit":1,"max_pages":3})
-                statuses["library"]="SOURCE_SAVED" if result.get("status")=="PINE_SAVED_CONVERSION_PENDING" else result.get("status","NO_LIBRARY")
-                stage(run_id,"library",LIBRARY,statuses["library"],result)
+                if os.environ.get("INVESTMENT_DATABASE_URL"):
+                    from investment_pg import dependencies_for_source
+                    deps=dependencies_for_source(selected["source_id"],selected["version_key"])
+                    missing=[d for d in deps["dependencies"] if d["state"]!="PINNED"]
+                    statuses["library"]=(
+                        "NOT_REQUIRED" if not deps["dependencies"] else
+                        "WAITING_DEPENDENCY" if missing else "DEPENDENCIES_PINNED")
+                    stage(run_id,"library",LIBRARY,statuses["library"],
+                          {"script_version_id":deps["script_version_id"],
+                           "dependencies":deps["dependencies"]})
+                else:
+                    with closing(open_registry()) as db:
+                        source=db.execute("""SELECT pine_code FROM investment_pine_payloads
+                         WHERE kind='strategy' AND source_id=? AND version_key=?""",
+                         (selected["source_id"],selected["version_key"])).fetchone()
+                    import re
+                    imports=re.findall(r"(?m)^\s*import\s+([A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/\d+)\b",
+                                       source[0] if source else "")
+                    statuses["library"]="WAITING_DEPENDENCY" if imports else "NOT_REQUIRED"
+                    stage(run_id,"library",LIBRARY,statuses["library"],{"imports":imports})
             except Exception as exc:
-                statuses["library"]="BLOCKED_NO_AUTHORIZED_LIBRARY_FEED"
-                stage(run_id,"library",LIBRARY,statuses["library"],
-                      {"action":"Connect a real approved library provider or reuse an existing library in SQLite"},
-                      str(exc))
+                statuses["library"]="BLOCKED_DEPENDENCY_CHECK_FAILED"
+                stage(run_id,"library",LIBRARY,statuses["library"],error=str(exc))
         stage(run_id,"python",PYTHON,"RUNNING")
         if not selected:
             statuses["python"]="BLOCKED_NO_SAVED_STRATEGY"
             stage(run_id,"python",PYTHON,statuses["python"])
+        elif statuses["library"] not in ("NOT_REQUIRED","DEPENDENCIES_PINNED"):
+            statuses["python"]="BLOCKED_LIBRARY_DEPENDENCY"
+            stage(run_id,"python",PYTHON,statuses["python"],selected)
         else:
-            candidates=[selected]
-            candidates.extend({k:r[k] for k in ("source_id","version_key")}
-                 for r in select_from_db("strategy") if r["source_id"]!=selected["source_id"] or r["version_key"]!=selected["version_key"])
+            # EXACT selected script/version only. Never silently switch to a
+            # different strategy just because the selected Pine is unsupported.
             try:
-                # Move through real stored strategies; never return fake Python
-                # for unsupported Pine. Limit work to avoid resource exhaustion.
-                for choice in candidates[:35]:
-                    try:
-                        result=run_graph(run_id,"python",PYTHON,
-                            {"ui_selection":"strategy","requested_detail_limit":1,**choice})
-                        if result.get("status")=="PYTHON_GENERATED" and result.get("python_code"):
-                            converted=choice
-                            statuses["python"]="PYTHON_GENERATED"
-                            stage(run_id,"python",PYTHON,statuses["python"],
-                                  {**choice,"converter_scope":result.get("converter_scope")})
-                            break
-                        if result.get("status")=="UNSUPPORTED_PINE":
-                            event(run_id,"python",PYTHON,None,"Pine subset 미지원","UNSUPPORTED_PINE",
-                                  {"source_id":choice["source_id"],"version_key":choice["version_key"],
-                                   "unsupported_reason":result.get("unsupported_reason")})
-                        else:
-                            event(run_id,"python",PYTHON,None,"Python 결과 없음","BLOCKED",choice)
-                    except Exception as exc:
-                        event(run_id,"python",PYTHON,None,"Pine 변환 실패","FAILED",choice,str(exc))
-                if not converted:
-                    statuses["python"]="BLOCKED_UNSUPPORTED_SAVED_STRATEGIES"
+                result=run_graph(run_id,"python",PYTHON,
+                    {"ui_selection":"strategy","requested_detail_limit":1,**selected})
+                if result.get("status")=="PYTHON_GENERATED" and result.get("python_code"):
+                    converted=selected
+                    statuses["python"]="PYTHON_GENERATED"
                     stage(run_id,"python",PYTHON,statuses["python"],
-                         {"examined":min(35,len(candidates))})
+                          {**selected,"conversion_id":result.get("conversion_id"),
+                           "converter_scope":result.get("converter_scope")})
+                elif result.get("status")=="UNSUPPORTED_PINE":
+                    statuses["python"]="UNSUPPORTED_SELECTED_PINE"
+                    stage(run_id,"python",PYTHON,statuses["python"],
+                          {**selected,"unsupported_reason":result.get("unsupported_reason")})
+                else:
+                    statuses["python"]="BLOCKED_NO_PYTHON_OUTPUT"
+                    stage(run_id,"python",PYTHON,statuses["python"],selected)
             except Exception as exc:
                 statuses["python"]="FAILED"
-                stage(run_id,"python",PYTHON,"FAILED",error=str(exc))
+                stage(run_id,"python",PYTHON,"FAILED",selected,str(exc))
         stage(run_id,"chart",PARITY,"RUNNING")
         if not converted:
             statuses["chart"]="BLOCKED_PYTHON_NOT_GENERATED"
@@ -252,26 +257,27 @@ def process(run_id,sid):
                 row=db.execute("""SELECT pine_code FROM investment_pine_payloads
                     WHERE kind='strategy' AND source_id=? AND version_key=?""",
                     (converted["source_id"],converted["version_key"])).fetchone()
+            db_comparison=None
+            if os.environ.get("INVESTMENT_DATABASE_URL"):
+                from investment_pg import comparison_for_source
+                db_comparison=comparison_for_source(converted["source_id"],converted["version_key"])
             ref,error=lookup_reference(source["source_url"] if source else None,row[0] if row else "")
-            if ref and ref.get("run_id"):
-                chart=ref
-                statuses["chart"]="PREVIOUS_REFERENCE_COMPARISON_FOUND"
-                stage(run_id,"chart",PARITY,statuses["chart"],{
-                    "run_id":ref["run_id"],"status":ref.get("status"),
-                    "symbol":ref.get("symbol"),"timeframe":ref.get("timeframe"),
-                    "comparison_url":PARITY_HOST+"/?run="+ref["run_id"],
-                    "numeric_match":ref.get("numeric_match"),
-                    "visual_review":"MANUAL_REVIEW_REQUIRED"})
+            if db_comparison and ref and ref.get("run_id"):
+                chart={**db_comparison,"parity_run_id":ref["run_id"],
+                       "comparison_url":PARITY_HOST+"/?run="+ref["run_id"]}
+                statuses["chart"]="REFERENCE_FOUND_REVIEW_REQUIRED"
+                stage(run_id,"chart",PARITY,statuses["chart"],chart)
             else:
                 statuses["chart"]="BLOCKED_REAL_TV_CHART_CSV_MISSING"
                 stage(run_id,"chart",PARITY,statuses["chart"],{
                     "source_id":converted["source_id"],"version_key":converted["version_key"],
-                    "reason":error,
+                    "reason":error or "CANONICAL_REFERENCE_OR_COMPARISON_MISSING",
                     "source_url":source.get("source_url") if source else None})
-        final=("REVIEW_REQUIRED" if chart and all(statuses.get(s) in (
-            "SOURCE_SAVED","REUSED_SAVED_LIBRARY","PYTHON_GENERATED",
-            "PREVIOUS_REFERENCE_COMPARISON_FOUND") for s in STAGES)
-            else "PARTIAL_BLOCKED")
+        final=("REVIEW_REQUIRED" if (
+           statuses.get("library") in ("NOT_REQUIRED","DEPENDENCIES_PINNED")
+           and statuses.get("python")=="PYTHON_GENERATED"
+           and statuses.get("chart")=="REFERENCE_FOUND_REVIEW_REQUIRED")
+           else "PARTIAL_BLOCKED")
         result={"status":final,"stages":statuses,"selected_source":selected,
                 "converted_source":converted,"chart":chart,
                 "note":"Only stored TradingView chart CSV/screenshots allow visual comparison; no synthetic TV data."}
