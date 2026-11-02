@@ -12,7 +12,7 @@ import urllib.parse
 import urllib.request
 from licensed_strategy_manifest import catalog_from_snapshot
 from investment_source_registry import check_candidates
-from verified_pine_archive import acquire_verified_pine,archive_path_for
+from verified_pine_archive import acquire_verified_pine,archive_path_for,MAX_PINE_BYTES
 from investment_pine_store import save_verified_source
 from investment_wf02 import WF02_PATH,execute_wf02_node01,execute_wf02_node02,execute_wf02_node03
 from datetime import datetime,timezone
@@ -373,7 +373,9 @@ def execute_node11(input_json,*,workflow_kind):
     code=input_json.get("pine_code")
     if not isinstance(code,str) or not code.strip():
         code=acquire_verified_pine(candidate)["pine_code"]
-    if len(code.encode("utf-8"))>60000 or not re.search(r"(?m)^\s*//@version=[456]\s*$",code):
+    if len(code.encode("utf-8"))>MAX_PINE_BYTES:
+        raise ValueError("N11_PINE_SOURCE_TOO_LARGE")
+    if not re.search(r"(?m)^\s*//@version=[456]\s*$",code):
         raise ValueError("N11_INVALID_PINE_CONTENT")
     declaration="library" if workflow_kind=="library" else "strategy"
     if not re.search(r"(?m)^\s*"+declaration+r"\s*\(",code):
