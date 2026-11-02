@@ -106,6 +106,13 @@ async function run(page){
   }
   if(stages.chart==='BLOCKED_REAL_TV_CHART_CSV_MISSING'&&pipeline.status==='REVIEW_REQUIRED')
      throw Error('False chart verification despite missing actual TV input');
+  if(!pipeline.canonical_postgres||pipeline.canonical_postgres.status!==pipeline.status)
+    throw Error('Canonical Postgres pipeline status diverged: '+JSON.stringify(pipeline.canonical_postgres));
+  if(pipeline.canonical_postgres.node_runs<events.length)
+    throw Error('Not all pipeline stage/node records were mirrored into Postgres');
+  if(pipeline.result.selected_source?.source_id&&pipeline.canonical_postgres.source_id!==
+      pipeline.result.selected_source.source_id)
+    throw Error('Canonical Postgres source ID changed across stage boundaries');
   if(!pipeline.result?.postgres_sync||pipeline.result.postgres_sync.postgres_sync!=='SYNCED')
     throw Error('Integrated run not finalized in canonical Postgres: '+JSON.stringify(pipeline.result?.postgres_sync));
   if(pipeline.result.postgres_trace_failures)
