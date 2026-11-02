@@ -1,0 +1,259 @@
+"""Investment Postgres domain DB bootstrap and non-destructive legacy sync.
+
+Existing n8n Postgres DB and studio SQLite are never rewritten or dropped.
+Postgres cluster gets a separate 'autonomous_investment' DATABASE.
+Objects are saved to the current editor persistent volume and referenced by SHA.
+"""
+import hashlib
+import json
+import os
+from pathlib import Path
+import re
+import sqlite3
+from urllib.parse import urlsplit,urlunsplit
+from datetime import datetime,timezone
+
+DBNAME="autonomous_investment"
+ARTIFACT_ROOT=Path(os.getenv("INVESTMENT_ARTIFACT_ROOT","/data/investment-artifacts"))
+SQL_PATH=Path(__file__).resolve().parent/"schema_v1.sql"
+SQLITE_PATH=Path(os.getenv("STUDIO_DB_PATH","/data/studio.sqlite3"))
+
+def _pg():
+    import psycopg
+    return psycopg
+
+def postgres_url():
+    root=os.getenv("INVESTMENT_DATABASE_URL","")
+    if not root:raise RuntimeError("INVESTMENT_DATABASE_URL_MISSING")
+    u=urlsplit(root)
+    if u.scheme not in ("postgres","postgresql") or not u.hostname:
+        raise RuntimeError("INVALID_INVESTMENT_DATABASE_URL")
+    return urlunsplit((u.scheme,u.netloc,"/"+DBNAME,u.query,""))
+
+def connect():
+    return _pg().connect(postgres_url(),connect_timeout=12)
+
+def schema_health():
+    try:
+        with connect() as db:
+            rows=db.execute("""SELECT table_schema,table_name FROM information_schema.tables
+                 WHERE table_type='BASE TABLE'
+                   AND table_schema IN ('platform','catalog','market','research','operations','trading')""").fetchall()
+            tables={str(a)+"."+str(b) for a,b in rows}
+            expected=38
+            return {"status":"ok" if len(tables)>=expected else "SCHEMA_INCOMPLETE",
+                "database":DBNAME,"tables":len(tables),"expected_tables":expected,
+                "sqlite_untouched":True,"n8n_database_untouched":True}
+    except Exception as exc:
+        return {"status":"UNAVAILABLE","reason":type(exc).__name__+": "+str(exc)[:180],
+            "database":DBNAME,"tables":0}
+
+def bootstrap():
+    import psycopg
+    from psycopg import sql
+    root=os.environ.get("INVESTMENT_DATABASE_URL")
+    if not root:raise RuntimeError("INVESTMENT_DATABASE_URL_MISSING")
+    u=urlsplit(root)
+    if u.scheme not in ("postgres","postgresql") or not u.hostname:
+        raise RuntimeError("INVALID_POSTGRES_URL")
+    # Connect only to the existing configured database for CREATE DATABASE.
+    with psycopg.connect(root,autocommit=True,connect_timeout=15) as admin:
+        exists=admin.execute("SELECT 1 FROM pg_database WHERE datname=%s",(DBNAME,)).fetchone()
+        if not exists:
+            admin.execute(sql.SQL("CREATE DATABASE {}").format(sql.Identifier(DBNAME)))
+    ddl=SQL_PATH.read_text(encoding="utf-8")
+    if ddl.count("CREATE TABLE IF NOT EXISTS")!=38:
+        raise RuntimeError("SCHEMA_NOT_38_TABLES")
+    with psycopg.connect(postgres_url(),autocommit=True,connect_timeout=15) as db:
+        db.execute(ddl)
+    state=schema_health()
+    if state["status"]!="ok":
+        raise RuntimeError("SCHEMA_INSTALL_INCOMPLETE:"+str(state))
+    return state
+
+def save_file(raw,media_type,source_class):
+    if not isinstance(raw,bytes) or not raw:
+        raise ValueError("ARTIFACT_BYTES_REQUIRED")
+    sha=hashlib.sha256(raw).hexdigest()
+    ARTIFACT_ROOT.mkdir(parents=True,exist_ok=True)
+    target=ARTIFACT_ROOT/sha[:2]/sha
+    target.parent.mkdir(parents=True,exist_ok=True)
+    if not target.exists():
+        import tempfile
+        with tempfile.NamedTemporaryFile(dir=target.parent,delete=False) as f:
+            f.write(raw);f.flush();os.fsync(f.fileno());name=f.name
+        os.chmod(name,0o600)
+        os.replace(name,target)
+    elif target.stat().st_size!=len(raw) or hashlib.sha256(target.read_bytes()).hexdigest()!=sha:
+        raise ValueError("ARTIFACT_COLLISION_OR_CORRUPTION")
+    return {"sha":sha,"size":len(raw),"uri":"investment-file://"+sha,
+            "media":media_type,"class":source_class}
+
+def upsert_artifact(cur,a):
+    row=cur.execute("""INSERT INTO platform.artifacts
+      (sha256,storage_uri,media_type,byte_length,source_class)
+      VALUES (%s,%s,%s,%s,%s)
+      ON CONFLICT(sha256,byte_length)
+      DO UPDATE SET storage_uri=platform.artifacts.storage_uri
+      RETURNING artifact_id""",
+      (a["sha"],a["uri"],a["media"],a["size"],a["class"])).fetchone()
+    return row[0]
+
+def record_source(kind,source_id,version,pine,source_url=None,rights="PENDING_REVIEW",title=None):
+    if kind not in ("strategy","indicator","library") or not isinstance(source_id,str) or not source_id:
+        raise ValueError("INVALID_SOURCE_ID")
+    if not isinstance(pine,str) or not pine.strip() or not isinstance(version,str):
+        raise ValueError("SOURCE_VERSION_AND_CODE_REQUIRED")
+    file=save_file(pine.encode("utf-8"),"text/x-pinescript","REAL_SOURCE")
+    major_match=re.search(r"(?m)^\s*//@version=(\d+)\s*$",pine)
+    major=int(major_match.group(1)) if major_match else None
+    if major not in (4,5,6):major=None
+    with connect() as db:
+        with db.cursor() as cur:
+            script_id=cur.execute("""INSERT INTO catalog.scripts
+              (provider,external_script_key,script_kind,title,canonical_url)
+              VALUES('TradingView',%s,%s,%s,%s)
+              ON CONFLICT(provider,external_script_key) DO UPDATE SET
+                last_seen_at=now(),
+                title=COALESCE(EXCLUDED.title,catalog.scripts.title),
+                canonical_url=COALESCE(EXCLUDED.canonical_url,catalog.scripts.canonical_url)
+              RETURNING script_id""",
+              (source_id,kind.upper(),title,source_url)).fetchone()[0]
+            artifact_id=upsert_artifact(cur,file)
+            v=cur.execute("""INSERT INTO catalog.script_versions
+                (script_id,provider_version,content_sha256,pine_major,source_artifact_id,rights_state)
+                VALUES(%s,%s,%s,%s,%s,%s)
+                ON CONFLICT(script_id,content_sha256) DO UPDATE SET
+                    content_sha256=EXCLUDED.content_sha256
+                RETURNING script_version_id""",
+                (script_id,version,file["sha"],major,artifact_id,rights)).fetchone()[0]
+            # Resolve only exact pinned Pine imports if the referenced version
+            # already exists. An unresolved import is NOT a valid library.
+            for full in re.findall(r"(?m)^\s*import\s+([A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/\d+)\b",pine):
+                row=cur.execute("""SELECT sv.script_version_id FROM catalog.scripts s
+                     JOIN catalog.script_versions sv ON sv.script_id=s.script_id
+                     WHERE s.script_kind='LIBRARY' AND s.external_script_key=%s
+                       AND sv.provider_version=%s LIMIT 1""",
+                     ("/".join(full.split("/")[:2]),full.split("/")[-1])).fetchone()
+                cur.execute("""INSERT INTO catalog.script_dependencies
+                  (from_version_id,import_name,resolved_version_id,resolution_state)
+                  VALUES(%s,%s,%s,%s) ON CONFLICT(from_version_id,import_name)
+                  DO UPDATE SET resolved_version_id=EXCLUDED.resolved_version_id,
+                   resolution_state=EXCLUDED.resolution_state""",
+                   (v,full,row[0] if row else None,"PINNED" if row else "MISSING"))
+        db.commit()
+    return {"script_id":str(script_id),"script_version_id":str(v),
+            "artifact_id":str(artifact_id),"sha256":file["sha"]}
+
+def record_conversion(source_id,version,python_code,converter_version,scope=""):
+    if not python_code or not isinstance(python_code,str):
+        raise ValueError("NO_GENERATED_PYTHON")
+    file=save_file(python_code.encode("utf-8"),"text/x-python","GENERATED_PYTHON")
+    with connect() as db:
+        with db.cursor() as cur:
+            row=cur.execute("""SELECT sv.script_version_id FROM catalog.scripts s
+                JOIN catalog.script_versions sv ON sv.script_id=s.script_id
+                WHERE s.external_script_key=%s AND sv.provider_version=%s
+                ORDER BY sv.acquired_at DESC LIMIT 1""",(source_id,version)).fetchone()
+            if not row:raise ValueError("POSTGRES_PINE_SOURCE_NOT_REGISTERED")
+            source_version=row[0]
+            deps=cur.execute("""SELECT import_name,resolution_state,
+                    COALESCE(resolved_version_id::text,'') FROM catalog.script_dependencies
+                    WHERE from_version_id=%s ORDER BY import_name""",(source_version,)).fetchall()
+            if any(x[1]!="PINNED" for x in deps):raise ValueError("LIBRARY_DEPENDENCY_NOT_PINNED")
+            lock=hashlib.sha256(json.dumps(deps,default=str).encode()).hexdigest()
+            fingerprint=hashlib.sha256((str(source_version)+lock+converter_version).encode()).hexdigest()
+            aid=upsert_artifact(cur,file)
+            cid=cur.execute("""INSERT INTO research.conversions
+               (script_version_id,dependency_lock_hash,converter_version,input_fingerprint,
+                python_artifact_id,status,diagnostics,finished_at)
+               VALUES(%s,%s,%s,%s,%s,'GENERATED',%s::jsonb,now())
+               ON CONFLICT(script_version_id,dependency_lock_hash,converter_version,input_fingerprint)
+               DO UPDATE SET python_artifact_id=EXCLUDED.python_artifact_id,
+                  status=EXCLUDED.status,finished_at=EXCLUDED.finished_at
+               RETURNING conversion_id""",
+               (source_version,lock,converter_version,fingerprint,aid,json.dumps({"scope":scope}))).fetchone()[0]
+        db.commit()
+    return {"conversion_id":str(cid),"script_version_id":str(source_version),
+            "python_artifact_id":str(aid),"dependency_lock_hash":lock}
+
+def backup_sqlite():
+    if not SQLITE_PATH.exists():return None
+    folder=Path("/data/investment-backups");folder.mkdir(parents=True,exist_ok=True)
+    name="studio_before_investment_pg_"+datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")+".sqlite3"
+    dest=folder/name
+    with sqlite3.connect(str(SQLITE_PATH),timeout=30) as src:
+        with sqlite3.connect(str(dest)) as copy:
+            src.backup(copy)
+    os.chmod(dest,0o600)
+    return str(dest)
+
+def import_legacy():
+    """Read-only reconciliation of old Pine and Python rows; never delete any."""
+    backup=backup_sqlite()
+    if not backup:return {"sources":0,"conversions":0,"backup":None}
+    with sqlite3.connect("file:"+backup+"?mode=ro",uri=True) as src:
+        src.row_factory=sqlite3.Row
+        names={x[0] for x in src.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+        pines=src.execute("SELECT * FROM investment_pine_payloads").fetchall() if "investment_pine_payloads" in names else []
+        conversions=src.execute("SELECT * FROM investment_python_conversions").fetchall() if "investment_python_conversions" in names else []
+        context={}
+        if "investment_source_context" in names:
+            for item in src.execute("SELECT * FROM investment_source_context"):
+                context[(item["kind"],item["source_id"],item["version_key"])]=dict(item)
+    summary={"sources":0,"conversions":0,"errors":[],"backup":backup}
+    with connect() as db:
+        batch=db.execute("""INSERT INTO platform.legacy_import_batches
+          (source_system,source_db,source_backup_ref,status,expected_rows)
+          VALUES('studio-sqlite',%s,%s,'IN_PROGRESS',%s) RETURNING batch_id""",
+          (str(SQLITE_PATH),backup,len(pines)+len(conversions))).fetchone()[0]
+        db.commit()
+    def mapping(table,key,entity,result,sha=None,error=None):
+        with connect() as db:
+            db.execute("""INSERT INTO platform.legacy_id_map
+              (batch_id,source_table,source_primary_key,target_table,target_primary_key,source_content_sha,status,error_detail)
+              VALUES (%s,%s,%s,%s,%s,%s,%s,%s)""",
+              (batch,table,key,entity,str(result) if result else None,sha,
+               "IMPORTED" if result else "QUARANTINED",str(error)[:500] if error else None))
+            db.commit()
+    for row in pines:
+        x=dict(row);key="|".join(str(x[k]) for k in ("kind","source_id","version_key"))
+        try:
+            metadata=context.get((x["kind"],x["source_id"],x["version_key"]),{})
+            res=record_source(x["kind"],x["source_id"],x["version_key"],x["pine_code"],
+                metadata.get("source_url"),x["rights_state"],metadata.get("source_title"))
+            mapping("investment_pine_payloads",key,"catalog.script_versions",res["script_version_id"],res["sha256"])
+            summary["sources"]+=1
+        except Exception as exc:
+            mapping("investment_pine_payloads",key,"catalog.script_versions",None,error=exc)
+            summary["errors"].append(key+": "+str(exc)[:150])
+    for row in conversions:
+        x=dict(row);key="|".join(str(x[k]) for k in ("kind","source_id","version_key"))
+        try:
+            res=record_conversion(x["source_id"],x["version_key"],x["python_code"],
+                "legacy-pine-converter",x["converter_scope"])
+            mapping("investment_python_conversions",key,"research.conversions",res["conversion_id"])
+            summary["conversions"]+=1
+        except Exception as exc:
+            mapping("investment_python_conversions",key,"research.conversions",None,error=exc)
+            summary["errors"].append(key+": "+str(exc)[:150])
+    with connect() as db:
+        db.execute("""UPDATE platform.legacy_import_batches SET status=%s,finished_at=now(),
+                imported_rows=%s,rejected_rows=%s WHERE batch_id=%s""",
+            ("COMPLETE" if not summary["errors"] else "PARTIAL",
+             summary["sources"]+summary["conversions"],len(summary["errors"]),batch))
+        db.commit()
+    return summary
+
+def run_initialization():
+    status=bootstrap()
+    # Run an automatic one-time importer; future resync is explicit, not a
+    # hidden rewrite of all historical source records on every restart.
+    with connect() as db:
+        row=db.execute("""SELECT 1 FROM platform.legacy_import_batches
+         WHERE source_system='studio-sqlite' AND status='COMPLETE' LIMIT 1""").fetchone()
+    migration={"skipped":"ALREADY_IMPORTED"} if row else import_legacy()
+    return {"schema":status,"legacy":migration}
+
+if __name__=="__main__":
+    print(json.dumps(run_initialization(),ensure_ascii=False,default=str))
