@@ -2,7 +2,7 @@
 <html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>주식 자동화 | 종합 운영 관제센터</title>
 <style>
-:root{font-family:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#e7eef9;background:#0b1322;font-size:14px}*{box-sizing:border-box}body{margin:0}button,select{font:inherit}button{cursor:pointer}a{color:#90c7ff;text-decoration:none}a:hover{text-decoration:underline}.shell{min-height:100vh;display:grid;grid-template-columns:252px minmax(0,1fr)}.sidebar{background:#111e31;border-right:1px solid #29384c;padding:24px 12px;position:sticky;top:0;height:100vh;overflow:auto}.brand{padding:0 12px 22px;border-bottom:1px solid #2c3c50;font-weight:800;font-size:16px;letter-spacing:.2px}.brand small{display:block;color:#91a4be;font-weight:400;font-size:11px;margin-top:6px;line-height:1.5}.group-title{color:#8397b0;font-size:10px;letter-spacing:1.5px;padding:18px 12px 7px;font-weight:800}.nav{display:block;width:100%;background:none;color:#b7c8da;border:0;text-align:left;border-radius:8px;padding:11px 12px;margin:2px 0}.nav:hover,.nav.active{background:#1e3b60;color:#fff}.nav span{opacity:.55;font-size:11px;margin-right:12px}.main{min-width:0}.top{min-height:72px;border-bottom:1px solid #283a51;display:flex;align-items:center;justify-content:space-between;padding:15px 30px;gap:16px}.top h1{font-size:20px;margin:0}.top p{margin:4px 0 0;color:#91a4ba;font-size:12px}.pill{font-size:11px;white-space:nowrap;border:1px solid #47576b;color:#d9e7f6;border-radius:30px;padding:8px 12px}.content{padding:25px 30px;max-width:1570px;margin:auto}.hero{background:linear-gradient(120deg,#132d4a,#152440 60%,#202a44);border:1px solid #30537c;border-radius:17px;padding:22px 25px;margin-bottom:22px}.hero h2{margin:0 0 10px;font-size:23px}.muted{color:#9aacc3;line-height:1.65}.minor{font-size:12px}.cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:16px 0}.card{background:#132338;border:1px solid #2b3f57;border-radius:12px;padding:17px}.card strong{display:block;font-size:22px;margin:10px 0}.card small{color:#96aac2}.grid2{display:grid;grid-template-columns:1.05fr .95fr;gap:16px}.panel{background:#142137;border:1px solid #2b405a;border-radius:14px;padding:18px;min-width:0;margin-bottom:16px}.panel h3{font-size:15px;margin:0 0 13px}.panel h4{font-size:12px;margin:14px 0 8px;color:#b8cbe2}.actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin:12px 0}.btn{background:#274363;border:1px solid #4c719d;color:#fff;padding:10px 13px;border-radius:8px;font-weight:650}.btn.primary{background:#2a70b4;border-color:#4b93d7}.btn.small{padding:7px 10px;font-size:12px}.btn:disabled{opacity:.45;cursor:not-allowed}.btn:hover:not(:disabled){filter:brightness(1.15)}.status{font-size:12px;color:#b1c5de}.notice{background:#1e3248;border-left:3px solid #6b9fcf;border-radius:5px;padding:11px;margin:12px 0;color:#c7d8ee;font-size:12px;line-height:1.7}.warn{border-left-color:#e5ab59}.flow-list{display:flex;flex-direction:column;gap:8px;max-height:510px;overflow:auto;padding-right:3px}.flow-option{display:block;text-align:left;background:#182b43;border:1px solid #34495f;border-radius:9px;color:#dceafb;padding:12px;width:100%}.flow-option.active{border-color:#58a4e6;background:#1b3d5b}.flow-option b,.flow-option small{display:block}.flow-option small{margin-top:5px;color:#91a9c4;line-height:1.35}.node-list{display:flex;flex-direction:column;gap:0;max-height:550px;overflow:auto}.step{width:100%;display:flex;text-align:left;align-items:flex-start;gap:10px;color:#dbe7f5;border:none;border-left:2px solid #3e5c7b;background:transparent;padding:8px 10px 16px 15px;position:relative}.step:hover,.step.selected{background:#1e3854}.step::before{content:"";position:absolute;width:10px;height:10px;left:-6px;top:15px;border-radius:100%;background:#536f8c}.step.success::before{background:#42bd8f}.step.failed::before{background:#ff7e73}.step.running::before{background:#e8c47e}.step span{flex:1}.step b{font-size:12px}.step small{display:block;margin-top:5px;color:#90a8c4;font-size:11px}.step em{font-size:11px;font-style:normal;color:#9eb7d4;white-space:nowrap}.code{display:block;background:#091526;border:1px solid #2c4564;border-radius:7px;color:#c6e6fc;padding:12px;max-height:260px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;font:11px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace}.metric{font-size:11px;border:1px solid #3c5370;border-radius:5px;padding:5px 7px;margin-left:5px;display:inline-block}.ok{color:#67dab1}.bad{color:#ffab9c}.workspace-nav{display:flex;flex-wrap:wrap;gap:10px}.empty{padding:20px;border:1px dashed #405675;border-radius:9px;color:#9eb3cb;text-align:center}.log{max-height:260px;overflow:auto;font:12px/1.5 ui-monospace,monospace;color:#b5cfe9}.log div{padding:5px 0;border-bottom:1px solid #263b54}.widespan{grid-column:1/-1}.state{color:#aec1d8}.green{color:#73e3b8}.red{color:#ff9b94}.stack{display:flex;flex-direction:column;gap:9px}.area{padding:15px;background:#192b42;border-radius:10px;border:1px solid #324962}.area b{display:block;margin-bottom:6px}.area p{margin:0;color:#9aafc7;font-size:12px;line-height:1.5}.footer{margin:26px 0 0;font-size:11px;color:#8fa3ba}.hidden{display:none!important}@media(max-width:1080px){.shell{grid-template-columns:200px 1fr}.content{padding:18px}.cards{grid-template-columns:repeat(2,1fr)}}@media(max-width:760px){.shell{display:block}.sidebar{position:relative;height:auto;padding:12px;display:flex;flex-wrap:wrap;gap:5px}.brand{width:100%;padding:8px 10px}.group-title{display:none}.nav{width:auto;font-size:12px;padding:8px}.nav span{display:none}.top{padding:15px}.grid2{grid-template-columns:1fr}.cards{grid-template-columns:repeat(2,1fr)}}
+:root{font-family:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#e7eef9;background:#0b1322;font-size:14px}*{box-sizing:border-box}body{margin:0}button,select{font:inherit}button{cursor:pointer}a{color:#90c7ff;text-decoration:none}a:hover{text-decoration:underline}.shell{min-height:100vh;display:grid;grid-template-columns:252px minmax(0,1fr)}.sidebar{background:#111e31;border-right:1px solid #29384c;padding:24px 12px;position:sticky;top:0;height:100vh;overflow:auto}.brand{padding:0 12px 22px;border-bottom:1px solid #2c3c50;font-weight:800;font-size:16px;letter-spacing:.2px}.brand small{display:block;color:#91a4be;font-weight:400;font-size:11px;margin-top:6px;line-height:1.5}.group-title{color:#8397b0;font-size:10px;letter-spacing:1.5px;padding:18px 12px 7px;font-weight:800}.nav{display:block;width:100%;background:none;color:#b7c8da;border:0;text-align:left;border-radius:8px;padding:11px 12px;margin:2px 0}.nav:hover,.nav.active{background:#1e3b60;color:#fff}.nav span{opacity:.55;font-size:11px;margin-right:12px}.main{min-width:0}.top{min-height:72px;border-bottom:1px solid #283a51;display:flex;align-items:center;justify-content:space-between;padding:15px 30px;gap:16px}.top h1{font-size:20px;margin:0}.top p{margin:4px 0 0;color:#91a4ba;font-size:12px}.pill{font-size:11px;white-space:nowrap;border:1px solid #47576b;color:#d9e7f6;border-radius:30px;padding:8px 12px}.content{padding:25px 30px;max-width:1570px;margin:auto}.hero{background:linear-gradient(120deg,#132d4a,#152440 60%,#202a44);border:1px solid #30537c;border-radius:17px;padding:22px 25px;margin-bottom:22px}.hero h2{margin:0 0 10px;font-size:23px}.muted{color:#9aacc3;line-height:1.65}.minor{font-size:12px}.cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:16px 0}.card{background:#132338;border:1px solid #2b3f57;border-radius:12px;padding:17px}.card strong{display:block;font-size:22px;margin:10px 0}.card small{color:#96aac2}.grid2{display:grid;grid-template-columns:1.05fr .95fr;gap:16px}.panel{background:#142137;border:1px solid #2b405a;border-radius:14px;padding:18px;min-width:0;margin-bottom:16px}.panel h3{font-size:15px;margin:0 0 13px}.panel h4{font-size:12px;margin:14px 0 8px;color:#b8cbe2}.actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin:12px 0}.btn{background:#274363;border:1px solid #4c719d;color:#fff;padding:10px 13px;border-radius:8px;font-weight:650}.btn.primary{background:#2a70b4;border-color:#4b93d7}.btn.small{padding:7px 10px;font-size:12px}.btn:disabled{opacity:.45;cursor:not-allowed}.btn:hover:not(:disabled){filter:brightness(1.15)}.status{font-size:12px;color:#b1c5de}.notice{background:#1e3248;border-left:3px solid #6b9fcf;border-radius:5px;padding:11px;margin:12px 0;color:#c7d8ee;font-size:12px;line-height:1.7}.warn{border-left-color:#e5ab59}.flow-list{display:flex;flex-direction:column;gap:8px;max-height:510px;overflow:auto;padding-right:3px}.flow-option{display:block;text-align:left;background:#182b43;border:1px solid #34495f;border-radius:9px;color:#dceafb;padding:12px;width:100%}.flow-option.active{border-color:#58a4e6;background:#1b3d5b}.flow-option b,.flow-option small{display:block}.flow-option small{margin-top:5px;color:#91a9c4;line-height:1.35}.node-list{display:flex;flex-direction:column;gap:0;max-height:550px;overflow:auto}.step{width:100%;display:flex;text-align:left;align-items:flex-start;gap:10px;color:#dbe7f5;border:none;border-left:2px solid #3e5c7b;background:transparent;padding:8px 10px 16px 15px;position:relative}.step:hover,.step.selected{background:#1e3854}.step::before{content:"";position:absolute;width:10px;height:10px;left:-6px;top:15px;border-radius:100%;background:#536f8c}.step.success::before{background:#42bd8f}.step.failed::before{background:#ff7e73}.step.running::before{background:#e8c47e}.step span{flex:1}.step b{font-size:12px}.step small{display:block;margin-top:5px;color:#90a8c4;font-size:11px}.step em{font-size:11px;font-style:normal;color:#9eb7d4;white-space:nowrap}.code{display:block;background:#091526;border:1px solid #2c4564;border-radius:7px;color:#c6e6fc;padding:12px;max-height:260px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;font:11px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace}.metric{font-size:11px;border:1px solid #3c5370;border-radius:5px;padding:5px 7px;margin-left:5px;display:inline-block}.ok{color:#67dab1}.bad{color:#ffab9c}.workspace-nav{display:flex;flex-wrap:wrap;gap:10px}.empty{padding:20px;border:1px dashed #405675;border-radius:9px;color:#9eb3cb;text-align:center}.log{max-height:260px;overflow:auto;font:12px/1.5 ui-monospace,monospace;color:#b5cfe9}.log div{padding:5px 0;border-bottom:1px solid #263b54}.widespan{grid-column:1/-1}.state{color:#aec1d8}.green{color:#73e3b8}.red{color:#ff9b94}.stack{display:flex;flex-direction:column;gap:9px}.area{padding:15px;background:#192b42;border-radius:10px;border:1px solid #324962}.area b{display:block;margin-bottom:6px}.area p{margin:0;color:#9aafc7;font-size:12px;line-height:1.5}.form-control{width:100%;background:#0c1b2d;color:#d7e7fa;border:1px solid #46627f;border-radius:7px;padding:9px;font:12px/1.5 ui-monospace,monospace;margin-top:6px}.form-field{display:block;margin:12px 0;color:#c2d3e9;font-size:12px}.helper{color:#b4c5d9;line-height:1.6;font-size:12px}.footer{margin:26px 0 0;font-size:11px;color:#8fa3ba}.hidden{display:none!important}@media(max-width:1080px){.shell{grid-template-columns:200px 1fr}.content{padding:18px}.cards{grid-template-columns:repeat(2,1fr)}}@media(max-width:760px){.shell{display:block}.sidebar{position:relative;height:auto;padding:12px;display:flex;flex-wrap:wrap;gap:5px}.brand{width:100%;padding:8px 10px}.group-title{display:none}.nav{width:auto;font-size:12px;padding:8px}.nav span{display:none}.top{padding:15px}.grid2{grid-template-columns:1fr}.cards{grid-template-columns:repeat(2,1fr)}}
 </style></head><body><div class="shell">
 <aside class="sidebar"><div class="brand">AUTONOMOUS INVESTOR<small>종합 투자 자동화 운영 관리 · PAPER ONLY</small></div><div class="group-title">플랫폼 운영</div><nav id="menu"></nav></aside>
 <div class="main"><header class="top"><div><h1 id="page-title">종합 관제센터</h1><p id="page-subtitle">투자 자동화의 전체 업무·실행·결과를 한곳에서 확인</p></div><div class="pill" id="health">서버 연결 확인 중</div></header><main class="content" id="content"></main></div></div>
@@ -59,31 +59,159 @@ const flowLabels={
  [W.agent]:'F03 · 에이전트 할당',
  [W.audit]:'F05 · 독립 감사'
 };
-let page='overview',flow=W.strategy,workflow=null,running=false,selectedNode=null,runEvents=[],session={},connected=false;
+let page='overview',flow=W.strategy,workflow=null,running=false,selectedNode=null,runEvents=[],session={},connected=false,lastPine=null,compareWindow=null,pendingCompare=null;
+const PARITY_ORIGIN='https://investment-pine-parity-review-production.up.railway.app';
+window.addEventListener('message',event=>{if(event.origin!==PARITY_ORIGIN||!compareWindow||event.source!==compareWindow||event.data?.type!=='PARITY_READY'||!pendingCompare)return;compareWindow.postMessage({type:'AUTONOMOUS_PINE_IMPORT',...pendingCompare},PARITY_ORIGIN);pendingCompare=null;});
 const root=document.getElementById('content'),ttl=document.getElementById('page-title'),sub=document.getElementById('page-subtitle'),menu=document.getElementById('menu');
 function esc(s){return String(s??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;')}
 function editorUrl(f){return '/?workflow='+encodeURIComponent(f)}
 function link(f,label){return '<a class="btn small" href="'+esc(editorUrl(f))+'">↗ '+esc(label||'노드 흐름 보기')+'</a>'}
-function setPage(id){if(!MENUS.some(x=>x[0]===id))return;page=id;document.querySelectorAll('.nav').forEach(n=>n.classList.toggle('active',n.dataset.page===id));let meta=MENUS.find(x=>x[0]===id);ttl.textContent=meta[1];sub.textContent=meta[2];root.innerHTML=id==='overview'?overviewHtml():areaHtml(id);if(['automation','tests','source'].includes(id))loadFlow(flow);window.history.replaceState(null,'','/admin/index.html?section='+encodeURIComponent(id));}
+function setPage(id){if(!MENUS.some(x=>x[0]===id))return;page=id;document.querySelectorAll('.nav').forEach(n=>n.classList.toggle('active',n.dataset.page===id));let meta=MENUS.find(x=>x[0]===id);ttl.textContent=meta[1];sub.textContent=meta[2];root.innerHTML=id==='overview'?overviewHtml():areaHtml(id);if(['automation','tests','source','convert'].includes(id)){const available=AREAS[id]?.flows||[];loadFlow(available.includes(flow)?flow:available[0]);}window.history.replaceState(null,'','/admin/index.html?section='+encodeURIComponent(id));}
 function overviewHtml(){return '<section class="hero"><h2>투자 자동화 · 전체 운영 관제</h2><div class="muted">TradingView 전략 확보 → Pine/Python 변환 → 12개 투자 엔진 → AI 에이전트 → Nautilus PAPER → 성과 재평가·진화.<br>n8n 노드 편집기는 이 전체 시스템의 하위 실행 관제 도구입니다.</div><div class="actions"><button class="btn primary" data-page="tests">실제 실행 테스트센터</button><button class="btn" data-page="source">전략센터</button><button class="btn" data-page="automation">노드 운영 흐름</button></div></section>'+
  '<div class="cards"><div class="card"><small>실행 API 연결</small><strong id="api-status">조회 중</strong><small>실제 서버 상태</small></div><div class="card"><small>전략 실제 수집 수</small><strong>미연결</strong><small>실측 카탈로그 통계 없음</small></div><div class="card"><small>에이전트 실가동</small><strong>미연결</strong><small>PAPER 런타임 검증 필요</small></div><div class="card"><small>12개 엔진 작업</small><strong>미연결</strong><small>실제 Worker 집계 연결 전</small></div></div>'+
  '<div class="grid2"><section class="panel"><h3>현재 검증할 수 있는 업무</h3><div class="stack"><div class="area"><b>WF-01 원본 전략 수집</b><p>노드 N01부터 SQLite 실행 이력을 조회하고, 실패 시 실제 응답을 확인합니다.</p><div class="actions"><button class="btn small primary" data-page="tests">노드 실실행 테스트</button>'+link(W.strategy)+'</div></div><div class="area"><b>WF-02 Pine 변환·차트 비교</b><p>기존 편집기의 차트 검증 흐름으로 이동하며, 실데이터 여부를 확인합니다.</p><div class="actions">'+link(W.parity)+'</div></div></div></section><section class="panel"><h3>업무별 운영 흐름 열기</h3><div class="stack">'+[['source','전략 수집'],['convert','Pine 변환'],['research','12개 투자 연구 엔진'],['agents','AI 에이전트'],['paper','PAPER 거래'],['evolution','성과·진화']].map(([id,name])=>'<button class="flow-option" data-page="'+id+'"><b>'+name+'</b><small>관리 기능 · 관련 노드 흐름 · 실행 상태</small></button>').join('')+'</div></section></div><div class="notice warn">현재 페이지는 실측되지 않은 수익률·전략·에이전트 숫자를 만들어 표시하지 않습니다. 노드 테스트도 TradingView 라이브 수집, 전체 n8n 운영 실행, 실거래의 성공으로 간주하지 않습니다.</div>'}
 function areaHtml(id){const area=AREAS[id];if(!area)return overviewHtml();let flowButtons=area.flows.length?area.flows.map(f=>'<button class="flow-option '+(flow===f?'active':'')+'" data-flow="'+esc(f)+'"><b>'+esc(flowLabels[f])+'</b><small>기존 편집기의 원본 노드 연결</small></button>').join(''):'<div class="empty">이 영역의 실제 실행 그래프·성과 API는 아직 연결되지 않았습니다.</div>';
-const isTest=['automation','tests','source'].includes(id);
+const isTest=['automation','tests','source','convert'].includes(id);
 return '<section class="hero"><h2>'+esc(MENUS.find(x=>x[0]===id)[1])+'</h2><p class="muted">'+esc(MENUS.find(x=>x[0]===id)[2])+'</p></section><div class="grid2"><section class="panel"><h3>기능 영역</h3><div class="stack">'+area.items.map(x=>'<div class="area"><b>'+esc(x)+'</b></div>').join('')+'</div><h3 style="margin-top:22px">연결된 운영 워크플로</h3><div class="flow-list">'+flowButtons+'</div></section><section class="panel" id="flow-panel"><h3>운영 흐름 및 실행 기록</h3><div class="notice">해당 업무의 실제 그래프를 열면 기존 n8n 편집기로 연결됩니다. 노드 실행은 WF-01의 허용된 Python API에만 연결됩니다.</div>'+ (area.flows.length?link(area.flows[0]):'<p class="muted">연결된 실행 API가 없습니다.</p>')+'</section></div>'+(isTest?'<div id="execution-area"></div>':'')+'<p class="footer">실행 기록이 없거나 서버 연결이 끊긴 경우에는 완료로 표시하지 않습니다.</p>'}
 async function api(path,opt){const r=await fetch(path,{credentials:'same-origin',cache:'no-store',...opt});let obj;try{obj=await r.json()}catch{throw Error('HTTP '+r.status+' (JSON 응답 아님)')}return {status:r.status,ok:r.ok,data:obj}}
 async function health(){try{const r=await api('/api/studio/health');connected=r.ok&&r.data.projectAdapterConnected===true;document.getElementById('health').textContent=connected?'● 편집기·Python 어댑터 연결':'● 실행 어댑터 미연결';const s=document.getElementById('api-status');if(s)s.textContent=connected?'연결됨':'미연결';}catch{connected=false;document.getElementById('health').textContent='● 서버 API 접근 실패';const s=document.getElementById('api-status');if(s)s.textContent='연결 실패'}}
-async function loadFlow(f){flow=f;const fpanel=document.getElementById('flow-panel'),exec=document.getElementById('execution-area');if(!fpanel)return;fpanel.innerHTML='<h3>'+esc(flowLabels[f]||f)+'</h3><p class="muted">실제 서버에 저장된 워크플로 정의를 읽는 중입니다.</p>';try{let r=await api('/api/studio/workflows/'+f);if(!r.ok||!r.data.workflow)throw Error('워크플로 API '+r.status);workflow=r.data.workflow;}catch(e){workflow=null;fpanel.innerHTML='<h3>연결 실패</h3><p class="red">'+esc(e.message)+'</p>'+link(f);return}
-session={};runEvents=[];selectedNode=null;document.querySelectorAll('[data-flow]').forEach(b=>b.classList.toggle('active',b.dataset.flow===f));fpanel.innerHTML='<h3>'+esc(flowLabels[f]||workflow.name)+'</h3><div class="actions">'+link(f,'기존 노드 캔버스 열기')+'<button class="btn small" data-action="refresh">실행 이력 새로고침</button></div><p class="muted minor">원본 '+esc(workflow.nodes.length)+'개 노드 · 실행 기록은 서버 SQLite에서 조회합니다. '+(f===W.strategy?'N03은 승인된 과거 GitHub 스냅샷일 수 있으며 TradingView 최신 목록과 구분합니다.':'')+'</p><div class="node-list" id="node-list"></div>';
-if(exec)exec.innerHTML=(f===W.strategy||f===W.library)?'<section class="panel"><h3>WF-01 · 실제 노드 순차 실행</h3><p class="muted minor">각 노드는 HTTP 실행 → SQLite 기록 → 출력 JSON을 다음 노드에 전달합니다. 실패하면 즉시 중단하며 성공으로 바꾸지 않습니다.</p><div class="actions"><button class="btn primary" id="run" data-action="run">▶ WF-01 검증 실행</button><button class="btn" data-action="refresh">서버 이력 조회</button><span class="status" id="progress">실행 전</span></div><div class="notice warn">이 테스트는 허용된 전략 원본과 저장소를 사용합니다. 최신 TradingView 크롤링·Pine/Python 동등성·PAPER 거래 완료를 증명하지 않습니다.</div></section><div class="grid2"><section class="panel"><h3>이번 실행 단계 기록</h3><div id="run-log" class="log">실행 버튼으로 서버 응답을 확인하세요.</div></section><section class="panel"><h3>선택한 노드의 실제 입·출력</h3><div id="node-details" class="muted">왼쪽 노드를 선택하세요.</div></section></div>':'<section class="panel"><h3>기존 워크플로에서 확인</h3><p class="muted">이 워크플로의 전체 순차 실행은 이 테스트 API에 연결되지 않았습니다. 기존 편집기의 노드, 설정, 차트 결과를 확인하세요.</p>'+link(f,'해당 운영 흐름 열기')+'</section>';renderNodes();await refreshSavedState();}
+async function loadFlow(f){
+ flow=f;const fpanel=document.getElementById('flow-panel'),exec=document.getElementById('execution-area');if(!fpanel||!f)return;
+ fpanel.innerHTML='<h3>'+esc(flowLabels[f]||f)+'</h3><p class="muted">서버 워크플로를 읽는 중입니다.</p>';
+ try{const r=await api('/api/studio/workflows/'+f);if(!r.ok||!r.data.workflow)throw Error('워크플로 API HTTP '+r.status);workflow=r.data.workflow;}
+ catch(e){workflow=null;fpanel.innerHTML='<h3>서버 연결 실패</h3><p class="red">'+esc(e.message)+'</p>'+link(f);if(exec)exec.innerHTML='';return;}
+ session={};runEvents=[];selectedNode=null;
+ document.querySelectorAll('[data-flow]').forEach(b=>b.classList.toggle('active',b.dataset.flow===f));
+ const isLibrary=f===W.library,isStrategy=f===W.strategy,isPython=f===W.pine,isParity=f===W.parity;
+ fpanel.innerHTML='<h3>'+esc(flowLabels[f]||workflow.name)+'</h3><div class="actions">'+link(f,'기존 노드 캔버스 열기')+
+ '<button class="btn small" data-action="refresh">실행 이력 새로고침</button></div><p class="muted minor">원본 '+esc(workflow.nodes.length)+
+ '개 노드 · 실제 실행 상태는 서버 기록 기반'+(isStrategy?' · 승인된 과거 GitHub 목록을 사용하며 TradingView 실시간 최신 목록은 아닙니다.':'')+'</p><div class="node-list" id="node-list"></div>';
+ if(exec){
+  if(isStrategy||isLibrary||isPython){
+   const libraryFields=isLibrary?'<div class="notice warn">자동 라이브러리 목록 공급원은 아직 연결되지 않았습니다. 실제로 확보한 TradingView 공개 라이브러리 코드를 아래에 입력하면 별도의 <b>사용자 제공 원본 등록</b> 경로로 실행합니다. 가짜 최신 수집으로 표시하지 않습니다.</div>'+
+    '<label class="form-field">TradingView 공개 라이브러리 URL<input class="form-control" id="library-url" placeholder="https://www.tradingview.com/script/XXXXXXXX/"></label>'+
+    '<label class="form-field">원본 버전<input class="form-control" id="library-version" value="1" placeholder="예: 1"></label>'+
+    '<label class="form-field">실제 Pine library() 전체 코드<textarea class="form-control" id="library-pine" rows="7" placeholder="//@version=6&#10;library(&quot;...&quot;)&#10;export ..."></textarea></label>':'';
+   const pythonInfo=isPython?'<div class="notice">WF-01에서 SQLite에 저장된 최신 전략 원본 1개를 읽어 Python으로 변환합니다. 지원되지 않는 Pine은 미지원 판정으로 남으며 자동 성공 처리하지 않습니다.</div>'+
+     '<div class="actions"><button class="btn" data-action="compare">↗ 저장 Pine으로 좌우 차트 비교 열기</button></div>':'';
+   exec.innerHTML='<section class="panel"><h3>'+(isPython?'WF-02 · Pine→Python 실제 노드 실행':'WF-01 · Pine 원본 확보·저장 실제 노드 실행')+'</h3>'+
+    '<p class="helper">서버의 실제 Python 노드를 순차 실행하며 입력·출력 JSON, SQLite 저장 이력과 실패 지점을 확인할 수 있습니다.</p>'+libraryFields+pythonInfo+
+    '<div class="actions"><button class="btn primary" id="run" data-action="run">▶ '+(isLibrary?'제공한 라이브러리 등록 실행':isPython?'저장 Pine → Python 변환 실행':'전략 수집 검증 실행')+
+    '</button><button class="btn" data-action="refresh">서버 이력 조회</button><span class="status" id="progress">실행 전</span></div></section>'+
+    '<div class="grid2"><section class="panel"><h3>실제 실행 단계 기록</h3><div id="run-log" class="log">실행 버튼으로 서버 응답을 확인하세요.</div></section>'+
+    '<section class="panel"><h3>선택한 노드의 실제 입력·출력</h3><div id="node-details" class="muted">위 노드 목록에서 확인할 항목을 선택하세요.</div></section></div>';
+  }else if(isParity){
+   exec.innerHTML='<section class="panel"><h3>원본 TradingView ↔ Python 전략 차트 비교</h3>'+
+    '<p class="helper">기존 별도 비교 페이지는 왼쪽에 TradingView에서 직접 확보한 실제 전략 적용 차트, 오른쪽에 동일한 OHLC 데이터를 이용한 Python SVG 차트를 보여줍니다. 차트 중첩·신호 비교와 결과 이력을 제공합니다.</p>'+
+    '<div class="notice warn">원본 TradingView 화면 캡처와 가격·플롯 CSV는 자동으로 수집되지 않습니다. 실제 캡처·CSV를 제공하지 않으면 수치 및 시각 동등성 확인은 미완료입니다.</div>'+
+    '<div class="actions"><button class="btn primary" data-action="compare">↗ 저장된 Pine을 불러와 좌우 차트 비교</button>'+
+    '<a class="btn" href="'+PARITY_ORIGIN+'/" target="_blank" rel="noopener noreferrer">↗ 차트 비교 페이지 직접 열기</a>'+link(f,'8개 노드 흐름 열기')+'</div>'+
+    '<p class="muted minor">차트 입력·계산·렌더링은 '+esc(PARITY_ORIGIN)+'/api/compare 에서 수행하고 마지막 08 노드에서 동일 실행 ID의 결과 페이지로 연결됩니다.</p></section>';
+  }else{
+   exec.innerHTML='<section class="panel"><h3>이 워크플로의 실행 검증 상태</h3><p class="muted">현재 독립 실행 API는 연결되지 않았습니다. 기존 편집기의 노드 설정과 연결을 확인하세요.</p>'+link(f)+'</section>';
+  }
+ }
+ renderNodes();await refreshSavedState();
+}
+async function latestStoredPine(){
+ if(lastPine?.pine_code)return lastPine;
+ const params=new URLSearchParams({workflow:W.pine,node_id:'wf02-01'});
+ const response=await api('/api/studio/nodes/history?'+params);
+ if(!response.ok)throw Error('저장 Pine 실행 이력 조회 실패');
+ const row=(response.data.executions||[]).find(x=>x.status==='SUCCESS'&&x.output_json?.pine_code);
+ if(!row)throw Error('WF-02에서 저장된 Pine 읽기를 먼저 실행하세요. 또는 비교 페이지에서 Pine 코드를 직접 입력하세요.');
+ lastPine=row.output_json;return lastPine;
+}
+async function openCompare(){
+ try{
+  const result=await latestStoredPine();
+  if(!result?.pine_code)throw Error('실제 저장된 Pine 코드가 없습니다.');
+  compareWindow=window.open(PARITY_ORIGIN+'/?from=investment-admin','_blank');
+  if(!compareWindow)throw Error('브라우저 팝업 차단을 해제하거나 비교 페이지를 직접 여세요.');
+  pendingCompare={pine_code:result.pine_code,source_id:result.source_id||'',version_key:result.version_key||''};
+  const progress=document.getElementById('progress');if(progress)progress.textContent='저장 Pine을 차트 비교 페이지에 전달';
+ }catch(e){alert(e.message);}
+}
 function renderNodes(){const el=document.getElementById('node-list');if(!el||!workflow)return;el.innerHTML=workflow.nodes.map(n=>{const s=session[n.id]||{};return '<button class="step '+(s.status==='SUCCESS'?'success':s.status==='FAILED'?'failed':s.status==='RUNNING'?'running':'')+' '+(selectedNode===n.id?'selected':'')+'" data-node="'+esc(n.id)+'"><span><b>'+esc(n.name)+'</b><small>'+esc(n.id)+'</small></span><em>'+esc(s.status==='SUCCESS'?'✓ 실제 완료':s.status==='FAILED'?'✕ 실제 실패':s.status==='RUNNING'?'● 실행 중':'조회 가능')+'</em></button>'}).join('')}
 async function refreshSavedState(){if(!workflow)return;try{const r=await api('/api/studio/nodes/graph-state?'+new URLSearchParams({workflow:flow}));if(r.ok){const states=r.data.nodes||[];const note=document.getElementById('progress');if(note&&!runEvents.length)note.textContent='SQLite 최근 노드 기록 '+states.length+'개 (현재 실행과 구분)';}}catch{}}
 async function inspect(id){selectedNode=id;renderNodes();const box=document.getElementById('node-details')||document.getElementById('flow-panel');if(!box)return;const info=workflow?.nodes?.find(n=>n.id===id);if(!info)return;let data=session[id]?.data;let historical=false;if(!data){try{let r=await api('/api/studio/nodes/history?'+new URLSearchParams({workflow:flow,node_id:id}));data=r.data.executions?.[0];historical=true}catch(e){box.textContent='실행 이력 조회 실패: '+e.message;return}}if(!data){box.textContent='기록된 실행이 없습니다.';return;}box.innerHTML='<h4>'+esc(info.name)+'</h4><p class="muted minor">'+(historical?'이 노드의 SQLite 최근 실행 (이번 테스트와 다를 수 있음)':'이번 테스트에서 받은 실제 API 응답')+'</p><p class="minor">상태 '+esc(data.status)+' · 실행 ID '+esc(data.run_id||'없음')+' · 소요 '+esc(data.duration_ms??'미기록')+'ms</p><h4>실제 INPUT JSON</h4><pre class="code" id="input-json"></pre><h4>실제 OUTPUT JSON</h4><pre class="code" id="output-json"></pre><h4>오류 / 차단 원인</h4><pre class="code" id="error-json"></pre>';document.getElementById('input-json').textContent=JSON.stringify(data.input_json??null,null,2);document.getElementById('output-json').textContent=JSON.stringify(data.output_json??null,null,2);document.getElementById('error-json').textContent=data.error||'기록 없음'}
 function nextNode(current,result){let edges=workflow.connections?.[current.name]?.main||[];let ports=result.output_json?._studio_active_ports;if(!Array.isArray(ports))ports=[0];for(const port of ports){const conn=(edges[port]||[])[0];if(!conn)continue;return workflow.nodes.find(n=>n.name===conn.node)||null}return null}
 function log(s,type=''){runEvents.push({s,type});let el=document.getElementById('run-log');if(el){el.innerHTML=runEvents.map(x=>'<div class="'+esc(x.type)+'">'+esc(x.s)+'</div>').join('');el.scrollTop=el.scrollHeight}}
-async function executeFlow(){if(running||!workflow||![W.strategy,W.library].includes(flow))return;running=true;session={};runEvents=[];renderNodes();let button=document.getElementById('run');if(button)button.disabled=true;let kind=flow===W.library?'library':'strategy',input={ui_selection:kind,requested_detail_limit:1,max_pages:3};let node=workflow.nodes.find(n=>n.id==='wf01-'+kind+'-01'),prevRun=null,step=0,success=false;
-log('시작 · '+kind+' · 서버의 등록된 Python 노드만 실행');try{if(!node)throw Error('실행 가능한 N01 노드가 없음');while(node&&step<35){const id=node.id;session[id]={status:'RUNNING'};renderNodes();const p=document.getElementById('progress');if(p)p.textContent='실행 중 · '+node.name;let body=prevRun?{workflow:flow,node_id:id,source_run_id:prevRun}:{workflow:flow,node_id:id,input_json:input};let path=prevRun?'/api/studio/nodes/execute':'/api/studio/node01/execute';let r=await api(path,{method:'POST',headers:{'Content-Type':'application/json','X-Studio-Node-Run':prevRun?'APPROVED':'N01'},body:JSON.stringify(body)});let d=r.data;session[id]={status:d.status||'FAILED',data:d};log(node.name+' · HTTP '+r.status+' · '+(d.status||'오류')+' · '+(d.run_id||'실행 ID 없음'),r.ok?'green':'red');renderNodes();if(!r.ok||d.status!=='SUCCESS'||!d.run_id){if(p)p.textContent='중단 · '+node.name;log('실제 오류: '+(d.error||'HTTP '+r.status),'red');await inspect(id);break;}prevRun=d.run_id;step++;const next=nextNode(node,d);if(!next){success=true;if(p)p.textContent='완료 · '+step+'개 실제 노드 실행';log('실제 마지막 노드 완료. 파이프라인의 Pine/Python 동등성·PAPER 결과와 별개입니다.','green');await inspect(id);break;}node=next;}if(step>=35){log('35단계 실행 상한 도달 · 순환 보호','red');const p=document.getElementById('progress');if(p)p.textContent='보호 중단';}}catch(e){log('예외로 중단: '+e.message,'red');const p=document.getElementById('progress');if(p)p.textContent='요청 오류 · 중단';}finally{running=false;const b=document.getElementById('run');if(b)b.disabled=false;await refreshSavedState();}}
+async function executeFlow(){
+ if(running||!workflow||![W.strategy,W.library,W.pine].includes(flow))return;
+ let input,rootId;
+ if(flow===W.pine){
+  input={ui_selection:'strategy',requested_detail_limit:1};rootId='wf02-01';
+ }else{
+  const kind=flow===W.library?'library':'strategy';
+  input={ui_selection:kind,requested_detail_limit:1,max_pages:3};rootId='wf01-'+kind+'-01';
+  if(flow===W.library){
+   const source_url=document.getElementById('library-url')?.value.trim();
+   const version_key=document.getElementById('library-version')?.value.trim();
+   const pine_code=document.getElementById('library-pine')?.value||'';
+   if(!source_url||!version_key||!pine_code.trim()){
+    const progress=document.getElementById('progress');
+    if(progress)progress.textContent='실제 라이브러리 URL·버전·Pine 원본을 입력해야 실행할 수 있습니다.';
+    return;
+   }
+   input.manual_library={source_url,version_key,pine_code};
+  }
+ }
+ running=true;session={};runEvents=[];renderNodes();
+ const button=document.getElementById('run');if(button)button.disabled=true;
+ let node=workflow.nodes.find(n=>n.id===rootId),prevRun=null,step=0,complete=false;
+ log('시작 · '+flow+' · 등록된 Python 실제 노드 실행');
+ try{
+  if(!node)throw Error('등록된 시작 노드가 없습니다.');
+  while(node&&step<35){
+   const id=node.id;session[id]={status:'RUNNING'};renderNodes();
+   const progress=document.getElementById('progress');if(progress)progress.textContent='실행 중 · '+node.name;
+   const body=prevRun?{workflow:flow,node_id:id,source_run_id:prevRun}:{workflow:flow,node_id:id,input_json:input};
+   const path=prevRun?'/api/studio/nodes/execute':'/api/studio/node01/execute';
+   const r=await api(path,{method:'POST',
+      headers:{'Content-Type':'application/json','X-Studio-Node-Run':prevRun?'APPROVED':'N01'},
+      body:JSON.stringify(body)});
+   const d=r.data;
+   session[id]={status:d.status||'FAILED',data:d};
+   log(node.name+' · HTTP '+r.status+' · '+(d.status||'오류')+' · '+(d.run_id||'실행 ID 없음'),r.ok?'green':'red');
+   renderNodes();
+   if(!r.ok||d.status!=='SUCCESS'||!d.run_id){
+    if(progress)progress.textContent='중단 · '+node.name;
+    log('실제 오류: '+(d.error||'HTTP '+r.status),'red');await inspect(id);break;
+   }
+   if(flow===W.pine&&id==='wf02-01'&&d.output_json?.pine_code)lastPine=d.output_json;
+   prevRun=d.run_id;step++;
+   const next=nextNode(node,d);
+   if(!next){
+    complete=true;const output=d.output_json||{};
+    if(flow===W.pine){
+      if(output.status==='PYTHON_GENERATED'){
+       if(progress)progress.textContent='Python 코드 생성 · 실제 TradingView 동등성은 별도 검증 필요';
+       log('Python 변환 코드 생성 성공. 좌우 차트 비교에서 실제 TV 캡처와 플롯 CSV를 사용해 검증하세요.','green');
+      }else if(output.status==='UNSUPPORTED_PINE'){
+       if(progress)progress.textContent='Pine 문법 미지원 · 변환 불가 (정상 차단)';
+       log('미지원 Pine · '+(output.unsupported_reason||output.basic_converter_reason||'지원 범위 밖'),'red');
+      }else{if(progress)progress.textContent='완료 · '+String(output.status||'미확인');}
+    }else{
+      if(progress)progress.textContent='원본 확보·저장 실행 종료 · '+step+'개 실제 노드';
+      log('원본 코드 저장 처리 결과: '+(output.status||'미확인')+'. Python 차트/매매 신호 일치 여부와는 별개입니다.','green');
+    }
+    await inspect(id);break;
+   }
+   node=next;
+  }
+  if(!complete&&step>=35){
+    log('35단계 실행 상한에 도달해 중단했습니다.','red');
+    const progress=document.getElementById('progress');if(progress)progress.textContent='단계 상한 도달 · 중단';
+  }
+ }catch(e){
+  log('요청 또는 실행 오류: '+e.message,'red');
+  const progress=document.getElementById('progress');if(progress)progress.textContent='실행 오류 · 중단';
+ }finally{
+  running=false;const b=document.getElementById('run');if(b)b.disabled=false;await refreshSavedState();
+ }
+}
 menu.innerHTML=MENUS.map(([id,label])=>'<button class="nav" data-page="'+esc(id)+'"><span>▧</span>'+esc(label)+'</button>').join('');
-document.addEventListener('click',e=>{const target=e.target.closest('[data-page],[data-flow],[data-node],[data-action]');if(!target)return;if(target.dataset.page)setPage(target.dataset.page);else if(target.dataset.flow)loadFlow(target.dataset.flow);else if(target.dataset.node)inspect(target.dataset.node);else if(target.dataset.action==='run')executeFlow();else if(target.dataset.action==='refresh')loadFlow(flow)});
+document.addEventListener('click',e=>{const target=e.target.closest('[data-page],[data-flow],[data-node],[data-action]');if(!target)return;if(target.dataset.page)setPage(target.dataset.page);else if(target.dataset.flow)loadFlow(target.dataset.flow);else if(target.dataset.node)inspect(target.dataset.node);else if(target.dataset.action==='run')executeFlow();else if(target.dataset.action==='compare')openCompare();else if(target.dataset.action==='refresh')loadFlow(flow)});
 setPage(new URLSearchParams(location.search).get('section')||'overview');health();
 </script></body></html>
