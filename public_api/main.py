@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import os
 import time
+import hashlib
 from collections import defaultdict
 from typing import Any
 from urllib.parse import quote
@@ -13,6 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 TV_API = os.getenv("TRADINGVIEW_API", "https://autonomous-investor-tradingview-production.up.railway.app").rstrip("/")
 QUANT_API = os.getenv("QUANT_API", "https://autonomous-investor-quant-lab-production.up.railway.app").rstrip("/")
+INVESTMENT_STUDIO_API = os.getenv("INVESTMENT_STUDIO_API", "https://investment-n8n-native-editor-production.up.railway.app").rstrip("/")
 
 app = FastAPI(title="Autonomous Investor Public API", version="1.0.0")
 
@@ -348,6 +350,51 @@ async def script_source(script_id_part: str) -> dict[str, Any]:
         TV_API,
         f"/api/v1/tradingview/scripts/{quote(script_id_part, safe='')}/source",
     )
+
+
+@app.get("/api/public/scripts/{script_id_part}/compare-exact")
+async def compare_exact_stored_version(
+    script_id_part: str,
+    version: str = Query(min_length=1,max_length=150),
+    sha256: str = Query(min_length=64,max_length=64,pattern=r"^[0-9a-f]{64}$"),
+    symbol: str = Query(default="NASDAQ:NVDA",min_length=1,max_length=100),
+    horizon: str = Query(default="2h",min_length=1,max_length=12),
+) -> dict[str,Any]:
+    """Proxy the exact saved pipeline source to the existing Python Quant chart.
+    A same-ID TradingView service version is never silently substituted.
+    """
+    if not 1<=len(script_id_part)<=240:
+        raise HTTPException(status_code=400,detail="INVALID_SOURCE_ID")
+    pinned_path="/api/investment/source-exact?source_id="+quote(script_id_part,safe="") + (
+       "&version_key="+quote(version,safe="")+"&source_sha256="+sha256)
+    try:
+        async with httpx.AsyncClient(timeout=85.0,follow_redirects=True) as client:
+            source_resp=await client.get(INVESTMENT_STUDIO_API+pinned_path)
+            if source_resp.status_code!=200:
+                raise HTTPException(status_code=502,
+                   detail="PINNED_STUDIO_SOURCE_UNAVAILABLE_"+str(source_resp.status_code))
+            pine=source_resp.json()
+            raw=pine.get("source")
+            if not isinstance(raw,str) or hashlib.sha256(raw.encode()).hexdigest()!=sha256:
+                raise HTTPException(status_code=409,detail="CANONICAL_SOURCE_SHA_MISMATCH")
+            qresp=await client.post(
+               QUANT_API+"/api/v1/quant/pine/visualize-exact",
+               json={"source_id":script_id_part,"version_key":version,
+                     "source_sha256":sha256,"pine_code":raw,
+                     "symbol":symbol,"horizon":horizon})
+            if qresp.status_code!=200:
+                raise HTTPException(status_code=502,
+                     detail="EXACT_PYTHON_CHART_UNAVAILABLE_"+str(qresp.status_code)+
+                        "_"+qresp.text[:160])
+            chart=qresp.json()
+            if chart.get("source_hash")!=sha256 or chart.get("script_id")!=script_id_part:
+                raise HTTPException(status_code=409,detail="PYTHON_CHART_SOURCE_ID_OR_SHA_MISMATCH")
+            return {"source":pine,"chart":chart,
+              "mode":"EXACT_PINNED_STUDIO_SOURCE","version_key":version,
+              "same_ohlcv":True,"tradingview_site_parity_verified":False}
+    except httpx.RequestError as exc:
+        raise HTTPException(status_code=502,
+          detail="REQUIRED_SERVICE_UNAVAILABLE_"+type(exc).__name__) from exc
 
 
 @app.get("/api/public/scripts/{script_id_part}/chart")
