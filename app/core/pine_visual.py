@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import math
 import os
 import re
@@ -326,8 +327,19 @@ def visualize_pine_script(
     horizon: str,
     market: str = "",
     country: str = "",
+    source_override: str | None = None,
+    source_sha256: str | None = None,
 ) -> dict[str, Any]:
-    pine = _source(script_id)
+    if source_override is not None:
+        if not isinstance(source_override,str) or len(source_override.encode("utf-8"))>512*1024:
+            raise ValueError("EXACT_PINNED_SOURCE_TOO_LARGE")
+        calculated=hashlib.sha256(source_override.encode("utf-8")).hexdigest()
+        if not source_sha256 or calculated!=source_sha256:
+            raise ValueError("EXACT_SOURCE_SHA256_MISMATCH")
+        pine={"source":source_override,"kind":"strategy","script_name":script_id,
+              "source_hash":calculated,"pine_version":6}
+    else:
+        pine = _source(script_id)
     source = str(pine.get("source") or "")
     history = fetch_history_for_agent(
         symbol,
@@ -377,6 +389,7 @@ def visualize_pine_script(
         "kind": pine.get("kind"),
         "pine_version": pine.get("pine_version"),
         "source_hash": pine.get("source_hash"),
+        "source_origin": "EXACT_SAVED_PINE_VERSION" if source_override is not None else "TRADINGVIEW_STORED_SOURCE",
         "symbol": symbol,
         "horizon": horizon,
         "market_data": {
