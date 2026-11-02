@@ -89,8 +89,10 @@ async function run(page){
   await integrated.click();
   await page.waitForFunction(()=>{
     const text=document.querySelector('#integrated-label')?.textContent||'';
-    return /PARTIAL_BLOCKED|REVIEW_REQUIRED|FAILED/.test(text);
+    return /PARTIAL_BLOCKED|REVIEW_REQUIRED|FAILED|실행 시작 실패|실행 조회 실패/.test(text);
   },null,{timeout:180000});
+  const firstStatus=await page.locator('#integrated-label').innerText();
+  if(firstStatus.includes('실패'))throw Error('First one-click pipeline did not complete: '+firstStatus);
   const pipeline=await page.evaluate(async()=>{
     const r=await fetch('/api/investment/pipeline',{credentials:'same-origin',cache:'no-store'});
     return r.json();
@@ -143,8 +145,10 @@ async function run(page){
   await page.locator('#integrated-start').click();
   await page.waitForFunction(()=>{
     const text=document.querySelector('#integrated-label')?.textContent||'';
-    return /PARTIAL_BLOCKED|REVIEW_REQUIRED|FAILED/.test(text);
+    return /PARTIAL_BLOCKED|REVIEW_REQUIRED|FAILED|실행 시작 실패|실행 조회 실패/.test(text);
   },null,{timeout:180000});
+  const secondStatus=await page.locator('#integrated-label').innerText();
+  if(secondStatus.includes('실패'))throw Error('Exact pinned one-click pipeline did not complete: '+secondStatus);
   const exact=await page.evaluate(async()=>
       (await fetch('/api/investment/pipeline',{credentials:'same-origin'})).json());
   if(exact.result?.stages?.strategy!=='REUSED_EXACT_DB_SOURCE')
