@@ -108,7 +108,8 @@ async function loadSavedSources(){
   const current=menu.value;
   menu.innerHTML='<option value="">자동 수집 → DB 기존 원본 재사용</option>'+
     availableSources.map((s,i)=>'<option value="'+i+'">'+esc(s.source_id)+
-      ' · 버전 '+esc(s.version_key)+' · '+esc(s.saved_at||'')+'</option>').join('');
+      ' · 버전 '+esc(s.version_key)+' · '+(s.python_code_stored?'Python 생성 이력 있음':'Python 변환 미확인')+
+      ' · '+esc(s.saved_at||'')+'</option>').join('');
   if(current&&Number(current)<availableSources.length)menu.value=current;
   if(note)note.textContent=availableSources.length+'개 저장 원본 확인 · 선택하면 수집 재실행 대신 해당 버전을 그대로 사용합니다. Pine 미지원 여부는 실행 결과로 확인합니다.';
  }catch(e){if(note)note.textContent='저장 전략 목록 조회 실패 · '+e.message;}
