@@ -382,5 +382,19 @@ async function executeFlow(){
 }
 menu.innerHTML=MENUS.map(([id,label])=>'<button class="nav" data-page="'+esc(id)+'"><span>▧</span>'+esc(label)+'</button>').join('');
 document.addEventListener('click',e=>{const target=e.target.closest('[data-page],[data-flow],[data-node],[data-action]');if(!target)return;if(target.dataset.page)setPage(target.dataset.page);else if(target.dataset.flow)loadFlow(target.dataset.flow);else if(target.dataset.node)inspect(target.dataset.node);else if(target.dataset.action==='run')executeFlow();else if(target.dataset.action==='compare')openCompare();else if(target.dataset.action==='convert-next')setPage('convert');else if(target.dataset.action==='integrated-start')startIntegrated();else if(target.dataset.action==='integrated-refresh')refreshIntegrated();else if(target.dataset.action==='refresh')loadFlow(flow)});
-setPage(new URLSearchParams(location.search).get('section')||'overview');health();
+async function bootstrapManagement(){
+ try{
+  const session=await api('/api/investment/session');
+  if(!session.ok||session.data.status!=='READY')
+    throw Error('세션 초기화에 실패했습니다.');
+ }catch(e){
+  root.innerHTML='<div class="notice warn">실행 세션 초기화 실패 · '+esc(e.message)+
+      ' · 노드 간 데이터가 잘못 연결되지 않도록 화면 실행을 중단했습니다. 새로고침해 재접속하세요.</div>';
+  document.getElementById('health').textContent='● 세션 준비 실패';
+  return;
+ }
+ setPage(new URLSearchParams(location.search).get('section')||'overview');
+ health();
+}
+bootstrapManagement();
 </script></body></html>
