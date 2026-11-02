@@ -2,6 +2,7 @@ import {useEffect,useState} from 'react';
 import {Header} from './components/Header';
 import {ScriptsPage} from './pages/scripts/ScriptsPage';
 import {ScriptDetailPage} from './pages/scripts/ScriptDetailPage';
+import {PineSideBySidePage} from './pages/scripts/PineSideBySidePage';
 import {StrategiesPage} from './pages/strategies/StrategiesPage';
 import {MarketsPage} from './pages/markets/MarketsPage';
 import {StrategyDetailPage} from './pages/strategies/StrategyDetailPage';
@@ -21,6 +22,7 @@ export default function App(){
   const go=(p:string)=>{history.pushState({},'',p);setPath(new URL(p,location.origin).pathname);scrollTo(0,0)};
   let page=<StrategiesPage go={go}/>;
   if(path==='/scripts'||path==='/ideas') page=<ScriptsPage go={go}/>;
+  else if(path.startsWith('/compare/')) page=<PineSideBySidePage id={decodeURIComponent(path.split('/')[2]||'')} go={go}/>;
   else if(path.startsWith('/scripts/')) page=<ScriptDetailPage id={decodeURIComponent(path.split('/')[2]||'')} go={go}/>;
   else if(path==='/markets') page=<MarketsPage/>;
   else if(path==='/strategies') page=<StrategiesPage go={go}/>;
