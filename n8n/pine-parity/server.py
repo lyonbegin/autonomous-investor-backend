@@ -77,6 +77,36 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(data)
     def do_GET(self):
         path=urlparse(self.path).path
+        if path=="/api/references/lookup":
+            from urllib.parse import parse_qs
+            q=parse_qs(urlparse(self.path).query)
+            url=(q.get("source_url") or [""])[0]
+            code_sha=(q.get("pine_sha256") or [""])[0]
+            if not url or len(url)>1000 or not re.fullmatch(r"[0-9a-f]{64}",code_sha):
+                return self.response(400,{"error":"SOURCE_URL_AND_PINE_SHA_REQUIRED"})
+            with sqlite3.connect(DB,timeout=20) as db:
+                db.row_factory=sqlite3.Row
+                row=db.execute("""SELECT * FROM runs
+                     WHERE source_url=? AND pine_sha=? AND image_kind IS NOT NULL
+                     ORDER BY created_at DESC LIMIT 1""",(url,code_sha)).fetchone()
+            if not row:
+                return self.response(404,{"error":"NO_STORED_REAL_REFERENCE_FOR_SOURCE"})
+            run_id=row["id"]
+            csv_file=STORAGE/(run_id+".csv")
+            image_file=STORAGE/(run_id+".reference")
+            svg_file=STORAGE/(run_id+".svg")
+            if not (csv_file.is_file() and image_file.is_file() and svg_file.is_file()):
+                return self.response(404,{"error":"REFERENCE_ARTIFACT_MISSING"})
+            summary=json.loads(row["summary_json"])
+            return self.response(200,{"run_id":run_id,
+                "source_url":row["source_url"],"symbol":row["symbol"],
+                "timeframe":row["timeframe"],"status":row["status"],
+                "numeric_match":summary.get("numeric_match",False),
+                "visual_review":row["visual_review"],
+                "reference_screenshot_url":"/artifacts/"+run_id+"/reference",
+                "python_chart_url":"/artifacts/"+run_id+"/python.svg",
+                "trace_url":"/api/runs/"+run_id+"/trace",
+                "reference_source":"PREVIOUS_USER_SUBMITTED_TV_CSV_AND_IMAGE_UNAUTHENTICATED"})
         if path=="/health":return self.response(200,{"status":"ok","mode":"STRICT_SUBSET_NO_LIVE_TV_AUTOMATION","release":"pine-parity-stage2-rsi-run-v1"})
         if path in ("/","/index.html"):
             return self.response(200,(HERE/"index.html").read_bytes(),"text/html; charset=utf-8")
