@@ -272,6 +272,31 @@ def mirror_node_event(run_id,stage_key,workflow,node_id,node_name,status,payload
                     (finished_status,str(error)[:200] if error else None,sr))
         db.commit()
 
+def finish_pipeline_run(run_id,status,selected=None,error=None):
+    import uuid
+    run_uuid=uuid.UUID(hex=run_id)
+    script_version=None
+    with connect() as db:
+        with db.cursor() as cur:
+            if selected and selected.get("source_id") and selected.get("version_key"):
+                row=cur.execute("""SELECT sv.script_version_id FROM catalog.scripts s
+                  JOIN catalog.script_versions sv ON sv.script_id=s.script_id
+                  WHERE s.external_script_key=%s AND sv.provider_version=%s
+                  ORDER BY sv.acquired_at DESC LIMIT 1""",
+                  (selected["source_id"],selected["version_key"])).fetchone()
+                script_version=row[0] if row else None
+            cur.execute("""INSERT INTO operations.pipeline_runs
+                (pipeline_run_id,requested_by,status,correlation_id,policy_version,
+                 selected_script_version_id,ended_at,error_code)
+                VALUES(%s,'integration-console',%s,%s,'db-v1',%s,now(),%s)
+                ON CONFLICT(pipeline_run_id) DO UPDATE SET
+                  status=EXCLUDED.status,selected_script_version_id=EXCLUDED.selected_script_version_id,
+                  ended_at=EXCLUDED.ended_at,error_code=EXCLUDED.error_code""",
+                (run_uuid,status,run_id,script_version,str(error)[:180] if error else None))
+        db.commit()
+    return {"pipeline_run_id":str(run_uuid),"script_version_id":str(script_version) if script_version else None,
+            "postgres_sync":"SYNCED"}
+
 def backup_sqlite():
     if not SQLITE_PATH.exists():return None
     folder=Path(os.getenv("INVESTMENT_BACKUP_ROOT","/data/investment-backups"));folder.mkdir(parents=True,exist_ok=True)
