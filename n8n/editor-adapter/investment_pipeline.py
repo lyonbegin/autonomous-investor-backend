@@ -174,7 +174,13 @@ def run_graph(run_id,stage_name,path,inputs):
             event(run_id,stage_name,path,node["id"],node["name"],"FAILED",
                   {"duration_ms":int((time.monotonic()-started)*1000)},str(exc))
             raise
-        event(run_id,stage_name,path,node["id"],node["name"],"SUCCESS",
+        # A successful HTTP/Python invocation is not proof of successful
+        # Pine conversion or of a new TradingView source.
+        node_state=("UNSUPPORTED_PINE" if output.get("status")=="UNSUPPORTED_PINE"
+                    else "NO_NEW_SOURCE" if output.get("status") in (
+                        "NO_FETCHABLE_NEW_PINE","NO_NEW_SOURCE")
+                    else "SUCCESS")
+        event(run_id,stage_name,path,node["id"],node["name"],node_state,
               {**output,"duration_ms":int((time.monotonic()-started)*1000)})
         branches=graph.get("connections",{}).get(node["name"],{}).get("main",[])
         active=output.get("_studio_active_ports",[0])
@@ -346,6 +352,8 @@ def process(run_id,sid,requested_source=None):
                 final="FAILED_PERSISTENCE"
                 postgres_finish={"status":"FAILED","reason":type(exc).__name__+": "+str(exc)[:200]}
         result={"status":final,"stages":statuses,"selected_source":selected,
+                "requested_source":requested_source,
+                "selection_mode":"EXPLICIT_PINNED" if requested_source else "AUTO_NEW_OR_LATEST_DB_FALLBACK",
                 "converted_source":converted,"chart":chart,
                 "postgres_sync":postgres_finish,
                 "postgres_trace_failures":trace_failures,
