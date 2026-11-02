@@ -59,7 +59,7 @@ const flowLabels={
  [W.agent]:'F03 · 에이전트 할당',
  [W.audit]:'F05 · 독립 감사'
 };
-let page='overview',flow=W.strategy,workflow=null,running=false,selectedNode=null,runEvents=[],session={},connected=false,lastPine=null,compareWindow=null,pendingCompare=null;
+let page='overview',flow=W.strategy,workflow=null,running=false,selectedNode=null,runEvents=[],session={},connected=false,lastPine=null,lastSavedSource=null,compareWindow=null,pendingCompare=null;
 const PARITY_ORIGIN='https://investment-pine-parity-review-production.up.railway.app';
 window.addEventListener('message',event=>{if(event.origin!==PARITY_ORIGIN||!compareWindow||event.source!==compareWindow||event.data?.type!=='PARITY_READY'||!pendingCompare)return;compareWindow.postMessage({type:'AUTONOMOUS_PINE_IMPORT',...pendingCompare},PARITY_ORIGIN);pendingCompare=null;});
 const root=document.getElementById('content'),ttl=document.getElementById('page-title'),sub=document.getElementById('page-subtitle'),menu=document.getElementById('menu');
@@ -113,6 +113,10 @@ async function loadFlow(f){
    exec.innerHTML='<section class="panel"><h3>이 워크플로의 실행 검증 상태</h3><p class="muted">현재 독립 실행 API는 연결되지 않았습니다. 기존 편집기의 노드 설정과 연결을 확인하세요.</p>'+link(f)+'</section>';
   }
  }
+ if(isPython&&lastSavedSource?.source_id&&lastSavedSource?.version_key){
+  const sid=document.getElementById('wf02-source-id'),ver=document.getElementById('wf02-version');
+  if(sid&&ver){sid.value=lastSavedSource.source_id;ver.value=lastSavedSource.version_key;}
+ }
  renderNodes();await refreshSavedState();
 }
 async function latestStoredPine(){
@@ -130,7 +134,9 @@ async function openCompare(){
   if(!result?.pine_code)throw Error('실제 저장된 Pine 코드가 없습니다.');
   compareWindow=window.open(PARITY_ORIGIN+'/?from=investment-admin','_blank');
   if(!compareWindow)throw Error('브라우저 팝업 차단을 해제하거나 비교 페이지를 직접 여세요.');
-  pendingCompare={pine_code:result.pine_code,source_id:result.source_id||'',version_key:result.version_key||''};
+  pendingCompare={pine_code:result.pine_code,
+    source_id:result.source_id||'',version_key:result.version_key||'',
+    source_url:lastSavedSource?.source_id===result.source_id?lastSavedSource.source_url||'':''};
   const progress=document.getElementById('progress');if(progress)progress.textContent='저장 Pine을 차트 비교 페이지에 전달';
  }catch(e){alert(e.message);}
 }
@@ -189,6 +195,9 @@ async function executeFlow(){
     if(progress)progress.textContent='중단 · '+node.name;
     log('실제 오류: '+(d.error||'HTTP '+r.status),'red');await inspect(id);break;
    }
+   if((flow===W.strategy||flow===W.library)&&id.endsWith('-11')&&d.input_json?.candidate?.source_url){
+    lastSavedSource={source_id:d.input_json.candidate.source_id,version_key:d.input_json.candidate.version_key,source_url:d.input_json.candidate.source_url};
+   }
    if(flow===W.pine&&id==='wf02-01'&&d.output_json?.pine_code)lastPine=d.output_json;
    prevRun=d.run_id;step++;
    const next=nextNode(node,d);
@@ -205,6 +214,11 @@ async function executeFlow(){
     }else{
       if(progress)progress.textContent='원본 확보·저장 실행 종료 · '+step+'개 실제 노드';
       log('원본 코드 저장 처리 결과: '+(output.status||'미확인')+'. Python 차트/매매 신호 일치 여부와는 별개입니다.','green');
+      if(output.source_id&&output.version_key&&lastSavedSource){lastSavedSource={...lastSavedSource,source_id:output.source_id,version_key:output.version_key};}
+      if(output.status==='PINE_SAVED_CONVERSION_PENDING'&&flow===W.strategy){
+       const details=document.getElementById('node-details');
+       if(details)details.insertAdjacentHTML('afterend','<div class="actions"><button class="btn primary" data-action="convert-next">↗ 이 전략으로 WF-02 Python 변환</button></div>');
+      }
     }
     await inspect(id);break;
    }
@@ -222,6 +236,6 @@ async function executeFlow(){
  }
 }
 menu.innerHTML=MENUS.map(([id,label])=>'<button class="nav" data-page="'+esc(id)+'"><span>▧</span>'+esc(label)+'</button>').join('');
-document.addEventListener('click',e=>{const target=e.target.closest('[data-page],[data-flow],[data-node],[data-action]');if(!target)return;if(target.dataset.page)setPage(target.dataset.page);else if(target.dataset.flow)loadFlow(target.dataset.flow);else if(target.dataset.node)inspect(target.dataset.node);else if(target.dataset.action==='run')executeFlow();else if(target.dataset.action==='compare')openCompare();else if(target.dataset.action==='refresh')loadFlow(flow)});
+document.addEventListener('click',e=>{const target=e.target.closest('[data-page],[data-flow],[data-node],[data-action]');if(!target)return;if(target.dataset.page)setPage(target.dataset.page);else if(target.dataset.flow)loadFlow(target.dataset.flow);else if(target.dataset.node)inspect(target.dataset.node);else if(target.dataset.action==='run')executeFlow();else if(target.dataset.action==='compare')openCompare();else if(target.dataset.action==='convert-next')setPage('convert');else if(target.dataset.action==='refresh')loadFlow(flow)});
 setPage(new URLSearchParams(location.search).get('section')||'overview');health();
 </script></body></html>
