@@ -23,6 +23,37 @@ jobs:
         run: |
           python3 -m compileall -q n8n/editor-adapter
           PYTHONPATH=n8n/editor-adapter python3 -m unittest discover -s n8n/editor-adapter -p 'test_*.py' -v
+      - name: Retrieve actual 125KB+ public Pine and execute N11 -> N15 -> N16 with real SQLite
+        run: |
+          PYTHONPATH=n8n/editor-adapter python3 - <<'PY'
+          import os,sqlite3,tempfile
+          from unittest.mock import patch
+          from investment_node_adapter import execute_node11,execute_node15,execute_node16
+          candidate={
+              "kind":"strategy",
+              "source_url":"https://www.tradingview.com/script/nmnHkA02/",
+              "source_id":"PUB;live-regression-nmnHkA02",
+              "version_key":"pinned-mirror-a9a6f4a"
+          }
+          with tempfile.TemporaryDirectory() as folder, patch.dict(
+              os.environ,{"STUDIO_DB_PATH":folder+"/source.db"}):
+              source=execute_node11({
+                  "kind":"strategy","has_candidate":True,
+                  "candidate":candidate
+              },workflow_kind="strategy")
+              raw=source["pine_code"].encode("utf-8")
+              assert 60000<len(raw)<=512*1024,len(raw)
+              saved=execute_node15(source,workflow_kind="strategy")
+              result=execute_node16(saved,workflow_kind="strategy")
+              assert result["status"]=="PINE_SAVED_CONVERSION_PENDING"
+              assert result["conversion_validated"] is False
+              with sqlite3.connect(folder+"/source.db") as db:
+                  persisted=db.execute(
+                      "SELECT pine_code FROM investment_pine_payloads WHERE source_id=?",
+                      (candidate["source_id"],)).fetchone()[0]
+                  assert persisted.encode("utf-8")==raw
+              print("WF01_REAL_LARGE_PINE_N11_N15_N16_OK",len(raw),"bytes",flush=True)
+          PY
       - name: Wait until the current workflow is deployed to Railway
         run: |
           python3 - <<'PY'
