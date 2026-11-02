@@ -1,5 +1,5 @@
 import {useEffect,useState} from 'react';
-import {api} from '../../api';
+import {api,API} from '../../api';
 import type {PineSource,PineVisualResponse} from '../../types';
 import {NativePineChartControl} from '../../components/NativePineChartControl';
 import {PineChartControl} from '../../components/PineChartControl';
@@ -23,44 +23,71 @@ export function PineSideBySidePage({id,go}:{id:string,go:(p:string)=>void}){
   const [symbol,setSymbol]=useState(clean(query.get('symbol')||'BINANCE:BTCUSDT'));
   const [horizon,setHorizon]=useState(clean(query.get('horizon')||'1h'));
   const expectedSha=clean(query.get('sha256')||'').toLowerCase();
+  const pinnedVersion=clean(query.get('version')||'1.0');
+  const exactMode=/^[0-9a-f]{64}$/.test(expectedSha);
   const [source,setSource]=useState<PineSource|null>(null);
   const [chart,setChart]=useState<PineVisualResponse|null>(null);
   const [error,setError]=useState('');
   const [fetching,setFetching]=useState(true);
   const [pine,setPine]=useState<{state:string,message?:string}>({state:'loading'});
 
+  async function exactLoad(targetSymbol:string,targetHorizon:string){
+    const params=new URLSearchParams({
+       version:pinnedVersion,sha256:expectedSha,symbol:targetSymbol,horizon:targetHorizon});
+    const response=await fetch(API+'/api/public/scripts/'+encodeURIComponent(id)+
+      '/compare-exact?'+params.toString(),{headers:{Accept:'application/json'}});
+    if(!response.ok)throw Error('현재 DB 원본 차트 연결 실패 '+response.status+' · '+(await response.text()).slice(0,350));
+    const result=await response.json();
+    if(result.mode!=='EXACT_PINNED_STUDIO_SOURCE'||
+       result.source?.source_sha256!==expectedSha||
+       result.chart?.source_hash!==expectedSha||
+       result.chart?.script_id!==id)
+      throw Error('서로 다른 버전의 전략 원본으로 차트를 만들 수 없습니다.');
+    return result as {source:{source:string;source_sha256:string},chart:PineVisualResponse};
+  }
+
   useEffect(()=>{
     let alive=true;
     setError('');setFetching(true);setSource(null);setChart(null);setPine({state:'loading'});
-    Promise.all([api.scriptSource(id),api.scriptMeta(id)]).then(([s,m])=>{
-      if(!alive)return;
-      const currentSymbol=clean(query.get('symbol')||m.symbol||'BINANCE:BTCUSDT');
-      const currentHorizon=clean(query.get('horizon')||initialHorizon(m.interval));
-      setSymbol(currentSymbol);setHorizon(currentHorizon);
-      if(!s.source)throw Error('기존 TradingView 데이터베이스에서 해당 Pine 원본을 찾지 못했습니다.');
-      if(expectedSha&&s.source_hash?.toLowerCase()!==expectedSha)
-        throw Error('선택한 PostgreSQL 원본 SHA-256과 TradingView 저장소의 원본 SHA-256이 다릅니다. 다른 버전의 차트는 실행하지 않습니다.');
-      setSource(s);
-      return api.scriptChart(id,currentSymbol,currentHorizon).then(d=>{
+    if(exactMode){
+      const actualSymbol=clean(query.get('symbol')||'NASDAQ:NVDA');
+      const actualHorizon=clean(query.get('horizon')||'2h');
+      setSymbol(actualSymbol);setHorizon(actualHorizon);
+      exactLoad(actualSymbol,actualHorizon).then(result=>{
         if(!alive)return;
-        if(d.script_id!==id)throw Error('전략 ID가 일치하지 않습니다.');
-        if(d.source_hash&&s.source_hash&&d.source_hash!==s.source_hash)
-          throw Error('계산에 사용된 전략 소스 해시가 일치하지 않습니다.');
-        if(!d.bars?.length)throw Error('실제 OHLCV가 제공되지 않았습니다.');
-        setChart(d);
-      });
-    }).catch(e=>{if(alive)setError(String(e))})
-      .finally(()=>{if(alive)setFetching(false)});
+        setSource({script_id_part:id,version:pinnedVersion,kind:'strategy',
+                   source:result.source.source,source_hash:result.source.source_sha256});
+        setChart(result.chart);
+      }).catch(e=>{if(alive)setError(String(e))})
+        .finally(()=>{if(alive)setFetching(false)});
+    }else{
+      Promise.all([api.scriptSource(id),api.scriptMeta(id)]).then(([s,m])=>{
+        if(!alive)return;
+        const currentSymbol=clean(query.get('symbol')||m.symbol||'BINANCE:BTCUSDT');
+        const currentHorizon=clean(query.get('horizon')||initialHorizon(m.interval));
+        setSymbol(currentSymbol);setHorizon(currentHorizon);
+        if(!s.source)throw Error('기존 TradingView 데이터베이스에서 Pine 원본을 찾지 못했습니다.');
+        setSource(s);
+        return api.scriptChart(id,currentSymbol,currentHorizon).then(d=>{
+          if(!alive)return;
+          if(d.script_id!==id||!d.bars?.length)throw Error('원본 ID 또는 실제 OHLCV가 일치하지 않습니다.');
+          if(d.source_hash&&s.source_hash&&d.source_hash!==s.source_hash)
+            throw Error('계산에 사용된 Pine 원본 해시가 일치하지 않습니다.');
+          setChart(d);
+        });
+      }).catch(e=>{if(alive)setError(String(e))})
+        .finally(()=>{if(alive)setFetching(false)});
+    }
     return()=>{alive=false};
-  // Initial load only. Additional market changes use the explicit run button.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  },[id,expectedSha]);
-
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[id,expectedSha,pinnedVersion]);
+ 
   async function rerun(){
     if(!source?.source||!symbol.trim()||!horizons.includes(horizon))return;
     setError('');setFetching(true);setChart(null);setPine({state:'loading'});
     try{
-      const d=await api.scriptChart(id,symbol.trim(),horizon);
+      const d=exactMode?(await exactLoad(symbol.trim(),horizon)).chart:
+          await api.scriptChart(id,symbol.trim(),horizon);
       if(d.script_id!==id||!d.bars?.length)throw Error('실제 동일 전략·가격 데이터가 반환되지 않았습니다.');
       if(d.source_hash&&source.source_hash&&d.source_hash!==source.source_hash)
         throw Error('서로 다른 Pine 버전을 비교할 수 없습니다.');
@@ -76,7 +103,7 @@ export function PineSideBySidePage({id,go}:{id:string,go:(p:string)=>void}){
     <button className="back" onClick={()=>go('/scripts/'+encodeURIComponent(id))}>← 기존 전략 상세</button>
     <section className="panel">
       <h1>동일 원본 Pine · Python 전략 차트 나란히 확인</h1>
-      <p>좌측은 저장된 Pine 원문을 Vela/PineTS로 실행한 차트, 우측은 기존 Python Quant 계산 결과입니다. 두 화면은 <b>동일한 OHLCV 데이터</b>를 사용합니다. 이 화면은 TradingView 웹사이트의 실제 렌더링 캡처나 정식 동등성 판정이 아닙니다.</p>
+      <p>좌측은 저장된 Pine 원문을 Vela/PineTS로 실행한 차트, 우측은 기존 Python Quant 계산 결과입니다. 두 화면은 <b>동일한 OHLCV 데이터</b>를 사용합니다. {exactMode?'관리화면에서 고정한 PostgreSQL 전략 버전 '+pinnedVersion+'을 양쪽에 적용합니다. ':''}이 화면은 TradingView 웹사이트의 실제 렌더링 캡처나 정식 동등성 판정이 아닙니다.</p>
       <div><b>선택 전략 ID</b> <code>{id}</code>　<b>원본 SHA-256</b> <code>{source?.source_hash||'확인 중'}</code></div>
       <div className="runtime-controls" style={{marginTop:14}}>
         <label>종목 <input value={symbol} onChange={e=>setSymbol(e.target.value)} /></label>
