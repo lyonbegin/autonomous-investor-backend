@@ -128,6 +128,41 @@ async function run(page){
     postgres_node_runs:dbstatus.node_runs,postgres_pipeline_runs:dbstatus.pipeline_runs
   }));
 
+
+  // Explicit saved version must remain the same across all four stages.
+  await page.waitForFunction(()=>document.querySelector('#integrated-source')?.options.length>1,null,{timeout:30000});
+  const selected=await page.locator('#integrated-source').evaluate(el=>{
+    el.value='0';
+    const option=el.options[1];
+    return {label:option.textContent};
+  });
+  const sourceMeta=await page.evaluate(async()=>{
+    const r=await fetch('/api/investment/sources',{credentials:'same-origin'});
+    return (await r.json()).sources[0];
+  });
+  await page.locator('#integrated-start').click();
+  await page.waitForFunction(()=>{
+    const text=document.querySelector('#integrated-label')?.textContent||'';
+    return /PARTIAL_BLOCKED|REVIEW_REQUIRED|FAILED/.test(text);
+  },null,{timeout:180000});
+  const exact=await page.evaluate(async()=>
+      (await fetch('/api/investment/pipeline',{credentials:'same-origin'})).json());
+  if(exact.result?.stages?.strategy!=='REUSED_EXACT_DB_SOURCE')
+    throw Error('Selected DB source was not reused: '+JSON.stringify(exact.result?.stages));
+  if(exact.result?.selected_source?.source_id!==sourceMeta.source_id||
+     exact.result?.selected_source?.version_key!==sourceMeta.version_key)
+    throw Error('Explicit source selection silently replaced '+selected.label);
+  if(exact.canonical_postgres?.source_id!==sourceMeta.source_id||
+     exact.canonical_postgres?.version_key!==sourceMeta.version_key)
+    throw Error('Postgres canonical exact version did not match user selection');
+  if(await page.locator('#integrated-final-review').count()!==1)
+    throw Error('Missing persistent final side-by-side comparison panel');
+  if(exact.result.chart==null&&await page.locator('#integrated-left-chart img').count())
+    throw Error('Fake TradingView screenshot displayed without reference');
+  console.log('PASS exact pinned source used through four DB stages and side-by-side real-data-only panel',
+    JSON.stringify({source:sourceMeta.source_id,version:sourceMeta.version_key,
+      status:exact.status,stages:exact.result?.stages}));
+
   const href=await page.locator('#flow-panel a[href*="workflow="]').first().getAttribute('href');
   if(!href?.includes('WF02-chart-parity-first-stage.json'))throw Error('Parity deep link wrong '+href);
   await nav(page,BASE+href);
