@@ -47,6 +47,7 @@ SYMBOL = {
     "prefix": "TEST", "ticker": "TEST", "description": "Synthetic CI bars",
     "currency": "USD", "basecurrency": "USD", "period": "60", "type": "stock",
     "mintick": 0.01, "pricescale": 100, "minmove": 1, "pointvalue": 1.0,
+    "mincontract": 1.0,
     "timezone": "UTC", "volumetype": "base",
     "opening_hours": [], "session_starts": [], "session_ends": [],
 }
