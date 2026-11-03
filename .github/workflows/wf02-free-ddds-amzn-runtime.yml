@@ -1,0 +1,88 @@
+name: FREE DDDS REAL NASDAQ AMZN 120m Python runtime and WF02
+on:
+  push:
+    branches: [feature/wf02-free-pyne-ddds-converter-20261104]
+    paths:
+      - 'n8n/editor-adapter/investment_free_pyne_runner.py'
+      - 'n8n/editor-adapter/investment_free_pyne_chart.py'
+      - 'n8n/admin-console/index.html'
+      - 'n8n/editor-adapter/investment_studio_server.py'
+      - '.github/workflows/wf02-free-ddds-amzn-runtime.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  real-ddds:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install free Pine-to-Python compiler (no PYNESYS API key)
+        run: pip install 'hoox-pyne[compile]==0.6.31' 'beautifulsoup4==4.13.4'
+      - name: Execute 141-line EXACT DDDS generated Python against ACTUAL TradingView AMZN 120-minute bars
+        run: |
+          python - <<'PY'
+          import sys,json,urllib.request,pathlib,hashlib
+          sys.path.insert(0,'n8n/editor-adapter')
+          from investment_tv_publication import bundled_ddds_reference
+          from investment_free_pyne import compile_pine
+          from investment_free_pyne_chart import (
+            PINNED_PYTHON_SHA,WORKER,validate_bars,run_generated_exact_pyne_python)
+          original=bundled_ddds_reference()
+          py=compile_pine(original['pine_source'],expected_sha=original['source_sha256'])
+          digest=hashlib.sha256(py.encode()).hexdigest()
+          assert digest==PINNED_PYTHON_SHA,(digest,PINNED_PYTHON_SHA)
+          req=urllib.request.Request(WORKER,method='POST',data=b'{}',
+                headers={'Content-Type':'application/json'})
+          with urllib.request.urlopen(req,timeout=100) as res:
+              response=json.load(res)
+          bars=validate_bars(response)
+          data=run_generated_exact_pyne_python(py,bars)
+          assert data['bars_executed']==len(bars)
+          assert data['pine_sha256']==original['source_sha256']
+          assert data['tv_strategy_parity_verified'] is False
+          assert data['live_orders_enabled'] is False
+          assert len(data['plots']['Decycler'])==len(bars)
+          assert any(x is not None for x in data['plots']['Decycler'])
+          output={
+            'source_id':original['source_id'],'pine_sha256':original['source_sha256'],
+            'python_sha256':digest,'converter':'hoox-pyne==0.6.31',
+            'market_source':response['provenance'],'market_symbol':response['symbol'],
+            'interval_minutes':120,'bars':len(bars),
+            'actual_120min_gaps':response['interval_120_observed_gap_count'],
+            'actual_runtime_status':data['status'],
+            'actual_events':data['trade_event_count'],
+            'actual_plots':list(data['plots']),
+            'tv_strategy_parity_verified':False,
+            'complete_2016_2026_history':False
+          }
+          folder=pathlib.Path('/tmp/ddds-amzn-runtime');folder.mkdir(exist_ok=True)
+          (folder/'actual_free_ddds_300_bars.json').write_text(json.dumps(output,indent=2))
+          print('ACTUAL_FREE_DDDS_300_AMZN_120_RUNTIME_PASS',json.dumps(output))
+          PY
+      - name: Validate production server/browser JavaScript and runtime syntax
+        run: |
+          python -m py_compile n8n/editor-adapter/investment_free_pyne_runner.py n8n/editor-adapter/investment_free_pyne_chart.py n8n/editor-adapter/investment_studio_server.py
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          s=Path('n8n/admin-console/index.html').read_text()
+          m=re.search(r'<script[^>]*>(.*?)</script>',s,re.S)
+          assert m
+          Path('/tmp/free-ddds-ui.js').write_text(m.group(1))
+          for marker in ['ddds-free-python-svg','ddds-free-chart-run',
+                  '/api/investment/free-pyne/ddds/chart/execute',
+                  'tradingview_strategies_parity_verified===false']:
+              assert marker in s,marker
+          PY
+          node --check /tmp/free-ddds-ui.js
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: actual-DDDS-Python-300-real-AMZN-120-bars
+          path: /tmp/ddds-amzn-runtime/
+          if-no-files-found: warn
+          retention-days: 14

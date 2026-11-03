@@ -232,7 +232,7 @@ def current_published_properties_proof() -> dict:
 
 
 def readiness_from_existing_cache(*, pine: str, reference: dict|None,
-                                  cached_python: str|None, api_key_configured: bool,
+                                  cached_python: str|None, free_compiler_installed: bool,
                                   postgres_synced: bool|None = None) -> dict:
     settings=source_defaults_from_pine(pine)
     property_evidence=current_published_properties_proof()
@@ -244,12 +244,12 @@ def readiness_from_existing_cache(*, pine: str, reference: dict|None,
     code_sha=hashlib.sha256(cached_python.encode()).hexdigest() if cached_python else None
     missing=[]
     if not has_published:missing.append("OFFICIAL_PUBLISHED_DDDS_299_TRADES")
-    if not cached_python and not api_key_configured:missing.append("PYNESYS_API_KEY")
-    if not cached_python:missing.append("EXACT_DDDS_PYNECOMP_PYTHON")
+    if not cached_python and not free_compiler_installed:missing.append("PYNE_FREE_RUNTIME_NOT_INSTALLED")
+    if not cached_python:missing.append("EXACT_DDDS_FREE_PYNE_PYTHON")
     missing.extend([
         "VERIFIED_NASDAQ_AMZN_120MIN_FULL_HISTORY_2016_2026",
         "RECONCILE_BATS_CHART_VS_NASDAQ_STRATEGY_REPORT",
-        "ISOLATED_DDDS_PYNECORE_RUNTIME_RESULT",
+        "ISOLATED_DDDS_FREE_PYNE_RUNTIME_RESULT",
         "PUBLISHED_TV_PROPERTIES_AND_INPUTS",
         "PUBLISHED_TRADE_TIMEZONE",
         "ORDER_EVENT_AND_UTC_PLOT_PARITY"
@@ -258,9 +258,9 @@ def readiness_from_existing_cache(*, pine: str, reference: dict|None,
       "DDDS_VERIFICATION_BLOCKED" if missing else "DDDS_READY_TO_REVIEW",
       "원본 DDDS와 게시 거래가 있어도 생성 Python과 동일 시장/설정·주문 검증 없이 승인 불가",
       saved_published_trade_count=299 if has_published else 0,
-      exact_pynecomp_code_available=bool(cached_python),
-      exact_pynecomp_python_sha256=code_sha,
-      pynecomp_api_key_configured=bool(api_key_configured),
+      exact_free_pyne_code_available=bool(cached_python),
+      exact_free_pyne_python_sha256=code_sha,
+      free_pyne_compiler_installed=bool(free_compiler_installed),
       postgres_synced=postgres_synced,
       source_input_defaults=settings,
       published_properties_observed_at=property_evidence["observed_at"],
@@ -281,7 +281,7 @@ def readiness_from_existing_cache(*, pine: str, reference: dict|None,
 
 
 def readiness_for_studio_session(sid: str) -> dict:
-    """Read existing DDDS source, exact PyneComp cache and TV 299 trades.
+    """Read existing DDDS source, exact free PYNE cache and TV 299 trades.
 
     GET endpoint calls NO remote compiler, fetches no unsupported market feed,
     and never executes untrusted Python. Reports actual blockers rather than
@@ -314,23 +314,16 @@ def readiness_for_studio_session(sid: str) -> dict:
                 rights=source_row["rights_state"]
                 sqlite_present=hashlib.sha256(source_row["pine_code"].encode()).hexdigest()==DDDS_SOURCE_SHA
                 if not sqlite_present:rights="BLOCKED_SHA_MISMATCH"
-        if "investment_pynecomp_artifacts" in names:
+        if "investment_pyne_free_artifacts" in names:
             from investment_pynecomp import dependency_lock
-            exact_lock=dependency_lock([])
-            row=db.execute(
-                "SELECT python_code FROM investment_pynecomp_artifacts "
-                "WHERE kind='strategy' AND source_id=? AND version_key=? "
-                "AND source_sha256=? AND dependency_lock=? AND compiler_id=?",
-                (DDDS_SOURCE_ID,DDDS_VERSION,DDDS_SOURCE_SHA,
-                 exact_lock,DDDS_COMPILER)).fetchone()
-            if row is not None:
-                from investment_pynecomp import python_syntax_checked
-                cache=python_syntax_checked(row["python_code"])
+            from investment_free_pyne import cached as free_cached
+            cache=free_cached("strategy",DDDS_SOURCE_ID,DDDS_VERSION,
+                              DDDS_SOURCE_SHA,dependency_lock([]))
     tv=latest_trades(sid)
     readiness=readiness_from_existing_cache(
         pine=source["pine_source"],
         reference=tv,cached_python=cache,
-        api_key_configured=bool(os.environ.get("PYNESYS_API_KEY")),
+        free_compiler_installed=__import__("investment_free_pyne").installed(),
         postgres_synced=None)
     readiness.update({
         "source_id":DDDS_SOURCE_ID,"version_key":DDDS_VERSION,
@@ -343,6 +336,31 @@ def readiness_for_studio_session(sid: str) -> dict:
         "published_properties_verified":False,
         "live_execution_available":False
     })
+    # This is ACTUAL DDDS free PYNE execution on published TradingView AMZN
+    # 120-minute bars. It is NOT PyneCore, not a full-history backtest, and
+    # cannot imply TradingView trade/plot parity.
+    from investment_free_pyne_chart import latest as latest_free_ddds_chart
+    execution=latest_free_ddds_chart(sid)
+    has_actual_free_ddds_run=(
+        execution.get("status")=="EXACT_DDDS_FREE_PYNE_EXECUTED_ON_REAL_AMZN_120_BARS"
+        and execution.get("pine_source_sha256")==DDDS_SOURCE_SHA
+        and execution.get("python_sha256")==readiness.get("exact_free_pyne_python_sha256")
+        and execution.get("runtime")=="ACTUAL_FREE_PYNE_EMITTED_PYTHON_SUBPROCESS"
+        and execution.get("symbol")=="NASDAQ:AMZN"
+        and execution.get("timeframe")=="120"
+        and execution.get("tradingview_strategies_parity_verified") is False
+        and execution.get("complete_2016_2026_history") is False
+        and isinstance(execution.get("bar_count"),int)
+        and execution["bar_count"]>=40)
+    readiness["actual_ddds_free_pyne_run_available"]=bool(has_actual_free_ddds_run)
+    readiness["actual_ddds_free_pyne_run_bars"]=(execution["bar_count"]
+        if has_actual_free_ddds_run else 0)
+    readiness["actual_ddds_free_pyne_order_events"]=(execution.get("strategy_event_count")
+        if has_actual_free_ddds_run else None)
+    if has_actual_free_ddds_run:
+        readiness["missing_requirements"]=[
+            item for item in readiness["missing_requirements"]
+            if item!="ISOLATED_DDDS_FREE_PYNE_RUNTIME_RESULT"]
     if rights!="APPROVED":
         readiness["missing_requirements"].insert(0,"EXACT_DDDS_MPL_SOURCE_APPROVAL")
     if not sqlite_present:

@@ -1,17 +1,18 @@
-"""WF-02: exact Pine + recursively pinned libraries → PyneComp → PyneCore.
+"""WF-02: exact stored Pine v6 → FREE local hoox-PYNE → generated Python.
 
-The legacy SMA/EMA and RSI-specific generators are NOT called.
-Outputs are GENERATED, never parity VALIDATED. Missing external API key,
-sources, or untested runtime dependencies produce explicit blocked states.
+No PyneComp, API secret, or unrelated SMA sample. Generated Python remains
+UNVALIDATED against the official TradingView strategy trades/plots.
+Imported Pine libraries are blocked until fully supported by this compiler.
 """
 import hashlib
 import os
 import re
 from contextlib import closing
 from investment_source_registry import open_registry
-from investment_pynecomp import (
-    COMPILER_ID,PyneCompBlocked,scan_imports,resolve_imports,
-    dependency_lock,sha,compile_remote,cached,save_cache,compiler_status
+from investment_pynecomp import PyneCompBlocked,scan_imports,resolve_imports,dependency_lock,sha
+from investment_free_pyne import (
+    COMPILER_ID,FreePineBlocked,compile_pine,cached,store,installed,
+    status as compiler_status
 )
 WF02_PATH="operations/WF02-pine-to-python.json"
 BLOCKED={"PINNED_LIBRARY_SOURCE_MISSING","PYNECOMP_API_KEY_MISSING",
@@ -83,7 +84,7 @@ def execute_wf02_node01(input_json,*,workflow_kind):
         "source_id":row["source_id"],"version_key":row["version_key"],
         "source_sha256":sha(pine),"pine_code":pine,
         "rights_state":row["rights_state"],
-        "status":"PINE_LOADED","converter_scope":"PYNECOMP_FULL_PINE",
+        "status":"PINE_LOADED","converter_scope":"PYNE_FREE_FULL_PINE",
         "conversion_validated":False,"tradingview_chart_validated":False}
 
 def _load_exact_library(import_name):
@@ -121,77 +122,70 @@ def execute_wf02_node02(input_json,*,workflow_kind):
         "library_count":len(libs)}
 
 def execute_wf02_node03(input_json,*,workflow_kind):
-    """Compile missing libraries in dependency order; reuse ONLY exact PyneComp cache."""
+    """Check pinned library closure; never call a paid remote compiler."""
     if workflow_kind!="strategy":raise ValueError("WF02_STRATEGY_REQUIRED")
     if input_json.get("status")!="LIBRARIES_RESOLVED":return input_json
     libs=input_json.get("resolved_libraries",[])
-    outputs=[]
-    for i,lib in enumerate(libs):
-        lock=dependency_lock(libs[:i])
-        code=cached("library",lib["source_id"],lib["version_key"],lib["source_sha256"],lock)
-        hit=code is not None
-        if code is None:
-            try:code=compile_remote(lib["pine_code"],filename="pine_library.pine")
-            except PyneCompBlocked as exc:
-                return {**blocked(input_json,exc.code,"LIBRARY_COMPILATION"),
-                    "blocked_import":lib["import_name"],"libraries_compiled":len(outputs)}
-            save_cache("library",lib["source_id"],lib["version_key"],
-                       lib["source_sha256"],lock,code,lib["module_path"])
-            if os.getenv("INVESTMENT_DATABASE_URL"):
-                from investment_pg import record_conversion
-                record_conversion(lib["source_id"],lib["version_key"],code,
-                                  COMPILER_ID,"PYNECOMP_LIBRARY_UNVALIDATED")
-        outputs.append({"import_name":lib["import_name"],"source_id":lib["source_id"],
-            "version_key":lib["version_key"],"source_sha256":lib["source_sha256"],
-            "module_path":lib["module_path"],"python_code":code,"cache_hit":hit})
-    return {**input_json,"status":"PYNECOMP_LIBRARIES_COMPILED",
-        "compiled_libraries":outputs,"library_code_cache_hits":sum(x["cache_hit"] for x in outputs)}
+    if libs:
+        return {**blocked(input_json,"PYNE_FREE_LIBRARY_IMPORT_UNSUPPORTED",
+                         "LIBRARY_COMPILATION"),
+                "blocked_imports":[x["import_name"] for x in libs]}
+    return {**input_json,"status":"PYNE_FREE_LIBRARIES_READY",
+            "compiled_libraries":[],"library_count":0,
+            "library_code_cache_hits":0}
 
 def execute_wf02_node04(input_json,*,workflow_kind):
-    """Call only the documented PyneComp service; never legacy handwritten generators."""
+    """Emit genuine Python from full immutable Pine with FREE local hoox-PYNE."""
     if workflow_kind!="strategy":raise ValueError("WF02_STRATEGY_REQUIRED")
-    if input_json.get("status")!="PYNECOMP_LIBRARIES_COMPILED":return input_json
+    if input_json.get("status")!="PYNE_FREE_LIBRARIES_READY":return input_json
     sid,version=input_json["source_id"],input_json["version_key"]
     lock=input_json["dependency_lock_hash"]
-    code=cached("strategy",sid,version,input_json["source_sha256"],lock)
-    cached_hit=code is not None
-    if code is None:
-        try:code=compile_remote(input_json["pine_code"],filename="strategy.pine")
-        except PyneCompBlocked as exc:
-            return blocked(input_json,exc.code,"STRATEGY_COMPILATION")
-    return {**input_json,"status":"PYNECOMP_CODE_COMPILED",
-        "python_code":code,"compiler_id":COMPILER_ID,
-        "strategy_code_cache_hit":cached_hit}
+    try:
+        code=cached("strategy",sid,version,input_json["source_sha256"],lock)
+        hit=code is not None
+        if code is None:
+            code=compile_pine(input_json["pine_code"],
+                              expected_sha=input_json["source_sha256"])
+    except FreePineBlocked as exc:
+        return blocked(input_json,exc.code,"STRATEGY_COMPILATION")
+    return {**input_json,"status":"PYNE_FREE_CODE_COMPILED",
+            "python_code":code,"compiler_id":COMPILER_ID,
+            "python_source_sha256":sha(code),
+            "strategy_code_cache_hit":hit}
 
 def execute_wf02_node05(input_json,*,workflow_kind):
-    """Persist exact PyneComp output, label it GENERATED, not parity VALIDATED."""
+    """Save actual free Python under separate converter identity, UNVALIDATED."""
     if workflow_kind!="strategy":raise ValueError("WF02_STRATEGY_REQUIRED")
-    if input_json.get("status")!="PYNECOMP_CODE_COMPILED":return input_json
-    try:
-        import importlib.metadata
-        installed=importlib.metadata.version("pynesys-pynecore")
-    except importlib.metadata.PackageNotFoundError:
-        return blocked(input_json,"PYNECOMP_RUNTIME_NOT_INSTALLED","PYNECORE_INSTALL")
+    if input_json.get("status")!="PYNE_FREE_CODE_COMPILED":return input_json
+    if not installed():
+        return blocked(input_json,"PYNE_FREE_RUNTIME_NOT_INSTALLED","PYNE_RUNTIME")
     sid,version=input_json["source_id"],input_json["version_key"]
     code=input_json["python_code"]
     lock=input_json["dependency_lock_hash"]
+    try:
+        saved=store("strategy",sid,version,input_json["source_sha256"],lock,code)
+    except FreePineBlocked as exc:
+        return blocked(input_json,exc.code,"PYTHON_PERSISTENCE")
     pg_result=None
     if os.getenv("INVESTMENT_DATABASE_URL"):
-        from investment_pg import refresh_exact_dependency_pins,record_conversion
-        refresh_exact_dependency_pins(sid,version,input_json["resolved_libraries"])
-        pg_result=record_conversion(sid,version,code,COMPILER_ID,"PYNECOMP_FULL_PINE_UNVALIDATED")
-    save_cache("strategy",sid,version,input_json["source_sha256"],lock,code)
-    # Linked library modules are saved but still require import-time verification
-    # against the PyneCore runtime before execution or agent approval.
-    library_linked=not input_json["compiled_libraries"]
-    return {**input_json,"status":"PYNECOMP_GENERATED_UNVALIDATED",
-        "converter_scope":"PYNECOMP_FULL_PINE",
-        "pynecore_runtime_version":installed,
+        from investment_pg import record_conversion,refresh_exact_dependency_pins
+        refresh_exact_dependency_pins(sid,version,[])
+        pg_result=record_conversion(sid,version,code,COMPILER_ID,
+                                   "PYNE_FREE_FULL_PINE_UNVALIDATED")
+    return {**input_json,
+        "status":"PYNE_FREE_GENERATED_UNVALIDATED",
+        "converter_scope":"PYNE_FREE_FULL_PINE",
+        "runtime_kind":"PYNE_COMPILED_PYTHON_NOT_PYNECORE",
+        "python_sha256":saved["python_sha256"],
+        "python_bytes":saved["bytes"],
         "conversion_id":pg_result["conversion_id"] if pg_result else None,
         "postgres_sync":pg_result is not None,
-        "library_import_linkage_verified":library_linked,
+        "library_import_linkage_verified":True,
         "runtime_execution_verified":False,
-        "conversion_validated":False,"tradingview_chart_validated":False}
+        "conversion_validated":False,
+        "tradingview_chart_validated":False,
+        "tradingview_pynecore_strategy_parity_verified":False,
+        "paper_enabled":False,"live_orders_enabled":False}
 
 def execute_wf02_node06(input_json,*,workflow_kind):
     """Report genuine generated code or precise blocker, never enable trading."""

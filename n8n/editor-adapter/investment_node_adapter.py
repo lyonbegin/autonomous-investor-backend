@@ -73,9 +73,9 @@ def node_binding(workflow_path,node_id):
         commands={
           "wf02-01":("execute_wf02_node01","wf02-n01-canonical-pine-v3","manual_collection_start"),
           "wf02-02":("execute_wf02_node02","wf02-n02-library-dependency-v1","resolve_exact_library_dependencies"),
-          "wf02-03":("execute_wf02_node03","wf02-n03-pynecomp-library-v1","compile_and_cache_pine_libraries"),
-          "wf02-04":("execute_wf02_node04","wf02-n04-pynecomp-strategy-v1","compile_pine_to_pynecore"),
-          "wf02-05":("execute_wf02_node05","wf02-n05-store-pynecore-v1","store_generated_unvalidated_code"),
+          "wf02-03":("execute_wf02_node03","wf02-n03-free-pyne-library-gate-v1","check_pinned_imports_for_local_compiler"),
+          "wf02-04":("execute_wf02_node04","wf02-n04-free-pyne-strategy-v1","compile_full_pine_v6_locally"),
+          "wf02-05":("execute_wf02_node05","wf02-n05-store-free-pyne-v1","store_exact_free_compiler_python"),
           "wf02-06":("execute_wf02_node06","wf02-n06-review-status-v1","display_conversion_and_blockers")
         }
         if node_id not in commands:return None

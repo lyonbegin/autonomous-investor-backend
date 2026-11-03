@@ -76,10 +76,10 @@ class DDDSActualConversionGuardTests(unittest.TestCase):
     def test_detect_compiler_missing_without_fabricating_a_pynecore_chart(self):
         r=readiness_from_existing_cache(
             pine=bundled_ddds_reference()["pine_source"],
-            reference=None,cached_python=None,api_key_configured=False)
+            reference=None,cached_python=None,free_compiler_installed=False)
         self.assertEqual(r["status"],"DDDS_VERIFICATION_BLOCKED")
-        self.assertIn("PYNESYS_API_KEY",r["missing_requirements"])
-        self.assertIn("EXACT_DDDS_PYNECOMP_PYTHON",r["missing_requirements"])
+        self.assertIn("PYNE_FREE_RUNTIME_NOT_INSTALLED",r["missing_requirements"])
+        self.assertIn("EXACT_DDDS_FREE_PYNE_PYTHON",r["missing_requirements"])
         self.assertEqual(r["source_input_defaults"]["startLen"],31)
         self.assertFalse(r["tradingview_pynecore_parity_verified"])
         self.assertFalse(r["paper_enabled"])

@@ -13,10 +13,33 @@ import investment_tv_chart_integration as chart_integration
 import investment_tv_publication as published
 import investment_tv_trade_reference as official_trades
 import investment_ddds_parity as ddds_parity
+import investment_free_pyne as free_pyne
+import investment_free_pyne_chart as free_ddds_chart
 
 
 class InvestmentHandler(studio.Handler):
     def do_GET(self):
+        if urlsplit(self.path).path == "/api/investment/free-pyne/ddds/chart/latest":
+            sid, fresh=self._sid()
+            try:
+                return self._json(200,free_ddds_chart.latest(sid),sid,fresh)
+            except OSError as exc:
+                return self._json(503,{"status":"FREE_DDDS_CHART_STORAGE_UNAVAILABLE",
+                   "reason":type(exc).__name__},sid,fresh)
+        if urlsplit(self.path).path in ("/api/investment/free-pyne/ddds/latest",
+                                         "/api/investment/free-pyne/ddds/python"):
+            sid, fresh = self._sid()
+            with_source=(urlsplit(self.path).path.endswith("/python"))
+            try:
+                return self._json(200, free_pyne.ddds_artifact(sid,include_code=with_source),sid,fresh)
+            except (ValueError,TypeError) as exc:
+                return self._json(422,{"status":"PYNE_FREE_ARTIFACT_REJECTED",
+                    "reason":str(exc)[:160],"parity_verified":False,
+                    "live_orders_enabled":False},sid,fresh)
+            except OSError as exc:
+                return self._json(503,{"status":"PYNE_FREE_ARTIFACT_STORAGE_UNAVAILABLE",
+                    "reason":type(exc).__name__,"parity_verified":False,
+                    "live_orders_enabled":False},sid,fresh)
         if urlsplit(self.path).path == "/api/investment/tv-publication/parity/readiness":
             sid, fresh = self._sid()
             try:
@@ -61,6 +84,31 @@ class InvestmentHandler(studio.Handler):
         return super().do_GET()
 
     def do_POST(self):
+        if urlsplit(self.path).path == "/api/investment/free-pyne/ddds/chart/execute":
+            sid,fresh=self._sid()
+            origin=self.headers.get("Origin")
+            if origin and (urlsplit(origin).netloc != self.headers.get("Host")
+                          or urlsplit(origin).scheme not in ("https","http")):
+                return self._json(403,{"status":"CROSS_ORIGIN_FORBIDDEN"},sid,fresh)
+            if not self.headers.get("Content-Type","").startswith("application/json"):
+                return self._json(415,{"status":"JSON_REQUIRED"},sid,fresh)
+            try:
+                size=int(self.headers.get("Content-Length","-1"))
+                if size!=2 or self.rfile.read(size)!=b"{}":
+                    return self._json(400,{"status":"EXACT_DDDS_PUBLIC_CHART_ONLY"},sid,fresh)
+                return self._json(200,free_ddds_chart.execute(sid),sid,fresh)
+            except (ValueError,TypeError) as exc:
+                return self._json(422,{"status":"FREE_DDDS_RUNTIME_NOT_READY",
+                    "reason":str(exc)[:220],
+                    "tradingview_parity_verified":False},sid,fresh)
+            except urllib.error.HTTPError as exc:
+                return self._json(502,{"status":"DDDS_CHART_SOURCE_UPSTREAM_HTTP",
+                    "upstream_status":exc.code,
+                    "tradingview_parity_verified":False},sid,fresh)
+            except (urllib.error.URLError,TimeoutError,OSError,RuntimeError) as exc:
+                return self._json(502,{"status":"DDDS_CHART_SOURCE_OR_RUNNER_FAILED",
+                    "reason":type(exc).__name__,
+                    "tradingview_parity_verified":False},sid,fresh)
         if urlsplit(self.path).path == "/api/investment/tv-publication/trades/capture":
             sid, fresh = self._sid()
             origin = self.headers.get("Origin")

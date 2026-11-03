@@ -149,7 +149,7 @@ def select_from_db(kind="strategy"):
     return [dict(x) for x in rows]
 
 def select_supported_saved_strategy():
-    """Prefer exactly cached PyneComp source; never test with removed RSI/SMA parsers."""
+    """Prefer actual exact free PYNE compiled source; never use RSI/SMA substitutes."""
     with closing(open_registry()) as db:
         names={x[0] for x in db.execute("SELECT name FROM sqlite_master WHERE type='table'")}
         if "investment_pine_payloads" not in names:return None
@@ -157,10 +157,10 @@ def select_supported_saved_strategy():
            investment_pine_payloads WHERE kind='strategy'
            ORDER BY saved_at DESC LIMIT 120""").fetchall()
         compiled=set()
-        if "investment_pynecomp_artifacts" in names:
+        if "investment_pyne_free_artifacts" in names:
             compiled={(x[0],x[1],x[2]) for x in db.execute(
-                "SELECT source_id,version_key,source_sha256 FROM investment_pynecomp_artifacts "
-                "WHERE kind='strategy' AND compiler_id='pynecomp-http-v1-pynecore-6.11.1'")}
+                "SELECT source_id,version_key,pine_sha256 FROM investment_pyne_free_artifacts "
+                "WHERE kind='strategy' AND compiler_id='hoox-pyne-0.6.31-offline'")}
     if not candidates:return None
     preferred=[]
     for row in candidates:
@@ -168,10 +168,10 @@ def select_supported_saved_strategy():
         source_sha=hashlib.sha256(pine.encode("utf-8")).hexdigest()
         preferred.append({"source_id":row["source_id"],"version_key":row["version_key"],
           "source_sha256":source_sha,
-          "selection_basis":"EXACT_PYNECOMP_CACHE" if
+          "selection_basis":"EXACT_FREE_PYNE_CACHE" if
           (row["source_id"],row["version_key"],source_sha) in compiled
-          else "SAVED_SOURCE_REQUIRES_PYNECOMP_COMPILATION"})
-    preferred.sort(key=lambda x:0 if x["selection_basis"]=="EXACT_PYNECOMP_CACHE" else 1)
+          else "SAVED_SOURCE_REQUIRES_FREE_PYNE_COMPILATION"})
+    preferred.sort(key=lambda x:0 if x["selection_basis"]=="EXACT_FREE_PYNE_CACHE" else 1)
     return preferred[0]
 
 
@@ -257,18 +257,18 @@ def saved_sources(limit=80):
                          FROM investment_pine_payloads WHERE kind='strategy'""")}
     with closing(open_registry()) as db:
         name_set={x[0] for x in db.execute("SELECT name FROM sqlite_master WHERE type='table'")}
-        pynecomp_rows=set()
-        if "investment_pynecomp_artifacts" in name_set:
-            pynecomp_rows={(x[0],x[1],x[2]) for x in db.execute(
-                "SELECT source_id,version_key,source_sha256 FROM investment_pynecomp_artifacts "
-                "WHERE kind='strategy' AND compiler_id='pynecomp-http-v1-pynecore-6.11.1'")}
+        free_pyne_rows=set()
+        if "investment_pyne_free_artifacts" in name_set:
+            free_pyne_rows={(x[0],x[1],x[2]) for x in db.execute(
+                "SELECT source_id,version_key,pine_sha256 FROM investment_pyne_free_artifacts "
+                "WHERE kind='strategy' AND compiler_id='hoox-pyne-0.6.31-offline'")}
     result=[{**{k:row[k] for k in ("source_id","version_key","rights_state","saved_at","chars")},
         "source_sha256":hashes.get((row["source_id"],row["version_key"])),
         "legacy_python_code_stored":(row["source_id"],row["version_key"]) in already,
-        "pynecomp_generated_stored":(row["source_id"],row["version_key"],
-            hashes.get((row["source_id"],row["version_key"]))) in pynecomp_rows}
+        "free_pyne_generated_stored":(row["source_id"],row["version_key"],
+            hashes.get((row["source_id"],row["version_key"]))) in free_pyne_rows}
         for row in records]
-    result.sort(key=lambda x:(not x["pynecomp_generated_stored"],x["source_id"]))
+    result.sort(key=lambda x:(not x["free_pyne_generated_stored"],x["source_id"]))
     for entry in result:
         context=context_for_source(entry["source_id"],entry["version_key"])
         pub=tv_publication_for(entry["source_id"],entry["version_key"],entry["source_sha256"])
@@ -277,8 +277,8 @@ def saved_sources(limit=80):
         entry["tradingview_original_title"]=(pub or {}).get("title") or (context or {}).get("source_title")
     return {"status":"ok","sources":result,"count":len(result),
             "source":"EXISTING_SQLITE_SOURCE_REGISTRY",
-            "note":"legacy_python_code_stored is NOT PyneComp output; pynecomp_generated_stored is not yet PyneCore/TradingView parity verified",
-            "pynecomp":__import__("investment_pynecomp").compiler_status()}
+            "note":"legacy_python_code_stored is not free PYNE output; free_pyne_generated_stored has no TradingView parity validation",
+            "free_pyne":__import__("investment_free_pyne").status()}
 
 
 def validate_selected(source):
@@ -478,7 +478,7 @@ def process(run_id,sid,requested_source=None):
                        (selected["source_id"],selected["version_key"])).fetchone()
                 if not row:raise ValueError("EXACT_PINE_SOURCE_NOT_IN_DATABASE")
                 imports=scan_imports(row[0])
-                statuses["library"]="NOT_REQUIRED" if not imports else "RESOLVE_WITH_PYNECOMP"
+                statuses["library"]="NOT_REQUIRED" if not imports else "RESOLVE_WITH_FREE_PYNE"
                 stage(run_id,"library",LIBRARY,statuses["library"],
                     {"requested_imports":imports,
                      "resolution_workflow":"WF02_N02_N03","resolved":not imports})
@@ -489,19 +489,19 @@ def process(run_id,sid,requested_source=None):
         if not selected:
             statuses["python"]="BLOCKED_NO_SAVED_STRATEGY"
             stage(run_id,"python",PYTHON,statuses["python"])
-        elif statuses["library"] not in ("NOT_REQUIRED","RESOLVE_WITH_PYNECOMP"):
+        elif statuses["library"] not in ("NOT_REQUIRED","RESOLVE_WITH_FREE_PYNE"):
             statuses["python"]="BLOCKED_LIBRARY_DEPENDENCY"
             stage(run_id,"python",PYTHON,statuses["python"],selected)
         else:
             try:
                 result=run_graph(run_id,"python",PYTHON,
                     {"ui_selection":"strategy","requested_detail_limit":1,**selected})
-                if result.get("status")=="PYNECOMP_GENERATED_UNVALIDATED" and result.get("python_code"):
+                if result.get("status")=="PYNE_FREE_GENERATED_UNVALIDATED" and result.get("python_code"):
                     converted=selected
-                    statuses["python"]="PYNECOMP_GENERATED_UNVALIDATED"
+                    statuses["python"]="PYNE_FREE_GENERATED_UNVALIDATED"
                     stage(run_id,"python",PYTHON,statuses["python"],
                         {**selected,"conversion_id":result.get("conversion_id"),
-                         "converter_scope":"PYNECOMP_FULL_PINE",
+                         "converter_scope":"PYNE_FREE_FULL_PINE",
                          "library_import_linkage_verified":
                              result.get("library_import_linkage_verified",False),
                          "runtime_execution_verified":False})
@@ -518,16 +518,46 @@ def process(run_id,sid,requested_source=None):
                 stage(run_id,"python",PYTHON,"FAILED",selected,
                       type(exc).__name__+": "+str(exc)[:260])
         stage(run_id,"chart",PARITY,"RUNNING")
-        # No legacy restricted Python graph is allowed to masquerade as output
-        # of the new PyneComp/PyneCore compiler.
+        # Existing free-PYNE DDDS child-runner executes the real converted
+        # Python only for the single pinned DDDS source; all other Pine inputs
+        # remain explicitly blocked until a supported source-specific runner
+        # is available. Never label 300 current bars equal to TV's 299 trades.
         if converted:
-            statuses["chart"]="BLOCKED_PYNECORE_RUNTIME_GRAPH_NOT_CONNECTED"
-            stage(run_id,"chart",PARITY,statuses["chart"],
-                 {**converted,"reason":
-                  "PyneComp code generated but PyneCore runtime/OHLCV and TradingView keypoint parity not independently executed",
-                  "legacy_chart_is_not_pynecore_output":True})
+            from investment_ddds_parity import DDDS_SOURCE_ID,DDDS_SOURCE_SHA
+            selected_is_ddds=(converted.get("source_id")==DDDS_SOURCE_ID and
+                 converted.get("source_sha256")==DDDS_SOURCE_SHA)
+            if selected_is_ddds:
+                try:
+                    from investment_free_pyne_chart import execute as execute_free_ddds
+                    run=execute_free_ddds(sid)
+                    if run.get("status")!="EXACT_DDDS_FREE_PYNE_EXECUTED_ON_REAL_AMZN_120_BARS":
+                        raise ValueError("REAL_DDDS_PYTHON_EXECUTION_NOT_CONFIRMED")
+                    statuses["chart"]="PYNE_FREE_DDDS_300_BARS_EXECUTED_PARITY_BLOCKED"
+                    chart={"status":"DDDS_FREE_PYNE_REAL_300BAR_CHART_READY_PARITY_UNVERIFIED",
+                           "source_id":DDDS_SOURCE_ID,
+                           "source_sha256":DDDS_SOURCE_SHA,
+                           "python_sha256":run["python_sha256"],
+                           "symbol":run["symbol"],"timeframe":run["timeframe"],
+                           "bar_count":run["bar_count"],
+                           "trade_event_count":run["strategy_event_count"],
+                           "chart_open_url":"/admin/index.html?section=convert",
+                           "tradingview_parity_verified":False,
+                           "full_history_2016_2026_verified":False,
+                           "paper_enabled":False,"live_orders_enabled":False}
+                    stage(run_id,"chart",PARITY,statuses["chart"],chart)
+                except Exception as exc:
+                    statuses["chart"]="BLOCKED_DDDS_FREE_PYNE_REAL_CHART_FAILED"
+                    stage(run_id,"chart",PARITY,statuses["chart"],
+                          {"source_id":DDDS_SOURCE_ID,
+                           "reason":type(exc).__name__+":"+str(exc)[:140],
+                           "strategy_parity_verified":False})
+            else:
+                statuses["chart"]="BLOCKED_FREE_PYNE_RUNTIME_NOT_SUPPORTED_FOR_SOURCE"
+                stage(run_id,"chart",PARITY,statuses["chart"],
+                    {**converted,"reason":"No audited compiled-Python runtime for this exact source",
+                     "strategy_parity_verified":False})
         else:
-            statuses["chart"]="BLOCKED_PYNECOMP_CONVERSION_NOT_READY"
+            statuses["chart"]="BLOCKED_FREE_PYNE_CONVERSION_NOT_READY"
             stage(run_id,"chart",PARITY,statuses["chart"],
                   {"reason":statuses.get("python")})
         final="PARTIAL_BLOCKED"
@@ -547,11 +577,11 @@ def process(run_id,sid,requested_source=None):
         result={"status":final,"stages":statuses,"selected_source":selected,
                 "requested_source":requested_source,
                 "selection_mode":"EXPLICIT_PINNED" if requested_source else
-                   "AUTO_NEW_OR_SAVED_PYNECOMP_CACHE_PRIORITY",
+                   "AUTO_NEW_OR_SAVED_FREE_PYNE_CACHE_PRIORITY",
                 "converted_source":converted,"chart":chart,
                 "postgres_sync":postgres_finish,
                 "postgres_trace_failures":trace_failures,
-                "note":"PyneComp-generated code is NOT yet executed against the TradingView keypoints. Legacy Quant graphs are not PyneCore evidence."}
+                "note":"Free PYNE-generated source alone never proves official TradingView orders, fill prices, or plot parity. Legacy Quant examples are not DDDS evidence."}
         with closing(open_registry()) as db:
             db.execute("""UPDATE investment_pipeline_runs SET status=?,finished_at=?,
                 selected_source_id=?,selected_version=?,result_json=? WHERE run_id=?""",
