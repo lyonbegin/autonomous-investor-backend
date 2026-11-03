@@ -55,7 +55,7 @@ async function fetchJSON(page,url){
     '04 메인 Pine 전체 PyneComp→PyneCore 변환',
     '05 PyneCore 확인·미검증 산출물 DB 저장',
     '06 변환 성공·차단 사유 확인']){
-   if(!logs.includes(label+' · HTTP 200 · SUCCESS'))
+   if(!logs.includes(label.replace(/^\d\d /,'')+' · HTTP 200 · SUCCESS'))
      throw Error('SIX_NODE_REAL_EXECUTION_MISSING '+label+' '+logs.slice(0,2100));
  }
  const details=await page.locator('#node-details').innerText();
