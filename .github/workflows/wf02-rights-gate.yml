@@ -1,0 +1,26 @@
+name: WF02 PyneComp rights gate regression
+on:
+  push:
+    branches: [feature/wf02-pynecore-rights-gate-20261103]
+    paths:
+      - 'n8n/editor-adapter/investment_wf02.py'
+      - 'n8n/tests/test_wf02_rights_gate_20261103.py'
+      - '.github/workflows/wf02-rights-gate.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Syntax check
+        run: |
+          python -m py_compile n8n/editor-adapter/investment_wf02.py n8n/tests/test_wf02_rights_gate_20261103.py
+      - name: Execute real SQLite rights regression
+        run: |
+          python -m unittest discover -s n8n/tests -p 'test_wf02_rights_gate_20261103.py' -v
