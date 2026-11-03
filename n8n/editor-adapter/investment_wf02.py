@@ -59,6 +59,10 @@ def execute_wf02_node01(input_json,*,workflow_kind):
                 investment_pine_payloads WHERE kind='strategy'
                 AND source_id=? AND version_key=?""",(sid,version)).fetchone()
     if not row or not row["pine_code"].strip():raise ValueError("WF02_PINE_NOT_IN_DATABASE")
+    # Never send an unapproved source to the external PyneComp service.
+    # Permission must be checked again at execution, not only during intake.
+    if row["rights_state"] != "APPROVED":
+        raise ValueError("WF02_SOURCE_RIGHTS_NOT_APPROVED")
     pine=row["pine_code"]
     try:scan_imports(pine)
     except PyneCompBlocked as exc:raise ValueError(exc.code) from None
