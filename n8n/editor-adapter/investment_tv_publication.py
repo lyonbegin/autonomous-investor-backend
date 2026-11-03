@@ -179,6 +179,87 @@ def bundled_ddds_reference() -> dict:
         "imported_at": None,
     }
 
+
+def register_for_existing_wf02(sid: str, *, acknowledge_mpl: bool = False) -> dict:
+    """Put the immutable published Pine into original WF02's existing source DB.
+
+    Only a user-initiated, exact pinned MPL 2.0 DDDS may receive approval
+    for external compilation. All other uploaded publications remain pending.
+    No independent Pine compiler/strategy simulator is invented here.
+    """
+    from investment_pine_store import save_verified_source
+    from investment_source_registry import open_registry
+    from investment_pynecomp import compiler_status
+    from contextlib import closing
+    import os
+    import re
+
+    reference = latest_reference(sid)
+    pine = reference.get("pine_source")
+    h = hashlib.sha256(pine.encode("utf-8")).hexdigest() if isinstance(pine,str) else ""
+    if not h or reference.get("source_sha256") != h:
+        raise ValueError("PUBLISHED_PINE_SOURCE_SHA256_MISMATCH")
+    if (reference.get("status") != "TRADINGVIEW_PUBLISHED_STRATEGY_REFERENCE_PARSED" or
+        not re.search(r"(?m)^\s*//@version=[456]\b", pine) or
+        not re.search(r"(?m)^\s*strategy\s*\(", pine)):
+        raise ValueError("PUBLISHED_STRATEGY_PINE_REQUIRED")
+    source_id = reference["source_id"]
+    if not isinstance(source_id,str) or not re.fullmatch(r"PUB;[A-Za-z0-9]{8,80}",source_id):
+        raise ValueError("PINNED_PUBLICATION_SOURCE_ID_REQUIRED")
+    version = "snapshot-sha256-" + h[:16]
+    source_url = reference.get("publication_url") or ""
+    if not isinstance(source_url,str) or not source_url.startswith("https://www.tradingview.com/script/"):
+        # User-imported DOM does not prove a valid original link. Only fixed
+        # immutable bundled DDDS has a verified corresponding publication URL.
+        if source_id == bundled_ddds_reference()["source_id"] and h == bundled_ddds_reference()["source_sha256"]:
+            source_url = bundled_ddds_reference()["publication_url"]
+        else:
+            raise ValueError("PUBLISHED_STRATEGY_CANONICAL_URL_NOT_VERIFIED")
+    stored = save_verified_source({
+        "candidate": {"source_id":source_id,"version_key":version,
+                      "source_url":source_url,
+                      "title":reference.get("strategy_title","")},
+        "pine_code":pine
+    }, "strategy")
+
+    fixed = bundled_ddds_reference()
+    exact_mpl_ddds = (source_id == fixed["source_id"] and
+                      h == fixed["source_sha256"] and
+                      reference.get("source_rights") == "MPL-2.0")
+    if acknowledge_mpl and not exact_mpl_ddds:
+        raise ValueError("MPL_CONVERSION_APPROVAL_ONLY_FOR_PINNED_DDDS")
+    rights = stored.get("rights_state","PENDING_REVIEW")
+    if acknowledge_mpl and exact_mpl_ddds:
+        # PostgreSQL and SQLite must agree before allowing WF02 node01 to
+        # transmit this source to the remote PyneComp compiler.
+        if os.environ.get("INVESTMENT_DATABASE_URL"):
+            from investment_pg import approve_exact_published_mpl_source
+            approve_exact_published_mpl_source(source_id,version,h)
+        with closing(open_registry()) as db:
+            cursor = db.execute("""UPDATE investment_pine_payloads SET rights_state='APPROVED'
+                    WHERE kind='strategy' AND source_id=? AND version_key=?
+                    AND pine_code=? AND rights_state IN ('PENDING_REVIEW','APPROVED')""",
+                    (source_id,version,pine))
+            if cursor.rowcount != 1:
+                raise ValueError("SOURCE_RIGHTS_OR_CONTENT_CONFLICT")
+            db.commit()
+        rights="APPROVED"
+
+    return {
+        "status":"PUBLISHED_PINE_REGISTERED_FOR_EXISTING_WF02",
+        "workflow":"operations/WF02-pine-to-python.json",
+        "source_id":source_id, "version_key":version,
+        "source_sha256":h, "source_rights":reference.get("source_rights"),
+        "source_created":stored["source_created"],
+        "rights_state":rights,
+        "user_acknowledged_mpl":bool(acknowledge_mpl and exact_mpl_ddds),
+        "canonical_postgres_synced":stored.get("postgres_sync",False),
+        "pynecomp":compiler_status(),
+        "pine_compiled":False,"python_executed":False,
+        "tradingview_strategy_parity_verified":False,
+        "paper_enabled":False,"live_orders_enabled":False
+    }
+
 def latest_reference(sid: str, root: Path = _REFERENCE_DIR) -> dict:
     dest = _path(root, sid)
     if not dest.is_file():
