@@ -177,6 +177,66 @@ def record_conversion(source_id,version,python_code,converter_version,scope=""):
     return {"conversion_id":str(cid),"script_version_id":str(source_version),
             "python_artifact_id":str(aid),"dependency_lock_hash":lock}
 
+def pine_library_by_import_path(import_name):
+    """Read the exact library author/name/version from the canonical source DB.
+
+    A missing or ambiguous library is not substituted with the latest version.
+    """
+    parts=import_name.split("/")
+    if len(parts)!=3 or not all(parts) or not parts[2].isdigit():
+        raise ValueError("INVALID_PINE_LIBRARY_IMPORT_PATH")
+    external="/".join(parts[:2])
+    with connect() as db:
+        rows=db.execute("""SELECT sv.script_version_id,sv.content_sha256,
+          a.storage_uri,sv.provider_version
+          FROM catalog.scripts s
+          JOIN catalog.script_versions sv ON sv.script_id=s.script_id
+          JOIN platform.artifacts a ON a.artifact_id=sv.source_artifact_id
+          WHERE s.script_kind='LIBRARY' AND s.external_script_key=%s
+            AND sv.provider_version=%s ORDER BY sv.acquired_at DESC LIMIT 3""",
+          (external,parts[2])).fetchall()
+    if not rows:return None
+    if len({x[1] for x in rows})!=1:
+        raise ValueError("AMBIGUOUS_PINE_LIBRARY_VERSION")
+    sv,sha,uri,version=rows[0]
+    sha=sha.strip()
+    if uri!="investment-file://"+sha:
+        raise ValueError("PINE_LIBRARY_ARTIFACT_URI_MISMATCH")
+    source=(ARTIFACT_ROOT/sha[:2]/sha).read_bytes()
+    if hashlib.sha256(source).hexdigest()!=sha:
+        raise ValueError("PINE_LIBRARY_ARTIFACT_SHA_MISMATCH")
+    return {"kind":"library","source_id":external,"version_key":version,
+      "source_sha256":sha,"script_version_id":str(sv),
+      "pine_code":source.decode("utf-8")}
+
+
+def refresh_exact_dependency_pins(source_id,version,dependencies):
+    """Pin only proven exact library source versions for this strategy."""
+    with connect() as db:
+        with db.cursor() as cur:
+            row=cur.execute("""SELECT sv.script_version_id FROM catalog.scripts s
+              JOIN catalog.script_versions sv ON sv.script_id=s.script_id
+              WHERE s.external_script_key=%s AND sv.provider_version=%s
+              ORDER BY sv.acquired_at DESC LIMIT 1""",(source_id,version)).fetchone()
+            if not row:raise ValueError("PINNED_STRATEGY_NOT_FOUND")
+            version_id=row[0]
+            for d in dependencies:
+                if not d.get("script_version_id"):
+                    raise ValueError("UNVERIFIED_LIBRARY_DEPENDENCY")
+                cur.execute("""UPDATE catalog.script_dependencies SET
+                   resolved_version_id=%s,resolution_state='PINNED'
+                   WHERE from_version_id=%s AND import_name=%s""",
+                   (d["script_version_id"],version_id,d["import_name"]))
+            if dependencies:
+                rows=cur.execute("""SELECT import_name,resolution_state FROM catalog.script_dependencies
+                 WHERE from_version_id=%s""",(version_id,)).fetchall()
+                expected={d["import_name"] for d in dependencies}
+                if expected!={r[0] for r in rows} or any(r[1]!="PINNED" for r in rows):
+                    raise ValueError("STRATEGY_DEPENDENCY_PIN_SET_INCOMPLETE")
+        db.commit()
+    return {"script_version_id":str(version_id),"resolved_count":len(dependencies)}
+
+
 def dependencies_for_source(source_id,version):
     with connect() as db:
         row=db.execute("""SELECT sv.script_version_id FROM catalog.scripts s
