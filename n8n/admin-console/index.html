@@ -82,7 +82,7 @@ const INTEGRATED=[
 ];
 function integratedHtml(){
  return '<section class="panel" id="integrated-section"><h3>전체 자동화 4단계 연속 실행</h3>'+
- '<p class="helper">실행: 승인 원본 목록 조회(미설정 시 과거 스냅샷) → 신규 원본이 없으면 DB의 실제 변환 가능한 저장 전략을 검증 후 선택 → Library 확인 → 같은 Pine 버전의 Python 생성 → 동일한 실제 OHLCV로 Pine/Python 차트 계산. TradingView 사이트의 공식 CSV 동등성 검증은 별도입니다.</p>'+
+ '<p class="helper">실행: 원본 목록·DB 조회 → Library 확인 → Python 변환 → TradingView 원본 게시 차트(확인된 전략만)와 Python 계산 차트 표시. 원본이 확인되지 않은 전략은 대체 차트를 표시하지 않으며, TradingView CSV 수치 동등성은 별도 검증합니다.</p>'+
  '<label class="form-field" for="integrated-source">실행할 전략 원본 버전 · 통합 DB 등록 결과<input type="hidden" id="selected-source-hidden"><select class="form-control" id="integrated-source"><option value="">자동 수집 → DB 기존 원본 재사용</option></select></label>'+
  '<p class="helper" id="source-choice-state">SQLite에 보존된 전략 목록을 확인 중입니다.</p>'+
  '<div class="actions"><button class="btn primary" id="integrated-start" data-action="integrated-start">▶ 전체 4단계 한 번에 실행</button>'+
@@ -94,14 +94,14 @@ function integratedHtml(){
  '<div class="grid2"><div class="stack" id="integrated-stages">'+INTEGRATED.map(s=>'<div class="area"><b>'+s.name+'</b><p>실행 전</p></div>').join('')+
  '</div><div class="panel" style="margin:0"><h3>실제 노드·DB 처리 추적</h3><div class="log" id="integrated-events">실행 결과가 여기에 나타납니다.</div>'+
  '<div class="actions" id="integrated-charts"></div></div></div>'+
- '<div class="panel" id="integrated-native-compare"><h3>최종 확인 · 저장된 Pine 원문 ↔ Python 전략 차트</h3>'+
+ '<div class="panel" id="integrated-native-compare"><h3>최종 확인 · 원본 TradingView 게시 차트 ↔ Python 전략 차트</h3>'+
  '<p class="muted minor" id="integrated-source-identity">실행 결과의 정확한 source_id, version_key, SHA-256을 확인합니다.</p>'+
- '<p class="helper">기존 Vela/PineTS + Python Quant를 사용하여 동일한 실제 시장 OHLCV로 두 그래프를 실행합니다. 원본 SHA-256이 다르면 실행을 차단합니다. TradingView 웹사이트의 공식 캡처와 동등성 PASS를 주장하지 않습니다.</p>'+
- '<div id="native-compare-target">선택된 PostgreSQL 원본 버전을 확인하면 기존 좌우 차트 엔진을 자동 연결합니다.</div></div>'+
- '<div class="panel" id="integrated-final-review"><h3>별도 검증 · TradingView 웹사이트의 차트·CSV 일치 판정</h3>'+
- '<div class="grid2"><div class="area"><b>TradingView 실제 사이트 차트 캡처</b><div id="integrated-left-chart" class="empty">실제 사이트에서 같은 전략·시장·시간봉을 적용한 기준 차트 없음</div></div>'+
- '<div class="area"><b>동일 입력의 Python 비교 참조 이미지</b><div id="integrated-right-chart" class="empty">실제 TV 캡처와 CSV로 생성한 비교 기록 없음</div></div></div>'+
- '<p class="muted minor" id="integrated-comparison-note">이 별도 판정이 완료되기 전까지 실제 TradingView 동등성은 BLOCKED입니다.</p></div>'+
+ '<p class="helper">왼쪽은 TradingView 실제 전략 게시 페이지의 작성자 차트 이미지이며, 오른쪽은 DB의 정확한 Pine 버전으로 계산한 Python 차트입니다. Vela/PineTS 대체 차트를 왼쪽에 표시하지 않습니다. 게시 당시 데이터와 Python 데이터 구간의 수치 동등성은 별도 검증이 필요합니다.</p>'+
+ '<div id="native-compare-target">선택된 PostgreSQL 원본 버전과 확인된 TradingView 원본 게시물의 연결을 조회합니다.</div></div>'+
+ '<div class="panel" id="integrated-final-review"><h3>추가 검증 · TradingView 플롯·CSV와 Python 수치 동등성</h3>'+
+ '<div class="grid2"><div class="area"><b>TradingView 실제 플롯·CSV 기준자료</b><div id="integrated-left-chart" class="empty">게시 차트 이미지는 위에서 표시합니다. 거래·지표별 정량 CSV는 아직 확보되지 않음</div></div>'+
+ '<div class="area"><b>일치 오차 및 승인 판정</b><div id="integrated-right-chart" class="empty">원본 플롯·거래 목록과 비교해 계산한 정밀 동등성 기록 없음</div></div></div>'+
+ '<p class="muted minor" id="integrated-comparison-note">게시 스냅샷 확인과 수치적 동등성은 별개의 검증입니다. 정식 동등성은 아직 미완료입니다.</p></div>'+
  '<div class="notice warn">Library가 필요 없으면 NOT_REQUIRED, 실제 참조가 없으면 WAITING_DEPENDENCY로 기록합니다. TradingView 실제 이미지·CSV가 없으면 차트는 BLOCKED로 기록하고 성공으로 표시하지 않습니다. 변환 불가 전략을 다른 전략으로 몰래 바꾸지 않습니다.</div></section>';
 }
 async function loadSavedSources(){
