@@ -1,0 +1,38 @@
+name: LIVE Railway DDDS original integrated 4-stage free PYNE
+on:
+  push:
+    branches: [feature/wf02-free-pyne-ddds-converter-20261104]
+    paths:
+      - 'n8n/tests/test_live_free_ddds_integrated_4stage.cjs'
+      - '.github/workflows/wf02-free-pyne-integrated-live.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  four-stage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Check integrated free PYNE source selection has actually deployed
+        run: |
+          for i in $(seq 1 45); do
+            if curl -fsS https://investment-n8n-native-editor-production.up.railway.app/admin/index.html | grep -q 'free_pyne_generated_stored'; then exit 0; fi
+            sleep 4
+          done
+          exit 1
+      - name: Actual Chromium click exact DDDS in integrated 4-stage and inspect real chart link and no parity
+        env:
+          WF02_EDITOR_BASE: https://investment-n8n-native-editor-production.up.railway.app
+          FREE_INTEGRATED_EVIDENCE_DIR: /tmp/ddds-integrated-e2e
+        run: node n8n/tests/test_live_free_ddds_integrated_4stage.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ddss-4stage-free-pyne-railway-real-e2e
+          path: /tmp/ddds-integrated-e2e/
+          if-no-files-found: warn
+          retention-days: 14
