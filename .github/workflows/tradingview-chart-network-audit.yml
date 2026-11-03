@@ -1,0 +1,32 @@
+name: Official TradingView chart transport audit
+on:
+  push:
+    branches: [feature/tradingview-official-network-audit-20261103]
+    paths:
+      - 'n8n/tests/inspect_official_tradingview_network.cjs'
+      - '.github/workflows/tradingview-chart-network-audit.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  actual-browser-network:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Playwright
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Launch official chart, TradingView widget and original custom element
+        env:
+          TV_NETWORK_AUDIT_OUT: /tmp/tradingview-network-audit
+        run: node n8n/tests/inspect_official_tradingview_network.cjs
+      - name: Upload sanitized network evidence and actual screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tradingview-official-chart-xhr-websocket-audit
+          path: /tmp/tradingview-network-audit/
+          if-no-files-found: warn
+          retention-days: 14

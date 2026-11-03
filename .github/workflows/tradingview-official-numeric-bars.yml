@@ -1,0 +1,32 @@
+name: Proof of public official TradingView WS numeric OHLCV
+on:
+  push:
+    branches: [feature/tradingview-official-network-audit-20261103]
+    paths:
+      - 'n8n/tests/prove_official_tv_numeric_bars.cjs'
+      - '.github/workflows/tradingview-official-numeric-bars.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Chromium
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Observe real, unmodified public TradingView chart frames and validate bar tuples
+        env:
+          TV_BAR_AUDIT_DIR: /tmp/tv-bar-audit
+        run: node n8n/tests/prove_official_tv_numeric_bars.cjs
+      - name: Archive official chart transport evidence (no raw frames or credentials)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: official-tradingview-numeric-bar-proof
+          path: /tmp/tv-bar-audit/
+          if-no-files-found: warn
+          retention-days: 14
