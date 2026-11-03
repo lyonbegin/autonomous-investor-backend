@@ -149,37 +149,30 @@ def select_from_db(kind="strategy"):
     return [dict(x) for x in rows]
 
 def select_supported_saved_strategy():
-    """Automatic fallback chooses a DB source that has an actual saved Python
-    conversion AND is still parseable from its current immutable Pine bytes.
-    Do not silently replace an explicitly selected or newly collected strategy.
-    """
-    from engine import parse_pine, UnsupportedPine
-    from sequence_reversal import parse_sequence_pine, UnsupportedSequencePine
+    """Prefer exactly cached PyneComp source; never test with removed RSI/SMA parsers."""
     with closing(open_registry()) as db:
-        tables={x[0] for x in db.execute("SELECT name FROM sqlite_master WHERE type='table'")}
-        if "investment_python_conversions" not in tables:return None
-        candidates=db.execute("""SELECT p.source_id,p.version_key,p.pine_code,
-             c.converter_scope,c.converted_at
-             FROM investment_pine_payloads p
-             INNER JOIN investment_python_conversions c
-              ON c.kind=p.kind AND c.source_id=p.source_id AND c.version_key=p.version_key
-             WHERE p.kind='strategy' AND length(c.python_code)>0
-             ORDER BY c.converted_at DESC,p.saved_at DESC LIMIT 120""").fetchall()
-    for item in candidates:
-        pine=item["pine_code"]
-        try:
-            try:
-                spec=parse_pine(pine)
-            except UnsupportedPine:
-                spec=parse_sequence_pine(pine)
-            if spec.get("supported_subset")!=item["converter_scope"]:
-                continue
-        except (UnsupportedPine,UnsupportedSequencePine,ValueError,KeyError,TypeError):
-            continue
-        return {"source_id":item["source_id"],"version_key":item["version_key"],
-                "selection_basis":"STORED_PYTHON_CONVERSION_RECHECKED_AGAINST_CURRENT_PINE",
-                "source_sha256":hashlib.sha256(pine.encode("utf-8")).hexdigest()}
-    return None
+        names={x[0] for x in db.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+        if "investment_pine_payloads" not in names:return None
+        candidates=db.execute("""SELECT source_id,version_key,pine_code FROM
+           investment_pine_payloads WHERE kind='strategy'
+           ORDER BY saved_at DESC LIMIT 120""").fetchall()
+        compiled=set()
+        if "investment_pynecomp_artifacts" in names:
+            compiled={(x[0],x[1],x[2]) for x in db.execute(
+                "SELECT source_id,version_key,source_sha256 FROM investment_pynecomp_artifacts "
+                "WHERE kind='strategy' AND compiler_id='pynecomp-http-v1-pynecore-6.11.1'")}
+    if not candidates:return None
+    preferred=[]
+    for row in candidates:
+        pine=row["pine_code"]
+        source_sha=hashlib.sha256(pine.encode("utf-8")).hexdigest()
+        preferred.append({"source_id":row["source_id"],"version_key":row["version_key"],
+          "source_sha256":source_sha,
+          "selection_basis":"EXACT_PYNECOMP_CACHE" if
+          (row["source_id"],row["version_key"],source_sha) in compiled
+          else "SAVED_SOURCE_REQUIRES_PYNECOMP_COMPILATION"})
+    preferred.sort(key=lambda x:0 if x["selection_basis"]=="EXACT_PYNECOMP_CACHE" else 1)
+    return preferred[0]
 
 
 # This mapping is limited to a publication directly inspected in a real
@@ -466,26 +459,19 @@ def process(run_id,sid,requested_source=None):
             stage(run_id,"library",LIBRARY,statuses["library"])
         else:
             try:
-                if os.environ.get("INVESTMENT_DATABASE_URL"):
-                    from investment_pg import dependencies_for_source
-                    deps=dependencies_for_source(selected["source_id"],selected["version_key"])
-                    missing=[d for d in deps["dependencies"] if d["state"]!="PINNED"]
-                    statuses["library"]=(
-                        "NOT_REQUIRED" if not deps["dependencies"] else
-                        "WAITING_DEPENDENCY" if missing else "DEPENDENCIES_PINNED")
-                    stage(run_id,"library",LIBRARY,statuses["library"],
-                          {"script_version_id":deps["script_version_id"],
-                           "dependencies":deps["dependencies"]})
-                else:
-                    with closing(open_registry()) as db:
-                        source=db.execute("""SELECT pine_code FROM investment_pine_payloads
-                         WHERE kind='strategy' AND source_id=? AND version_key=?""",
-                         (selected["source_id"],selected["version_key"])).fetchone()
-                    import re
-                    imports=re.findall(r"(?m)^\s*import\s+([A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/\d+)\b",
-                                       source[0] if source else "")
-                    statuses["library"]="WAITING_DEPENDENCY" if imports else "NOT_REQUIRED"
-                    stage(run_id,"library",LIBRARY,statuses["library"],{"imports":imports})
+                # Actual recursive Pine Library resolution now runs inside WF02-N02.
+                # The old PINNED metadata state alone is no longer sufficient.
+                from investment_pynecomp import scan_imports
+                with closing(open_registry()) as db:
+                    row=db.execute("""SELECT pine_code FROM investment_pine_payloads
+                       WHERE kind='strategy' AND source_id=? AND version_key=?""",
+                       (selected["source_id"],selected["version_key"])).fetchone()
+                if not row:raise ValueError("EXACT_PINE_SOURCE_NOT_IN_DATABASE")
+                imports=scan_imports(row[0])
+                statuses["library"]="NOT_REQUIRED" if not imports else "RESOLVE_WITH_PYNECOMP"
+                stage(run_id,"library",LIBRARY,statuses["library"],
+                    {"requested_imports":imports,
+                     "resolution_workflow":"WF02_N02_N03","resolved":not imports})
             except Exception as exc:
                 statuses["library"]="BLOCKED_DEPENDENCY_CHECK_FAILED"
                 stage(run_id,"library",LIBRARY,statuses["library"],error=str(exc))
@@ -493,77 +479,48 @@ def process(run_id,sid,requested_source=None):
         if not selected:
             statuses["python"]="BLOCKED_NO_SAVED_STRATEGY"
             stage(run_id,"python",PYTHON,statuses["python"])
-        elif statuses["library"] not in ("NOT_REQUIRED","DEPENDENCIES_PINNED"):
+        elif statuses["library"] not in ("NOT_REQUIRED","RESOLVE_WITH_PYNECOMP"):
             statuses["python"]="BLOCKED_LIBRARY_DEPENDENCY"
             stage(run_id,"python",PYTHON,statuses["python"],selected)
         else:
-            # EXACT selected script/version only. Never silently switch to a
-            # different strategy just because the selected Pine is unsupported.
             try:
                 result=run_graph(run_id,"python",PYTHON,
                     {"ui_selection":"strategy","requested_detail_limit":1,**selected})
-                if result.get("status")=="PYTHON_GENERATED" and result.get("python_code"):
+                if result.get("status")=="PYNECOMP_GENERATED_UNVALIDATED" and result.get("python_code"):
                     converted=selected
-                    statuses["python"]="PYTHON_GENERATED"
+                    statuses["python"]="PYNECOMP_GENERATED_UNVALIDATED"
                     stage(run_id,"python",PYTHON,statuses["python"],
-                          {**selected,"conversion_id":result.get("conversion_id"),
-                           "converter_scope":result.get("converter_scope")})
-                elif result.get("status")=="UNSUPPORTED_PINE":
-                    statuses["python"]="UNSUPPORTED_SELECTED_PINE"
-                    stage(run_id,"python",PYTHON,statuses["python"],
-                          {**selected,"unsupported_reason":result.get("unsupported_reason")})
+                        {**selected,"conversion_id":result.get("conversion_id"),
+                         "converter_scope":"PYNECOMP_FULL_PINE",
+                         "library_import_linkage_verified":
+                             result.get("library_import_linkage_verified",False),
+                         "runtime_execution_verified":False})
                 else:
-                    statuses["python"]="BLOCKED_NO_PYTHON_OUTPUT"
-                    stage(run_id,"python",PYTHON,statuses["python"],selected)
+                    statuses["python"]="BLOCKED_"+str(result.get("status","UNKNOWN"))[:96]
+                    stage(run_id,"python",PYTHON,statuses["python"],
+                        {**selected,
+                         "blocked_at":result.get("blocked_at"),
+                         "requested_imports":result.get("requested_imports"),
+                         "blocked_import":result.get("blocked_import"),
+                         "reason":result.get("status")})
             except Exception as exc:
                 statuses["python"]="FAILED"
-                stage(run_id,"python",PYTHON,"FAILED",selected,str(exc))
+                stage(run_id,"python",PYTHON,"FAILED",selected,
+                      type(exc).__name__+": "+str(exc)[:260])
         stage(run_id,"chart",PARITY,"RUNNING")
-        if not converted:
-            statuses["chart"]="BLOCKED_PYTHON_NOT_GENERATED"
-            stage(run_id,"chart",PARITY,statuses["chart"])
+        # No legacy restricted Python graph is allowed to masquerade as output
+        # of the new PyneComp/PyneCore compiler.
+        if converted:
+            statuses["chart"]="BLOCKED_PYNECORE_RUNTIME_GRAPH_NOT_CONNECTED"
+            stage(run_id,"chart",PARITY,statuses["chart"],
+                 {**converted,"reason":
+                  "PyneComp code generated but PyneCore runtime/OHLCV and TradingView keypoint parity not independently executed",
+                  "legacy_chart_is_not_pynecore_output":True})
         else:
-            source=context_for_source(converted["source_id"],converted["version_key"])
-            with closing(open_registry()) as db:
-                row=db.execute("""SELECT pine_code FROM investment_pine_payloads
-                    WHERE kind='strategy' AND source_id=? AND version_key=?""",
-                    (converted["source_id"],converted["version_key"])).fetchone()
-            db_comparison=None
-            if os.environ.get("INVESTMENT_DATABASE_URL"):
-                from investment_pg import comparison_for_source
-                db_comparison=comparison_for_source(converted["source_id"],converted["version_key"])
-            ref,error=lookup_reference(source["source_url"] if source else None,row[0] if row else "")
-            if db_comparison and ref and ref.get("run_id"):
-                chart={**db_comparison,"parity_run_id":ref["run_id"],
-                       "comparison_url":PARITY_HOST+"/?run="+ref["run_id"]}
-                statuses["chart"]="REFERENCE_FOUND_REVIEW_REQUIRED"
-                stage(run_id,"chart",PARITY,statuses["chart"],chart)
-            else:
-                # A real chart preview is possible even when the TV.com
-                # exported benchmark is absent. Execute the EXISTING Python
-                # OHLCV engine on the exact pinned Pine; do not invent TV CSV.
-                try:
-                    chart=actual_python_chart_for_exact_source(converted)
-                    statuses["chart"]="CHART_PREVIEW_READY_TV_PARITY_PENDING"
-                    stage(run_id,"chart",PARITY,statuses["chart"],
-                          {**chart,"official_tv_reference":error or "NOT_IN_DATABASE"})
-                except Exception as exc:
-                    statuses["chart"]="BLOCKED_REAL_CHART_PREVIEW_UNAVAILABLE"
-                    stage(run_id,"chart",PARITY,statuses["chart"],{
-                        "source_id":converted["source_id"],
-                        "version_key":converted["version_key"],
-                        "reason":str(exc)[:450],
-                        "official_tv_reference":error or "NOT_IN_DATABASE"})
-        final=(
-            "REVIEW_REQUIRED" if (
-                statuses.get("library") in ("NOT_REQUIRED","DEPENDENCIES_PINNED")
-                and statuses.get("python")=="PYTHON_GENERATED"
-                and statuses.get("chart")=="REFERENCE_FOUND_REVIEW_REQUIRED")
-            else "TV_PARITY_PENDING" if (
-                statuses.get("library") in ("NOT_REQUIRED","DEPENDENCIES_PINNED")
-                and statuses.get("python")=="PYTHON_GENERATED"
-                and statuses.get("chart")=="CHART_PREVIEW_READY_TV_PARITY_PENDING")
-            else "PARTIAL_BLOCKED")
+            statuses["chart"]="BLOCKED_PYNECOMP_CONVERSION_NOT_READY"
+            stage(run_id,"chart",PARITY,statuses["chart"],
+                  {"reason":statuses.get("python")})
+        final="PARTIAL_BLOCKED"
         with closing(open_registry()) as db:
             trace_failures=db.execute("""SELECT count(*) FROM investment_pipeline_events
                 WHERE run_id=? AND status='POSTGRES_TRACE_FAILED'""",(run_id,)).fetchone()[0]
@@ -580,11 +537,11 @@ def process(run_id,sid,requested_source=None):
         result={"status":final,"stages":statuses,"selected_source":selected,
                 "requested_source":requested_source,
                 "selection_mode":"EXPLICIT_PINNED" if requested_source else
-                   "AUTO_NEW_OR_PREVIOUSLY_CONVERTED_DB_SOURCE",
+                   "AUTO_NEW_OR_SAVED_PYNECOMP_CACHE_PRIORITY",
                 "converted_source":converted,"chart":chart,
                 "postgres_sync":postgres_finish,
                 "postgres_trace_failures":trace_failures,
-                "note":"Only stored TradingView chart CSV/screenshots allow visual comparison; no synthetic TV data."}
+                "note":"PyneComp-generated code is NOT yet executed against the TradingView keypoints. Legacy Quant graphs are not PyneCore evidence."}
         with closing(open_registry()) as db:
             db.execute("""UPDATE investment_pipeline_runs SET status=?,finished_at=?,
                 selected_source_id=?,selected_version=?,result_json=? WHERE run_id=?""",
