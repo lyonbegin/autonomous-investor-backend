@@ -29,6 +29,8 @@ async function fetchJSON(page,url){
  page.on('pageerror',e=>errors.push(e.message));
  await nav(page,BASE+'/admin/index.html?section=tests');
  await page.locator('#node-list .step').first().waitFor({timeout:45000});
+ if(await page.locator('a[href="https://investment-pine-parity-review-production.up.railway.app/demo"]').count()!==1)
+  throw Error('ADMIN_REAL_PYNECORE_TEST_LINK_MISSING');
  const steps=await page.locator('#node-list .step').count();
  if(steps<10)throw Error('WF01_STRATEGY_GRAPH_MISSING '+steps);
  let logs=await submitFlow(page);
