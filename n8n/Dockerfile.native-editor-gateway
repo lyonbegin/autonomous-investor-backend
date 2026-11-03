@@ -29,6 +29,7 @@ COPY --from=build /app/shared/server/project_adapter_runtime.py /app/project_ada
 COPY n8n/editor-adapter/investment_node_adapter.py /app/investment_node_adapter.py
 COPY n8n/editor-adapter/investment_wf02.py /app/investment_wf02.py
 COPY n8n/editor-adapter/investment_pynecomp.py /app/investment_pynecomp.py
+COPY n8n/editor-adapter/investment_pynecore_runtime.py /app/investment_pynecore_runtime.py
 COPY n8n/investment-db/investment_pg.py /app/investment_pg.py
 COPY n8n/investment-db/schema_v1.sql /app/schema_v1.sql
 COPY n8n/editor-adapter/investment_pipeline.py /app/investment_pipeline.py
@@ -40,7 +41,7 @@ COPY n8n/editor-adapter/verified_pine_archive.py /app/verified_pine_archive.py
 COPY n8n/editor-adapter/verified_pine_archive_index.json /app/verified_pine_archive_index.json
 COPY n8n/editor-adapter/investment_pine_store.py /app/investment_pine_store.py
 COPY --from=build /app/shared/server/node_workspace_store.py /app/node_workspace_store.py
-RUN python3 -m py_compile /app/studio_server.py /app/node_workspace_store.py /app/node_run_store.py /app/project_adapter_runtime.py /app/investment_node_adapter.py /app/investment_wf02.py /app/investment_pynecomp.py /app/investment_pg.py /app/investment_pipeline.py /app/engine.py /app/sequence_reversal.py /app/licensed_strategy_manifest.py /app/investment_source_registry.py /app/verified_pine_archive.py
+RUN python3 -m py_compile /app/studio_server.py /app/node_workspace_store.py /app/node_run_store.py /app/project_adapter_runtime.py /app/investment_node_adapter.py /app/investment_wf02.py /app/investment_pynecomp.py /app/investment_pynecore_runtime.py /app/investment_pg.py /app/investment_pipeline.py /app/engine.py /app/sequence_reversal.py /app/licensed_strategy_manifest.py /app/investment_source_registry.py /app/verified_pine_archive.py
 RUN mkdir -p /data && groupadd --system studio && useradd --system --gid studio --home /app studio \
     && chown -R studio:studio /data /app
 # The Railway volume is mounted after image build as root-owned /data.
