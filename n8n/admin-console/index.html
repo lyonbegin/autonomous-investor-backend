@@ -668,7 +668,14 @@ async function executeFlow(){
       }else if(output.status==='UNSUPPORTED_PINE'){
        if(progress)progress.textContent='Pine 문법 미지원 · 변환 불가 (정상 차단)';
        log('미지원 Pine · '+(output.unsupported_reason||output.basic_converter_reason||'지원 범위 밖'),'red');
-      }else{if(progress)progress.textContent='완료 · '+String(output.status||'미확인');}
+      }else{
+       const blocked=String(output.status||'UNKNOWN');
+       if(progress)progress.textContent='변환 차단 · '+blocked;
+       log('DDDS 원본의 실제 Python 변환이 완료되지 않았습니다. 이유: '+blocked,'red');
+       const comparison=document.getElementById('publication-python-state');
+       if(comparison)comparison.textContent='DDDS 원본 Pine → PyneCore 미완료 · '+blocked+
+         ' · 다른 SMA 전략 결과로 대체하지 않습니다.';
+      }
     }else{
       if(progress)progress.textContent='원본 확보·저장 실행 종료 · '+step+'개 실제 노드';
       log('원본 코드 저장 처리 결과: '+(output.status||'미확인')+'. Python 차트/매매 신호 일치 여부와는 별개입니다.','green');
