@@ -35,6 +35,7 @@ const out=process.env.FREE_INTEGRATED_EVIDENCE_DIR||'/tmp/ddds-integrated-e2e';
   const log=await page.locator('#integrated-events').innerText();
   if(!statuses.includes('PARTIAL_BLOCKED'))
     throw Error('ORIGINAL_DDDS_INTEGRATED_NOT_EXECUTED '+statuses+' '+log.slice(0,850));
+  console.log('INTEGRATED_DDDS_REAL_STAGES',JSON.stringify({status:statuses,log:log.slice(0,11000),selector:chosen.text}).slice(0,14000));
   const summary=await page.locator('#integrated-comparison-note').innerText();
   if(!summary.includes('300')||!summary.includes('동등성은 미검증'))
     throw Error('REAL_PYNE_DDDS_300BAR_OR_PARITY_NOTE_MISSING '+summary);
