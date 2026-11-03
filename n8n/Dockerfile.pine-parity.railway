@@ -1,7 +1,7 @@
 FROM python:3.12-slim
 WORKDIR /srv
 RUN pip install --no-cache-dir 'psycopg[binary]>=3.2,<4' 'pynesys-pynecore==6.11.1'
-COPY n8n/pine-parity/engine.py n8n/pine-parity/sequence_reversal.py n8n/pine-parity/keypoint_parity.py n8n/pine-parity/server.py n8n/pine-parity/index.html n8n/pine-parity/app.js ./
+COPY n8n/pine-parity/engine.py n8n/pine-parity/sequence_reversal.py n8n/pine-parity/keypoint_parity.py n8n/pine-parity/server.py n8n/pine-parity/index.html n8n/pine-parity/app.js n8n/pine-parity/demo.html n8n/pine-parity/demo.js ./
 COPY n8n/pine-parity/pg_bridge.py n8n/pine-parity/demo_engine.py ./
 COPY n8n/pine-parity/demo/ ./demo/
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PARITY_STORAGE=/data/parity
