@@ -71,9 +71,24 @@ async function stage(page,name,report) {
    const strategies=page.getByText(/^Strategies$/).first();
    if(await strategies.count()){
     try {await strategies.click({timeout:5000});await sleep(2300);
-     await stage(page,'03-strategies-tab',report);report.strategyPanelVisible=true;}
+     await stage(page,'03-strategies-tab',report);report.strategyPanelVisible=true;
+     // Apply the real built-in strategy directly from the visible STRATEGIES
+     // tab. Searching globally mixes strategies with user-made indicators.
+     const builtin=page.getByText('Moving average crossover',{exact:true}).filter({visible:true}).first();
+     if(await builtin.count()){
+       const before=report.wsMethodsSent.create_study||0;
+       try{
+         await builtin.click({timeout:7000});await sleep(7500);
+         report.indicatorSelected=(report.wsMethodsSent.create_study||0)>before;
+         await stage(page,'04-builtin-strategy-clicked',report);
+         try {await page.keyboard.press('Escape');await sleep(700);}catch{}
+         await stage(page,'05-builtin-chart',report);
+       }catch(e){report.errors.push('BUILTIN_STRATEGY:'+String(e).slice(0,260));}
+     }
+}
     catch(e){report.errors.push('STRATEGIES_CLICK:'+String(e).slice(0,180))}
    }
+   if(!report.indicatorSelected){
    const inputs=page.locator('input[placeholder*="Search"],input[placeholder*="search"],input[role="searchbox"]');
    let input=null; if(await inputs.count())input=inputs.first();
    else if(await page.getByRole('textbox').count())input=page.getByRole('textbox').first();
@@ -89,6 +104,7 @@ async function stage(page,name,report) {
        await stage(page,'05-selected-study',report);}
       catch(e){report.errors.push('ADD_STRATEGY:'+String(e).slice(0,170))}
     }
+   }
    }
   } else report.errors.push('INDICATORS_BUTTON_MISSING');
   // Strategy Tester is present only if official chart has a strategy and user entitlement.
