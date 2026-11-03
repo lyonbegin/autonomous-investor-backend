@@ -1,0 +1,42 @@
+name: LIVE Railway original WF02 FREE DDDS six nodes and real Python chart
+on:
+  push:
+    branches: [feature/wf02-free-pyne-ddds-converter-20261104]
+    paths:
+      - 'n8n/tests/test_live_free_ddds_wf02_full.cjs'
+      - '.github/workflows/wf02-free-pyne-live-browser.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  original-wf02:
+    runs-on: ubuntu-latest
+    timeout-minutes: 16
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install real Chromium browser
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Ensure free PYNE has deployed to existing Railway WF02
+        run: |
+          for n in $(seq 1 50); do
+            if curl -fsS https://investment-n8n-native-editor-production.up.railway.app/admin/index.html |
+              grep -q 'ddds-free-chart-run'; then exit 0; fi
+            sleep 5
+          done
+          echo 'EXISTING_FREE_WF02_NOT_DEPLOYED' >&2
+          exit 1
+      - name: Click ACTUAL DDDS 141-line source and 6-node flow; assert generated Python SHA and actual right chart
+        env:
+          WF02_FREE_EVIDENCE_DIR: /tmp/wf02-free-pyne-e2e
+          WF02_EDITOR_BASE: https://investment-n8n-native-editor-production.up.railway.app
+        run: node n8n/tests/test_live_free_ddds_wf02_full.cjs
+      - name: Preserve exact public Railway browser screenshot/manifest without fake parity
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: actual-free-ddds-six-nodes-railway-browser
+          path: /tmp/wf02-free-pyne-e2e/
+          if-no-files-found: warn
+          retention-days: 14
