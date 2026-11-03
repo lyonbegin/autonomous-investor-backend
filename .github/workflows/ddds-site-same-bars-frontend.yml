@@ -1,0 +1,28 @@
+name: DDDS old React chart and exact Python same OHLCV frontend
+on:
+  push:
+    branches: [feature/ddds-site-chart-python-same-bars-20261104]
+    paths:
+      - 'public_frontend/src/components/DddsSharedChartCompare.tsx'
+      - 'public_frontend/src/pages/scripts/PineSideBySidePage.tsx'
+      - '.github/workflows/ddds-site-same-bars-frontend.yml'
+  pull_request:
+    branches: [feature/chart-control-data-capture-20261103]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  compile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install existing React Vela/PineTS packages
+        run: npm install --no-audit --no-fund
+        working-directory: public_frontend
+      - name: Run actual strict TypeScript + Vite build
+        run: npm run build
+        working-directory: public_frontend
