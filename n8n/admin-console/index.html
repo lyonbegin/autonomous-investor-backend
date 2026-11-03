@@ -555,6 +555,10 @@ function renderDDDSParityReadiness(d){
   ['PyneComp 실제 변환본',d.exact_pynecomp_code_available===true?
     '저장된 동일 원본 변환본 확인':'DDDS 전용 Python 없음'],
   ['PyneComp 인증',d.pynecomp_api_key_configured===true?'설정됨':'API 키 미설정'],
+  ['TradingView 현재 Properties',d.published_properties_current_report_inputs_match_defaults===true?
+     'Pine 기본 입력값과 일치':'설정 불일치'],
+  ['원본 차트 / 보고서 종목',d.strategy_report_symbol_conflict===true?
+     'BATS ≠ NASDAQ · 확인 필요':'종목 동일 확인'],
   ['공식 TradingView 거래',d.saved_published_trade_count===299?'299/299 확보':'미확보'],
   ['AMZN 2시간봉 전체 기간',d.historical_data_coverage_verified===true?'확보 확인':'2016~2026 미검증'],
   ['공식 전략 입력·속성',d.published_properties_verified===true?'동일 확인':'게시 설정 미확인'],
