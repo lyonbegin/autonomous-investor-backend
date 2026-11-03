@@ -34,6 +34,13 @@ async function main(){
   result.navigation=r?.status()||0;
   await sleep(9000);
   result.title=await page.title();
+  // Publication defaults to Chart. Its real Strategy report tab must be clicked
+  // before the backtesting-static panel and nested Trades tabs are mounted.
+  const topReport=page.getByText('Strategy report',{exact:true}).filter({visible:true}).first();
+  if(await topReport.count()){
+    await topReport.click({timeout:12000});await sleep(6500);
+    result.clickedStrategyReportTab=true;
+  }else result.clickedStrategyReportTab=false;
   result.reportContainer=await page.locator('[data-qa-id="backtesting-static"]').count()>0;
   result.strategyLegend=await page.locator('[data-qa-id="legend-source-item"]').count()>0;
   result.tabs=await page.locator('[data-qa-id="backtesting-static"] [role="tab"]').evaluateAll(
