@@ -88,7 +88,9 @@ def collect_bars(payload, output: dict):
                     stack.append((nested, depth + 1))
 
 
-async def observe_public_chart(context) -> dict:
+async def observe_public_chart(context, *, target: str = TARGET,
+                               symbol: str = "NASDAQ:AAPL",
+                               timeframe: str = "1D") -> dict:
     page = await context.new_page()
     bars: dict[int, dict] = {}
     methods = Counter()
@@ -114,7 +116,7 @@ async def observe_public_chart(context) -> dict:
     page.on("websocket", on_ws)
     page.on("pageerror", lambda err: errors.append(type(err).__name__))
     try:
-        response = await page.goto(TARGET, wait_until="domcontentloaded", timeout=45_000)
+        response = await page.goto(target, wait_until="domcontentloaded", timeout=45_000)
         http_status = response.status if response else None
         await page.wait_for_timeout(13_000)
         chosen = sorted(bars.values(), key=lambda bar: bar["time_ms"])[-300:]
@@ -126,7 +128,7 @@ async def observe_public_chart(context) -> dict:
             "status": "OFFICIAL_CHART_OHLCV_CAPTURED",
             "provenance": "TRADINGVIEW_PUBLIC_CHART_PASSIVE_WEBSOCKET",
             "licensed_data_api": False,
-            "symbol": "NASDAQ:AAPL", "timeframe": "1D",
+            "symbol": symbol, "timeframe": timeframe,
             "bar_count": len(chosen),
             "bars": chosen,
             "first_time_ms": chosen[0]["time_ms"],
