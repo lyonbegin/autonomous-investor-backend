@@ -16,6 +16,7 @@ sys.path.insert(0,str(ADAPTER))
 SOURCE_SHA="5a245e99447f13012dd026528235fc2c299cad5cb7b228653c684886dcba6507"
 SOURCE_ID="PUB;5442675d418140c58486eb4a7ae12768"
 VERSION="0.6.31"
+PINNED_GENERATED_SHA="ef27e69cbb71bc101431a2f9f71783c37f1f8094a7a77e080032ca3bbd7994a1"
 
 def digest(text):
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
@@ -100,10 +101,15 @@ def compile_ddds(out, *, source=None, compiler=None, diagnostic=None):
             raise SyntaxError("execute_script_compiled missing")
     except SyntaxError:
         return record("BLOCKED_INVALID_GENERATED_PYTHON",check=check)
+    actual_sha=digest(code)
+    if actual_sha!=PINNED_GENERATED_SHA:
+        return record("BLOCKED_GENERATED_PYTHON_SHA_DRIFT",pine_lines=141,
+            expected_python_sha256=PINNED_GENERATED_SHA,
+            actual_python_sha256=actual_sha,check=check)
     dest=out/"DDDS_exact_hoox_pyne.py"
     dest.write_text(code,encoding="utf-8")
     return record("GENERATED_UNVALIDATED",pine_lines=141,check=check,
-        python_sha256=digest(code),python_bytes=len(code.encode("utf-8")),
+        python_sha256=actual_sha,python_bytes=len(code.encode("utf-8")),
         python_filename=dest.name)
 
 def main():
