@@ -142,6 +142,33 @@ def select_supported_saved_strategy():
     return None
 
 
+# This mapping is limited to a publication directly inspected in a real
+# TradingView browser on 2026-11-03. The public Pine Editor link exposes the
+# same PUB ID, but the publication's source bytes have NOT been proven equal
+# to the saved internal Pine version. Never label the screenshot TV parity.
+TV_PUBLICATION_SNAPSHOTS={
+  ("PUB;67a1548c0960450086a19d5b0ef1d467","1.0",
+   "bc7eb79dc2ea81f5a1e8d43521b720c2d6689e8bdb19f21f3e861322f5707b04"):{
+    "title":"Sequence Snap | RSI-Confirmed Reversal Scalper",
+    "page_url":"https://www.tradingview.com/script/49jNhJXM-Sequence-Snap-RSI-Confirmed-Reversal-Scalper/",
+    "image_url":"https://s3.tradingview.com/4/49jNhJXM_mid.webp",
+    "publication_id":"49jNhJXM",
+    "pine_editor_source_id":"PUB;67a1548c0960450086a19d5b0ef1d467",
+    "published_chart_symbol":"NASDAQ:NVDA",
+    "published_chart_timeframe":"2h",
+    "evidence":"ACTUAL_TRADINGVIEW_PAGE_AND_PINE_EDITOR_ID_OBSERVED",
+    "verified_on":"2026-11-03",
+    "source_byte_match_verified":False,
+    "strategy_report_parity_verified":False,
+    "published_snapshot_not_live_chart":True
+  }
+}
+
+
+def tv_publication_for(source_id,version_key,sha):
+    return TV_PUBLICATION_SNAPSHOTS.get((source_id,version_key,sha))
+
+
 def exact_stored_pine(source_id,version_key):
     """Return EXACT pinned Pine used by the DB workflow, never a same-ID latest fallback."""
     if not isinstance(source_id,str) or not 1<=len(source_id)<=240:
@@ -165,7 +192,9 @@ def exact_stored_pine(source_id,version_key):
             raise ValueError("CANONICAL_PINE_VERSION_MISMATCH")
         version_uuid=canonical["script_version_id"]
     context=context_for_source(source_id,version_key)
+    publication=tv_publication_for(source_id,version_key,sha)
     return {"source_id":source_id,"version_key":version_key,
+       "tradingview_publication":publication,
        "tradingview_original_url":(context or {}).get("source_url"),
        "tradingview_original_title":(context or {}).get("source_title"),
        "source_sha256":sha,"source":code,"kind":"strategy",
@@ -195,8 +224,10 @@ def saved_sources(limit=80):
     result.sort(key=lambda x:(not x["python_code_stored"],x["source_id"]))
     for entry in result:
         context=context_for_source(entry["source_id"],entry["version_key"])
-        entry["tradingview_original_url"]=(context or {}).get("source_url")
-        entry["tradingview_original_title"]=(context or {}).get("source_title")
+        pub=tv_publication_for(entry["source_id"],entry["version_key"],entry["source_sha256"])
+        entry["tradingview_publication"]=pub
+        entry["tradingview_original_url"]=(pub or {}).get("page_url") or (context or {}).get("source_url")
+        entry["tradingview_original_title"]=(pub or {}).get("title") or (context or {}).get("source_title")
     return {"status":"ok","sources":result,"count":len(result),
             "source":"EXISTING_SQLITE_SOURCE_REGISTRY",
             "note":"python_code_stored means code was generated previously, NOT TradingView parity verified"}
