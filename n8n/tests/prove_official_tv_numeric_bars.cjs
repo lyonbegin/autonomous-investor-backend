@@ -120,7 +120,7 @@ async function main(){
     const csv=[headers,...series.map(b=>[
       new Date(b.time_ms).toISOString(),b.open,b.high,b.low,b.close,
       b.volume===null?'':b.volume
-    ].join(','))].join('\\n')+'\\n';
+    ].join(','))].join('\n')+'\n';
     fs.writeFileSync(path.join(OUTPUT,'official-chart-AAPL-D-test-reference.csv'),csv);
   }
   // Evidence summary only, not a bulk TradingView feed redistributed as CSV.
