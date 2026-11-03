@@ -78,6 +78,20 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(data)
     def do_GET(self):
         path=urlparse(self.path).path
+        if path=="/api/pynecore-demo":
+            # The public endpoint accepts no arbitrary Python/Pine input.
+            # It runs only fixed CC0 PyneSys compiled examples on bundled
+            # genuine EURUSD bars. No broker credentials or trade execution.
+            try:
+                from demo_engine import execute_demo
+                return self.response(200, execute_demo())
+            except (RuntimeError, OSError, ImportError, ValueError, TypeError) as exc:
+                return self.response(503, {
+                    "status": "PYNECORE_DEMO_FAILED",
+                    "error": type(exc).__name__ + ": " + str(exc)[:200],
+                    "tradingview_chart_validated": False,
+                    "live_orders_enabled": False
+                })
         if path=="/api/references/lookup":
             from urllib.parse import parse_qs
             q=parse_qs(urlparse(self.path).query)
