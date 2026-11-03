@@ -357,7 +357,13 @@ async function loadFlow(f){
     '<p class="muted minor">299건은 TradingView 게시 전략의 공개 Strategy Report 거래 내역입니다. 상단 총손익은 게시 당시 보고서 값이며 실제 거래소 체결 원장이 아닙니다. 표에 표시하는 시각의 시간대는 공개 행에 명시되지 않아 추측하지 않습니다.</p></div>'+
     '<div><h4>오른쪽 · 동일한 DDDS Pine을 무료 PYNE로 변환한 Python</h4>'+
     '<div class="notice warn" id="publication-python-state">동일 Pine 소스의 변환·실행 결과를 확인하는 중입니다.</div>'+
-    '<div id="publication-python-chart" role="img" aria-label="검증된 동일 Pine 변환본 차트가 있을 때 표시" style="min-height:305px;border:1px dashed #38536c;border-radius:9px;padding:16px;color:#acc1d3">무료 PYNE 변환본이 실행돼 출력한 값만 여기에 표시합니다. SMA/Bollinger 예제는 절대 대신 표시하지 않습니다.</div>'+
+    '<div id="publication-python-chart" style="min-height:305px;border:1px dashed #38536c;border-radius:9px;padding:12px;color:#acc1d3">'+
+    '<svg id="ddds-free-python-svg" role="img" aria-label="생성된 정확한 DDDS Python을 실제 NASDAQ AMZN 2시간봉에 실행한 그래프" viewBox="0 0 840 280" style="display:none;width:100%;height:280px;background:#0a1726;border-radius:8px"></svg>'+
+    '<p id="ddds-free-chart-desc">DDDS Python의 실행 전 상태입니다. 다른 SMA/Bollinger 전략 결과로 대체하지 않습니다.</p></div>'+
+    '<div class="actions"><button class="btn primary" id="ddds-free-chart-run" data-action="ddds-free-chart-run">▶ 생성 DDDS Python 실제 실행 · AMZN 2시간봉 300개</button>'+
+    '<span class="status" id="ddds-free-chart-status" aria-live="polite">실행 전 · TV 거래 299건 동등성 미검증</span></div>'+
+    '<details><summary>DDDS Python 전략 실제 주문 이벤트(공개 차트 300봉 구간)</summary><pre class="code" id="ddds-free-chart-events">아직 실행하지 않았습니다.</pre></details>'+
+    '<p class="muted minor">오른쪽은 동일 DDDS Pine 원본을 무료 PYNE로 생성한 Python 실행입니다. 입력 데이터는 현재 NASDAQ:AMZN 120분 300봉이며, 왼쪽 저자 게시 BATS:AMZN 차트/2016~2026년 299건과 시점·시장·기간이 다릅니다. 좌우 동등성 승인 불가.</p>'+
     '<div class="actions"><button class="btn" id="free-pyne-refresh" data-action="free-pyne-refresh">▶ 실제 무료 Python 변환본 조회</button>'+
     '<button class="btn" id="free-pyne-download" data-action="free-pyne-download" disabled>↓ DDDS 생성 Python 파일</button>'+
     '<span class="status" aria-live="polite" id="free-pyne-status">동일 DDDS 변환본 조회 전</span></div>'+
@@ -414,6 +420,7 @@ async function loadFlow(f){
  if(isPython)void refreshPublishedStrategy().then(()=>refreshDDDSTrades());
  if(isPython)void refreshDDDSParityReadiness();
  if(isPython)void refreshFreePYNEArtifact();
+ if(isPython)void refreshRealDDDSFreePythonChart();
 
 }
 function showPublishedStrategy(d){
@@ -719,6 +726,73 @@ async function importPublishedStrategy(){
  }catch(e){if(st)st.textContent='원본 가져오기 실패 · '+e.message;}
  finally{if(button)button.disabled=false;}
 }
+function renderRealDDDSFreePythonChart(d){
+ const msg=document.getElementById('ddds-free-chart-status');
+ const info=document.getElementById('ddds-free-chart-desc');
+ const svg=document.getElementById('ddds-free-python-svg');
+ const events=document.getElementById('ddds-free-chart-events');
+ if(!msg||!svg||!info)return;
+ const exact=d&&d.status==='EXACT_DDDS_FREE_PYNE_EXECUTED_ON_REAL_AMZN_120_BARS'&&
+   d.pine_source_sha256==='5a245e99447f13012dd026528235fc2c299cad5cb7b228653c684886dcba6507'&&
+   d.python_sha256==='ef27e69cbb71bc101431a2f9f71783c37f1f8094a7a77e080032ca3bbd7994a1'&&
+   d.converter==='hoox-pyne-0.6.31-offline'&&
+   d.runtime==='ACTUAL_FREE_PYNE_EMITTED_PYTHON_SUBPROCESS'&&
+   d.symbol==='NASDAQ:AMZN'&&d.timeframe==='120'&&
+   d.tradingview_strategies_parity_verified===false&&
+   d.complete_2016_2026_history===false&&
+   Array.isArray(d.chart)&&d.chart.length>=40&&d.bar_count===d.chart.length;
+ if(!exact){
+  svg.style.display='none';
+  msg.textContent=d?.status||'DDDS 무료 Python 실행 전';
+  info.textContent=d?.reason||'정확히 같은 DDDS Pine에서 생성된 Python 결과가 없습니다.';
+  return;
+ }
+ svg.style.display='block';
+ plotOfficialChart('ddds-free-python-svg',d.chart,
+    ['close','Decycler','Lower band','Upper band']);
+ info.textContent='진짜 DDDS Python 생성본 · '+d.bar_count+
+    '봉 실행 · '+d.symbol+' · '+d.timeframe+'분 · '+d.captured_at+
+    ' · TradingView 공개 차트 OHLCV. 299건 전체 기간 동등성은 미검증.';
+ msg.textContent='DDDS Python 실제 실행 성공 · '+d.bar_count+
+    '봉 · 생성된 주문 이벤트 '+d.strategy_event_count+
+    '건 · Pine↔TV 동등성 미검증';
+ if(events)events.textContent=JSON.stringify({
+   events:d.strategy_events||[],
+   truncated:d.strategy_events_truncated,
+   reported_netprofit:d.reported_netprofit,
+   reported_equity:d.reported_equity,
+   pine_source_sha256:d.pine_source_sha256,
+   python_sha256:d.python_sha256,
+   tradingview_parity_verified:false
+ },null,2);
+}
+async function refreshRealDDDSFreePythonChart(){
+ if(!document.getElementById('ddds-free-chart-status'))return;
+ try{
+  const r=await api('/api/investment/free-pyne/ddds/chart/latest');
+  if(!r.ok)throw Error(r.data?.status||'HTTP '+r.status);
+  renderRealDDDSFreePythonChart(r.data);
+ }catch(e){
+  const msg=document.getElementById('ddds-free-chart-status');
+  if(msg)msg.textContent='기존 DDDS Python 실행 기록 조회 실패 · '+e.message;
+ }
+}
+async function executeRealDDDSFreePythonChart(){
+ const button=document.getElementById('ddds-free-chart-run');
+ const msg=document.getElementById('ddds-free-chart-status');
+ if(!button||button.disabled)return;
+ button.disabled=true;
+ if(msg)msg.textContent='실제 AMZN 2시간봉 확인 → 동일 DDDS 생성 Python을 격리 실행 중…';
+ try{
+  const r=await api('/api/investment/free-pyne/ddds/chart/execute',{
+    method:'POST',headers:{'Content-Type':'application/json'},body:'{}'
+  });
+  if(!r.ok)throw Error(r.data?.reason||r.data?.status||'HTTP '+r.status);
+  renderRealDDDSFreePythonChart(r.data);
+ }catch(e){
+  if(msg)msg.textContent='DDDS 실제 Python 실행 실패 · '+e.message;
+ }finally{button.disabled=false;}
+}
 function plotOfficialChart(target,rows,keys){
  const node=document.getElementById(target);if(!node)return;
  while(node.firstChild)node.removeChild(node.firstChild);
@@ -925,7 +999,8 @@ async function executeFlow(){
  }
 }
 menu.innerHTML=MENUS.map(([id,label])=>'<button class="nav" data-page="'+esc(id)+'"><span>▧</span>'+esc(label)+'</button>').join('');
-document.addEventListener('click',e=>{const target=e.target.closest('[data-page],[data-flow],[data-node],[data-action]');if(!target)return;if(target.dataset.page)setPage(target.dataset.page);else if(target.dataset.flow)loadFlow(target.dataset.flow);else if(target.dataset.node)inspect(target.dataset.node);else if(target.dataset.action==='run')executeFlow();else if(target.dataset.action==='free-pyne-refresh')refreshFreePYNEArtifact();
+document.addEventListener('click',e=>{const target=e.target.closest('[data-page],[data-flow],[data-node],[data-action]');if(!target)return;if(target.dataset.page)setPage(target.dataset.page);else if(target.dataset.flow)loadFlow(target.dataset.flow);else if(target.dataset.node)inspect(target.dataset.node);else if(target.dataset.action==='run')executeFlow();else if(target.dataset.action==='ddds-free-chart-run')executeRealDDDSFreePythonChart();
+ else if(target.dataset.action==='free-pyne-refresh')refreshFreePYNEArtifact();
  else if(target.dataset.action==='free-pyne-download')downloadExactFreePython().catch(e=>{
    const state=document.getElementById('free-pyne-status');
    if(state)state.textContent='다운로드 차단 · '+e.message;
