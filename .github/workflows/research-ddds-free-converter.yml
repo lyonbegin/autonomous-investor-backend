@@ -17,7 +17,7 @@ jobs:
         with:
           python-version: '3.12'
       - name: Install actual open-source offline Python Pine compiler
-        run: python -m pip install 'hoox-pyne==0.6.32'
+        run: python -m pip install 'hoox-pyne==0.6.31'
       - name: Run source-specific DDDS 141-line parse, compile-to-Python and synthetic smoke diagnostics
         run: |
           python - <<'PY'
@@ -29,7 +29,7 @@ jobs:
           assert sha=='5a245e99447f13012dd026528235fc2c299cad5cb7b228653c684886dcba6507'
           source=output/'DDDS_exact_141.pine';source.write_bytes(pine)
           manifest={'pine_source_sha256':sha,'source_lines':len(pine.decode().splitlines()),
-                    'source_license':'MPL-2.0','converter':'hoox-pyne==0.6.32',
+                    'source_license':'MPL-2.0','converter':'hoox-pyne==0.6.31',
                     'license':'AGPL-3.0','paid_api_used':False,
                     'tradingview_parity_verified':False,
                     'actual_tv_market_data_used':False,'synthetic_smoke_is_parity':False,
