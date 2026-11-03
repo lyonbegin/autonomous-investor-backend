@@ -206,10 +206,36 @@ def compare_published_ddds_trades(reference: dict, runtime: dict,
                    ])
 
 
+def current_published_properties_proof() -> dict:
+    """Immutable excerpt from ACTUAL Chromium-observed TradingView Properties.
+
+    Original BATS author snapshot conflicts with current NASDAQ report; this
+    document is evidence of the current public report, not equivalence proof.
+    """
+    from pathlib import Path
+    import json
+    file=Path(__file__).resolve().parent/"fixtures/ddds_verified_public_properties_20261103.json"
+    evidence=json.loads(file.read_text(encoding="utf-8"))
+    if (evidence.get("raw_properties_text_sha256")!=
+       "bd6f98715fd4c5462130dac2aa31d188d42875655cf87e5a1fc5d8e30ab0aab7" or
+       evidence.get("currently_displayed_report_symbol")!=DDDS_PUBLICATION_SYMBOL or
+       evidence.get("publication_chart_snapshot_symbol")!=DDDS_FROZEN_SNAPSHOT_SYMBOL or
+       evidence.get("symbol_discrepancy") is not True):
+        raise ValueError("PUBLISHED_DDDS_PROPERTIES_PINNED_EVIDENCE_CONFLICT")
+    matches=all(SOURCE_DEFAULTS.get(k)==v for k,v in
+                {**evidence["current_report_strategy_inputs"],
+                 **{k:v for k,v in evidence["current_report_execution"].items()
+                     if k!="slippage_ticks"}}.items())
+    evidence["current_report_inputs_match_pine_defaults"]=bool(matches)
+    evidence["same_chart_symbol_confirmed"]=False
+    return evidence
+
+
 def readiness_from_existing_cache(*, pine: str, reference: dict|None,
                                   cached_python: str|None, api_key_configured: bool,
                                   postgres_synced: bool|None = None) -> dict:
     settings=source_defaults_from_pine(pine)
+    property_evidence=current_published_properties_proof()
     has_published=(isinstance(reference,dict) and
       reference.get("status")=="PUBLISHED_DDDS_299_TRADES_CAPTURED" and
       reference.get("pine_source_sha256")==DDDS_SOURCE_SHA and
@@ -237,6 +263,16 @@ def readiness_from_existing_cache(*, pine: str, reference: dict|None,
       pynecomp_api_key_configured=bool(api_key_configured),
       postgres_synced=postgres_synced,
       source_input_defaults=settings,
+      published_properties_observed_at=property_evidence["observed_at"],
+      published_properties_evidence_url=property_evidence["evidence_run"],
+      published_properties_current_report_inputs_match_defaults=
+          property_evidence["current_report_inputs_match_pine_defaults"],
+      published_properties_trade_range_display=
+          property_evidence["current_report_trading_range_display"],
+      published_properties_backtest_range_display=
+          property_evidence["current_report_backtesting_range_display"],
+      published_properties_slippage_ticks=
+          property_evidence["current_report_execution"]["slippage_ticks"],
       published_chart_snapshot_symbol=DDDS_FROZEN_SNAPSHOT_SYMBOL,
       current_strategy_report_properties_symbol=DDDS_PUBLICATION_SYMBOL,
       strategy_report_symbol_conflict=True,
