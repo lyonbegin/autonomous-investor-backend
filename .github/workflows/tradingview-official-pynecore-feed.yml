@@ -1,0 +1,50 @@
+name: Official TV chart OHLCV to pinned PyneCore runner
+on:
+  push:
+    branches: [feature/tradingview-official-network-audit-20261103]
+    paths:
+      - 'n8n/tests/prove_official_tv_numeric_bars.cjs'
+      - 'n8n/tests/test_official_tv_to_pynecore_feed.py'
+      - '.github/workflows/tradingview-official-pynecore-feed.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  real-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: tv
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/wf02-pynecore-rights-gate-20261103
+          path: core
+      - name: Install headless Chromium
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Capture genuine public TradingView AAPL daily bars in ordinary browser
+        env:
+          TV_BAR_AUDIT_DIR: /tmp/tv-official-test-data
+          TV_BAR_WRITE_TEST_CSV: '1'
+        run: node tv/n8n/tests/prove_official_tv_numeric_bars.cjs
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install previously validated PyneCore v6.11.1
+        run: python -m pip install 'pynesys-pynecore==6.11.1'
+      - name: Feed official TV browser data into actual PyneCore ScriptRunner
+        env:
+          TV_OFFICIAL_TEST_CSV: /tmp/tv-official-test-data/official-chart-AAPL-D-test-reference.csv
+          TV_PYNECORE_CHECKOUT: core
+        run: python tv/n8n/tests/test_official_tv_to_pynecore_feed.py
+      - name: Archive numeric evidence and actual browser-derived OHLCV test source
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: official-tv-aapl-ohlcv-pynecore-real-e2e
+          path: /tmp/tv-official-test-data/
+          if-no-files-found: warn
+          retention-days: 14
