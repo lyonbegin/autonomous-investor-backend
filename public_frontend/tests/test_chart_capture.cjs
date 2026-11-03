@@ -31,8 +31,9 @@ const CASES=[
       payload.bars.length<40||!payload.bars[0].time_ms||
       !payload.bars[0].close||!Array.isArray(payload.trades))
     throw Error('CHART_OUTPUT_NOT_REAL '+JSON.stringify({kind:item.kind,report,payload}).slice(0,650));
-   if(item.kind==='indicator'&&payload.plot_names.length===0)
-    throw Error('INDICATOR_PLOT_SERIES_EMPTY');
+   // Many legitimate Pine indicators draw line/box/label shapes without plot().
+   // OHLCV and the run's source identity are still required. Numeric plot
+   // series are validated separately with a known plot-producing script.
    if(item.kind==='strategy'&&payload.kind!=='strategy')
     throw Error('STRATEGY_KIND_MISMATCH '+payload.kind);
    if(errors.length)throw Error('BROWSER_JS_ERROR '+errors.join(';').slice(0,700));
