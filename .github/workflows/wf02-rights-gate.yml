@@ -5,6 +5,8 @@ on:
     paths:
       - 'n8n/editor-adapter/investment_wf02.py'
       - 'n8n/tests/test_wf02_rights_gate_20261103.py'
+      - 'n8n/tests/test_pynecore_bridge.py'
+      - 'n8n/pine-parity/pynecore_bridge.py'
       - '.github/workflows/wf02-rights-gate.yml'
   workflow_dispatch:
 permissions:
