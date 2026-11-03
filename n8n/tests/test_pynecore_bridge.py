@@ -14,6 +14,7 @@ from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "pine-parity"))
 from pynecore_bridge import ParityInputError, read_reference, run_compiled_pynecore
 from pynecore_worker import execute_job
+from keypoint_parity import compare_keypoints
 
 # A hand-authored PyneCore test fixture; NOT claimed to be PyneComp output.
 FIXTURE = '''"""
@@ -89,6 +90,36 @@ class TestRealPyneCoreRunner(unittest.TestCase):
         self.assertEqual(result["comparison"][0]["mismatch_count"], 1)
         self.assertEqual(result["comparison"][0]["first_mismatches"][0]["bar_index"], 9)
 
+    def test_existing_keypoint_comparator_reports_real_pynecore_mismatch(self):
+        data_root = Path(self.tmp.name) / "data"
+        result_root = Path(self.tmp.name) / "results"
+        data_root.mkdir()
+        result_root.mkdir()
+        reference = data_root / "tv.csv"
+        reference.write_text(bars_csv(corrupt_reference=True), encoding="utf-8")
+        job = data_root / "job.json"
+        job.write_text(json.dumps({
+            "job_id": "mismatch-worker-ci-1",
+            "compiled_python": str(self.path),
+            "python_sha256": self.sha,
+            "reference_csv": str(reference),
+            "syminfo": SYMBOL,
+            "plot_mapping": {"Price": "TV Price"},
+        }), encoding="utf-8")
+        with patch.dict(os.environ, {
+            "INVESTMENT_PYNECORE_DATA_ROOT": str(data_root),
+            "INVESTMENT_PYNECORE_RESULT_ROOT": str(result_root),
+        }):
+            output = execute_job(job)
+            result = json.loads(output.read_text(encoding="utf-8"))
+            actual = Path(result["pynecore_csv_path"]).read_text(encoding="utf-8")
+            check = compare_keypoints(reference.read_text(encoding="utf-8"), actual)
+        self.assertEqual(check["status"], "KEYPOINTS_DIFFER")
+        self.assertEqual(check["mismatch_total"], 1)
+        self.assertEqual(check["keypoints"][0]["group"], "PLOT")
+        self.assertEqual(check["keypoints"][0]["field"], "tv price")
+        self.assertFalse(check["verified"])
+
     def test_never_run_without_isolation(self):
         with patch.dict(os.environ, {"INVESTMENT_ISOLATED_PYNECORE_WORKER": "0"}):
             with self.assertRaisesRegex(ParityInputError, "ISOLATED_PYNECORE_WORKER_REQUIRED"):
@@ -130,6 +161,14 @@ class TestRealPyneCoreRunner(unittest.TestCase):
             self.assertTrue(result["numeric_plot_match"])
             self.assertFalse(result["conversion_validated"])
             self.assertEqual(result["job_id"], "pynecore-worker-ci-1")
+            exported_csv = Path(result["pynecore_csv_path"]).read_text(encoding="utf-8")
+            from keypoint_parity import compare_keypoints
+            compared = compare_keypoints(reference.read_text(encoding="utf-8"), exported_csv)
+            self.assertEqual(compared["mismatch_total"], 0)
+            self.assertEqual(compared["aligned_bars"], 20)
+            self.assertEqual(compared["comparison_columns"]["plots"], ["tv price"])
+            self.assertEqual(compared["status"], "KEYPOINTS_PARTIAL_NO_ORDER_OR_PLOT_EXPORT")
+            self.assertFalse(compared["verified"])
             with self.assertRaises(FileExistsError):
                 execute_job(job)
 
