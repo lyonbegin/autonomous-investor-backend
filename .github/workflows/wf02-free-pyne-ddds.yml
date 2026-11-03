@@ -5,6 +5,8 @@ on:
     paths:
       - 'n8n/editor-adapter/investment_free_pyne.py'
       - 'n8n/editor-adapter/investment_wf02.py'
+      - 'n8n/editor-adapter/investment_pipeline.py'
+      - 'n8n/tests/test_free_pyne_integrated_pipeline.py'
       - 'n8n/tests/test_wf02_free_pyne_compiler.py'
       - 'n8n/admin-console/index.html'
       - 'n8n/workflows/operations/WF02-pine-to-python.json'
@@ -50,6 +52,8 @@ jobs:
           assert len(connected)==5,connected
           print('DDDS_ORIGINAL_6_NODE_GRAPH_BOUND_AND_CONNECTED')
           PY
+      - name: Integrated stock automation controller same real source and free WF02
+        run: python -m unittest discover -s n8n/tests -p 'test_free_pyne_integrated_pipeline.py' -v
       - name: Python and frontend syntax
         run: |
           python -m py_compile n8n/editor-adapter/investment_free_pyne.py n8n/editor-adapter/investment_wf02.py n8n/editor-adapter/investment_studio_server.py
