@@ -2,6 +2,7 @@
 import csv
 import hashlib
 import io
+import json
 import os
 import sys
 import tempfile
@@ -12,6 +13,7 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "pine-parity"))
 from pynecore_bridge import ParityInputError, read_reference, run_compiled_pynecore
+from pynecore_worker import execute_job
 
 # A hand-authored PyneCore test fixture; NOT claimed to be PyneComp output.
 FIXTURE = '''"""
@@ -101,6 +103,35 @@ class TestRealPyneCoreRunner(unittest.TestCase):
         source = bars_csv().replace("+00:00", "")
         with self.assertRaisesRegex(ParityInputError, "TIMEZONE_REQUIRED"):
             read_reference(source)
+
+    def test_isolated_job_writes_real_result_and_blocks_duplicate(self):
+        data_root = Path(self.tmp.name) / "data"
+        result_root = Path(self.tmp.name) / "results"
+        data_root.mkdir()
+        result_root.mkdir()
+        reference = data_root / "reference.csv"
+        reference.write_text(bars_csv(), encoding="utf-8")
+        job = data_root / "job.json"
+        job.write_text(json.dumps({
+            "job_id": "pynecore-worker-ci-1",
+            "compiled_python": str(self.path),
+            "python_sha256": self.sha,
+            "reference_csv": str(reference),
+            "syminfo": SYMBOL,
+            "plot_mapping": {"Price": "TV Price"},
+            "compiler_reference": "HANDWRITTEN_PYNECORE_CI_FIXTURE",
+        }), encoding="utf-8")
+        with patch.dict(os.environ, {
+            "INVESTMENT_PYNECORE_DATA_ROOT": str(data_root),
+            "INVESTMENT_PYNECORE_RESULT_ROOT": str(result_root),
+        }):
+            output_path = execute_job(job)
+            result = json.loads(output_path.read_text(encoding="utf-8"))
+            self.assertTrue(result["numeric_plot_match"])
+            self.assertFalse(result["conversion_validated"])
+            self.assertEqual(result["job_id"], "pynecore-worker-ci-1")
+            with self.assertRaises(FileExistsError):
+                execute_job(job)
 
 
 if __name__ == "__main__":
