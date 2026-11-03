@@ -14,6 +14,12 @@ const dir=process.env.WF02_299_EVIDENCE||'/tmp/ddds-299-live';
   const response=await page.goto(base+'/admin/index.html?section=convert',
     {waitUntil:'domcontentloaded',timeout:45000});
   if(response?.status()!==200)throw Error('EXISTING_WF02_NOT_HTTP_200');
+  const diagnostics=page.locator('#wf02-unrelated-aapl-diagnostics');
+  if(await diagnostics.count()!==1 || await diagnostics.getAttribute('open')!==null)
+    throw Error('UNRELATED_AAPL_SMA_DIAGNOSTICS_MUST_BE_COLLAPSED');
+  const primary=page.locator('#published-strategy-reference');
+  if(await primary.count()!==1)
+    throw Error('ORIGINAL_DDDS_STRATEGY_PANEL_MISSING');
   const btn=page.locator('#ddds-trades-capture');
   await btn.waitFor({timeout:45000});
   await page.waitForFunction(()=>document.getElementById('tv-publication-status')?.
