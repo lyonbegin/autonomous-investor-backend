@@ -37,6 +37,15 @@ const out=process.env.WF02_PUBLISHED_EVIDENCE_DIR;
       actualSourceChars:actualSource?.length,expectedSourceChars:ref.pine_source.length,
       sourceHead:actualSource?.slice(0,80),expectedHead:ref.pine_source.slice(0,80)
     }));
+  await page.waitForFunction(()=>{
+    const image=document.getElementById('publication-official-image');
+    return Boolean(image?.complete && image.naturalWidth>0 && image.naturalHeight>0);
+  },null,{timeout:18000});
+  const photo=await page.locator('#publication-official-image').evaluate(x=>({
+    naturalWidth:x.naturalWidth,naturalHeight:x.naturalHeight
+  }));
+  if(photo.naturalWidth<300||photo.naturalHeight<150)
+    throw Error('TRADINGVIEW_PUBLISHED_CHART_PREVIEW_NOT_RENDERED '+JSON.stringify(photo));
   const state=await page.locator('#publication-python-state').innerText();
   if(!state.includes('미검증')||!state.includes('DDDS'))
     throw Error('UNRELATED_PYTHON_RESULT_WAS_PRESENTED_AS_DDDS '+state);
