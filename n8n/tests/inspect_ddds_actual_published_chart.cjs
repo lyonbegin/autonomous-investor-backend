@@ -4,7 +4,7 @@
 const {chromium}=require('playwright');
 const fs=require('fs');
 const path=require('path');
-const URL='https://www.tradingview.com/script/LkgKT3TG-Displaced-Donchian-Decycler-Trend-Breakout-Strategy-with-MFI/';
+const PUBLICATION_URL='https://www.tradingview.com/script/LkgKT3TG-Displaced-Donchian-Decycler-Trend-Breakout-Strategy-with-MFI/';
 const OUT=process.env.DDDS_ORIGINAL_CHART_PROBE_DIR||'/tmp/ddds-original-chart-probe';
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const text=x=>String(x||'').replace(/\s+/g,' ').slice(0,220);
@@ -12,7 +12,7 @@ const text=x=>String(x||'').replace(/\s+/g,' ').slice(0,220);
  fs.mkdirSync(OUT,{recursive:true});
  const browser=await chromium.launch({headless:true,args:['--disable-dev-shm-usage']});
  const report={
-   status:'INSPECTION_STARTED',publication_url:URL,access:'PUBLIC_CHROMIUM',
+   status:'INSPECTION_STARTED',publication_url:PUBLICATION_URL,access:'PUBLIC_CHROMIUM',
    http_status:null,title:null,chart_container_found:false,chart_content_kind:null,
    chart_container_markup_preview:null,chart_links:[],chart_buttons:[],
    canvas_count:0,iframe_count:0,iframe_sources:[],charts_visible_from_dom:[],
@@ -52,7 +52,7 @@ const text=x=>String(x||'').replace(/\s+/g,' ').slice(0,220);
     }catch(e){}
  });
  try{
-   const loaded=await page.goto(URL,{waitUntil:'domcontentloaded',timeout:60000});
+   const loaded=await page.goto(PUBLICATION_URL,{waitUntil:'domcontentloaded',timeout:60000});
    report.http_status=loaded?.status()||null;
    await sleep(8500);
    report.title=await page.title();
