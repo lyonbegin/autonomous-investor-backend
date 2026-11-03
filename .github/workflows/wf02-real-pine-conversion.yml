@@ -28,9 +28,10 @@ jobs:
           PYTHONPATH=n8n/pine-parity python3 -m unittest discover -s n8n/pine-parity -p 'test_*.py' -v
       - name: Install and import actual PyneCore runtime
         run: |
-          python3 -m pip install "pynesys-pynecore==6.11.1"
-          python3 -c 'import importlib.metadata; from pynecore.core.script_runner import ScriptRunner; print("PYNECORE_RUNTIME_INSTALLED",importlib.metadata.version("pynesys-pynecore"))'
-          PYTHONPATH=n8n/editor-adapter python3 -m unittest n8n/editor-adapter/test_investment_pynecore_runtime.py -v
+          python3 -m venv /tmp/pynecore-runtime-test
+          /tmp/pynecore-runtime-test/bin/pip install "pynesys-pynecore==6.11.1"
+          /tmp/pynecore-runtime-test/bin/python -c 'import importlib.metadata; from pynecore.core.script_runner import ScriptRunner; print("PYNECORE_RUNTIME_INSTALLED",importlib.metadata.version("pynesys-pynecore"))'
+          PYTHONPATH=n8n/editor-adapter /tmp/pynecore-runtime-test/bin/python -m unittest n8n/editor-adapter/test_investment_pynecore_runtime.py -v
       - name: Wait until real Railway WF02 workflow is present
         run: |
           python3 - <<'PY'
