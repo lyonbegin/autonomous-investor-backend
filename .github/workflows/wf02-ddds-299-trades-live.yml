@@ -1,0 +1,41 @@
+name: LIVE original WF02 DDDS 299 official public trades browser
+on:
+  push:
+    branches: [feature/wf02-ddds-real-node-registration-20261103]
+    paths:
+      - 'n8n/tests/test_live_ddds_299_official_trades_center.cjs'
+      - '.github/workflows/wf02-ddds-299-trades-live.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  genuine-report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install headless Chromium
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Verify existing admin UI has real 299-trades reference button
+        run: |
+          for n in $(seq 1 40); do
+            if curl -fsS https://investment-n8n-native-editor-production.up.railway.app/admin/index.html |
+               grep -q 'ddds-trades-capture'; then exit 0; fi
+            sleep 4
+          done
+          exit 1
+      - name: Actually click DDDS trade capture, observe 299 actual public TradingView rows in WF02
+        env:
+          WF02_EDITOR_BASE: https://investment-n8n-native-editor-production.up.railway.app
+          WF02_299_EVIDENCE: /tmp/ddds-299-live
+        run: node n8n/tests/test_live_ddds_299_official_trades_center.cjs
+      - name: Archive Railway browser screenshot and provenance summary (not bulk trade redistributor)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ddss-299-real-railway-wf02-browser
+          path: /tmp/ddds-299-live/
+          if-no-files-found: warn
+          retention-days: 14
