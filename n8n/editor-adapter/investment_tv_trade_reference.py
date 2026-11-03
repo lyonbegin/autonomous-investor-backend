@@ -83,6 +83,20 @@ def capture(sid: str, *, root: Path = ROOT, transport=None) -> dict:
         raw=t.get("raw_visible_trade")
         if not isinstance(raw,str) or len(raw)>800:
             raise ValueError("OFFICIAL_PUBLISHED_TRADE_ROW_MISSING")
+        # Price fields must match the actual posted row, not only the same
+        # internally consistent but potentially corrupted parsed JSON.
+        import re
+        fields=[line.strip().replace("\u202f"," ") for line in raw.splitlines() if line.strip()]
+        first=re.match(r"^(\\d{1,4})\\s*(Long|Short)\\b",fields[0],re.I) if fields else None
+        if not first or int(first.group(1))!=t["trade_number"] or first.group(2).upper()!=t["side"]:
+            raise ValueError("OFFICIAL_PUBLISHED_TRADE_NUMBER_SIDE_RAW_MISMATCH")
+        usd_prices=[]
+        for i in range(len(fields)-1):
+            if fields[i+1]=="USD":
+                try:usd_prices.append(float(fields[i].replace("−","-").replace(",","")))
+                except ValueError:pass
+        if len(usd_prices)<2 or usd_prices[0]!=t["exit_price_display"] or usd_prices[1]!=t["entry_price_display"]:
+            raise ValueError("OFFICIAL_PUBLISHED_TRADE_PRICE_RAW_TEXT_MISMATCH")
     digest=hashlib.sha256(
         "\n".join(f'{row["trade_number"]}\t{row["raw_visible_trade"]}' for row in trades)
         .encode("utf-8")).hexdigest()
