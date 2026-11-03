@@ -53,8 +53,8 @@ jobs:
                   db.execute("INSERT INTO untouched_legacy(value) VALUES('PRESERVE')")
               health=pg.bootstrap()
               assert health['tables']==38,health
-              from test_investment_wf02 import SUPPORTED
-              source=SUPPORTED
+              from test_investment_wf02 import PINE
+              source=PINE
               payload={'candidate':{'source_id':'PUB;db-integration-one','version_key':'1.0',
                  'source_url':'https://www.tradingview.com/script/ABCDEFGH/','title':'DB TEST'},
                  'pine_code':source}
@@ -65,9 +65,14 @@ jobs:
               loaded=execute_wf02_node01({'ui_selection':'strategy','requested_detail_limit':1,
                  'source_id':'PUB;db-integration-one','version_key':'1.0'},workflow_kind='strategy')
               assert loaded['script_version_id']==result['script_version_id']
-              conv=execute_wf02_node02(loaded,workflow_kind='strategy')
-              assert conv['conversion_id'] and conv['status']=='PYTHON_GENERATED',conv
-              assert conv['script_version_id']==result['script_version_id']
+              deps=execute_wf02_node02(loaded,workflow_kind='strategy')
+              assert deps['status']=='LIBRARIES_RESOLVED' and not deps['resolved_libraries'],deps
+              # Explicit DB write contract test only: test fixture is NOT
+              # a real PyneComp compile or validated conversion.
+              fixture=pg.record_conversion('PUB;db-integration-one','1.0',
+                   'def synthetic_db_artifact_fixture(): return 1',
+                   'DB_TEST_FIXTURE_NOT_PYNECOMP','TEST_ONLY_NOT_VALIDATED')
+              assert fixture['script_version_id']==result['script_version_id']
               counts=pg.counts()
               assert counts['scripts']==1 and counts['versions']==1 and counts['conversions']==1,counts
               before=pg.record_source('strategy','PUB;db-integration-one','1.0',source)
@@ -75,7 +80,7 @@ jobs:
               with sqlite3.connect(os.environ['STUDIO_DB_PATH']) as db:
                   assert db.execute("SELECT value FROM untouched_legacy").fetchone()[0]=='PRESERVE'
               imported=pg.import_legacy()
-              assert imported['sources']==1 and imported['conversions']==1,imported
+              assert imported['sources']==1 and imported['conversions']==0,imported
               assert pathlib.Path(imported['backup']).is_file()
               with pg.connect() as db:
                   fk=db.execute("""SELECT count(*) FROM pg_constraint WHERE contype='f'
