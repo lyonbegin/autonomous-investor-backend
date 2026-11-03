@@ -2,6 +2,7 @@ import {useEffect,useState} from 'react';
 import {api,API} from '../../api';
 import type {PineSource,PineVisualResponse} from '../../types';
 import {PineChartControl} from '../../components/PineChartControl';
+import {DddsSharedChartCompare,DDDS_ID,DDDS_SHA} from '../../components/DddsSharedChartCompare';
 
 type TradingViewPublication={
   title:string;
@@ -67,7 +68,7 @@ export function PineSideBySidePage({id,go}:{id:string,go:(p:string)=>void}){
     setError('');setFetching(true);setSource(null);setChart(null);
     setOriginal(null);setOriginalImage('pending');
     if(exactMode){
-      const actualSymbol=clean(query.get('symbol')||'NASDAQ:NVDA');
+      const actualSymbol=clean(query.get('symbol')||(id===DDDS_ID?'NASDAQ:AMZN':'NASDAQ:NVDA'));
       const actualHorizon=clean(query.get('horizon')||'2h');
       setSymbol(actualSymbol);setHorizon(actualHorizon);
       exactLoad(actualSymbol,actualHorizon).then(result=>{
@@ -87,8 +88,8 @@ export function PineSideBySidePage({id,go}:{id:string,go:(p:string)=>void}){
     }else{
       Promise.all([api.scriptSource(id),api.scriptMeta(id)]).then(([s,m])=>{
         if(!alive)return;
-        const currentSymbol=clean(query.get('symbol')||m.symbol||'BINANCE:BTCUSDT');
-        const currentHorizon=clean(query.get('horizon')||initialHorizon(m.interval));
+        const currentSymbol=clean(query.get('symbol')||(id===DDDS_ID?'NASDAQ:AMZN':m.symbol)||'BINANCE:BTCUSDT');
+        const currentHorizon=clean(query.get('horizon')||(id===DDDS_ID?'2h':initialHorizon(m.interval)));
         setSymbol(currentSymbol);setHorizon(currentHorizon);
         if(!s.source)throw Error('기존 TradingView 데이터베이스에서 Pine 원본을 찾지 못했습니다.');
         setSource(s);
@@ -121,7 +122,19 @@ export function PineSideBySidePage({id,go}:{id:string,go:(p:string)=>void}){
   }
 
   const supported=Boolean(chart?.visual&&chart.visual.adapter!=='unsupported'&&!chart.visual.error);
-  const previewReady=original!==null&&originalImage==='loaded'&&supported;  return <main className="pine-compare-page">
+  const previewReady=original!==null&&originalImage==='loaded'&&supported;
+  if(id===DDDS_ID)return <main className="pine-compare-page">
+    <button className="back" onClick={()=>go('/scripts/'+encodeURIComponent(id))}>← DDDS 전략 상세</button>
+    {fetching&&<section className="panel"><p>우리 사이트 기존 DDDS Pine 원본·시세 차트를 불러오는 중...</p></section>}
+    {error&&<section className="panel"><h2>DDDS 실제 데이터 연결 오류</h2>
+       <p>{error}</p><p>다른 종목·전략·이미지로 대체하지 않습니다.</p></section>}
+    {!fetching&&!error&&source?.source&&chart?
+      <DddsSharedChartCompare id={id} source={source.source}
+         sourceSha={source.source_hash||''} chart={chart}/>:
+      !fetching&&!error&&<section className="panel"><p>정확한 DDDS 원본과 2시간봉 데이터를 불러오지 못했습니다.</p></section>}
+    {!fetching&&source?.source_hash!==DDDS_SHA&&<p>DDDS 원본 SHA 검증 미통과. 다른 원본으로 실행하지 않습니다.</p>}
+  </main>;
+  return <main className="pine-compare-page">
     <button className="back" onClick={()=>go('/scripts/'+encodeURIComponent(id))}>← 기존 전략 상세</button>
     <section className="panel">
       <h1>TradingView 원본 게시 차트 ↔ Python 전략 차트</h1>
