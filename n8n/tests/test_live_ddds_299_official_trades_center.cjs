@@ -20,8 +20,20 @@ const dir=process.env.WF02_299_EVIDENCE||'/tmp/ddds-299-live';
     open:await diagnostics.count()?await diagnostics.getAttribute('open'):null,
     sourceMarker:await page.locator('body').evaluate(el=>el.innerHTML.includes('wf02-unrelated-aapl-diagnostics')),
     currentUrl:page.url(),
-    detailsCount:await page.locator('details').count()
+    detailsCount:await page.locator('details').count(),
+    publicationPanels:await page.locator('#published-strategy-reference').count(),
+    diagnosticButtons:await page.locator('#tv-chart-start').count(),
+    reportStatus:await page.locator('#tv-publication-status').allTextContents(),
+    actionButton:await page.locator('#ddds-trades-capture').count()
   };
+  fs.mkdirSync(dir,{recursive:true});
+  await page.screenshot({path:dir+'/debug-before-ddds.png',fullPage:true});
+  console.log('WF02_DOCUMENT_ACTUAL_TAGS',JSON.stringify(await page.locator('body').evaluate(el=>({
+    details:Array.from(el.querySelectorAll('details')).slice(0,4).map(x=>x.outerHTML.slice(0,110)),
+    panels:Array.from(el.querySelectorAll('[id]')).filter(x=>x.id.includes('published')||x.id.includes('unrelated')||x.id.includes('ddds-')).map(x=>({id:x.id,tag:x.tagName})).slice(0,15),
+    execOuter:el.querySelector('#flow-panel')?.outerHTML.slice(0,220),
+    sourceLen:el.innerHTML.length
+  }))));
   console.log('WF02_DIAGNOSTIC_UI_PROOF',JSON.stringify(diagnosticState));
   if(diagnosticState.count!==1 || diagnosticState.open!==null)
     throw Error('UNRELATED_AAPL_SMA_DIAGNOSTICS_MUST_BE_COLLAPSED '+JSON.stringify(diagnosticState));
