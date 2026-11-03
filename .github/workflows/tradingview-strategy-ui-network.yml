@@ -1,0 +1,32 @@
+name: Official TradingView strategy and study transport UI audit
+on:
+  push:
+    branches: [feature/tradingview-official-network-audit-20261103]
+    paths:
+      - 'n8n/tests/inspect_official_tv_strategy_ui.cjs'
+      - '.github/workflows/tradingview-strategy-ui-network.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Chromium
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Observe actual public TradingView chart and attempt adding an official strategy
+        env:
+          TV_STRATEGY_AUDIT_DIR: /tmp/tv-strategy-audit
+        run: node n8n/tests/inspect_official_tv_strategy_ui.cjs
+      - name: Archive sanitized UI/screenshots and WS method metadata
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: official-tv-strategy-panel-network-audit
+          path: /tmp/tv-strategy-audit/
+          if-no-files-found: warn
+          retention-days: 14
