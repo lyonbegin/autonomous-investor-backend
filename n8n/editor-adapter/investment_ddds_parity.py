@@ -336,6 +336,31 @@ def readiness_for_studio_session(sid: str) -> dict:
         "published_properties_verified":False,
         "live_execution_available":False
     })
+    # This is ACTUAL DDDS free PYNE execution on published TradingView AMZN
+    # 120-minute bars. It is NOT PyneCore, not a full-history backtest, and
+    # cannot imply TradingView trade/plot parity.
+    from investment_free_pyne_chart import latest as latest_free_ddds_chart
+    execution=latest_free_ddds_chart(sid)
+    has_actual_free_ddds_run=(
+        execution.get("status")=="EXACT_DDDS_FREE_PYNE_EXECUTED_ON_REAL_AMZN_120_BARS"
+        and execution.get("pine_source_sha256")==DDDS_SOURCE_SHA
+        and execution.get("python_sha256")==readiness.get("exact_free_pyne_python_sha256")
+        and execution.get("runtime")=="ACTUAL_FREE_PYNE_EMITTED_PYTHON_SUBPROCESS"
+        and execution.get("symbol")=="NASDAQ:AMZN"
+        and execution.get("timeframe")=="120"
+        and execution.get("tradingview_strategies_parity_verified") is False
+        and execution.get("complete_2016_2026_history") is False
+        and isinstance(execution.get("bar_count"),int)
+        and execution["bar_count"]>=40)
+    readiness["actual_ddds_free_pyne_run_available"]=bool(has_actual_free_ddds_run)
+    readiness["actual_ddds_free_pyne_run_bars"]=(execution["bar_count"]
+        if has_actual_free_ddds_run else 0)
+    readiness["actual_ddds_free_pyne_order_events"]=(execution.get("strategy_event_count")
+        if has_actual_free_ddds_run else None)
+    if has_actual_free_ddds_run:
+        readiness["missing_requirements"]=[
+            item for item in readiness["missing_requirements"]
+            if item!="ISOLATED_DDDS_FREE_PYNE_RUNTIME_RESULT"]
     if rights!="APPROVED":
         readiness["missing_requirements"].insert(0,"EXACT_DDDS_MPL_SOURCE_APPROVAL")
     if not sqlite_present:
