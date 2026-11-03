@@ -84,10 +84,10 @@ const INTEGRATED=[
 ];
 function integratedHtml(){
  return '<section class="panel" id="integrated-section"><h3>전체 자동화 4단계 연속 실행</h3>'+
- '<p class="helper">실행: Pine 원본 고정 → import Library 재귀 해석·재사용 → PyneComp 전체 소스 Python 컴파일 → PyneCore 실행 검증 준비 → TradingView 핵심 지점 비교. 현재 PyneComp 인증키 및 PyneCore 그래프 실행이 없으면 전체 검증을 차단합니다.</p>'+
+ '<p class="helper">실행: Pine 원본 고정 → import Library 재귀 해석·재사용 → 무료 PYNE 로컬 전체 Pine→Python 컴파일 → 실제 DDDS 실행 가능 여부 확인 → TradingView 핵심 지점 비교. 유료 API 키는 필요 없습니다. 공식 주문·체결 동등성 검증이 없으면 승인하지 않습니다.</p>'+
  '<label class="form-field" for="integrated-source">실행할 전략 원본 버전 · 통합 DB 등록 결과<input type="hidden" id="selected-source-hidden"><select class="form-control" id="integrated-source"><option value="">자동 수집 → DB 기존 원본 재사용</option></select></label>'+
  '<p class="helper" id="source-choice-state">SQLite에 보존된 전략 목록을 확인 중입니다.</p>'+
- '<div class="notice warn" id="pynecomp-runtime-status">PyneComp 외부 컴파일 서비스 연결·인증 상태 확인 중</div>'+
+ '<div class="notice warn" id="pynecomp-runtime-status">무료 로컬 PYNE 설치·실행 상태 확인 중</div>'+
  '<div class="actions"><button class="btn primary" id="integrated-start" data-action="integrated-start">▶ 전체 4단계 한 번에 실행</button>'+
  '<button class="btn" data-action="integrated-refresh">실행 이력 갱신</button>'+
  '<a class="btn" href="#integrated-native-compare">좌우 전략 차트 확인</a>'+
@@ -101,7 +101,7 @@ function integratedHtml(){
  '<div class="actions" id="integrated-charts"></div></div></div>'+
  '<div class="panel" id="integrated-native-compare"><h3>좌우 차트 · TradingView 원본 ↔ Python 실행 결과</h3>'+
  '<p class="muted minor" id="integrated-source-identity">실행 결과의 정확한 source_id, version_key, SHA-256을 확인합니다.</p>'+
- '<p class="helper">PyneComp로 새로 생성된 Python을 PyneCore로 실행한 결과만 변환 검증에 사용할 수 있습니다. 예전 Quant 제한형 Python 그래프는 기존 연구 기록일 뿐이며 새 PyneCore 변환의 검증 근거로 사용하지 않습니다. 왼쪽은 확인된 TradingView 게시 이미지입니다.</p>'+
+ '<p class="helper">무료 PYNE가 동일 Pine 원본으로 생성한 Python과 검증 가능한 실제 실행 결과만 DDDS 차트로 사용할 수 있습니다. 예전 Quant 제한형 Python 그래프는 기존 연구 기록일 뿐이며 새 PyneCore 변환의 검증 근거로 사용하지 않습니다. 왼쪽은 확인된 TradingView 게시 이미지입니다.</p>'+
  '<div id="native-compare-target">선택된 PostgreSQL 원본 버전과 확인된 TradingView 원본 게시물의 연결을 조회합니다.</div></div>'+
  '<div class="panel" id="integrated-final-review"><h3>추가 검증 · TradingView 플롯·CSV와 Python 수치 동등성</h3>'+
  '<div class="grid2"><div class="area"><b>TradingView 실제 플롯·CSV 기준자료</b><div id="integrated-left-chart" class="empty">게시 차트 이미지는 위에서 표시합니다. 거래·지표별 정량 CSV는 아직 확보되지 않음</div></div>'+
@@ -119,15 +119,15 @@ async function loadSavedSources(){
   const current=menu.value;
   menu.innerHTML='<option value="">자동 수집 → DB 기존 원본 재사용</option>'+
     availableSources.map((s,i)=>'<option value="'+i+'">'+esc(s.source_id)+
-      ' · 버전 '+esc(s.version_key)+' · '+(s.pynecomp_generated_stored?'PyneComp 변환 이력 있음':s.legacy_python_code_stored?'기존 제한형 변환만 있음':'새 Python 변환 없음')+
+      ' · 버전 '+esc(s.version_key)+' · '+(s.free_pyne_generated_stored?'무료 PYNE 변환 이력 있음':s.legacy_python_code_stored?'기존 제한형 변환만 있음':'새 Python 변환 없음')+
       ' · '+esc(s.saved_at||'')+'</option>').join('');
   if(current&&Number(current)<availableSources.length)menu.value=current;
   if(integratedRunId&&page==='tests')refreshIntegrated(integratedRunId);
-  if(note)note.textContent=availableSources.length+'개 저장 원본 확인 · 자동 모드는 신규 원본이 없으면 PyneComp 캐시 우선으로 원본을 선택합니다. 과거 RSI 변환 결과는 새 PyneComp 코드로 취급하지 않습니다.';
+  if(note)note.textContent=availableSources.length+'개 저장 원본 확인 · 자동 모드는 신규 원본이 없으면 무료 PYNE 동일 원본 캐시 우선으로 원본을 선택합니다. 과거 RSI 변환 결과는 새 PyneComp 코드로 취급하지 않습니다.';
   const setup=document.getElementById('pynecomp-runtime-status');
-  if(setup)setup.textContent=r.data.pynecomp?.api_key_configured?
-    'PyneComp API 인증 설정 확인됨 · 생성 Python은 PyneCore 실행 및 TradingView 중요 지점 일치 검증 전까지 미승인입니다.':
-    'PyneComp API 인증키 PYNESYS_API_KEY 미설정 · 실제 Pine→Python 전체 컴파일은 차단됩니다. 기존 제한형 변환기로 대신 실행하지 않습니다.';
+  if(setup)setup.textContent=r.data.free_pyne?.installed?
+    '무료 PYNE 로컬 컴파일러 설치 확인됨 · 생성 Python은 TradingView 299건 거래 일치 검증 전까지 미승인입니다.':
+    '무료 PYNE 로컬 컴파일러 설치 안 됨 · 실제 Pine→Python 변환은 차단합니다. 유료 PyneComp는 사용하지 않습니다.';
  }catch(e){if(note)note.textContent='저장 전략 목록 조회 실패 · '+e.message;}
 }
 async function refreshIntegrated(runId){
@@ -196,7 +196,7 @@ async function refreshIntegrated(runId){
     const v=e.payload||{};
     const result=v.blocked_at||v.reason||v.unsupported_reason||
       (e.status==='NO_NEW_SOURCE'?'TradingView 신규 전략 없음 · 기존 DB 원본 확인 필요':null);
-    const state=e.status==='SUCCESS'&&String(v.status||'').startsWith('PYNECOMP_')?
+    const state=e.status==='SUCCESS'&&String(v.status||'').startsWith('PYNE_FREE_')?
       v.status:e.status;
     return '<div class="'+(state==='FAILED'||state==='UNSUPPORTED_PINE'?'red':'')+'">'+
      esc((e.node_id||e.stage).toUpperCase())+' · '+esc(e.node_name)+' · '+
@@ -211,7 +211,7 @@ async function refreshIntegrated(runId){
     'source_id: '+chosen.source_id+' · version_key: '+chosen.version_key+
     ' · script_version_id (PostgreSQL UUID): '+(canonical.script_version_id||
       (d.status==='RUNNING'?'확인 중':'확인 필요'))+
-    (states.python?.startsWith('BLOCKED_PYNECOMP')?' · PyneComp 컴파일 차단됨':states.python==='PYNECOMP_GENERATED_UNVALIDATED'?' · PyneComp 생성 완료·PyneCore 실행 미검증':''):
+    (states.python?.startsWith('BLOCKED_FREE_PYNE')?' · 무료 PYNE 컴파일 차단됨':states.python==='PYNE_FREE_GENERATED_UNVALIDATED'?' · 무료 PYNE Python 생성 완료·TradingView 일치 미검증':''):
     (d.status==='RUNNING'?'실행 중 · 선택된 전략 및 버전을 확인하고 있습니다.':
      '선택된 저장 원본 없음 · 실제 수집 및 DB 확보 필요');
   const comparison=d.result?.chart||null;
@@ -230,10 +230,10 @@ async function refreshIntegrated(runId){
     '비교 ID '+(comparison.comparison_id||'없음')+' · 수치 판정 '+comparison.status+
       ' · 시각 검토 '+(comparison.visual_verdict||'PENDING')+
       ' · 사용자 제공 이미지/CSV는 진위가 별도로 검증되지 않았습니다.':
-    (states.python?.startsWith('BLOCKED_PYNECOMP')?
-      'PyneComp API 인증 또는 실제 라이브러리 원본 누락으로 컴파일이 차단됐습니다. 과거 제한형 Python 차트를 새 변환의 결과로 보지 않습니다.':
-      states.python==='PYNECOMP_GENERATED_UNVALIDATED'?
-      '전체 Pine 컴파일 코드는 저장했지만 PyneCore 실행과 TradingView 주요 지점 일치 판정이 완료되지 않았습니다.':
+    (states.python?.startsWith('BLOCKED_FREE_PYNE')?
+      '무료 PYNE 로컬 컴파일 실패 또는 지원하지 않는 Pine Library로 변환 차단됐습니다. 과거 제한형 Python 차트를 새 변환의 결과로 보지 않습니다.':
+      states.python==='PYNE_FREE_GENERATED_UNVALIDATED'?
+      '전체 Pine→Python 생성은 저장했지만 전체 기간 TradingView 주문·체결 동등성은 미검증입니다.':
       '차트·플롯·동일 종목·시간봉의 실제 기준자료 미확보 · 아직 동등성 판정 불가');
   const preview=document.getElementById('native-compare-target');
   if(preview){
@@ -252,9 +252,9 @@ async function refreshIntegrated(runId){
       }
     }else{
       preview.dataset.loaded='';
-      preview.textContent=states.python==='PYNECOMP_GENERATED_UNVALIDATED'?
-        'PyneComp 전체 소스 변환 기록은 있으나 PyneCore 실행 그래프가 아직 없습니다. 기존 제한형 Quant 차트를 대신 표시하지 않습니다.':
-        '새 PyneComp/PyneCore 변환 및 실제 실행이 완료되지 않아 검증용 좌우 차트를 표시하지 않습니다. TradingView 원본 게시 페이지와 이전 연구용 차트는 별도로 확인할 수 있습니다.';
+      preview.textContent=states.python==='PYNE_FREE_GENERATED_UNVALIDATED'?
+        '무료 PYNE 전체 Pine 변환 기록이 있으며 실제 DDDS 차트는 WF-02 메뉴에서 확인합니다. 기존 제한형 Quant 차트를 대신 표시하지 않습니다.':
+        '무료 PYNE 전체 변환 또는 실제 실행을 확인하지 못해 검증용 좌우 차트를 표시하지 않습니다. TradingView 원본 게시 페이지와 이전 연구용 차트는 별도로 확인할 수 있습니다.';
     }
   }
   const links=document.getElementById('integrated-charts');
