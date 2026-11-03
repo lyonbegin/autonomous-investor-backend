@@ -219,16 +219,35 @@ async function run(page){
   if(!iframeSrc.includes(encodeURIComponent(sourceMeta.source_id))||
       !iframeSrc.includes(sourceMeta.source_sha256))
     throw Error('Embedded native/Python comparison not pinned to exact Pine source');
+  const pub=sourceMeta.tradingview_publication;
+  if(!pub||pub.publication_id!=='49jNhJXM'||pub.pine_editor_source_id!==sourceMeta.source_id||
+     pub.source_byte_match_verified!==false||pub.strategy_report_parity_verified!==false)
+    throw Error('Actual TradingView original publication must be linked to this exact pinned ID without false byte/parity verification');
   const comparison=page.frameLocator('#native-compare-target iframe');
   await comparison.locator('.pine-compare-page').waitFor({state:'visible',timeout:120000});
-  await comparison.locator('.native-pine-chart').waitFor({state:'visible',timeout:120000});
+  const originalImage=comparison.locator('[data-testid="tradingview-original-chart"]');
+  await originalImage.waitFor({state:'visible',timeout:120000});
+  let imageData=null;
+  for(let i=0;i<12;i++){
+    imageData=await originalImage.evaluate(el=>({
+      complete:el.complete, width:el.naturalWidth,height:el.naturalHeight,src:el.currentSrc}));
+    if(imageData.complete&&imageData.width>200&&imageData.height>100)break;
+    await page.waitForTimeout(1400);
+  }
+  if(!imageData?.complete||imageData.width<=200||imageData.height<=100||
+     imageData.src!==pub.image_url)
+    throw Error('Official TradingView author-published strategy image NOT actually loaded '+JSON.stringify(imageData));
+  if(await comparison.locator('.native-pine-chart').count())
+    throw Error('Left chart still showing substituted Vela/PineTS instead of the original TradingView image');
   await comparison.locator('.pine-chart-wrap').waitFor({state:'visible',timeout:120000});
   const frameText=await comparison.locator('.pine-compare-page').innerText();
-  if(!frameText.includes('같은 OHLCV 사용')||!frameText.includes('거래 수 '))
-    throw Error('Native Pine and Python charts are not both populated in final workflow');
+  if(!frameText.includes('TradingView 공식 원본 게시 차트')||
+     !frameText.includes('거래 수 ')||
+     !frameText.includes('수치 동등성은 검증되지 않았습니다'))
+    throw Error('Published TradingView screenshot or calculated Python chart or truth status is missing: '+frameText.slice(0,850));
   if(!frameText.includes(sourceMeta.source_id)||!frameText.includes(sourceMeta.source_sha256))
-    throw Error('Embedded charts switched strategy ID or SHA');
-  console.log('PASS final workflow iframe rendered native PineTS + Python price charts on same real OHLCV');
+    throw Error('Original/Python display changed pinned source ID or SHA');
+  console.log('PASS original REAL TradingView chart publication image loaded with Python strategy chart',JSON.stringify(imageData));
   console.log('PASS exact canonical source SHA and original Pine/Python chart linked',JSON.stringify({
      sha:sourceMeta.source_sha256,bars:restored.chart.bars.length,
      markers:restored.chart.visual.markers.length,
