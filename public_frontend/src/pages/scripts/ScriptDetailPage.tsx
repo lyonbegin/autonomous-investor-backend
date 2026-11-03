@@ -3,6 +3,7 @@ import {api} from '../../api';
 import type {CommunityScript,PineSource,PineVisualResponse,ScriptDetail} from '../../types';
 import {PineChartControl} from '../../components/PineChartControl';
 import {NativePineChartControl} from '../../components/NativePineChartControl';
+import {captureToCSV,type NativePineCapture} from '../../components/nativePineCapture';
 
 function label(kind?:string){
   const x=(kind||'').toLowerCase();
@@ -48,6 +49,7 @@ export function ScriptDetailPage({id,go}:{id:string;go:(p:string)=>void}){
   const [copied,setCopied]=useState(false);
   const [nativeState,setNativeState]=useState<'loading'|'ready'|'error'>('loading');
   const [nativeMessage,setNativeMessage]=useState('');
+  const [captured,setCaptured]=useState<NativePineCapture|null>(null);
 
   useEffect(()=>{
     let alive=true;
@@ -81,8 +83,16 @@ export function ScriptDetailPage({id,go}:{id:string;go:(p:string)=>void}){
     setCopied(true);setTimeout(()=>setCopied(false),1200);
   };
 
+  const download=(content:string,filename:string,mime:string)=>{
+    const file=new Blob([content],{type:mime});
+    const url=URL.createObjectURL(file);
+    const a=document.createElement('a');
+    a.href=url;a.download=filename;a.click();
+    setTimeout(()=>URL.revokeObjectURL(url),1000);
+  };
+  const captureName=()=>('chart-control-'+id.replace(/[^A-Za-z0-9_-]/g,'_')+'-'+horizon);
   const runChart=async()=>{
-    setChartLoading(true);setChartError('');setNativeState('loading');setNativeMessage('');
+    setChartLoading(true);setChartError('');setNativeState('loading');setNativeMessage('');setCaptured(null);
     try{setChart(await api.scriptChart(id,symbol.trim(),horizon))}
     catch(e){setChartError(String(e))}
     finally{setChartLoading(false)}
@@ -147,7 +157,22 @@ export function ScriptDetailPage({id,go}:{id:string;go:(p:string)=>void}){
           data={chart}
           source={source.source||''}
           onRuntime={x=>{setNativeState(x.state);setNativeMessage(x.message||'')}}
+          onCapture={setCaptured}
         />
+        <div className="runtime-note" data-testid="chart-control-capture">
+          <b>기존 차트 컨트롤 계산 자료</b> · {captured?
+            '봉 '+captured.bars.length+'개 · 지표 '+captured.plot_names.length+'개 · 전략 거래 '+captured.trades.length+'개':
+            '차트 실행 결과 추출 대기'}
+          <div className="runtime-controls">
+            <button disabled={!captured} onClick={()=>{
+              if(captured)download(captureToCSV(captured),captureName()+'.csv','text/csv;charset=utf-8');
+            }}>지표·OHLCV CSV 내려받기</button>
+            <button disabled={!captured} onClick={()=>{
+              if(captured)download(JSON.stringify(captured,null,2),captureName()+'.json','application/json;charset=utf-8');
+            }}>전략 주문·체결 포함 JSON 내려받기</button>
+          </div>
+          <small>Vela/PineTS 차트 엔진 계산 결과입니다. TradingView 웹 플랫폼에서 내보낸 공식 전략 보고서와는 출처가 다릅니다.</small>
+        </div>
         {nativeState==='error'&&chart.visual.adapter!=='unsupported'&&<>
           <div className="runtime-fallback-head">
             <b>보조 렌더링</b>
