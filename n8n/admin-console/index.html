@@ -326,8 +326,29 @@ async function loadFlow(f){
      '<label class="form-field">특정 저장 전략 source_id (선택)<input class="form-control" id="wf02-source-id" placeholder="미입력 시 가장 최근 저장 원본"></label>'+
      '<label class="form-field">해당 원본 version_key (source_id와 함께 입력)<input class="form-control" id="wf02-version" placeholder="예: 1.0"></label>'+
      '<div class="actions"><button class="btn" data-action="compare">↗ 저장 Pine으로 좌우 차트 비교 열기</button></div>':'';
+   const publishedPanel=isPython?'<section class="panel" id="published-strategy-reference">'+
+    '<h3>WF-02 · TradingView 게시 전략 원본 ↔ 동일 Pine 변환 검증</h3>'+
+    '<p class="muted minor">TradingView 전략 게시 화면 자체에서 전략 차트, 게시 당시 Strategy Report와 Pine 전체 원본을 추출합니다. 첨부된 <b>DDDS</b> (Displaced Donchian Decycler Strategy) 141줄을 기본으로 불러옵니다.</p>'+
+    '<div class="actions"><input type="file" accept=".html,.htm,.txt,text/html,text/plain" id="tv-publication-html" aria-label="TradingView 게시 전략 HTML 파일" style="max-width:260px">'+
+    '<button class="btn" data-action="tv-publication-import" id="tv-publication-import">게시 전략 HTML에서 원본·보고서 가져오기</button>'+
+    '<span class="status" aria-live="polite" id="tv-publication-status">원본 확인 중</span></div>'+
+    '<div class="notice warn">왼쪽은 TradingView에서 <b>전략이 적용된 채 게시된 차트</b>의 공식 이미지입니다. 정지된 게시 시점 스냅샷이며, 원본의 실제 차트 컨트롤은 공식 게시 페이지에서 열 수 있습니다. 오른쪽은 <b>바로 이 Pine 원본의</b> 변환본이 존재할 때만 계산 결과를 그립니다. 무관한 SMA 예제로 대체하지 않습니다.</div>'+
+    '<div class="grid2" style="grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:stretch">'+
+    '<div><h4 id="publication-title">왼쪽 · TradingView 게시 원본 전략 차트</h4>'+
+    '<img id="publication-official-image" alt="전략이 적용된 TradingView 게시 차트 스냅샷" style="display:none;width:100%;aspect-ratio:16/10;object-fit:contain;background:#081628;border-radius:10px">'+
+    '<p class="muted minor" id="publication-chart-metadata">게시된 실제 Pine 전략 차트 확인 중</p>'+
+    '<a id="publication-open-original" href="https://www.tradingview.com/scripts/" target="_blank" rel="noopener noreferrer">TradingView 원본 전략 페이지 열기</a>'+
+    '<h4>게시 당시 Strategy Report</h4><div class="cards" id="publication-report-facts">조회 중</div>'+
+    '<p class="muted minor">보고서 총거래 건수는 제공된 게시 스냅샷의 수치이며, 거래 목록 탭을 열어 추출한 전체 체결 원장이 아닙니다.</p></div>'+
+    '<div><h4>오른쪽 · 동일한 Pine 원본을 PyneComp→PyneCore로 변환한 결과</h4>'+
+    '<div class="notice warn" id="publication-python-state">동일 Pine 소스의 변환·실행 결과를 확인하는 중입니다.</div>'+
+    '<div id="publication-python-chart" role="img" aria-label="검증된 동일 Pine 변환본 차트가 있을 때 표시" style="min-height:305px;border:1px dashed #38536c;border-radius:9px;padding:16px;color:#acc1d3">임의의 SMA 전략이나 Bollinger 지표를 여기에 대신 표시하지 않습니다.</div>'+
+    '<h4>원본 식별자·SHA-256</h4><pre class="code" id="publication-source-identity">원본 로딩 중</pre></div></div>'+
+    '<details><summary>TradingView에서 추출한 Pine 전체 코드 (저작권·출처 유지)</summary><pre class="code" id="publication-pine-code" style="max-height:370px;overflow:auto;white-space:pre-wrap">조회 중</pre></details>'+
+    '<details><summary>원본 추출·백테스트 보고서 상세 JSON</summary><pre class="code" id="publication-evidence-json" style="max-height:360px;overflow:auto">조회 중</pre></details>'+
+    '</section>':'';
    const officialChartPanel=isPython?'<section class="panel" id="official-tv-chart-wf02">'+
-    '<h3>WF-02 · TradingView 공식 차트 데이터 → PyneCore 실제 실행 검증</h3>'+
+    '<h3>연결 진단 전용 · AAPL OHLCV → 공개 PyneCore SMA 예제</h3>'+
     '<p class="muted minor">기존 TradingView 브라우저 Worker가 실제 공식 차트의 WebSocket을 수동 관찰해 NASDAQ:AAPL 1일봉을 읽습니다. 같은 봉을 PyneCore 6.11.1에 전달해 공개 PyneSys 전략·지표 예제를 실제 실행합니다. 외부 CSV 업로드가 필요하지 않습니다.</p>'+
     '<div class="notice warn"><b>검증 범위:</b> 공식 차트 OHLCV → Python 실행 경로입니다. 현재 공개 브라우저에서는 Strategy Tester 주문·체결 원장이 제공되지 않으므로 전략 동등성 판정은 미검증입니다. 여기서 쓰는 SMA 예제는 선택한 Pine 소스를 새로 PyneComp 변환한 결과가 아닙니다. 거래나 승인에 연결하지 않습니다.</div>'+
     '<div class="actions"><button class="btn primary" data-action="tv-chart-verify" id="tv-chart-start">▶ 공식 차트 300봉 확보 → PyneCore 실행·그래프 표시</button>'+
@@ -345,7 +366,7 @@ async function loadFlow(f){
    exec.innerHTML='<section class="panel"><h3>'+(isPython?'WF-02 · Pine→Python 실제 노드 실행':'WF-01 · Pine 원본 확보·저장 실제 노드 실행')+'</h3>'+
     '<p class="helper">서버의 실제 Python 노드를 순차 실행하며 입력·출력 JSON, SQLite 저장 이력과 실패 지점을 확인할 수 있습니다.</p>'+libraryFields+pythonInfo+
     '<div class="actions"><button class="btn primary" id="run" data-action="run">▶ '+(isLibrary?'제공한 라이브러리 등록 실행':isPython?'저장 Pine → Python 변환 실행':'전략 수집 검증 실행')+
-    '</button><button class="btn" data-action="refresh">서버 이력 조회</button><span class="status" id="progress">실행 전</span></div></section>'+officialChartPanel+
+    '</button><button class="btn" data-action="refresh">서버 이력 조회</button><span class="status" id="progress">실행 전</span></div></section>'+publishedPanel+officialChartPanel+
     '<div class="grid2"><section class="panel"><h3>실제 실행 단계 기록</h3><div id="run-log" class="log">실행 버튼으로 서버 응답을 확인하세요.</div></section>'+
     '<section class="panel"><h3>선택한 노드의 실제 입력·출력</h3><div id="node-details" class="muted">위 노드 목록에서 확인할 항목을 선택하세요.</div></section></div>';
   }else if(isParity){
@@ -365,7 +386,75 @@ async function loadFlow(f){
  }
  renderNodes();await refreshSavedState();
  if(isPython)void refreshOfficialChartEvidence();
+ if(isPython)void refreshPublishedStrategy();
 
+}
+function showPublishedStrategy(d){
+ const status=document.getElementById('tv-publication-status');
+ if(!status)return;
+ const state=document.getElementById('publication-python-state');
+ const preview=document.getElementById('publication-official-image');
+ const link=document.getElementById('publication-open-original');
+ const title=document.getElementById('publication-title');
+ const source=document.getElementById('publication-pine-code');
+ const identity=document.getElementById('publication-source-identity');
+ const facts=document.getElementById('publication-report-facts');
+ const evidence=document.getElementById('publication-evidence-json');
+ if(d.status!=='TRADINGVIEW_PUBLISHED_STRATEGY_REFERENCE_PARSED'){
+  status.textContent=d.status||'원본 불러오기 실패';return;
+ }
+ status.textContent='원본 확인 · '+d.source_line_count+'줄 · 저작권 '+d.source_rights;
+ title.textContent='왼쪽 · '+d.strategy_title+' (게시 당시 차트)';
+ if(preview){
+  const url=String(d.chart_preview_url||'');
+  if(url.startsWith('https://s3.tradingview.com/l/')&&/\.(webp|png|jpg)(\?|$)/i.test(url)){
+   preview.src=url;preview.style.display='block';
+  }else{preview.removeAttribute('src');preview.style.display='none';}
+ }
+ const symbol=document.getElementById('publication-chart-metadata');
+ if(symbol)symbol.textContent=d.chart_symbol_title+' · '+d.chart_timeframe_display+
+   ' · 실제 TradingView 전략 범례 '+(d.strategy_legend_present?'확인':'없음');
+ if(link){
+  const url=String(d.publication_url||'');
+  if(/^https:\/\/(?:www\.|kr\.)?tradingview\.com\/script\/[A-Za-z0-9-]+\/$/.test(url))link.href=url;
+ }
+ if(facts){facts.replaceChildren();for(const text of (d.report_key_facts||[])){
+   const cell=document.createElement('div');cell.className='card';
+   const val=document.createElement('strong');val.textContent=text;cell.append(val);facts.append(cell);
+ }}
+ if(source)source.textContent=d.pine_source||'공개 Pine 코드를 가져오지 못했습니다';
+ if(identity)identity.textContent='Pine ID: '+d.source_id+'\n원본 SHA-256: '+d.source_sha256+
+  '\n저작권: '+d.source_author+' / '+d.source_rights+
+  '\n비교 기준: 정확한 동일 Pine과 입력값·데이터가 필요';
+ if(evidence){const summary={...d};delete summary.pine_source;evidence.textContent=JSON.stringify(summary,null,2);}
+ if(state)state.textContent=d.pinecomp_compiled&&d.python_execution_complete&&d.tradingview_pynecore_strategy_parity_verified?
+  '해당 Pine 검증 완료 (서버 제공 출처 확인 필요)':
+  '미검증 · 이 DDDS Pine 원본은 아직 PyneComp→PyneCore로 변환·실행되어 TradingView 거래와 비교된 상태가 아닙니다.';
+}
+async function refreshPublishedStrategy(){
+ if(!document.getElementById('published-strategy-reference'))return;
+ try{const r=await api('/api/investment/tv-publication/latest');
+  if(!r.ok)throw Error('HTTP '+r.status);
+  showPublishedStrategy(r.data);
+ }catch(e){const el=document.getElementById('tv-publication-status');if(el)el.textContent='원본 조회 실패 · '+e.message;}
+}
+async function importPublishedStrategy(){
+ const file=document.getElementById('tv-publication-html')?.files?.[0];
+ const st=document.getElementById('tv-publication-status');
+ if(!file){if(st)st.textContent='HTML 파일을 먼저 선택하세요';return;}
+ if(file.size>280000){if(st)st.textContent='HTML 파일은 280KB 이하만 허용';return;}
+ const button=document.getElementById('tv-publication-import');
+ if(button)button.disabled=true;
+ if(st)st.textContent='TradingView 게시 전략 원본·보고서 분석 중';
+ try{
+  const html=await file.text();
+  const r=await api('/api/investment/tv-publication/import',{
+   method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({html})
+  });
+  if(!r.ok)throw Error(r.data.reason||r.data.status||'HTTP '+r.status);
+  showPublishedStrategy(r.data);
+ }catch(e){if(st)st.textContent='원본 가져오기 실패 · '+e.message;}
+ finally{if(button)button.disabled=false;}
 }
 function plotOfficialChart(target,rows,keys){
  const node=document.getElementById(target);if(!node)return;
@@ -565,7 +654,7 @@ async function executeFlow(){
  }
 }
 menu.innerHTML=MENUS.map(([id,label])=>'<button class="nav" data-page="'+esc(id)+'"><span>▧</span>'+esc(label)+'</button>').join('');
-document.addEventListener('click',e=>{const target=e.target.closest('[data-page],[data-flow],[data-node],[data-action]');if(!target)return;if(target.dataset.page)setPage(target.dataset.page);else if(target.dataset.flow)loadFlow(target.dataset.flow);else if(target.dataset.node)inspect(target.dataset.node);else if(target.dataset.action==='run')executeFlow();else if(target.dataset.action==='tv-chart-verify')executeOfficialChart();else if(target.dataset.action==='compare')openCompare();else if(target.dataset.action==='convert-next')setPage('convert');else if(target.dataset.action==='integrated-start')startIntegrated();else if(target.dataset.action==='integrated-refresh')refreshIntegrated();else if(target.dataset.action==='refresh')loadFlow(flow)});
+document.addEventListener('click',e=>{const target=e.target.closest('[data-page],[data-flow],[data-node],[data-action]');if(!target)return;if(target.dataset.page)setPage(target.dataset.page);else if(target.dataset.flow)loadFlow(target.dataset.flow);else if(target.dataset.node)inspect(target.dataset.node);else if(target.dataset.action==='run')executeFlow();else if(target.dataset.action==='tv-publication-import')importPublishedStrategy();else if(target.dataset.action==='tv-chart-verify')executeOfficialChart();else if(target.dataset.action==='compare')openCompare();else if(target.dataset.action==='convert-next')setPage('convert');else if(target.dataset.action==='integrated-start')startIntegrated();else if(target.dataset.action==='integrated-refresh')refreshIntegrated();else if(target.dataset.action==='refresh')loadFlow(flow)});
 async function bootstrapManagement(){
  try{
   const session=await api('/api/investment/session');

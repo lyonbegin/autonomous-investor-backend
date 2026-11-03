@@ -1,0 +1,45 @@
+name: Real TradingView publication DOM WF02 integration
+on:
+  push:
+    branches: [feature/wf02-published-strategy-reference-20261103]
+    paths:
+      - 'n8n/admin-console/index.html'
+      - 'n8n/editor-adapter/investment_tv_publication.py'
+      - 'n8n/editor-adapter/investment_studio_server.py'
+      - 'n8n/editor-adapter/fixtures/**'
+      - 'n8n/Dockerfile.native-editor-gateway'
+      - 'n8n/tests/test_tv_published_reference_20261103.py'
+      - '.github/workflows/wf02-published-strategy-reference.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install DOM parser and PyneCore (unchanged)
+        run: python -m pip install beautifulsoup4==4.13.4 pynesys-pynecore==6.11.1
+      - name: Actual exact pasted strategy fixture and report extraction
+        run: python -m unittest discover -s n8n/tests -p 'test_tv_published_reference_20261103.py' -v
+      - name: Python runtime syntax
+        run: python -m py_compile n8n/editor-adapter/investment_tv_publication.py n8n/editor-adapter/investment_studio_server.py
+      - name: Existing WF02 Admin JavaScript parses, TradingView DOM shown
+        run: |
+          python - <<'PY'
+          import re
+          from pathlib import Path
+          s=Path('n8n/admin-console/index.html').read_text()
+          m=re.search(r'<script[^>]*>(.*?)</script>',s,flags=re.S)
+          assert m is not None
+          Path('/tmp/admin.js').write_text(m.group(1))
+          for x in ('published-strategy-reference', 'publication-official-image',
+                    'publication-report-facts','publication-pine-code',
+                    'tv-publication-import', '/api/investment/tv-publication/latest'):
+              assert x in s,x
+          PY
+          node --check /tmp/admin.js

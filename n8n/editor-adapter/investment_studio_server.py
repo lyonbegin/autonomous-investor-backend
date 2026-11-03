@@ -10,10 +10,18 @@ from urllib.parse import urlsplit
 
 import studio_server as studio
 import investment_tv_chart_integration as chart_integration
+import investment_tv_publication as published
 
 
 class InvestmentHandler(studio.Handler):
     def do_GET(self):
+        if urlsplit(self.path).path == "/api/investment/tv-publication/latest":
+            sid, fresh = self._sid()
+            try:
+                return self._json(200, published.latest_reference(sid), sid, fresh)
+            except (ValueError, OSError) as exc:
+                return self._json(503, {"status":"PUBLISHED_STRATEGY_REFERENCE_UNAVAILABLE",
+                                        "reason":type(exc).__name__}, sid, fresh)
         if urlsplit(self.path).path == "/api/investment/tv-chart/latest":
             sid, fresh = self._sid()
             try:
@@ -25,6 +33,30 @@ class InvestmentHandler(studio.Handler):
         return super().do_GET()
 
     def do_POST(self):
+        if urlsplit(self.path).path == "/api/investment/tv-publication/import":
+            sid, fresh = self._sid()
+            origin = self.headers.get("Origin")
+            if origin and (urlsplit(origin).netloc != self.headers.get("Host")
+                           or urlsplit(origin).scheme not in ("https", "http")):
+                return self._json(403, {"status":"CROSS_ORIGIN_FORBIDDEN"},sid,fresh)
+            if not self.headers.get("Content-Type","").startswith("application/json"):
+                return self._json(415, {"status":"JSON_REQUIRED"},sid,fresh)
+            try:
+                size = int(self.headers.get("Content-Length","-1"))
+                if not 2 <= size <= 380_000:
+                    return self._json(413, {"status":"PUBLICATION_HTML_TOO_LARGE"},sid,fresh)
+                body = json.loads(self.rfile.read(size))
+                if not isinstance(body,dict) or not isinstance(body.get("html"),str):
+                    return self._json(400,{"status":"PUBLICATION_HTML_REQUIRED"},sid,fresh)
+                result = published.parse_publication_html(body["html"])
+                published.save_reference(sid,result)
+                return self._json(200,result,sid,fresh)
+            except (ValueError,TypeError) as exc:
+                return self._json(422, {"status":"TRADINGVIEW_PUBLICATION_PARSE_FAILED",
+                                        "reason":str(exc)[:200]},sid,fresh)
+            except OSError as exc:
+                return self._json(503, {"status":"PUBLISHED_REFERENCE_STORAGE_FAILED",
+                                        "reason":type(exc).__name__},sid,fresh)
         if urlsplit(self.path).path != "/api/investment/tv-chart/verify":
             return super().do_POST()
         sid, fresh = self._sid()
