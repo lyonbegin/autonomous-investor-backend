@@ -145,6 +145,40 @@ def record_source(kind,source_id,version,pine,source_url=None,rights="PENDING_RE
     return {"script_id":str(script_id),"script_version_id":str(v),
             "artifact_id":str(artifact_id),"sha256":file["sha"]}
 
+
+def approve_exact_published_mpl_source(source_id, version, sha256):
+    """User-acknowledged public MPL source, exact PostgreSQL version only.
+
+    This approves only consent for source conversion; it is NOT Pine→Python
+    validation, TV parity, broker activation or a publication authenticity claim.
+    """
+    from investment_tv_publication import bundled_ddds_reference
+    pinned = bundled_ddds_reference()
+    if (source_id != pinned["source_id"] or sha256 != pinned["source_sha256"] or
+            version != "snapshot-sha256-" + sha256[:16] or
+            pinned["source_rights"] != "MPL-2.0"):
+        raise ValueError("RIGHTS_APPROVAL_PINNED_MPL_STRATEGY_ONLY")
+    with connect() as db:
+        with db.cursor() as cur:
+            row = cur.execute("""SELECT sv.script_version_id,sv.rights_state
+              FROM catalog.script_versions sv
+              JOIN catalog.scripts s ON s.script_id=sv.script_id
+              WHERE s.provider='TradingView' AND s.external_script_key=%s
+              AND sv.provider_version=%s AND sv.content_sha256=%s
+              ORDER BY sv.acquired_at DESC LIMIT 1
+              FOR UPDATE OF sv""",(source_id,version,sha256)).fetchone()
+            if not row:
+                raise ValueError("APPROVAL_EXACT_POSTGRES_PINE_NOT_REGISTERED")
+            if row[1] not in ("PENDING_REVIEW","APPROVED"):
+                raise ValueError("APPROVAL_EXISTING_RIGHTS_BLOCKED")
+            cur.execute("""UPDATE catalog.script_versions
+               SET rights_state='APPROVED'
+               WHERE script_version_id=%s""",(row[0],))
+        db.commit()
+    return {"rights_state":"APPROVED","script_version_id":str(row[0]),
+            "scope":"ONLY_USER_SELECTED_SOURCE_COMPILATION",
+            "conversion_validated":False,"tradingview_chart_validated":False}
+
 def record_conversion(source_id,version,python_code,converter_version,scope=""):
     if not python_code or not isinstance(python_code,str):
         raise ValueError("NO_GENERATED_PYTHON")
