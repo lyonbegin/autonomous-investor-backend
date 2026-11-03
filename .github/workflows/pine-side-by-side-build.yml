@@ -22,12 +22,16 @@ jobs:
         run: |
           npm install --no-audit --no-fund
           npm run build
-      - name: Verify side by side page wired to existing Pine and Python components
+      - name: Verify original TradingView published chart is shown, not a PineTS redraw
         run: |
           grep -q "PineSideBySidePage" public_frontend/src/App.tsx
-          grep -q "NativePineChartControl" public_frontend/src/pages/scripts/PineSideBySidePage.tsx
+          grep -q "tradingview-original-chart" public_frontend/src/pages/scripts/PineSideBySidePage.tsx
           grep -q "PineChartControl" public_frontend/src/pages/scripts/PineSideBySidePage.tsx
           grep -q "source_hash" public_frontend/src/pages/scripts/PineSideBySidePage.tsx
+          if grep -q 'NativePineChartControl' public_frontend/src/pages/scripts/PineSideBySidePage.tsx; then
+            echo "An internal PineTS chart is wrongly being shown instead of original TV publication" >&2
+            exit 1
+          fi
   live-api:
     runs-on: ubuntu-latest
     timeout-minutes: 8
