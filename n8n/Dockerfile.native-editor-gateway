@@ -35,6 +35,7 @@ COPY n8n/editor-adapter/investment_pipeline.py /app/investment_pipeline.py
 COPY n8n/editor-adapter/investment_studio_server.py /app/investment_studio_server.py
 COPY n8n/editor-adapter/investment_tv_chart_integration.py /app/investment_tv_chart_integration.py
 COPY n8n/editor-adapter/investment_tv_publication.py /app/investment_tv_publication.py
+COPY n8n/editor-adapter/fixtures/ddds_published_source.gz.b64 /app/fixtures/ddds_published_source.gz.b64
 COPY n8n/pine-parity/demo/bollinger_bands.py n8n/pine-parity/demo/sma_crossover.py /app/pynecore_samples/
 COPY n8n/pine-parity/engine.py /app/engine.py
 COPY n8n/pine-parity/sequence_reversal.py /app/sequence_reversal.py
