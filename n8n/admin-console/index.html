@@ -215,6 +215,10 @@ async function refreshIntegrated(runId){
     (d.status==='RUNNING'?'실행 중 · 선택된 전략 및 버전을 확인하고 있습니다.':
      '선택된 저장 원본 없음 · 실제 수집 및 DB 확보 필요');
   const comparison=d.result?.chart||null;
+  const ddDsRealReady=comparison?.status==='DDDS_FREE_PYNE_REAL_300BAR_CHART_READY_PARITY_UNVERIFIED'&&
+    comparison?.source_sha256==='5a245e99447f13012dd026528235fc2c299cad5cb7b228653c684886dcba6507'&&
+    comparison?.symbol==='NASDAQ:AMZN'&&comparison?.timeframe==='120'&&
+    comparison?.bar_count>=40&&comparison?.tradingview_parity_verified===false;
   const chartRunId=String(comparison?.parity_run_id||'');
   const chartPresent=/^[0-9a-f]{24}$/.test(chartRunId)&&comparison?.comparison_id;
   const left=document.getElementById('integrated-left-chart');
@@ -226,7 +230,11 @@ async function refreshIntegrated(runId){
   if(right)right.innerHTML=chartPresent?
     '<img src="'+PARITY_ORIGIN+'/artifacts/'+chartRunId+'/python.svg" alt="동일 입력의 Python 전략 계산 차트" style="width:100%;height:auto;max-height:300px;object-fit:contain">':
     '동일 시장 데이터의 Python 차트가 준비되지 않음 · 허위 결과 미표시';
-  if(note)note.textContent=comparison?
+  if(note)note.textContent=ddDsRealReady?
+    '정확한 DDDS Pine → 무료 PYNE 생성 Python으로 NASDAQ:AMZN 2시간봉 '+
+     comparison.bar_count+'개 실제 실행 확인 · 생성 주문 이벤트 '+comparison.trade_event_count+
+     '건. TradingView 원본 게시 299건 전략 동등성은 미검증. 아래 WF-02 버튼으로 실제 차트 열기.':
+    comparison?
     '비교 ID '+(comparison.comparison_id||'없음')+' · 수치 판정 '+comparison.status+
       ' · 시각 검토 '+(comparison.visual_verdict||'PENDING')+
       ' · 사용자 제공 이미지/CSV는 진위가 별도로 검증되지 않았습니다.':
@@ -239,7 +247,13 @@ async function refreshIntegrated(runId){
   if(preview){
     const metadata=chosen&&availableSources.find(s=>
       s.source_id===chosen.source_id&&s.version_key===chosen.version_key);
-    if(chosen&&metadata?.source_sha256&&/^[0-9a-f]{64}$/.test(metadata.source_sha256)
+    if(ddDsRealReady){
+      preview.dataset.loaded='real-ddds-free-pyne';
+      preview.innerHTML='<a class="btn" href="/admin/index.html?section=convert">'+
+       '동일 원본 DDDS Python 실행 차트 '+comparison.bar_count+
+       '봉 확인 → 기존 WF-02 화면 열기</a>'+
+       '<p class="muted minor">실제 공개 NASDAQ:AMZN 2시간봉 300개 · 원본 299건과의 동등성 미검증</p>';
+    }else if(chosen&&metadata?.source_sha256&&/^[0-9a-f]{64}$/.test(metadata.source_sha256)
        &&d.status!=='RUNNING'&&states.python==='PYNECORE_RUNTIME_EXECUTED'){
       const src='https://autonomous-investor-public-production.up.railway.app/compare/'+
          encodeURIComponent(chosen.source_id)+'?version='+encodeURIComponent(chosen.version_key)+
@@ -261,7 +275,10 @@ async function refreshIntegrated(runId){
   if(links){
     const tvUrl=d.result?.chart?.comparison_url;
     const chartUrl=d.result?.chart?.preview_url;
-    if(tvUrl&&tvUrl.startsWith('https://investment-pine-parity-review-production.up.railway.app/?run=')){
+    if(ddDsRealReady){
+      links.innerHTML='<a class="btn" href="/admin/index.html?section=convert">▶ 기존 WF-02 실제 DDDS Python 차트 열기</a>'+
+        '<span class="muted minor">동일 Pine 전체 변환·실행 300봉 확인 · TradingView 299건 거래/체결 일치 미검증</span>';
+    }else if(tvUrl&&tvUrl.startsWith('https://investment-pine-parity-review-production.up.railway.app/?run=')){
       links.innerHTML='<a class="btn" href="'+esc(tvUrl)+'" target="_blank" rel="noopener">TradingView 캡처·CSV 수치 결과 보기</a>';
     }else if(chartUrl&&chartUrl.startsWith('https://autonomous-investor-public-production.up.railway.app/compare/')){
       links.innerHTML='<a class="btn" href="'+esc(chartUrl)+'" target="_blank" rel="noopener">실제 시장 OHLCV 기반 Pine ↔ Python 차트 보기</a>'+
