@@ -1,0 +1,31 @@
+name: TradingView official public DDDS strategy trade-list UI probe
+on:
+  push:
+    branches: [feature/wf02-ddds-real-node-registration-20261103]
+    paths:
+      - 'n8n/tests/inspect_public_ddds_strategy_trades.cjs'
+      - '.github/workflows/wf02-ddds-public-trades-probe.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 11
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Open actual public published DDDS and click List of Trades on Strategy report
+        env:
+          TV_DDDS_INSPECT_DIR: /tmp/tv-ddds-inspect
+        run: node n8n/tests/inspect_public_ddds_strategy_trades.cjs
+      - name: Archive actual report UI observation
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: official-ddds-public-strategy-list-of-trades-observation
+          path: /tmp/tv-ddds-inspect/
+          retention-days: 14
+          if-no-files-found: warn

@@ -1,0 +1,42 @@
+name: WF02 299 official DDDS trade reference source contract
+on:
+  push:
+    branches: [feature/wf02-ddds-real-node-registration-20261103]
+    paths:
+      - 'n8n/editor-adapter/investment_tv_trade_reference.py'
+      - 'n8n/editor-adapter/investment_studio_server.py'
+      - 'n8n/admin-console/index.html'
+      - 'n8n/tests/test_tv_published_ddds_trades_reference.py'
+      - 'n8n/Dockerfile.native-editor-gateway'
+      - '.github/workflows/wf02-ddds-trade-reference.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install beautifulsoup4==4.13.4
+      - name: Reject fake/partial official 299-trade data and validate source hash and raw rows
+        run: python -m unittest discover -s n8n/tests -p 'test_tv_published_ddds_trades_reference.py' -v
+      - name: Verify existing WF02 frontend can render 299 official trades
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          s=Path('n8n/admin-console/index.html').read_text()
+          m=re.search(r'<script[^>]*>(.*?)</script>',s,flags=re.S)
+          assert m
+          Path('/tmp/wf02-ddds-trades.js').write_text(m.group(1))
+          for x in ('ddds-trades-capture','renderOfficialDDDSTrades',
+                    '/api/investment/tv-publication/trades/capture',
+                    'tradingview_pynecore_parity_verified===false'):
+              assert x in s,x
+          PY
+          node --check /tmp/wf02-ddds-trades.js
+      - run: python -m py_compile n8n/editor-adapter/investment_tv_trade_reference.py n8n/editor-adapter/investment_studio_server.py

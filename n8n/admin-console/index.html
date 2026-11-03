@@ -59,6 +59,8 @@ const flowLabels={
  [W.agent]:'F03 · 에이전트 할당',
  [W.audit]:'F05 · 독립 감사'
 };
+let lastPublishedSourceSha=null;
+let verifiedDDDSReference=null;
 let page='overview',flow=W.strategy,workflow=null,running=false,selectedNode=null,runEvents=[],session={},connected=false,lastPine=null,lastSavedSource=null,compareWindow=null,pendingCompare=null,integratedRunId=null,availableSources=[];
 const PARITY_ORIGIN='https://investment-pine-parity-review-production.up.railway.app';
 window.addEventListener('message',event=>{if(event.origin!==PARITY_ORIGIN||!compareWindow||event.source!==compareWindow||event.data?.type!=='PARITY_READY'||!pendingCompare)return;compareWindow.postMessage({type:'AUTONOMOUS_PINE_IMPORT',...pendingCompare},PARITY_ORIGIN);pendingCompare=null;});
@@ -332,6 +334,10 @@ async function loadFlow(f){
     '<div class="actions"><input type="file" accept=".html,.htm,.txt,text/html,text/plain" id="tv-publication-html" aria-label="TradingView 게시 전략 HTML 파일" style="max-width:260px">'+
     '<button class="btn" data-action="tv-publication-import" id="tv-publication-import">게시 전략 HTML에서 원본·보고서 가져오기</button>'+
     '<span class="status" aria-live="polite" id="tv-publication-status">원본 확인 중</span></div>'+
+    '<div class="actions" style="align-items:center;flex-wrap:wrap">'+
+    '<label class="muted minor"><input type="checkbox" id="ddds-mpl-ack"> MPL-2.0 원본의 저작권 표시·원문 공개 의무를 확인하고 이 Pine의 변환을 승인</label>'+
+    '<button class="btn primary" id="ddds-wf02-run" data-action="ddds-wf02-run">▶ 실제 DDDS Pine 등록 → 기존 WF-02 노드 실행</button>'+
+    '<span id="ddds-register-state" class="status" aria-live="polite">등록 전 · 다른 전략으로 대체하지 않음</span></div>'+
     '<div class="notice warn">왼쪽은 TradingView에서 <b>전략이 적용된 채 게시된 차트</b>의 공식 이미지입니다. 정지된 게시 시점 스냅샷이며, 원본의 실제 차트 컨트롤은 공식 게시 페이지에서 열 수 있습니다. 오른쪽은 <b>바로 이 Pine 원본의</b> 변환본이 존재할 때만 계산 결과를 그립니다. 무관한 SMA 예제로 대체하지 않습니다.</div>'+
     '<div class="grid2" style="grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:stretch">'+
     '<div><h4 id="publication-title">왼쪽 · TradingView 게시 원본 전략 차트</h4>'+
@@ -339,7 +345,15 @@ async function loadFlow(f){
     '<p class="muted minor" id="publication-chart-metadata">게시된 실제 Pine 전략 차트 확인 중</p>'+
     '<a id="publication-open-original" href="https://www.tradingview.com/scripts/" target="_blank" rel="noopener noreferrer">TradingView 원본 전략 페이지 열기</a>'+
     '<h4>게시 당시 Strategy Report</h4><div class="cards" id="publication-report-facts">조회 중</div>'+
-    '<p class="muted minor">보고서 총거래 건수는 제공된 게시 스냅샷의 수치이며, 거래 목록 탭을 열어 추출한 전체 체결 원장이 아닙니다.</p></div>'+
+    '<div class="actions" style="margin-top:8px"><button class="btn" id="ddds-trades-capture" data-action="ddds-trades-capture">▶ TradingView 원본 Strategy Report 거래 299건 가져오기</button>'+
+    '<button class="btn" id="ddds-trades-export" data-action="ddds-trades-export" disabled>↓ 검증된 TV 거래 299건 CSV 저장</button>'+
+    '<span id="ddds-trades-status" class="status" aria-live="polite">거래 원장 미수집</span></div>'+
+    '<div class="tableWrap" style="max-height:350px;overflow:auto"><table style="width:100%;min-width:650px;font-size:12px;border-collapse:collapse"><thead><tr>'+
+    '<th>번호</th><th>방향</th><th>진입일 (사이트 표시)</th><th>청산일 (사이트 표시)</th>'+
+    '<th>진입가</th><th>청산가</th><th>수량</th><th>순손익</th></tr></thead>'+
+    '<tbody id="ddds-trades-rows"><tr><td colspan="8">실제 게시 거래 목록을 가져오지 않았습니다.</td></tr></tbody></table></div>'+
+
+    '<p class="muted minor">299건은 TradingView 게시 전략의 공개 Strategy Report 거래 내역입니다. 상단 총손익은 게시 당시 보고서 값이며 실제 거래소 체결 원장이 아닙니다. 표에 표시하는 시각의 시간대는 공개 행에 명시되지 않아 추측하지 않습니다.</p></div>'+
     '<div><h4>오른쪽 · 동일한 Pine 원본을 PyneComp→PyneCore로 변환한 결과</h4>'+
     '<div class="notice warn" id="publication-python-state">동일 Pine 소스의 변환·실행 결과를 확인하는 중입니다.</div>'+
     '<div id="publication-python-chart" role="img" aria-label="검증된 동일 Pine 변환본 차트가 있을 때 표시" style="min-height:305px;border:1px dashed #38536c;border-radius:9px;padding:16px;color:#acc1d3">임의의 SMA 전략이나 Bollinger 지표를 여기에 대신 표시하지 않습니다.</div>'+
@@ -366,7 +380,9 @@ async function loadFlow(f){
    exec.innerHTML='<section class="panel"><h3>'+(isPython?'WF-02 · Pine→Python 실제 노드 실행':'WF-01 · Pine 원본 확보·저장 실제 노드 실행')+'</h3>'+
     '<p class="helper">서버의 실제 Python 노드를 순차 실행하며 입력·출력 JSON, SQLite 저장 이력과 실패 지점을 확인할 수 있습니다.</p>'+libraryFields+pythonInfo+
     '<div class="actions"><button class="btn primary" id="run" data-action="run">▶ '+(isLibrary?'제공한 라이브러리 등록 실행':isPython?'저장 Pine → Python 변환 실행':'전략 수집 검증 실행')+
-    '</button><button class="btn" data-action="refresh">서버 이력 조회</button><span class="status" id="progress">실행 전</span></div></section>'+publishedPanel+officialChartPanel+
+    '</button><button class="btn" data-action="refresh">서버 이력 조회</button><span class="status" id="progress">실행 전</span></div></section>'+publishedPanel+
+    (isPython?'<details id="wf02-unrelated-aapl-diagnostics"><summary>개발 진단용 AAPL/SMA 예제 열기 (DDDS 변환·동등성 검증과 무관)</summary>':'')+
+    officialChartPanel+(isPython?'</details>':'')+
     '<div class="grid2"><section class="panel"><h3>실제 실행 단계 기록</h3><div id="run-log" class="log">실행 버튼으로 서버 응답을 확인하세요.</div></section>'+
     '<section class="panel"><h3>선택한 노드의 실제 입력·출력</h3><div id="node-details" class="muted">위 노드 목록에서 확인할 항목을 선택하세요.</div></section></div>';
   }else if(isParity){
@@ -386,7 +402,7 @@ async function loadFlow(f){
  }
  renderNodes();await refreshSavedState();
  if(isPython)void refreshOfficialChartEvidence();
- if(isPython)void refreshPublishedStrategy();
+ if(isPython)void refreshPublishedStrategy().then(()=>refreshDDDSTrades());
 
 }
 function showPublishedStrategy(d){
@@ -404,6 +420,12 @@ function showPublishedStrategy(d){
   status.textContent=d.status||'원본 불러오기 실패';return;
  }
  status.textContent='원본 확인 · '+d.source_line_count+'줄 · 저작권 '+d.source_rights;
+ if(lastPublishedSourceSha!==d.source_sha256){
+   verifiedDDDSReference=null;
+   const exportButton=document.getElementById('ddds-trades-export');
+   if(exportButton)exportButton.disabled=true;
+ }
+ lastPublishedSourceSha=d.source_sha256;
  title.textContent='왼쪽 · '+d.strategy_title+' (게시 당시 차트)';
  if(preview){
   const url=String(d.chart_preview_url||'');
@@ -431,12 +453,132 @@ function showPublishedStrategy(d){
   '해당 Pine 검증 완료 (서버 제공 출처 확인 필요)':
   '미검증 · 이 DDDS Pine 원본은 아직 PyneComp→PyneCore로 변환·실행되어 TradingView 거래와 비교된 상태가 아닙니다.';
 }
+function renderOfficialDDDSTrades(d){
+ const status=document.getElementById('ddds-trades-status'),body=document.getElementById('ddds-trades-rows');
+ if(!status||!body)return;
+ body.replaceChildren();
+ verifiedDDDSReference=null;
+ const exportButton=document.getElementById('ddds-trades-export');
+ if(exportButton)exportButton.disabled=true;
+ const exact=(d?.status==='PUBLISHED_DDDS_299_TRADES_CAPTURED'&&
+   d.source==='OFFICIAL_TRADINGVIEW_PUBLICATION_VISIBLE_STRATEGY_REPORT'&&
+   d.capture_verified_complete===true&&d.observed_trade_count===299&&
+   Array.isArray(d.trades)&&d.trades.length===299&&
+   d.pine_source_sha256===lastPublishedSourceSha&&
+   d.tradingview_pynecore_parity_verified===false);
+ if(!exact){
+  const tr=document.createElement('tr'),td=document.createElement('td');
+  td.colSpan=8;td.textContent='공식 게시 거래 원장 미수집 · '+(d?.reason||d?.status||'확인 필요');
+  tr.append(td);body.append(tr);
+  status.textContent='미검증 · '+(d?.status||'공식 거래 내역 없음');return;
+ }
+ for(let i=0;i<d.trades.length;i++){
+  const x=d.trades[i],tr=document.createElement('tr');
+  const fields=[x.trade_number,x.side,x.entry_time_display,x.exit_time_display,
+    x.entry_price_display,x.exit_price_display,x.quantity_display,x.net_pnl_display];
+  fields.forEach((v,j)=>{const td=document.createElement('td');td.textContent=v==null?'—':String(v);
+    td.style.padding='7px 8px';td.style.borderBottom='1px solid #29445d';
+    if(j===7&&Number(v)<0)td.style.color='#fca5a5';tr.append(td);});
+  body.append(tr);
+ }
+ verifiedDDDSReference=d;
+ if(exportButton)exportButton.disabled=false;
+ status.textContent='공식 공개 Strategy Report 원장 299/299 거래 확보 · '+d.rows_sha256?.slice(0,12)+
+  ' · 사이트 표시 시각의 시간대 미확정 · Python 일치 미검증';
+}
+function exportVerifiedDDDSTrades(){
+ const d=verifiedDDDSReference;
+ if(!d||d.capture_verified_complete!==true||d.observed_trade_count!==299||
+    d.trades?.length!==299||
+    d.pine_source_sha256!==lastPublishedSourceSha||
+    d.tradingview_pynecore_parity_verified!==false)return;
+ const columns=['trade_number','side','entry_time_display','exit_time_display',
+   'entry_price_display','exit_price_display','quantity_display',
+   'net_pnl_display','return_percent_display','pine_source_sha256'];
+ const headers=['trade_number','side','entry_time_display_timezone_unspecified',
+   'exit_time_display_timezone_unspecified','entry_price_usd','exit_price_usd',
+   'quantity','net_pnl_usd','return_percent','pine_source_sha256'];
+ const csvCell=v=>{
+   const raw=v===null||v===undefined?'':String(v);
+   const safe=/^[=+@]/.test(raw)?"'"+raw:raw;
+   return '"'+safe.replaceAll('"','""')+'"';
+ };
+ const rows=[headers.map(csvCell).join(',')];
+ for(const trade of d.trades){
+   const values=columns.map(k=>k==='pine_source_sha256'?d.pine_source_sha256:trade[k]);
+   rows.push(values.map(csvCell).join(','));
+ }
+ const text='\uFEFF'+rows.join('\r\n')+'\r\n';
+ const url=URL.createObjectURL(new Blob([text],{type:'text/csv;charset=utf-8'}));
+ const link=document.createElement('a');link.href=url;
+ link.download='DDDS_BATS-AMZN_2h_TradingView_published_299_trades.csv';
+ document.body.append(link);link.click();link.remove();
+ setTimeout(()=>URL.revokeObjectURL(url),1500);
+}
+async function refreshDDDSTrades(){
+ if(!document.getElementById('ddds-trades-status'))return;
+ try{const r=await api('/api/investment/tv-publication/trades/latest');
+  if(!r.ok)throw Error('HTTP '+r.status);
+  renderOfficialDDDSTrades(r.data);
+ }catch(e){const st=document.getElementById('ddds-trades-status');if(st)st.textContent='거래 이력 조회 실패 · '+e.message;}
+}
+async function captureDDDSTrades(){
+ const button=document.getElementById('ddds-trades-capture');
+ const status=document.getElementById('ddds-trades-status');
+ if(!button||button.disabled)return;
+ button.disabled=true;
+ if(status)status.textContent='공식 TradingView 게시 페이지에서 Strategy Report→거래 표 299건 직접 읽는 중…';
+ try{
+  const r=await api('/api/investment/tv-publication/trades/capture',{
+    method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
+  if(!r.ok)throw Error(r.data?.reason||r.data?.status||'HTTP '+r.status);
+  renderOfficialDDDSTrades(r.data);
+ }catch(e){
+  if(status)status.textContent='실제 거래 목록 확보 실패 · '+e.message;
+ }finally{button.disabled=false;}
+}
 async function refreshPublishedStrategy(){
  if(!document.getElementById('published-strategy-reference'))return;
  try{const r=await api('/api/investment/tv-publication/latest');
   if(!r.ok)throw Error('HTTP '+r.status);
   showPublishedStrategy(r.data);
  }catch(e){const el=document.getElementById('tv-publication-status');if(el)el.textContent='원본 조회 실패 · '+e.message;}
+}
+async function registerPublishedStrategyAndRunWF02(){
+ if(running){return;}
+ const status=document.getElementById('ddds-register-state');
+ const button=document.getElementById('ddds-wf02-run');
+ const acknowledge=document.getElementById('ddds-mpl-ack')?.checked===true;
+ if(!acknowledge){
+  if(status)status.textContent='라이선스 조건 확인 후 승인 체크가 필요합니다';
+  return;
+ }
+ if(button)button.disabled=true;
+ if(status)status.textContent='실제 Pine 원본 PostgreSQL/SQLite에 등록 중…';
+ try{
+  const r=await api('/api/investment/tv-publication/register-wf02',{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({acknowledge_mpl:true})
+  });
+  if(!r.ok)throw Error(r.data?.reason||r.data?.status||'HTTP '+r.status);
+  const d=r.data||{};
+  if(d.status!=='PUBLISHED_PINE_REGISTERED_FOR_EXISTING_WF02'||
+      d.rights_state!=='APPROVED'||!d.user_acknowledged_mpl||
+      !d.source_id||!d.version_key||!d.source_sha256){
+    throw Error('DDDS 원본 등록 또는 명시적 승인 검증 실패');
+  }
+  const id=document.getElementById('wf02-source-id');
+  const version=document.getElementById('wf02-version');
+  if(!id||!version)throw Error('기존 WF-02 원본 선택 필드 없음');
+  id.value=d.source_id;version.value=d.version_key;
+  if(status)status.textContent='정확한 DDDS 원본 등록·권리 승인 성공 · '+d.version_key+
+    ' · 기존 6노드 실행 시작 (PyneComp 인증 없으면 실제 차단)';
+  await executeFlow();
+  const w=document.getElementById('progress')?.textContent||'';
+  if(status)status.textContent='DDDS 원본 고정 · '+w+
+    ' · 거래 동등성 승인과는 별개';
+ }catch(e){if(status)status.textContent='DDDS 실제 노드 연결 실패 · '+e.message;}
+ finally{if(button)button.disabled=false;}
 }
 async function importPublishedStrategy(){
  const file=document.getElementById('tv-publication-html')?.files?.[0];
@@ -628,7 +770,14 @@ async function executeFlow(){
       }else if(output.status==='UNSUPPORTED_PINE'){
        if(progress)progress.textContent='Pine 문법 미지원 · 변환 불가 (정상 차단)';
        log('미지원 Pine · '+(output.unsupported_reason||output.basic_converter_reason||'지원 범위 밖'),'red');
-      }else{if(progress)progress.textContent='완료 · '+String(output.status||'미확인');}
+      }else{
+       const blocked=String(output.status||'UNKNOWN');
+       if(progress)progress.textContent='변환 차단 · '+blocked;
+       log('DDDS 원본의 실제 Python 변환이 완료되지 않았습니다. 이유: '+blocked,'red');
+       const comparison=document.getElementById('publication-python-state');
+       if(comparison)comparison.textContent='DDDS 원본 Pine → PyneCore 미완료 · '+blocked+
+         ' · 다른 SMA 전략 결과로 대체하지 않습니다.';
+      }
     }else{
       if(progress)progress.textContent='원본 확보·저장 실행 종료 · '+step+'개 실제 노드';
       log('원본 코드 저장 처리 결과: '+(output.status||'미확인')+'. Python 차트/매매 신호 일치 여부와는 별개입니다.','green');
@@ -654,7 +803,7 @@ async function executeFlow(){
  }
 }
 menu.innerHTML=MENUS.map(([id,label])=>'<button class="nav" data-page="'+esc(id)+'"><span>▧</span>'+esc(label)+'</button>').join('');
-document.addEventListener('click',e=>{const target=e.target.closest('[data-page],[data-flow],[data-node],[data-action]');if(!target)return;if(target.dataset.page)setPage(target.dataset.page);else if(target.dataset.flow)loadFlow(target.dataset.flow);else if(target.dataset.node)inspect(target.dataset.node);else if(target.dataset.action==='run')executeFlow();else if(target.dataset.action==='tv-publication-import')importPublishedStrategy();else if(target.dataset.action==='tv-chart-verify')executeOfficialChart();else if(target.dataset.action==='compare')openCompare();else if(target.dataset.action==='convert-next')setPage('convert');else if(target.dataset.action==='integrated-start')startIntegrated();else if(target.dataset.action==='integrated-refresh')refreshIntegrated();else if(target.dataset.action==='refresh')loadFlow(flow)});
+document.addEventListener('click',e=>{const target=e.target.closest('[data-page],[data-flow],[data-node],[data-action]');if(!target)return;if(target.dataset.page)setPage(target.dataset.page);else if(target.dataset.flow)loadFlow(target.dataset.flow);else if(target.dataset.node)inspect(target.dataset.node);else if(target.dataset.action==='run')executeFlow();else if(target.dataset.action==='ddds-trades-export')exportVerifiedDDDSTrades();else if(target.dataset.action==='ddds-trades-capture')captureDDDSTrades();else if(target.dataset.action==='ddds-wf02-run')registerPublishedStrategyAndRunWF02();else if(target.dataset.action==='tv-publication-import')importPublishedStrategy();else if(target.dataset.action==='tv-chart-verify')executeOfficialChart();else if(target.dataset.action==='compare')openCompare();else if(target.dataset.action==='convert-next')setPage('convert');else if(target.dataset.action==='integrated-start')startIntegrated();else if(target.dataset.action==='integrated-refresh')refreshIntegrated();else if(target.dataset.action==='refresh')loadFlow(flow)});
 async function bootstrapManagement(){
  try{
   const session=await api('/api/investment/session');

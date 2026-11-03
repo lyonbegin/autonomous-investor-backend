@@ -1,0 +1,42 @@
+name: LIVE Railway DDDS existing WF02 source and node flow
+on:
+  push:
+    branches: [feature/wf02-ddds-real-node-registration-20261103]
+    paths:
+      - 'n8n/tests/test_live_ddds_existing_wf02_nodes.cjs'
+      - '.github/workflows/wf02-ddds-real-node-browser.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  real-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install headless Chromium
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Wait for original Railway workflow code to be deployed
+        run: |
+          for i in $(seq 1 50); do
+            if curl -fsS https://investment-n8n-native-editor-production.up.railway.app/admin/index.html |
+              grep -q 'ddds-wf02-run'; then exit 0; fi
+            sleep 5
+          done
+          echo "WF02 DDDS register button not deployed" >&2
+          exit 1
+      - name: Chromium use the same public WF02 convert page with real node execution
+        env:
+          WF02_EVIDENCE_DIR: /tmp/ddds-node-evidence
+          WF02_EDITOR_BASE: https://investment-n8n-native-editor-production.up.railway.app
+        run: node n8n/tests/test_live_ddds_existing_wf02_nodes.cjs
+      - name: Archive unmodified live execution and screenshot evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ddss-original-wf02-executed-real-nodes
+          path: /tmp/ddds-node-evidence/
+          if-no-files-found: warn
+          retention-days: 14

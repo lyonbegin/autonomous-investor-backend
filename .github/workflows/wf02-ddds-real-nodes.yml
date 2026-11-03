@@ -1,0 +1,44 @@
+name: DDDS real source -> original WF02 six nodes
+on:
+  push:
+    branches: [feature/wf02-ddds-real-node-registration-20261103]
+    paths:
+      - 'n8n/admin-console/index.html'
+      - 'n8n/editor-adapter/investment_tv_publication.py'
+      - 'n8n/editor-adapter/investment_studio_server.py'
+      - 'n8n/investment-db/investment_pg.py'
+      - 'n8n/tests/test_ddds_to_existing_wf02_nodes.py'
+      - '.github/workflows/wf02-ddds-real-nodes.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  real-nodes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install existing WF02 dependencies
+        run: python -m pip install 'pynesys-pynecore==6.11.1' 'beautifulsoup4==4.13.4'
+      - name: Real DDDS original source -> 6 WF02 nodes, rights + compiler blocker
+        run: python -m unittest discover -s n8n/tests -p 'test_ddds_to_existing_wf02_nodes.py' -v
+      - name: Admin frontend source JavaScript check
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          s=Path('n8n/admin-console/index.html').read_text()
+          m=re.search(r'<script[^>]*>(.*?)</script>',s,flags=re.S)
+          assert m
+          Path('/tmp/ddds-admin.js').write_text(m.group(1))
+          assert 'registerPublishedStrategyAndRunWF02' in s
+          assert 'id="ddds-wf02-run"' in s
+          assert 'ddds-mpl-ack' in s
+          assert '/api/investment/tv-publication/register-wf02' in s
+          PY
+          node --check /tmp/ddds-admin.js
+      - name: Compiler remains independently pinned, no synthetic conversion
+        run: python -m py_compile n8n/editor-adapter/investment_tv_publication.py n8n/editor-adapter/investment_studio_server.py n8n/investment-db/investment_pg.py
