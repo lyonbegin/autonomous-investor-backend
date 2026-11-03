@@ -14,6 +14,13 @@ const dir=process.env.WF02_299_EVIDENCE||'/tmp/ddds-299-live';
   const response=await page.goto(base+'/admin/index.html?section=convert',
     {waitUntil:'domcontentloaded',timeout:45000});
   if(response?.status()!==200)throw Error('EXISTING_WF02_NOT_HTTP_200');
+  // Wait for the original site's asynchronous session bootstrap and
+  // workflow canvas rendering BEFORE checking dynamic DOM. The first paint
+  // intentionally contains only the overview/sidebar and no WF02 elements.
+  const btn=page.locator('#ddds-trades-capture');
+  await btn.waitFor({state:'visible',timeout:60000});
+  await page.waitForFunction(()=>document.getElementById('tv-publication-status')?.
+    textContent?.includes('원본 확인'),null,{timeout:45000});
   const diagnostics=page.locator('#wf02-unrelated-aapl-diagnostics');
   const diagnosticState={
     count:await diagnostics.count(),
@@ -40,10 +47,6 @@ const dir=process.env.WF02_299_EVIDENCE||'/tmp/ddds-299-live';
   const primary=page.locator('#published-strategy-reference');
   if(await primary.count()!==1)
     throw Error('ORIGINAL_DDDS_STRATEGY_PANEL_MISSING');
-  const btn=page.locator('#ddds-trades-capture');
-  await btn.waitFor({timeout:45000});
-  await page.waitForFunction(()=>document.getElementById('tv-publication-status')?.
-    textContent?.includes('원본 확인'),null,{timeout:35000});
   await btn.click();
   await page.waitForFunction(()=>{
     const status=document.getElementById('ddds-trades-status')?.textContent||'';
