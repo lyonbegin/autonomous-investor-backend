@@ -23,7 +23,7 @@ const base=process.env.PYNECORE_DEMO_BASE||'http://127.0.0.1:3000';
   const csvResp=await page.request.get(base+'/api/pynecore-demo/export.csv',{timeout:90000});
   if(csvResp.status()!==200)throw Error('PYNECORE_FULL_CSV_DOWNLOAD_FAILED');
   const csvText=await csvResp.text();
-  const lines=csvText.trim().split(/\\r?\\n/);
+  const lines=csvText.trim().split(/\r?\n/);
   if(lines.length!==1001||!lines[0].includes('Basis,Upper,Lower'))
     throw Error('PYNECORE_1000_BAR_CSV_EXPORT_INVALID '+lines.length);
   if(errors.length)throw Error('JS_ERRORS '+errors.join(';'));
