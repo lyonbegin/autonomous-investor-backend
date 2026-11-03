@@ -2,6 +2,7 @@ import {useEffect,useRef,useState} from 'react';
 import {Vela} from '@luxalgo/vela';
 import {PineWorkerEngine} from '@luxalgo/vela-pinets';
 import type {PineVisualResponse} from '../types';
+import {captureNativeRun,type NativePineCapture} from './nativePineCapture';
 
 function upgradeLegacyInputs(source:string){
   const typeMap:Record<string,string>={
@@ -132,14 +133,17 @@ type Props={
   data:PineVisualResponse;
   source:string;
   onRuntime?:(x:{state:'loading'|'ready'|'error';message?:string;kind?:string})=>void;
+  onCapture?:(x:NativePineCapture|null)=>void;
 };
 
-export function NativePineChartControl({data,source,onRuntime}:Props){
+export function NativePineChartControl({data,source,onRuntime,onCapture}:Props){
   const host=useRef<HTMLDivElement>(null);
   const runtimeRef=useRef(onRuntime);
+  const captureRef=useRef(onCapture);
   const [localError,setLocalError]=useState('');
 
   useEffect(()=>{runtimeRef.current=onRuntime},[onRuntime]);
+  useEffect(()=>{captureRef.current=onCapture},[onCapture]);
 
   useEffect(()=>{
     const el=host.current;
@@ -168,6 +172,25 @@ export function NativePineChartControl({data,source,onRuntime}:Props){
     } as any);
 
     chart.registerEngine('pine',new PineWorkerEngine());
+    // The component already runs actual Pine on the supplied chart OHLCV.
+    // Capture its computed full plot series and strategy trade ledger from the
+    // existing chart engine; never infer orders from painted pixels.
+    const offScript=chart.on('script:run',run=>{
+      if(disposed||!run.complete||run.forming)return;
+      void captureNativeRun(run,bars.map(b=>({
+        timestamp:b.time,open:b.open,high:b.high,low:b.low,close:b.close,volume:b.volume
+      })),{
+        script_id:data.script_id,source_hash:data.source_hash,
+        symbol:data.symbol,timeframe:data.horizon,provider:data.market_data?.provider
+      }).then(output=>{
+        if(!disposed)captureRef.current?.(output);
+      }).catch(err=>{
+        if(!disposed){
+          captureRef.current?.(null);
+          runtimeRef.current?.({state:'error',message:'차트 수치·체결 추출 실패: '+String(err)});
+        }
+      });
+    });
 
     const handle=chart.addIndicator(compatible.source);
     const offReady=handle.on('ready',()=>{
@@ -204,6 +227,7 @@ export function NativePineChartControl({data,source,onRuntime}:Props){
       ro.disconnect();
       try{offReady?.()}catch{}
       try{offError?.()}catch{}
+      try{offScript?.()}catch{}
       chart.destroy();
       el.innerHTML='';
     };
