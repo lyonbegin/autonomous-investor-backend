@@ -40,7 +40,7 @@ function PythonPlot({data,result}:{data:PineVisualResponse;result:Result}){
   const el=root.current;if(!el)return;
   const chart=createChart(el,{width:el.clientWidth,height:520,
    layout:{background:{type:ColorType.Solid,color:'#ffffff'},textColor:'#475569'},
-   timeScale:{timeVisible:true,secondsVisible:false}});
+   timeScale:{timeVisible:true,secondsVisible:false},localization:{locale:'ko-KR'}});
   chart.addCandlestickSeries({upColor:'#16a34a',downColor:'#dc2626',borderUpColor:'#16a34a',borderDownColor:'#dc2626',wickUpColor:'#16a34a',wickDownColor:'#dc2626'})
    .setData(data.bars.map(b=>({time:Math.floor(b.timestamp/1000) as UTCTimestamp,open:b.open,high:b.high,low:b.low,close:b.close})));
   for(const [name,color] of [['Decycler','#2563eb'],['Lower band','#8b5cf6'],['Upper band','#c2410c']]){
