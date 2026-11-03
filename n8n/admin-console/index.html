@@ -508,7 +508,7 @@ function exportVerifiedDDDSTrades(){
    const values=columns.map(k=>k==='pine_source_sha256'?d.pine_source_sha256:trade[k]);
    rows.push(values.map(csvCell).join(','));
  }
- const text='\\uFEFF'+rows.join('\\r\\n')+'\\r\\n';
+ const text='\uFEFF'+rows.join('\r\n')+'\r\n';
  const url=URL.createObjectURL(new Blob([text],{type:'text/csv;charset=utf-8'}));
  const link=document.createElement('a');link.href=url;
  link.download='DDDS_BATS-AMZN_2h_TradingView_published_299_trades.csv';
