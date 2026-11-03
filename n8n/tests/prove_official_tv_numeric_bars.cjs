@@ -114,6 +114,15 @@ async function main(){
     recorded_at:new Date().toISOString()
   };
   fs.writeFileSync(path.join(OUTPUT,'bar-proof.json'),JSON.stringify(result,null,2));
+  // Local test artifact only. Never publish a market-data API or proxy.
+  if(process.env.TV_BAR_WRITE_TEST_CSV==='1'&&series.length>0){
+    const headers='time,open,high,low,close,volume';
+    const csv=[headers,...series.map(b=>[
+      new Date(b.time_ms).toISOString(),b.open,b.high,b.low,b.close,
+      b.volume===null?'':b.volume
+    ].join(','))].join('\\n')+'\\n';
+    fs.writeFileSync(path.join(OUTPUT,'official-chart-AAPL-D-test-reference.csv'),csv);
+  }
   // Evidence summary only, not a bulk TradingView feed redistributed as CSV.
   console.log('TV_OFFICIAL_NUMERIC_BAR_PROOF',JSON.stringify(result).slice(0,17000));
   if(stats.responseStatus!==200||series.length<20||invalid)
