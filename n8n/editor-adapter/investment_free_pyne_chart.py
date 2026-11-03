@@ -14,6 +14,7 @@ import math
 import os
 import sqlite3
 import subprocess
+import struct
 import sys
 import tempfile
 import threading
@@ -120,6 +121,42 @@ def run_generated_exact_pyne_python(python_code:str,bars:list[dict]):
             raise RuntimeError("DDDS_FREE_PYNE_CHILD_PROVENANCE_MISMATCH")
         return out
 
+def compare_same_market_bars(bars:list[dict], child:dict)->dict:
+    """Compare the TV chart OHLCV with numpy arrays USED by the Python child.
+
+    This is an INPUT-ONLY comparison, not a claim that the historic published
+    BATS:AMZN snapshot or TradingView indicator outputs match Python plots.
+    """
+    if not isinstance(child,dict) or child.get("bars_executed")!=len(bars):
+        raise ValueError("DDDS_MARKET_BAR_COUNT_MISMATCH")
+    checksum=hashlib.sha256()
+    for row in bars:
+        try:
+            checksum.update(struct.pack("!q5d",row["time_ms"],
+                *(float(row[k]) for k in ("open","high","low","close","volume"))))
+        except (KeyError,ValueError,TypeError,OverflowError,struct.error) as exc:
+            raise ValueError("DDDS_INVALID_MARKET_BAR_INPUT") from exc
+    ref_sha=checksum.hexdigest()
+    if child.get("market_input_sha256")!=ref_sha:
+        raise ValueError("DDDS_PYTHON_INPUT_OHLCV_MISMATCH")
+    closes=child.get("market_input_close")
+    if not isinstance(closes,list) or len(closes)!=len(bars):
+        raise ValueError("DDDS_PYTHON_INPUT_CLOSE_SERIES_MISSING")
+    mismatches=[]
+    for i,(row,got) in enumerate(zip(bars,closes)):
+        if type(got) not in (int,float) or not math.isfinite(got) or float(row["close"])!=float(got):
+            mismatches.append(i)
+    if mismatches:
+        raise ValueError("DDDS_PYTHON_INPUT_CLOSE_SERIES_MISMATCH")
+    return {"status":"SAME_TV_MARKET_BARS_USED_BY_PYTHON",
+            "scope":"INPUT_OHLCV_ONLY",
+            "symbol":"NASDAQ:AMZN","timeframe":"120",
+            "tv_bar_count":len(bars),"python_bar_count":len(bars),
+            "matching_bars":len(bars),"mismatching_bars":0,
+            "tv_ohlcv_sha256":ref_sha,"python_input_ohlcv_sha256":child["market_input_sha256"],
+            "published_bats_snapshot_compared":False,
+            "tradingview_pine_indicator_parity_verified":False}
+
 def execute(sid:str)->dict:
     if not _LOCK.acquire(blocking=False):
         raise ValueError("DDDS_FREE_PYNE_CHART_EXECUTION_ALREADY_RUNNING")
@@ -138,9 +175,11 @@ def execute(sid:str)->dict:
         provider=json.loads(payload)
         bars=validate_bars(provider)
         result=run_generated_exact_pyne_python(code,bars)
+        input_compare=compare_same_market_bars(bars,result)
         chart=[
             {"time_ms":row["time_ms"],"open":row["open"],"high":row["high"],
-             "low":row["low"],"close":row["close"],
+             "low":row["low"],"close":row["close"],"volume":row["volume"],
+             "python_input_close":result["market_input_close"][index],
              **{key:result["plots"][key][index] for key in
                 ("Decycler","Price anchor","Gradient","Lower band","Upper band","Stop","Target")}}
             for index,row in enumerate(bars)
@@ -156,6 +195,7 @@ def execute(sid:str)->dict:
             "provider":"TRADINGVIEW_PUBLIC_CHART_PASSIVE_WEBSOCKET",
             "licensed_market_data_api":False,
             "chart":chart,
+            "market_data_comparison":input_compare,
             "strategy_event_count":result["trade_event_count"],
             "strategy_events":result["trade_events"],
             "strategy_events_truncated":result["trade_events_truncated"],
