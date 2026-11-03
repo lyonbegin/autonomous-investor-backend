@@ -33,15 +33,17 @@ class TestWF02RightsGate(unittest.TestCase):
             with patch("investment_wf02.open_registry", side_effect=get_db), \
                  patch.dict(os.environ, {"INVESTMENT_DATABASE_URL": ""}):
                 for state in ("PENDING_REVIEW", "REJECTED", "UNVERIFIED"):
-                    with self.subTest(state=state), self.assertRaisesRegex(
-                        ValueError, "WF02_SOURCE_RIGHTS_NOT_APPROVED"
-                    ):
-                        execute_wf02_node01({
+                    with self.subTest(state=state):
+                        result = execute_wf02_node01({
                             "ui_selection": "strategy",
                             "requested_detail_limit": 1,
                             "source_id": state,
                             "version_key": "1.0"
                         }, workflow_kind="strategy")
+                        self.assertEqual(result["status"], "WF02_SOURCE_RIGHTS_NOT_APPROVED")
+                        self.assertEqual(result["rights_state"], state)
+                        self.assertIsNone(result["python_code"])
+                        self.assertFalse(result["live_orders_enabled"])
 
     def test_approved_source_can_enter_dependency_resolution(self):
         with tempfile.TemporaryDirectory() as tmp:
