@@ -68,7 +68,7 @@ class PublishedDDDS299ReferenceTest(unittest.TestCase):
             tv.capture("sid",root=self.folder,transport=lambda req:data)
     def test_reject_corrupt_original_trade_row(self):
         data=mock_trades();data["trades"][0]["exit_price_display"]=245
-        with self.assertRaisesRegex(ValueError,"HASH_MISMATCH"):
+        with self.assertRaisesRegex(ValueError,"PRICE_RAW_TEXT_MISMATCH"):
             tv.capture("sid",root=self.folder,transport=lambda req:data)
     def test_reject_other_pine_before_browser_call(self):
         fake=bundled_ddds_reference()
