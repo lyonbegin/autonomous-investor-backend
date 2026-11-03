@@ -575,9 +575,9 @@ function renderDDDSParityReadiness(d){
  if(details)details.textContent=JSON.stringify(d,null,2);
  const values=[
   ['DDDS 원본 동일성',d.identical_source_in_workflow_db===true?'원본 SHA 일치': '원본 미등록'],
-  ['PyneComp 실제 변환본',d.exact_pynecomp_code_available===true?
-    '저장된 동일 원본 변환본 확인':'DDDS 전용 Python 없음'],
-  ['PyneComp 인증',d.pynecomp_api_key_configured===true?'설정됨':'API 키 미설정'],
+  ['무료 PYNE Python 변환본',d.exact_free_pyne_code_available===true?
+    '동일 DDDS 원본 전체 Python 생성됨':'DDDS Python 미생성'],
+  ['무료 PYNE 로컬 설치',d.free_pyne_compiler_installed===true?'설치 확인 · 유료 키 불필요':'로컬 설치 필요'],
   ['TradingView 현재 Properties',d.published_properties_current_report_inputs_match_defaults===true?
      'Pine 기본 입력값과 일치':'설정 불일치'],
   ['원본 차트 / 보고서 종목',d.strategy_report_symbol_conflict===true?
