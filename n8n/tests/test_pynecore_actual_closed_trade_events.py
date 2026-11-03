@@ -9,6 +9,7 @@ import os
 from pathlib import Path
 import sys
 import unittest
+import math
 from datetime import datetime,timedelta,timezone
 from unittest.mock import patch
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/"pine-parity"))
@@ -16,10 +17,10 @@ from pynecore_bridge import run_compiled_pynecore
 
 SAMPLE=Path(__file__).resolve().parents[1]/"pine-parity"/"demo"/"sma_crossover.py"
 SYMBOL={
- "prefix":"TEST","ticker":"SYNTHETIC","description":"synthetic unittest",
- "currency":"USD","basecurrency":"USD","period":"120","type":"stock",
+ "prefix":"NASDAQ","ticker":"AAPL","description":"synthetic CI AAPL-like bars, not actual Nasdaq",
+ "currency":"USD","basecurrency":"USD","period":"D","type":"stock",
  "mintick":0.01,"pricescale":100,"minmove":1,"pointvalue":1.,
- "mincontract":1.,"timezone":"UTC","volumetype":"base",
+ "mincontract":1.,"timezone":"America/New_York","volumetype":"base",
  "opening_hours":[],"session_starts":[],"session_ends":[]
 }
 
@@ -28,11 +29,11 @@ def synthetic_market():
     buffer=io.StringIO()
     writer=csv.DictWriter(buffer,fieldnames=["time","open","high","low","close","volume"])
     writer.writeheader()
-    for n in range(168):
-        close=100+((n%14)-7)*2.
+    for n in range(350):
+        close=170+0.2*n+18*math.sin(n*0.18)
         writer.writerow({
           "time":(datetime(2025,1,1,tzinfo=timezone.utc)+
-                  timedelta(hours=n*2)).isoformat(),
+                  timedelta(days=n)).isoformat(),
           "open":close-.5,"high":close+1,"low":close-1,"close":close,
           "volume":1000+n})
     return buffer.getvalue()
