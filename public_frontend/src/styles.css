@@ -108,3 +108,17 @@
 .pine-compare-grid .native-pine-shell,.pine-compare-grid .pine-chart-wrap{width:100%;overflow:hidden}
 .pine-compare-page code{overflow-wrap:anywhere}
 @media(max-width:900px){.pine-compare-grid{grid-template-columns:minmax(0,1fr)}}
+
+/* TradingView's author-published strategy chart is displayed directly.
+   It is NOT a PineTS recreation and does NOT claim live-bar parity. */
+.tv-original-publication-image {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  object-fit: contain;
+  border: 1px solid #dae0e8;
+  border-radius: 8px;
+  margin: 16px 0 10px;
+  background: #f5f7fa;
+}
