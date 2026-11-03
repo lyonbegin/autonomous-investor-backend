@@ -4,6 +4,9 @@ on:
     branches: [feature/wf02-integrated-official-chart-20261103]
     paths:
       - 'n8n/tests/test_live_wf02_official_chart_center.cjs'
+      - 'n8n/admin-console/index.html'
+      - 'n8n/editor-adapter/investment_tv_chart_integration.py'
+      - 'n8n/editor-adapter/investment_studio_server.py'
       - '.github/workflows/wf02-live-convert-center.yml'
   workflow_dispatch:
 permissions:
