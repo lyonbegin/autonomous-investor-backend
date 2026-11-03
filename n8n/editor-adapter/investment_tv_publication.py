@@ -5,6 +5,8 @@ runner, or mark any PyneCore/Pine compilation validated.
 """
 from __future__ import annotations
 import hashlib
+import base64
+import gzip
 import json
 import re
 import sqlite3
@@ -132,8 +134,53 @@ def save_reference(sid: str, evidence: dict, root: Path = _REFERENCE_DIR) -> dic
             os.unlink(tmp)
     return {"status": evidence["status"], "source_sha256": evidence["source_sha256"]}
 
+def bundled_ddds_reference() -> dict:
+    """User-supplied public DDDS DOM: complete Pine + published report summary.
+
+    Not an authenticated TradingView strategy test; report is publisher snapshot.
+    """
+    fixture = Path(__file__).resolve().parent / "fixtures/ddds_published_source.gz.b64"
+    pine = gzip.decompress(base64.b64decode(fixture.read_text().strip())).decode("utf-8")
+    h = hashlib.sha256(pine.encode("utf-8")).hexdigest()
+    if h != "5a245e99447f13012dd026528235fc2c299cad5cb7b228653c684886dcba6507":
+        raise ValueError("BUNDLED_PINE_SOURCE_SHA256_MISMATCH")
+    return {
+        "status": "TRADINGVIEW_PUBLISHED_STRATEGY_REFERENCE_PARSED",
+        "evidence_kind": "USER_SUPPLIED_TRADINGVIEW_PUBLICATION_DOM",
+        "strategy_title": "Displaced Donchian Decycler Strategy",
+        "source_id": "PUB;5442675d418140c58486eb4a7ae12768",
+        "source_line_count": len(pine.splitlines()),
+        "source_sha256": h, "source_rights": "MPL-2.0",
+        "source_author": "blitz_locked",
+        "chart_id": "LkgKT3TG",
+        "chart_preview_url": "https://s3.tradingview.com/l/LkgKT3TG_mid.webp?v=1793614735",
+        "chart_symbol_title": "Amazon.com, Inc. (BATS:AMZN)",
+        "chart_timeframe_display": "2시",
+        "publication_url": "https://www.tradingview.com/script/LkgKT3TG-Displaced-Donchian-Decycler-Trend-Breakout-Strategy-with-MFI/",
+        "strategy_legend_present": True,
+        "published_strategy_report_present": True,
+        "report_title": "DDDS 보고서",
+        "report_key_facts": [
+            "총 PnL +17,961.73 USD +179.62%",
+            "최대 손실폭 4,615.01 USD 17.82%",
+            "수익성 거래 29.43% 88/299",
+            "수익지수 1.556"
+        ],
+        "report_tabs": [
+            {"id": t, "selected_in_snapshot": t == "Overview"}
+            for t in ("Overview","Performance","Trades Analysis","Ratios","List of Trades","Properties")
+        ],
+        "report_trade_rows_extracted": False,
+        "pine_source": pine, "pinecomp_compiled": False,
+        "python_execution_complete": False,
+        "tradingview_pynecore_strategy_parity_verified": False,
+        "strategy_orders_extracted": False,
+        "provenance_note": "User-provided published DOM. Frozen author-published chart and report; not live Strategy Tester",
+        "imported_at": None,
+    }
+
 def latest_reference(sid: str, root: Path = _REFERENCE_DIR) -> dict:
     dest = _path(root, sid)
     if not dest.is_file():
-        return {"status": "NO_PUBLISHED_STRATEGY_REFERENCE"}
+        return bundled_ddds_reference()
     return json.loads(dest.read_text(encoding="utf-8"))
