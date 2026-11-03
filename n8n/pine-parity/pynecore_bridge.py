@@ -189,10 +189,14 @@ def run_compiled_pynecore(script_path, expected_python_sha256, csv_text, syminfo
             if len(executed_trades)>10000:
                 raise ParityInputError("PYNECORE_TOO_MANY_CLOSED_TRADES")
 
-    result = compare_plot_values(rows, plots, plot_mapping)
-    matches = all(x["match"] for x in result)
+    if not isinstance(plot_mapping, dict):
+        raise ParityInputError("EXPLICIT_PLOT_MAPPING_REQUIRED")
+    result = compare_plot_values(rows, plots, plot_mapping) if plot_mapping else []
+    matches = bool(result) and all(x["match"] for x in result)
+    status = ("NO_TV_PLOT_REFERENCE_TRADE_PARITY_UNVERIFIED" if not result
+              else "NUMERIC_MATCH_TRADE_PARITY_UNVERIFIED" if matches else "NUMERIC_MISMATCH")
     return {
-        "status": "NUMERIC_MATCH_TRADE_PARITY_UNVERIFIED" if matches else "NUMERIC_MISMATCH",
+        "status": status,
         "data_type": "TV_REFERENCE_PROVIDED_BY_CALLER_NOT_AUTHENTICATED",
         "python_sha256": digest,
         "bar_count": len(rows),
