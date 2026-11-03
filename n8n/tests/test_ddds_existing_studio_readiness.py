@@ -35,7 +35,7 @@ class DDDSReadinessIntegration(unittest.TestCase):
         self.assertTrue(d["identical_source_in_workflow_db"])
         self.assertFalse(d["exact_pynecomp_code_available"])
         self.assertIn("PYNESYS_API_KEY",d["missing_requirements"])
-        self.assertIn("VERIFIED_BATS_AMZN_120MIN_FULL_HISTORY_2016_2026",
+        self.assertIn("VERIFIED_NASDAQ_AMZN_120MIN_FULL_HISTORY_2016_2026",
                       d["missing_requirements"])
         self.assertEqual(d["saved_published_trade_count"],0)
         self.assertFalse(d["tradingview_pynecore_parity_verified"])
