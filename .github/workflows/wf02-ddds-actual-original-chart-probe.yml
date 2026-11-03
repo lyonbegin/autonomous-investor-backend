@@ -11,6 +11,8 @@ jobs:
     timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
+      - name: Guard actual original chart link and admin JavaScript syntax
+        run: node n8n/tests/test_ddds_original_chart_ui_static.cjs
       - name: Install Playwright browser
         run: |
           npm install --no-save playwright@1.56.1
