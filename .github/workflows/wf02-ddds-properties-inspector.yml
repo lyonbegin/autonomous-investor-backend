@@ -1,0 +1,32 @@
+name: Official DDDS published TradingView Strategy Properties inspector
+on:
+  push:
+    branches: [feature/wf02-ddds-verified-execution-gate-20261104]
+    paths:
+      - 'n8n/tests/inspect_official_ddds_properties.cjs'
+      - '.github/workflows/wf02-ddds-properties-inspector.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  inspect-properties:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Chromium
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Click actual public DDDS Strategy Report Properties and record visible setting values
+        env:
+          DDDS_PROPERTIES_DIR: /tmp/ddds-tv-properties
+        run: node n8n/tests/inspect_official_ddds_properties.cjs
+      - name: Preserve real Properties screen and evidence (no account tokens)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ddss-public-TV-strategy-properties-evidence
+          path: /tmp/ddds-tv-properties/
+          if-no-files-found: warn
+          retention-days: 14
