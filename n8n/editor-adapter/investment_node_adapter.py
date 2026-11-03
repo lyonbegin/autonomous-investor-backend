@@ -14,7 +14,8 @@ from licensed_strategy_manifest import catalog_from_snapshot
 from investment_source_registry import check_candidates
 from verified_pine_archive import acquire_verified_pine,archive_path_for,MAX_PINE_BYTES
 from investment_pine_store import save_verified_source
-from investment_wf02 import WF02_PATH,execute_wf02_node01,execute_wf02_node02,execute_wf02_node03
+from investment_wf02 import (WF02_PATH,execute_wf02_node01,execute_wf02_node02,
+    execute_wf02_node03,execute_wf02_node04,execute_wf02_node05,execute_wf02_node06)
 from datetime import datetime,timezone
 
 WF01_MODES={
@@ -70,9 +71,12 @@ def root_input_limit(workflow_path,node_id):
 def node_binding(workflow_path,node_id):
     if workflow_path==WF02_PATH:
         commands={
-          "wf02-01":("execute_wf02_node01","wf02-n01-load-db-v1","manual_collection_start"),
-          "wf02-02":("execute_wf02_node02","wf02-n02-convert-v2-nonoverlay","convert_pine_to_python"),
-          "wf02-03":("execute_wf02_node03","wf02-n03-conversion-result-v1","display_conversion_result")
+          "wf02-01":("execute_wf02_node01","wf02-n01-canonical-pine-v3","read_exact_source"),
+          "wf02-02":("execute_wf02_node02","wf02-n02-library-dependency-v1","resolve_exact_library_dependencies"),
+          "wf02-03":("execute_wf02_node03","wf02-n03-pynecomp-library-v1","compile_and_cache_pine_libraries"),
+          "wf02-04":("execute_wf02_node04","wf02-n04-pynecomp-strategy-v1","compile_pine_to_pynecore"),
+          "wf02-05":("execute_wf02_node05","wf02-n05-store-pynecore-v1","store_generated_unvalidated_code"),
+          "wf02-06":("execute_wf02_node06","wf02-n06-review-status-v1","display_conversion_and_blockers")
         }
         if node_id not in commands:return None
         function,version,character=commands[node_id]
@@ -132,7 +136,10 @@ def node_type(workflow_path,node_id):
     if workflow_path==WF02_PATH:
         return {"wf02-01":"n8n-nodes-base.manualTrigger",
                 "wf02-02":"n8n-nodes-base.code",
-                "wf02-03":"n8n-nodes-base.code"}.get(node_id)
+                "wf02-03":"n8n-nodes-base.code",
+                "wf02-04":"n8n-nodes-base.code",
+                "wf02-05":"n8n-nodes-base.code",
+                "wf02-06":"n8n-nodes-base.code"}.get(node_id)
     kind=WF01_MODES.get(workflow_path)
     if not kind:return None
     return {
@@ -496,7 +503,8 @@ def execute_node16(input_json,*,workflow_kind):
 def execute_node(workflow_path,node_id,input_json):
     if workflow_path==WF02_PATH:
         function={"wf02-01":execute_wf02_node01,"wf02-02":execute_wf02_node02,
-                  "wf02-03":execute_wf02_node03}.get(node_id)
+                  "wf02-03":execute_wf02_node03,"wf02-04":execute_wf02_node04,
+                  "wf02-05":execute_wf02_node05,"wf02-06":execute_wf02_node06}.get(node_id)
         if function is None:raise ValueError("UNREGISTERED_PROJECT_NODE")
         return function(input_json,workflow_kind="strategy")
     kind=WF01_MODES.get(workflow_path)
