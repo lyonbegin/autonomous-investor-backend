@@ -29,3 +29,15 @@ jobs:
         run: |
           python -m py_compile n8n/editor-adapter/investment_shared_bars_compare.py n8n/editor-adapter/investment_studio_server.py
           python n8n/tests/test_ddds_shared_bars_compare.py -v
+      - name: Run real DDDS Python on OUR DEPLOYED SITE NASDAQ AMZN 2h latest 300 bars
+        env:
+          DDDS_SITE_EVIDENCE_OUTPUT: /tmp/ddds-real-site-same-bars.json
+        run: python n8n/tests/execute_ddds_on_real_public_site_bars.py
+      - name: Preserve actual source chart price and Python execution evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ddds-existing-site-real-ohlcv-python-run
+          path: /tmp/ddds-real-site-same-bars.json
+          retention-days: 14
+          if-no-files-found: warn
