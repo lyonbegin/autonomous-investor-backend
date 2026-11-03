@@ -59,6 +59,7 @@ const flowLabels={
  [W.agent]:'F03 · 에이전트 할당',
  [W.audit]:'F05 · 독립 감사'
 };
+let lastPublishedSourceSha=null;
 let page='overview',flow=W.strategy,workflow=null,running=false,selectedNode=null,runEvents=[],session={},connected=false,lastPine=null,lastSavedSource=null,compareWindow=null,pendingCompare=null,integratedRunId=null,availableSources=[];
 const PARITY_ORIGIN='https://investment-pine-parity-review-production.up.railway.app';
 window.addEventListener('message',event=>{if(event.origin!==PARITY_ORIGIN||!compareWindow||event.source!==compareWindow||event.data?.type!=='PARITY_READY'||!pendingCompare)return;compareWindow.postMessage({type:'AUTONOMOUS_PINE_IMPORT',...pendingCompare},PARITY_ORIGIN);pendingCompare=null;});
@@ -343,6 +344,13 @@ async function loadFlow(f){
     '<p class="muted minor" id="publication-chart-metadata">게시된 실제 Pine 전략 차트 확인 중</p>'+
     '<a id="publication-open-original" href="https://www.tradingview.com/scripts/" target="_blank" rel="noopener noreferrer">TradingView 원본 전략 페이지 열기</a>'+
     '<h4>게시 당시 Strategy Report</h4><div class="cards" id="publication-report-facts">조회 중</div>'+
+    '<div class="actions" style="margin-top:8px"><button class="btn" id="ddds-trades-capture" data-action="ddds-trades-capture">▶ TradingView 원본 Strategy Report 거래 299건 가져오기</button>'+
+    '<span id="ddds-trades-status" class="status" aria-live="polite">거래 원장 미수집</span></div>'+
+    '<div class="tableWrap" style="max-height:350px;overflow:auto"><table style="width:100%;min-width:650px;font-size:12px;border-collapse:collapse"><thead><tr>'+
+    '<th>번호</th><th>방향</th><th>진입일 (사이트 표시)</th><th>청산일 (사이트 표시)</th>'+
+    '<th>진입가</th><th>청산가</th><th>수량</th><th>순손익</th></tr></thead>'+
+    '<tbody id="ddds-trades-rows"><tr><td colspan="8">실제 게시 거래 목록을 가져오지 않았습니다.</td></tr></tbody></table></div>'+
+
     '<p class="muted minor">보고서 총거래 건수는 제공된 게시 스냅샷의 수치이며, 거래 목록 탭을 열어 추출한 전체 체결 원장이 아닙니다.</p></div>'+
     '<div><h4>오른쪽 · 동일한 Pine 원본을 PyneComp→PyneCore로 변환한 결과</h4>'+
     '<div class="notice warn" id="publication-python-state">동일 Pine 소스의 변환·실행 결과를 확인하는 중입니다.</div>'+
@@ -391,6 +399,7 @@ async function loadFlow(f){
  renderNodes();await refreshSavedState();
  if(isPython)void refreshOfficialChartEvidence();
  if(isPython)void refreshPublishedStrategy();
+ if(isPython)void refreshDDDSTrades();
 
 }
 function showPublishedStrategy(d){
@@ -408,6 +417,7 @@ function showPublishedStrategy(d){
   status.textContent=d.status||'원본 불러오기 실패';return;
  }
  status.textContent='원본 확인 · '+d.source_line_count+'줄 · 저작권 '+d.source_rights;
+ lastPublishedSourceSha=d.source_sha256;
  title.textContent='왼쪽 · '+d.strategy_title+' (게시 당시 차트)';
  if(preview){
   const url=String(d.chart_preview_url||'');
@@ -434,6 +444,56 @@ function showPublishedStrategy(d){
  if(state)state.textContent=d.pinecomp_compiled&&d.python_execution_complete&&d.tradingview_pynecore_strategy_parity_verified?
   '해당 Pine 검증 완료 (서버 제공 출처 확인 필요)':
   '미검증 · 이 DDDS Pine 원본은 아직 PyneComp→PyneCore로 변환·실행되어 TradingView 거래와 비교된 상태가 아닙니다.';
+}
+function renderOfficialDDDSTrades(d){
+ const status=document.getElementById('ddds-trades-status'),body=document.getElementById('ddds-trades-rows');
+ if(!status||!body)return;
+ body.replaceChildren();
+ const exact=(d?.status==='PUBLISHED_DDDS_299_TRADES_CAPTURED'&&
+   d.source==='OFFICIAL_TRADINGVIEW_PUBLICATION_VISIBLE_STRATEGY_REPORT'&&
+   d.capture_verified_complete===true&&d.observed_trade_count===299&&
+   Array.isArray(d.trades)&&d.trades.length===299&&
+   d.pine_source_sha256===lastPublishedSourceSha&&
+   d.tradingview_pynecore_parity_verified===false);
+ if(!exact){
+  const tr=document.createElement('tr'),td=document.createElement('td');
+  td.colSpan=8;td.textContent='공식 게시 거래 원장 미수집 · '+(d?.reason||d?.status||'확인 필요');
+  tr.append(td);body.append(tr);
+  status.textContent='미검증 · '+(d?.status||'공식 거래 내역 없음');return;
+ }
+ for(let i=0;i<d.trades.length;i++){
+  const x=d.trades[i],tr=document.createElement('tr');
+  const fields=[x.trade_number,x.side,x.entry_time_display,x.exit_time_display,
+    x.entry_price_display,x.exit_price_display,x.quantity_display,x.net_pnl_display];
+  fields.forEach((v,j)=>{const td=document.createElement('td');td.textContent=v==null?'—':String(v);
+    td.style.padding='7px 8px';td.style.borderBottom='1px solid #29445d';
+    if(j===7&&Number(v)<0)td.style.color='#fca5a5';tr.append(td);});
+  body.append(tr);
+ }
+ status.textContent='공식 공개 Strategy Report 원장 299/299 거래 확보 · '+d.rows_sha256?.slice(0,12)+
+  ' · 사이트 표시 시각의 시간대 미확정 · Python 일치 미검증';
+}
+async function refreshDDDSTrades(){
+ if(!document.getElementById('ddds-trades-status'))return;
+ try{const r=await api('/api/investment/tv-publication/trades/latest');
+  if(!r.ok)throw Error('HTTP '+r.status);
+  renderOfficialDDDSTrades(r.data);
+ }catch(e){const st=document.getElementById('ddds-trades-status');if(st)st.textContent='거래 이력 조회 실패 · '+e.message;}
+}
+async function captureDDDSTrades(){
+ const button=document.getElementById('ddds-trades-capture');
+ const status=document.getElementById('ddds-trades-status');
+ if(!button||button.disabled)return;
+ button.disabled=true;
+ if(status)status.textContent='공식 TradingView 게시 페이지에서 Strategy Report→거래 표 299건 직접 읽는 중…';
+ try{
+  const r=await api('/api/investment/tv-publication/trades/capture',{
+    method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
+  if(!r.ok)throw Error(r.data?.reason||r.data?.status||'HTTP '+r.status);
+  renderOfficialDDDSTrades(r.data);
+ }catch(e){
+  if(status)status.textContent='실제 거래 목록 확보 실패 · '+e.message;
+ }finally{button.disabled=false;}
 }
 async function refreshPublishedStrategy(){
  if(!document.getElementById('published-strategy-reference'))return;
@@ -701,7 +761,7 @@ async function executeFlow(){
  }
 }
 menu.innerHTML=MENUS.map(([id,label])=>'<button class="nav" data-page="'+esc(id)+'"><span>▧</span>'+esc(label)+'</button>').join('');
-document.addEventListener('click',e=>{const target=e.target.closest('[data-page],[data-flow],[data-node],[data-action]');if(!target)return;if(target.dataset.page)setPage(target.dataset.page);else if(target.dataset.flow)loadFlow(target.dataset.flow);else if(target.dataset.node)inspect(target.dataset.node);else if(target.dataset.action==='run')executeFlow();else if(target.dataset.action==='ddds-wf02-run')registerPublishedStrategyAndRunWF02();else if(target.dataset.action==='tv-publication-import')importPublishedStrategy();else if(target.dataset.action==='tv-chart-verify')executeOfficialChart();else if(target.dataset.action==='compare')openCompare();else if(target.dataset.action==='convert-next')setPage('convert');else if(target.dataset.action==='integrated-start')startIntegrated();else if(target.dataset.action==='integrated-refresh')refreshIntegrated();else if(target.dataset.action==='refresh')loadFlow(flow)});
+document.addEventListener('click',e=>{const target=e.target.closest('[data-page],[data-flow],[data-node],[data-action]');if(!target)return;if(target.dataset.page)setPage(target.dataset.page);else if(target.dataset.flow)loadFlow(target.dataset.flow);else if(target.dataset.node)inspect(target.dataset.node);else if(target.dataset.action==='run')executeFlow();else if(target.dataset.action==='ddds-trades-capture')captureDDDSTrades();else if(target.dataset.action==='ddds-wf02-run')registerPublishedStrategyAndRunWF02();else if(target.dataset.action==='tv-publication-import')importPublishedStrategy();else if(target.dataset.action==='tv-chart-verify')executeOfficialChart();else if(target.dataset.action==='compare')openCompare();else if(target.dataset.action==='convert-next')setPage('convert');else if(target.dataset.action==='integrated-start')startIntegrated();else if(target.dataset.action==='integrated-refresh')refreshIntegrated();else if(target.dataset.action==='refresh')loadFlow(flow)});
 async function bootstrapManagement(){
  try{
   const session=await api('/api/investment/session');
