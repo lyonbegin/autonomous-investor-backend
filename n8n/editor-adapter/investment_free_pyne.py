@@ -174,3 +174,53 @@ def store(kind:str,sid:str,version:str,pine_sha:str,lock:str,code:str)->dict:
     return {"compiler_id":COMPILER_ID,"pine_sha256":pine_sha,
             "python_sha256":py_hash,"bytes":len(code.encode("utf-8")),
             "conversion_validated":False,"tradingview_parity_verified":False}
+
+
+def ddds_artifact(sid:str,*, include_code:bool=False)->dict:
+    """Read source-matched actual compiled Python from the original WF02 DB.
+
+    The selected TradingView publication must be the same immutable DDDS
+    Pine source; unknown sources do not receive this code as a surrogate.
+    """
+    from investment_tv_publication import latest_reference
+    from investment_pynecomp import dependency_lock
+    from investment_ddds_parity import DDDS_SOURCE_SHA,DDDS_SOURCE_ID,DDDS_VERSION
+    reference=latest_reference(sid)
+    if reference.get("source_sha256")!=DDDS_SOURCE_SHA:
+        return {"status":"PYNE_FREE_SELECTED_SOURCE_NOT_DDDS",
+                "generated_python_available":False,"parity_verified":False,
+                "live_orders_enabled":False}
+    with closing(open_registry()) as db:
+        names={r[0] for r in db.execute(
+            "SELECT name FROM sqlite_master WHERE type='table'")}
+        source=None
+        if "investment_pine_payloads" in names:
+            source=db.execute("""SELECT pine_code,rights_state FROM investment_pine_payloads
+               WHERE kind='strategy' AND source_id=? AND version_key=?""",
+               (DDDS_SOURCE_ID,DDDS_VERSION)).fetchone()
+        right=source["rights_state"] if source is not None else None
+        source_sha=hash_source(source["pine_code"]) if source is not None else None
+    if source_sha!=DDDS_SOURCE_SHA or right!="APPROVED":
+        return {"status":"PYNE_FREE_SOURCE_NOT_REGISTERED_OR_NOT_APPROVED",
+                "source_id":DDDS_SOURCE_ID,"version_key":DDDS_VERSION,
+                "rights_state":right,
+                "generated_python_available":False,"parity_verified":False,
+                "live_orders_enabled":False}
+    lock=dependency_lock([])
+    code=cached("strategy",DDDS_SOURCE_ID,DDDS_VERSION,DDDS_SOURCE_SHA,lock)
+    result={
+        "status":"PYNE_FREE_GENERATED_UNVALIDATED" if code is not None
+                 else "PYNE_FREE_COMPILE_NOT_RUN",
+        "source_id":DDDS_SOURCE_ID,"version_key":DDDS_VERSION,
+        "pine_source_sha256":DDDS_SOURCE_SHA,
+        "compiler":status(),
+        "generated_python_available":code is not None,
+        "python_sha256":hash_source(code) if code is not None else None,
+        "python_bytes":len(code.encode("utf-8")) if code is not None else 0,
+        "python_runtime_executed":False,
+        "tradingview_strategy_parity_verified":False,
+        "paper_enabled":False,"live_orders_enabled":False
+    }
+    if include_code and code is not None:
+        result["python_code"]=code
+    return result
