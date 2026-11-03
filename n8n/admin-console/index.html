@@ -398,8 +398,7 @@ async function loadFlow(f){
  }
  renderNodes();await refreshSavedState();
  if(isPython)void refreshOfficialChartEvidence();
- if(isPython)void refreshPublishedStrategy();
- if(isPython)void refreshDDDSTrades();
+ if(isPython)void refreshPublishedStrategy().then(()=>refreshDDDSTrades());
 
 }
 function showPublishedStrategy(d){
