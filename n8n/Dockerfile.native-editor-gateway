@@ -32,6 +32,9 @@ COPY n8n/editor-adapter/investment_pynecomp.py /app/investment_pynecomp.py
 COPY n8n/investment-db/investment_pg.py /app/investment_pg.py
 COPY n8n/investment-db/schema_v1.sql /app/schema_v1.sql
 COPY n8n/editor-adapter/investment_pipeline.py /app/investment_pipeline.py
+COPY n8n/editor-adapter/investment_studio_server.py /app/investment_studio_server.py
+COPY n8n/editor-adapter/investment_tv_chart_integration.py /app/investment_tv_chart_integration.py
+COPY n8n/pine-parity/demo/bollinger_bands.py n8n/pine-parity/demo/sma_crossover.py /app/pynecore_samples/
 COPY n8n/pine-parity/engine.py /app/engine.py
 COPY n8n/pine-parity/sequence_reversal.py /app/sequence_reversal.py
 COPY n8n/editor-adapter/licensed_strategy_manifest.py /app/licensed_strategy_manifest.py
@@ -40,7 +43,7 @@ COPY n8n/editor-adapter/verified_pine_archive.py /app/verified_pine_archive.py
 COPY n8n/editor-adapter/verified_pine_archive_index.json /app/verified_pine_archive_index.json
 COPY n8n/editor-adapter/investment_pine_store.py /app/investment_pine_store.py
 COPY --from=build /app/shared/server/node_workspace_store.py /app/node_workspace_store.py
-RUN python3 -m py_compile /app/studio_server.py /app/node_workspace_store.py /app/node_run_store.py /app/project_adapter_runtime.py /app/investment_node_adapter.py /app/investment_wf02.py /app/investment_pynecomp.py /app/investment_pg.py /app/investment_pipeline.py /app/engine.py /app/sequence_reversal.py /app/licensed_strategy_manifest.py /app/investment_source_registry.py /app/verified_pine_archive.py
+RUN python3 -m py_compile /app/studio_server.py /app/node_workspace_store.py /app/node_run_store.py /app/project_adapter_runtime.py /app/investment_node_adapter.py /app/investment_wf02.py /app/investment_pynecomp.py /app/investment_pg.py /app/investment_pipeline.py /app/investment_studio_server.py /app/investment_tv_chart_integration.py /app/pynecore_samples/bollinger_bands.py /app/pynecore_samples/sma_crossover.py /app/engine.py /app/sequence_reversal.py /app/licensed_strategy_manifest.py /app/investment_source_registry.py /app/verified_pine_archive.py
 RUN mkdir -p /data && groupadd --system studio && useradd --system --gid studio --home /app studio \
     && chown -R studio:studio /data /app
 # The Railway volume is mounted after image build as root-owned /data.
@@ -50,4 +53,4 @@ ENV STUDIO_STATIC_ROOT=/app/dist
 ENV STUDIO_DB_PATH=/data/studio.sqlite3
 ENV STUDIO_PROJECT_ADAPTER=investment_node_adapter
 EXPOSE 3000
-CMD ["sh", "-c", "chown -R studio:studio /data && gosu studio python3 -c 'import investment_pipeline; investment_pipeline.init()' && if [ -n \"${INVESTMENT_DATABASE_URL:-}\" ]; then gosu studio python3 -u /app/investment_pg.py || exit 1; fi && exec gosu studio python3 -u /app/studio_server.py"]
+CMD ["sh", "-c", "chown -R studio:studio /data && gosu studio python3 -c 'import investment_pipeline; investment_pipeline.init()' && if [ -n \"${INVESTMENT_DATABASE_URL:-}\" ]; then gosu studio python3 -u /app/investment_pg.py || exit 1; fi && exec gosu studio python3 -u /app/investment_studio_server.py"]
