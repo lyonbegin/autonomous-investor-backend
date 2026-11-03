@@ -33,6 +33,30 @@ class InvestmentHandler(studio.Handler):
         return super().do_GET()
 
     def do_POST(self):
+        if urlsplit(self.path).path == "/api/investment/tv-publication/register-wf02":
+            sid, fresh = self._sid()
+            origin = self.headers.get("Origin")
+            if origin and (urlsplit(origin).netloc != self.headers.get("Host")
+                           or urlsplit(origin).scheme not in ("https","http")):
+                return self._json(403,{"status":"CROSS_ORIGIN_FORBIDDEN"},sid,fresh)
+            if not self.headers.get("Content-Type","").startswith("application/json"):
+                return self._json(415,{"status":"JSON_REQUIRED"},sid,fresh)
+            try:
+                length = int(self.headers.get("Content-Length","-1"))
+                if not 2 <= length <= 150:
+                    return self._json(413,{"status":"REGISTER_PAYLOAD_TOO_LARGE"},sid,fresh)
+                body = json.loads(self.rfile.read(length))
+                if not isinstance(body,dict) or set(body)!={"acknowledge_mpl"} or type(body["acknowledge_mpl"]) is not bool:
+                    return self._json(400,{"status":"EXPLICIT_LICENSE_ACK_REQUIRED"},sid,fresh)
+                result = published.register_for_existing_wf02(
+                    sid,acknowledge_mpl=body["acknowledge_mpl"])
+                return self._json(200,result,sid,fresh)
+            except (ValueError, TypeError) as exc:
+                return self._json(422,{"status":"WF02_SOURCE_REGISTRATION_BLOCKED",
+                                       "reason":str(exc)[:200]},sid,fresh)
+            except OSError as exc:
+                return self._json(503,{"status":"WF02_SOURCE_STORAGE_UNAVAILABLE",
+                                       "reason":type(exc).__name__},sid,fresh)
         if urlsplit(self.path).path == "/api/investment/tv-publication/import":
             sid, fresh = self._sid()
             origin = self.headers.get("Origin")
