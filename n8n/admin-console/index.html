@@ -332,6 +332,10 @@ async function loadFlow(f){
     '<div class="actions"><input type="file" accept=".html,.htm,.txt,text/html,text/plain" id="tv-publication-html" aria-label="TradingView 게시 전략 HTML 파일" style="max-width:260px">'+
     '<button class="btn" data-action="tv-publication-import" id="tv-publication-import">게시 전략 HTML에서 원본·보고서 가져오기</button>'+
     '<span class="status" aria-live="polite" id="tv-publication-status">원본 확인 중</span></div>'+
+    '<div class="actions" style="align-items:center;flex-wrap:wrap">'+
+    '<label class="muted minor"><input type="checkbox" id="ddds-mpl-ack"> MPL-2.0 원본의 저작권 표시·원문 공개 의무를 확인하고 이 Pine의 변환을 승인</label>'+
+    '<button class="btn primary" id="ddds-wf02-run" data-action="ddds-wf02-run">▶ 실제 DDDS Pine 등록 → 기존 WF-02 노드 실행</button>'+
+    '<span id="ddds-register-state" class="status" aria-live="polite">등록 전 · 다른 전략으로 대체하지 않음</span></div>'+
     '<div class="notice warn">왼쪽은 TradingView에서 <b>전략이 적용된 채 게시된 차트</b>의 공식 이미지입니다. 정지된 게시 시점 스냅샷이며, 원본의 실제 차트 컨트롤은 공식 게시 페이지에서 열 수 있습니다. 오른쪽은 <b>바로 이 Pine 원본의</b> 변환본이 존재할 때만 계산 결과를 그립니다. 무관한 SMA 예제로 대체하지 않습니다.</div>'+
     '<div class="grid2" style="grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:stretch">'+
     '<div><h4 id="publication-title">왼쪽 · TradingView 게시 원본 전략 차트</h4>'+
@@ -437,6 +441,42 @@ async function refreshPublishedStrategy(){
   if(!r.ok)throw Error('HTTP '+r.status);
   showPublishedStrategy(r.data);
  }catch(e){const el=document.getElementById('tv-publication-status');if(el)el.textContent='원본 조회 실패 · '+e.message;}
+}
+async function registerPublishedStrategyAndRunWF02(){
+ if(running){return;}
+ const status=document.getElementById('ddds-register-state');
+ const button=document.getElementById('ddds-wf02-run');
+ const acknowledge=document.getElementById('ddds-mpl-ack')?.checked===true;
+ if(!acknowledge){
+  if(status)status.textContent='라이선스 조건 확인 후 승인 체크가 필요합니다';
+  return;
+ }
+ if(button)button.disabled=true;
+ if(status)status.textContent='실제 Pine 원본 PostgreSQL/SQLite에 등록 중…';
+ try{
+  const r=await api('/api/investment/tv-publication/register-wf02',{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({acknowledge_mpl:true})
+  });
+  if(!r.ok)throw Error(r.data?.reason||r.data?.status||'HTTP '+r.status);
+  const d=r.data||{};
+  if(d.status!=='PUBLISHED_PINE_REGISTERED_FOR_EXISTING_WF02'||
+      d.rights_state!=='APPROVED'||!d.user_acknowledged_mpl||
+      !d.source_id||!d.version_key||!d.source_sha256){
+    throw Error('DDDS 원본 등록 또는 명시적 승인 검증 실패');
+  }
+  const id=document.getElementById('wf02-source-id');
+  const version=document.getElementById('wf02-version');
+  if(!id||!version)throw Error('기존 WF-02 원본 선택 필드 없음');
+  id.value=d.source_id;version.value=d.version_key;
+  if(status)status.textContent='정확한 DDDS 원본 등록·권리 승인 성공 · '+d.version_key+
+    ' · 기존 6노드 실행 시작 (PyneComp 인증 없으면 실제 차단)';
+  await executeFlow();
+  const w=document.getElementById('progress')?.textContent||'';
+  if(status)status.textContent='DDDS 원본 고정 · '+w+
+    ' · 거래 동등성 승인과는 별개';
+ }catch(e){if(status)status.textContent='DDDS 실제 노드 연결 실패 · '+e.message;}
+ finally{if(button)button.disabled=false;}
 }
 async function importPublishedStrategy(){
  const file=document.getElementById('tv-publication-html')?.files?.[0];
@@ -654,7 +694,7 @@ async function executeFlow(){
  }
 }
 menu.innerHTML=MENUS.map(([id,label])=>'<button class="nav" data-page="'+esc(id)+'"><span>▧</span>'+esc(label)+'</button>').join('');
-document.addEventListener('click',e=>{const target=e.target.closest('[data-page],[data-flow],[data-node],[data-action]');if(!target)return;if(target.dataset.page)setPage(target.dataset.page);else if(target.dataset.flow)loadFlow(target.dataset.flow);else if(target.dataset.node)inspect(target.dataset.node);else if(target.dataset.action==='run')executeFlow();else if(target.dataset.action==='tv-publication-import')importPublishedStrategy();else if(target.dataset.action==='tv-chart-verify')executeOfficialChart();else if(target.dataset.action==='compare')openCompare();else if(target.dataset.action==='convert-next')setPage('convert');else if(target.dataset.action==='integrated-start')startIntegrated();else if(target.dataset.action==='integrated-refresh')refreshIntegrated();else if(target.dataset.action==='refresh')loadFlow(flow)});
+document.addEventListener('click',e=>{const target=e.target.closest('[data-page],[data-flow],[data-node],[data-action]');if(!target)return;if(target.dataset.page)setPage(target.dataset.page);else if(target.dataset.flow)loadFlow(target.dataset.flow);else if(target.dataset.node)inspect(target.dataset.node);else if(target.dataset.action==='run')executeFlow();else if(target.dataset.action==='ddds-wf02-run')registerPublishedStrategyAndRunWF02();else if(target.dataset.action==='tv-publication-import')importPublishedStrategy();else if(target.dataset.action==='tv-chart-verify')executeOfficialChart();else if(target.dataset.action==='compare')openCompare();else if(target.dataset.action==='convert-next')setPage('convert');else if(target.dataset.action==='integrated-start')startIntegrated();else if(target.dataset.action==='integrated-refresh')refreshIntegrated();else if(target.dataset.action==='refresh')loadFlow(flow)});
 async function bootstrapManagement(){
  try{
   const session=await api('/api/investment/session');
