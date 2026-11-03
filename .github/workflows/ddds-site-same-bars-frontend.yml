@@ -44,3 +44,15 @@ jobs:
           path: /tmp/ddds-vela-native-probe/
           retention-days: 7
           if-no-files-found: warn
+      - name: E2E click newly DEPLOYED Vela and Python SAME 300-bar charts
+        env:
+          DDDS_WEB_UI_EVIDENCE: /tmp/ddds-same-bars-ui-e2e
+        run: node public_frontend/tests/test_live_ddds_same_bars_comparison.cjs
+      - name: Save deployed DDDS two chart screenshot and numeric comparison
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployed-site-actual-DDDS-300-bars-vela-python
+          path: /tmp/ddds-same-bars-ui-e2e/
+          if-no-files-found: warn
+          retention-days: 14
