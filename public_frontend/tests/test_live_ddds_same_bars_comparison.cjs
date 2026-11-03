@@ -9,7 +9,7 @@ const out=process.env.DDDS_WEB_UI_EVIDENCE||'/tmp/ddds-same-bars-ui-e2e';
 (async()=>{
  fs.mkdirSync(out,{recursive:true});
  const browser=await chromium.launch({headless:true,args:['--disable-dev-shm-usage']});
- const page=await browser.newPage({viewport:{width:1520,height:1150}});
+ const page=await browser.newPage({viewport:{width:1520,height:1150},locale:'ko-KR'});
  const errors=[];page.on('pageerror',e=>errors.push(e.message.slice(0,350)));
  try{
    const response=await page.goto(BASE+'/compare/'+encodeURIComponent(ID),{waitUntil:'domcontentloaded',timeout:60000});
