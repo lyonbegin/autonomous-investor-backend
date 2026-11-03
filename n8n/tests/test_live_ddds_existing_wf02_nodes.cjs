@@ -35,6 +35,12 @@ const dir=process.env.WF02_EVIDENCE_DIR||'/tmp/ddds-node-evidence';
      version!=='snapshot-sha256-'+source.source_sha256.slice(0,16))
     throw Error('WF02_RUN_DID_NOT_SELECT_EXACT_DDDS '+sourceId+' / '+version);
   const progress=await page.locator('#progress').innerText();
+  if(!progress.includes('변환 차단 · PYNECOMP_API_KEY_MISSING'))
+    throw Error('BLOCKED_COMPILATION_MISLABELED_AS_SUCCESS '+progress);
+  const rightState=await page.locator('#publication-python-state').innerText();
+  if(!rightState.includes('DDDS 원본 Pine → PyneCore 미완료')||
+     !rightState.includes('PYNECOMP_API_KEY_MISSING'))
+    throw Error('RIGHT_HAND_DDDS_STATUS_IS_NOT_EXACT '+rightState);
   const log=await page.locator('#run-log').innerText();
   const details=await page.locator('#node-details').innerText();
   if(!log.includes('wf02')&&!log.includes('Pine'))
