@@ -77,6 +77,27 @@ const dir=process.env.WF02_299_EVIDENCE||'/tmp/ddds-299-live';
   const right=await page.locator('#publication-python-state').innerText();
   if(!right.includes('미검증'))
     throw Error('FALSE_DDDS_PYTHON_PARITY_CLAIM '+right);
+
+  const csvButton=page.locator('#ddds-trades-export');
+  if(await csvButton.count()!==1 || await csvButton.isDisabled())
+    throw Error('VERIFIED_TRADES_CSV_BUTTON_NOT_ENABLED');
+  const [download]=await Promise.all([
+    page.waitForEvent('download',{timeout:18000}),csvButton.click()
+  ]);
+  if(download.suggestedFilename()!=='DDDS_BATS-AMZN_2h_TradingView_published_299_trades.csv')
+    throw Error('WRONG_VERIFIED_DDDS_CSV_FILE_NAME '+download.suggestedFilename());
+  const csv=fs.readFileSync(await download.path(),'utf8');
+  if(!csv.startsWith('\uFEFF'))throw Error('DDDS_CSV_UTF8_BOM_MISSING');
+  const csvLines=csv.slice(1).trimEnd().split('\r\n');
+  if(csvLines.length!==300 ||
+     !csvLines[0].includes('entry_time_display_timezone_unspecified')||
+     !csvLines[1].startsWith('"299","SHORT"')||
+     !csvLines[299].startsWith('"1",')||
+     !csvLines[1].includes(result.pine_source_sha256))
+    throw Error('DDDS_299_CSV_MISSING_OR_TAMPERED '+JSON.stringify({
+      rows:csvLines.length,header:csvLines[0]?.slice(0,100),
+      first:csvLines[1]?.slice(0,70),last:csvLines[299]?.slice(0,60)
+    }));
   if(errors.length)throw Error('PAGE_JS_ERRORS '+errors.join(';'));
   fs.mkdirSync(dir,{recursive:true});
   await page.locator('#published-strategy-reference').screenshot({path:dir+'/ddds-299-real-trades-wf02.png'});
