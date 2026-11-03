@@ -7,6 +7,9 @@ on:
       - 'n8n/tests/compile_ddds_using_free_pyne.py'
       - 'n8n/tests/test_ddds_free_compile.py'
       - '.github/workflows/wf02-ddds-exact-free-pyne-evidence-20261104.yml'
+  pull_request:
+    branches:
+      - feature/wf02-free-pyne-ddds-converter-20261104
   workflow_dispatch:
 permissions:
   contents: read
