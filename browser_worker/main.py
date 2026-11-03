@@ -18,6 +18,8 @@ app = FastAPI(title="Autonomous Investor Data Browser Worker", version="2.0.0")
 # WF-02 read-only public-chart verification. This is a fixed test case,
 # never a generic market-data scraping or account-session proxy.
 _WF02_CHART_PROBE_LOCK = asyncio.Lock()
+_WF02_DDDS_TRADES_LOCK = asyncio.Lock()
+_WF02_DDDS_TRADES_CACHE: tuple[float, dict] | None = None
 _WF02_CHART_PROBE_CACHE: tuple[float, dict] | None = None
 
 
@@ -664,6 +666,44 @@ async def source_detail(req: DetailRequest) -> dict[str, Any]:
     finally:
         await _close(p, browser, context)
 
+
+
+@app.post("/v1/inspect/official-published-ddds-trades")
+async def official_published_ddds_trades() -> dict[str, Any]:
+    """Read one pinned PUBLIC published strategy report using normal UI clicks.
+
+    Not a general-purpose scraper, TradeStation API, account proxy, or Pine
+    strategy execution service. 299 rows are public author-posted historical
+    results. No replay, auth cookies, or private network requests.
+    """
+    global _WF02_DDDS_TRADES_CACHE
+    now = time.monotonic()
+    if _WF02_DDDS_TRADES_CACHE and now-_WF02_DDDS_TRADES_CACHE[0] < 1800:
+        return {**_WF02_DDDS_TRADES_CACHE[1],"cache_hit":True}
+    if _WF02_DDDS_TRADES_LOCK.locked():
+        raise HTTPException(status_code=429,detail="DDDS_TRADE_REPORT_CAPTURE_RUNNING")
+    async with _WF02_DDDS_TRADES_LOCK:
+        p, browser, context = await _browser()
+        try:
+            from official_ddds_trades import observe_public_ddds_trade_report
+            result = await observe_public_ddds_trade_report(context)
+            if not result.get("capture_verified_complete"):
+                raise HTTPException(status_code=424, detail={
+                    "status":result.get("status"),
+                    "observed_trade_count":result.get("observed_trade_count"),
+                    "missing_trade_numbers":result.get("missing_trade_numbers",[])[:25]
+                })
+            _WF02_DDDS_TRADES_CACHE=(time.monotonic(),result)
+            return {**result,"cache_hit":False}
+        except HTTPException:
+            raise
+        except Exception as exc:
+            raise HTTPException(status_code=502,detail={
+                "status":"DDDS_OFFICIAL_PUBLISHED_REPORT_BROWSER_FAILED",
+                "reason":type(exc).__name__
+            }) from exc
+        finally:
+            await _close(p,browser,context)
 
 
 @app.post("/v1/inspect/official-chart-wf02")
