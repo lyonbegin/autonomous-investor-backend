@@ -17,7 +17,7 @@ RUN npm --prefix /app/shared/playground run build
 # cannot trigger n8n, TradingView or broker; N01 Python selection-only is allowlisted.
 FROM python:3.12-alpine
 RUN apk add --no-cache su-exec
-RUN pip install --no-cache-dir "psycopg[binary]>=3.2,<4"
+RUN pip install --no-cache-dir "psycopg[binary]>=3.2,<4" "pynesys-pynecore==6.11.1"
 WORKDIR /app
 COPY --from=build /app/shared/playground/dist /app/dist
 COPY n8n/admin-console/index.html /app/dist/admin/index.html
@@ -27,6 +27,7 @@ COPY --from=build /app/shared/server/node_run_store.py /app/node_run_store.py
 COPY --from=build /app/shared/server/project_adapter_runtime.py /app/project_adapter_runtime.py
 COPY n8n/editor-adapter/investment_node_adapter.py /app/investment_node_adapter.py
 COPY n8n/editor-adapter/investment_wf02.py /app/investment_wf02.py
+COPY n8n/editor-adapter/investment_pynecomp.py /app/investment_pynecomp.py
 COPY n8n/investment-db/investment_pg.py /app/investment_pg.py
 COPY n8n/investment-db/schema_v1.sql /app/schema_v1.sql
 COPY n8n/editor-adapter/investment_pipeline.py /app/investment_pipeline.py
@@ -38,7 +39,7 @@ COPY n8n/editor-adapter/verified_pine_archive.py /app/verified_pine_archive.py
 COPY n8n/editor-adapter/verified_pine_archive_index.json /app/verified_pine_archive_index.json
 COPY n8n/editor-adapter/investment_pine_store.py /app/investment_pine_store.py
 COPY --from=build /app/shared/server/node_workspace_store.py /app/node_workspace_store.py
-RUN python3 -m py_compile /app/studio_server.py /app/node_workspace_store.py /app/node_run_store.py /app/project_adapter_runtime.py /app/investment_node_adapter.py /app/investment_wf02.py /app/investment_pg.py /app/investment_pipeline.py /app/engine.py /app/sequence_reversal.py /app/licensed_strategy_manifest.py /app/investment_source_registry.py /app/verified_pine_archive.py
+RUN python3 -m py_compile /app/studio_server.py /app/node_workspace_store.py /app/node_run_store.py /app/project_adapter_runtime.py /app/investment_node_adapter.py /app/investment_wf02.py /app/investment_pynecomp.py /app/investment_pg.py /app/investment_pipeline.py /app/engine.py /app/sequence_reversal.py /app/licensed_strategy_manifest.py /app/investment_source_registry.py /app/verified_pine_archive.py
 RUN mkdir -p /data && addgroup -S studio && adduser -S studio -G studio \
     && chown -R studio:studio /data /app
 # The Railway volume is mounted after image build as root-owned /data.
