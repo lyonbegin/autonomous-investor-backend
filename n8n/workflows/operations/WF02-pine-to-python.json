@@ -47,7 +47,7 @@
     },
     {
       "id": "wf02-03",
-      "name": "미변환 Library PyneComp 변환·캐시",
+      "name": "무료 PYNE · Library 정확성 검사",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
@@ -58,8 +58,8 @@
         "studioPython": {
           "python_module": "investment_node_adapter",
           "python_function": "execute_wf02_node03",
-          "code_version": "wf02-n03-pynecomp-library-v1",
-          "node_character": "compile_and_cache_pine_libraries"
+          "code_version": "wf02-n03-free-pyne-library-gate-v1",
+          "node_character": "check_pinned_imports_for_local_compiler"
         },
         "mode": "runOnceForAllItems",
         "jsCode": "return $input.all(); // Adapter executes the verified Python project node, not this JS placeholder."
@@ -68,7 +68,7 @@
     },
     {
       "id": "wf02-04",
-      "name": "메인 Pine 전체 PyneComp→PyneCore 변환",
+      "name": "무료 PYNE · Pine v6 전체 Python 변환",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
@@ -79,8 +79,8 @@
         "studioPython": {
           "python_module": "investment_node_adapter",
           "python_function": "execute_wf02_node04",
-          "code_version": "wf02-n04-pynecomp-strategy-v1",
-          "node_character": "compile_pine_to_pynecore"
+          "code_version": "wf02-n04-free-pyne-strategy-v1",
+          "node_character": "compile_full_pine_v6_locally"
         },
         "mode": "runOnceForAllItems",
         "jsCode": "return $input.all(); // Adapter executes the verified Python project node, not this JS placeholder."
@@ -89,7 +89,7 @@
     },
     {
       "id": "wf02-05",
-      "name": "PyneCore 확인·미검증 산출물 DB 저장",
+      "name": "무료 PYNE · 생성 Python 해시·원본 저장",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
@@ -100,8 +100,8 @@
         "studioPython": {
           "python_module": "investment_node_adapter",
           "python_function": "execute_wf02_node05",
-          "code_version": "wf02-n05-store-pynecore-v1",
-          "node_character": "store_generated_unvalidated_code"
+          "code_version": "wf02-n05-store-free-pyne-v1",
+          "node_character": "store_exact_free_compiler_python"
         },
         "mode": "runOnceForAllItems",
         "jsCode": "return $input.all(); // Adapter executes the verified Python project node, not this JS placeholder."
@@ -146,36 +146,36 @@
       "main": [
         [
           {
-            "node": "미변환 Library PyneComp 변환·캐시",
+            "node": "무료 PYNE · Library 정확성 검사",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "미변환 Library PyneComp 변환·캐시": {
+    "무료 PYNE · Library 정확성 검사": {
       "main": [
         [
           {
-            "node": "메인 Pine 전체 PyneComp→PyneCore 변환",
+            "node": "무료 PYNE · Pine v6 전체 Python 변환",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "메인 Pine 전체 PyneComp→PyneCore 변환": {
+    "무료 PYNE · Pine v6 전체 Python 변환": {
       "main": [
         [
           {
-            "node": "PyneCore 확인·미검증 산출물 DB 저장",
+            "node": "무료 PYNE · 생성 Python 해시·원본 저장",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "PyneCore 확인·미검증 산출물 DB 저장": {
+    "무료 PYNE · 생성 Python 해시·원본 저장": {
       "main": [
         [
           {
