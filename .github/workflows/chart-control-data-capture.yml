@@ -38,12 +38,16 @@ jobs:
         env:
           CHART_TEST_BASE: http://127.0.0.1:5173
           CHART_CAPTURE_SCREENSHOT: /tmp/chart-capture.png
+          CHART_CAPTURE_EXPORT_DIR: /tmp
         run: node public_frontend/tests/test_chart_capture.cjs
       - name: Save real browser evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: chart-control-pine-capture-real-browser
-          path: /tmp/chart-capture-*.png
+          path: |
+            /tmp/chart-capture-*.png
+            /tmp/chart-control-*.json
+            /tmp/chart-control-*.csv
           if-no-files-found: warn
           retention-days: 14
