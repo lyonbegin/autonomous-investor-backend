@@ -71,7 +71,7 @@ def root_input_limit(workflow_path,node_id):
 def node_binding(workflow_path,node_id):
     if workflow_path==WF02_PATH:
         commands={
-          "wf02-01":("execute_wf02_node01","wf02-n01-canonical-pine-v3","read_exact_source"),
+          "wf02-01":("execute_wf02_node01","wf02-n01-canonical-pine-v3","manual_collection_start"),
           "wf02-02":("execute_wf02_node02","wf02-n02-library-dependency-v1","resolve_exact_library_dependencies"),
           "wf02-03":("execute_wf02_node03","wf02-n03-pynecomp-library-v1","compile_and_cache_pine_libraries"),
           "wf02-04":("execute_wf02_node04","wf02-n04-pynecomp-strategy-v1","compile_pine_to_pynecore"),
