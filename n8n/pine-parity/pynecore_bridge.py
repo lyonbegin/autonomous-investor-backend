@@ -155,12 +155,40 @@ def run_compiled_pynecore(script_path, expected_python_sha256, csv_text, syminfo
     runner = ScriptRunner(script_path=path, ohlcv_iter=candles, syminfo=meta, inputs=inputs)
     plots = []
     closed_trades = 0
+    executed_trades = []
     for record in runner.run_iter():
         if len(record) not in (2, 3):
             raise ParityInputError("UNEXPECTED_PYNECORE_RUNNER_OUTPUT")
         plots.append(dict(record[1]))
         if len(record) == 3:
             closed_trades += len(record[2])
+            for trade in record[2]:
+                # Genuine PyneCore broker events, not a copy of TV CSV.
+                # Trade timestamps and bar indexes come from ScriptRunner.
+                try:
+                    direction = "LONG" if trade.size > 0 else "SHORT"
+                    event = {
+                        "direction": direction,
+                        "size": float(trade.size),
+                        "entry_price": float(trade.entry_price),
+                        "exit_price": float(trade.exit_price),
+                        "entry_time_ms": int(trade.entry_time),
+                        "exit_time_ms": int(trade.exit_time),
+                        "entry_bar_index": int(trade.entry_bar_index),
+                        "exit_bar_index": int(trade.exit_bar_index),
+                        "profit": _float_or_na(trade.profit),
+                        "cum_profit": _float_or_na(trade.cum_profit),
+                        "source": "ACTUAL_PYNECORE_SCRIPT_RUNNER_CLOSED_TRADE"
+                    }
+                except (TypeError,ValueError,AttributeError) as exc:
+                    raise ParityInputError("PYNECORE_BROKER_TRADE_NORMALIZATION_FAILED") from exc
+                if (event["entry_time_ms"]<=0 or event["exit_time_ms"]<event["entry_time_ms"] or
+                    event["entry_price"]<=0 or event["exit_price"]<=0):
+                    raise ParityInputError("PYNECORE_BROKER_TRADE_INVALID_PRICE_OR_TIME")
+                executed_trades.append(event)
+            if len(executed_trades)>10000:
+                raise ParityInputError("PYNECORE_TOO_MANY_CLOSED_TRADES")
+
     result = compare_plot_values(rows, plots, plot_mapping)
     matches = all(x["match"] for x in result)
     return {
@@ -169,6 +197,9 @@ def run_compiled_pynecore(script_path, expected_python_sha256, csv_text, syminfo
         "python_sha256": digest,
         "bar_count": len(rows),
         "closed_trades_not_yet_compared": closed_trades,
+        "closed_trades": executed_trades,
+        "trade_events_source": "ACTUAL_PYNECORE_SCRIPT_RUNNER",
+        "trade_order_parity_verified": False,
         "comparison": result,
         "numeric_plot_match": matches,
         "tradingview_chart_validated": False,
