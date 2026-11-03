@@ -63,6 +63,16 @@ class DDDSActualConversionGuardTests(unittest.TestCase):
         self.assertEqual(source["default_qty_value"],100)
         self.assertEqual(source["initial_capital"],10000)
 
+    def test_actual_current_tradingview_properties_match_defaults_but_not_original_chart_symbol(self):
+        from investment_ddds_parity import current_published_properties_proof
+        evidence=current_published_properties_proof()
+        self.assertEqual(evidence["currently_displayed_report_symbol"],"NASDAQ:AMZN")
+        self.assertEqual(evidence["publication_chart_snapshot_symbol"],"BATS:AMZN")
+        self.assertEqual(evidence["current_report_timeframe_minutes"],120)
+        self.assertEqual(evidence["current_report_execution"]["slippage_ticks"],0)
+        self.assertTrue(evidence["current_report_inputs_match_pine_defaults"])
+        self.assertFalse(evidence["same_chart_symbol_confirmed"])
+
     def test_detect_compiler_missing_without_fabricating_a_pynecore_chart(self):
         r=readiness_from_existing_cache(
             pine=bundled_ddds_reference()["pine_source"],
