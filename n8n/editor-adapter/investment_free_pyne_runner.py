@@ -8,6 +8,7 @@ import hashlib
 import importlib.util
 import json
 import math
+import struct
 from pathlib import Path
 import sys
 import numpy as np
@@ -64,9 +65,14 @@ def main():
     spec=importlib.util.spec_from_file_location("exact_ddds_free_pyne_generated",str(path))
     module=importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
+    # Hash the exact numpy arrays passed into the generated Python script,
+    # independently of the parent HTTP worker's hash of TradingView bars.
+    arrays=[np.asarray(matrix[key],dtype=np.float64) for key in fields]
+    consumed=hashlib.sha256()
+    for idx,ts in enumerate(times):
+        consumed.update(struct.pack("!q5d",ts,*(float(a[idx]) for a in arrays)))
     result=module.execute_script_compiled(
-        *(np.asarray(matrix[key],dtype=np.float64) for key in fields),
-        np.asarray(times,dtype=np.float64)
+        *arrays, np.asarray(times,dtype=np.float64)
     )
     if not isinstance(result,dict):
         raise RuntimeError("FREE_PYNE_BAD_OUTPUT")
@@ -85,6 +91,8 @@ def main():
         "status":"EXACT_DDDS_FREE_PYNE_EXECUTED_ON_REAL_AMZN_120_BARS",
         "pine_sha256":"5a245e99447f13012dd026528235fc2c299cad5cb7b228653c684886dcba6507",
         "python_sha256":digest,"bars_executed":len(rows),
+        "market_input_sha256":consumed.hexdigest(),
+        "market_input_close":[float(x) for x in arrays[3]],
         "plots":plots,
         "trade_event_count":len(events),
         "trade_events":[value(x) for x in events[:100]],
