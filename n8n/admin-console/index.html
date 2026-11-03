@@ -324,7 +324,7 @@ async function loadFlow(f){
     '<label class="form-field">TradingView 공개 라이브러리 URL<input class="form-control" id="library-url" placeholder="https://www.tradingview.com/script/XXXXXXXX/"></label>'+
     '<label class="form-field">원본 버전<input class="form-control" id="library-version" value="1" placeholder="예: 1"></label>'+
     '<label class="form-field">실제 Pine library() 전체 코드<textarea class="form-control" id="library-pine" rows="7" placeholder="//@version=6&#10;library(&quot;...&quot;)&#10;export ..."></textarea></label>':'';
-   const pythonInfo=isPython?'<div class="notice warn">WF-02: PyneComp + PyneCore 6개 노드. 정확한 Library 버전 확보 → 기존 변환본 재사용 → 라이브러리·전략 전체 컴파일 → 미검증 산출물 저장. PyneSys API 키가 없으면 컴파일 차단. 기존 RSI/SMA 변환은 사용하지 않습니다.</div>'+
+   const pythonInfo=isPython?'<div class="notice warn">WF-02: 무료 PYNE 0.6.31 로컬 Pine v6 → Python 전체 소스 변환. 기존 6개 노드에서 DDDS 원본 해시 고정, import Library 검사, Python 생성, 별도 저장. 유료 PyneComp API 키 불필요. 실제 TradingView 체결 299건 일치는 미검증.</div>'+
      '<label class="form-field">특정 저장 전략 source_id (선택)<input class="form-control" id="wf02-source-id" placeholder="미입력 시 가장 최근 저장 원본"></label>'+
      '<label class="form-field">해당 원본 version_key (source_id와 함께 입력)<input class="form-control" id="wf02-version" placeholder="예: 1.0"></label>'+
      '<div class="actions"><button class="btn" data-action="compare">↗ 저장 Pine으로 좌우 차트 비교 열기</button></div>':'';
@@ -355,9 +355,13 @@ async function loadFlow(f){
     '<tbody id="ddds-trades-rows"><tr><td colspan="8">실제 게시 거래 목록을 가져오지 않았습니다.</td></tr></tbody></table></div>'+
 
     '<p class="muted minor">299건은 TradingView 게시 전략의 공개 Strategy Report 거래 내역입니다. 상단 총손익은 게시 당시 보고서 값이며 실제 거래소 체결 원장이 아닙니다. 표에 표시하는 시각의 시간대는 공개 행에 명시되지 않아 추측하지 않습니다.</p></div>'+
-    '<div><h4>오른쪽 · 동일한 Pine 원본을 PyneComp→PyneCore로 변환한 결과</h4>'+
+    '<div><h4>오른쪽 · 동일한 DDDS Pine을 무료 PYNE로 변환한 Python</h4>'+
     '<div class="notice warn" id="publication-python-state">동일 Pine 소스의 변환·실행 결과를 확인하는 중입니다.</div>'+
-    '<div id="publication-python-chart" role="img" aria-label="검증된 동일 Pine 변환본 차트가 있을 때 표시" style="min-height:305px;border:1px dashed #38536c;border-radius:9px;padding:16px;color:#acc1d3">임의의 SMA 전략이나 Bollinger 지표를 여기에 대신 표시하지 않습니다.</div>'+
+    '<div id="publication-python-chart" role="img" aria-label="검증된 동일 Pine 변환본 차트가 있을 때 표시" style="min-height:305px;border:1px dashed #38536c;border-radius:9px;padding:16px;color:#acc1d3">무료 PYNE 변환본이 실행돼 출력한 값만 여기에 표시합니다. SMA/Bollinger 예제는 절대 대신 표시하지 않습니다.</div>'+
+    '<div class="actions"><button class="btn" id="free-pyne-refresh" data-action="free-pyne-refresh">▶ 실제 무료 Python 변환본 조회</button>'+
+    '<button class="btn" id="free-pyne-download" data-action="free-pyne-download" disabled>↓ DDDS 생성 Python 파일</button>'+
+    '<span class="status" aria-live="polite" id="free-pyne-status">동일 DDDS 변환본 조회 전</span></div>'+
+    '<pre class="code" id="free-pyne-source" style="max-height:200px;overflow:auto;white-space:pre-wrap">생성된 Python이 없으면 코드를 표시하지 않습니다.</pre>'+
     '<div class="actions"><button class="btn" data-action="ddds-parity-check" id="ddds-parity-check">▶ DDDS 동등성 조건 실제 점검</button>'+
     '<span class="status" id="ddds-parity-summary" aria-live="polite">컴파일·시장·거래 동등성 점검 전</span></div>'+
     '<div class="cards" id="ddds-parity-conditions" aria-label="DDDS 정확한 원본 동등성 검증 상태">서버 저장 원본 및 변환본 상태를 조회 중</div>'+
@@ -409,6 +413,7 @@ async function loadFlow(f){
  if(isPython)void refreshOfficialChartEvidence();
  if(isPython)void refreshPublishedStrategy().then(()=>refreshDDDSTrades());
  if(isPython)void refreshDDDSParityReadiness();
+ if(isPython)void refreshFreePYNEArtifact();
 
 }
 function showPublishedStrategy(d){
@@ -599,6 +604,48 @@ function renderDDDSParityReadiness(d){
    ' · 다른 Pine 전략을 대신 실행하지 않습니다.';
  }
 }
+let exactDDDSGeneratedPython=null;
+async function refreshFreePYNEArtifact(){
+ const status=document.getElementById('free-pyne-status');
+ if(!status)return;
+ try{
+  const response=await api('/api/investment/free-pyne/ddds/latest');
+  if(!response.ok)throw Error(response.data?.status||'HTTP '+response.status);
+  const data=response.data||{};
+  const button=document.getElementById('free-pyne-download');
+  const pre=document.getElementById('free-pyne-source');
+  if(button)button.disabled=!data.generated_python_available;
+  exactDDDSGeneratedPython=null;
+  if(data.generated_python_available){
+   status.textContent='무료 PYNE 로컬 Python 생성됨 · '+data.python_bytes+
+      '바이트 · SHA-256 '+data.python_sha256+
+      ' · TradingView 거래 일치 미검증';
+   if(pre)pre.textContent='저장된 동일 Pine 생성 코드 SHA-256: '+data.python_sha256+
+     '\nPython 파일을 보려면 위 다운로드 버튼을 누르세요.';
+  }else{
+   status.textContent=data.status||'실제 동일 DDDS Python이 없습니다';
+   if(pre)pre.textContent='DDDS 무료 PYNE Python 미생성. 위의 기존 WF-02 6개 노드를 실행하세요.';
+  }
+ }catch(e){status.textContent='실제 PYNE 변환본 조회 실패 · '+e.message;}
+}
+async function downloadExactFreePython(){
+ const response=await api('/api/investment/free-pyne/ddds/python');
+ const data=response.data||{};
+ if(!response.ok||data.generated_python_available!==true||!data.python_code)
+  throw Error(data?.status||'생성된 DDDS Python 원본 없음');
+ const bytes=new TextEncoder().encode(data.python_code);
+ const digest=await crypto.subtle.digest('SHA-256',bytes);
+ const sha=Array.from(new Uint8Array(digest),b=>b.toString(16).padStart(2,'0')).join('');
+ if(sha!==data.python_sha256)throw Error('생성 Python SHA-256 불일치');
+ const blob=new Blob([data.python_code],{type:'text/x-python;charset=utf-8'});
+ const object=URL.createObjectURL(blob);
+ const anchor=document.createElement('a');
+ anchor.href=object;anchor.download='DDDS_141_PYNE_free_generated_'+sha.slice(0,12)+'.py';
+ document.body.append(anchor);anchor.click();anchor.remove();
+ setTimeout(()=>URL.revokeObjectURL(object),1000);
+ const pre=document.getElementById('free-pyne-source');
+ if(pre)pre.textContent=data.python_code;
+}
 async function refreshDDDSParityReadiness(){
  if(!document.getElementById('ddds-parity-summary'))return;
  try{
@@ -645,7 +692,7 @@ async function registerPublishedStrategyAndRunWF02(){
   if(!id||!version)throw Error('기존 WF-02 원본 선택 필드 없음');
   id.value=d.source_id;version.value=d.version_key;
   if(status)status.textContent='정확한 DDDS 원본 등록·권리 승인 성공 · '+d.version_key+
-    ' · 기존 6노드 실행 시작 (PyneComp 인증 없으면 실제 차단)';
+    ' · 기존 6노드로 무료 PYNE 로컬 변환 시작';
   await executeFlow();
   const w=document.getElementById('progress')?.textContent||'';
   if(status)status.textContent='DDDS 원본 고정 · '+w+
@@ -838,18 +885,19 @@ async function executeFlow(){
    if(!next){
     complete=true;const output=d.output_json||{};
     if(flow===W.pine){
-      if(output.status==='PYNECOMP_GENERATED_UNVALIDATED'){
-       if(progress)progress.textContent='Python 코드 생성 · 실제 TradingView 동등성은 별도 검증 필요';
-       log('Python 변환 코드 생성 성공. 좌우 차트 비교에서 실제 TV 캡처와 플롯 CSV를 사용해 검증하세요.','green');
+      if(output.status==='PYNE_FREE_GENERATED_UNVALIDATED'){
+       if(progress)progress.textContent='무료 PYNE Python 코드 생성·저장 완료 · DDDS 체결 일치 미검증';
+       log('DDDS 동일 Pine을 무료 PYNE 로컬 컴파일로 변환·저장했습니다. Python SHA: '+(output.python_sha256||'없음')+'. TradingView 거래 일치 검증과는 별개입니다.','green');
+       await refreshFreePYNEArtifact();
       }else if(output.status==='UNSUPPORTED_PINE'){
        if(progress)progress.textContent='Pine 문법 미지원 · 변환 불가 (정상 차단)';
        log('미지원 Pine · '+(output.unsupported_reason||output.basic_converter_reason||'지원 범위 밖'),'red');
       }else{
        const blocked=String(output.status||'UNKNOWN');
        if(progress)progress.textContent='변환 차단 · '+blocked;
-       log('DDDS 원본의 실제 Python 변환이 완료되지 않았습니다. 이유: '+blocked,'red');
+       log('DDDS 무료 PYNE Python 변환이 실제 차단됐습니다. 이유: '+blocked,'red');
        const comparison=document.getElementById('publication-python-state');
-       if(comparison)comparison.textContent='DDDS 원본 Pine → PyneCore 미완료 · '+blocked+
+       if(comparison)comparison.textContent='DDDS 원본 Pine → 무료 PYNE 변환 차단 · '+blocked+
          ' · 다른 SMA 전략 결과로 대체하지 않습니다.';
       }
     }else{
@@ -877,7 +925,11 @@ async function executeFlow(){
  }
 }
 menu.innerHTML=MENUS.map(([id,label])=>'<button class="nav" data-page="'+esc(id)+'"><span>▧</span>'+esc(label)+'</button>').join('');
-document.addEventListener('click',e=>{const target=e.target.closest('[data-page],[data-flow],[data-node],[data-action]');if(!target)return;if(target.dataset.page)setPage(target.dataset.page);else if(target.dataset.flow)loadFlow(target.dataset.flow);else if(target.dataset.node)inspect(target.dataset.node);else if(target.dataset.action==='run')executeFlow();else if(target.dataset.action==='ddds-parity-check')refreshDDDSParityReadiness();else if(target.dataset.action==='ddds-trades-export')exportVerifiedDDDSTrades();else if(target.dataset.action==='ddds-trades-capture')captureDDDSTrades();else if(target.dataset.action==='ddds-wf02-run')registerPublishedStrategyAndRunWF02();else if(target.dataset.action==='tv-publication-import')importPublishedStrategy();else if(target.dataset.action==='tv-chart-verify')executeOfficialChart();else if(target.dataset.action==='compare')openCompare();else if(target.dataset.action==='convert-next')setPage('convert');else if(target.dataset.action==='integrated-start')startIntegrated();else if(target.dataset.action==='integrated-refresh')refreshIntegrated();else if(target.dataset.action==='refresh')loadFlow(flow)});
+document.addEventListener('click',e=>{const target=e.target.closest('[data-page],[data-flow],[data-node],[data-action]');if(!target)return;if(target.dataset.page)setPage(target.dataset.page);else if(target.dataset.flow)loadFlow(target.dataset.flow);else if(target.dataset.node)inspect(target.dataset.node);else if(target.dataset.action==='run')executeFlow();else if(target.dataset.action==='free-pyne-refresh')refreshFreePYNEArtifact();
+ else if(target.dataset.action==='free-pyne-download')downloadExactFreePython().catch(e=>{
+   const state=document.getElementById('free-pyne-status');
+   if(state)state.textContent='다운로드 차단 · '+e.message;
+ });else if(target.dataset.action==='ddds-parity-check')refreshDDDSParityReadiness();else if(target.dataset.action==='ddds-trades-export')exportVerifiedDDDSTrades();else if(target.dataset.action==='ddds-trades-capture')captureDDDSTrades();else if(target.dataset.action==='ddds-wf02-run')registerPublishedStrategyAndRunWF02();else if(target.dataset.action==='tv-publication-import')importPublishedStrategy();else if(target.dataset.action==='tv-chart-verify')executeOfficialChart();else if(target.dataset.action==='compare')openCompare();else if(target.dataset.action==='convert-next')setPage('convert');else if(target.dataset.action==='integrated-start')startIntegrated();else if(target.dataset.action==='integrated-refresh')refreshIntegrated();else if(target.dataset.action==='refresh')loadFlow(flow)});
 async function bootstrapManagement(){
  try{
   const session=await api('/api/investment/session');
