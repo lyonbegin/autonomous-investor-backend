@@ -1,5 +1,67 @@
 const $=id=>document.getElementById(id);
 
+// New strict TradingView-vs-PyneCore keypoint path. This never invokes the
+// archived SMA/EMA/RSI Python converter. Inputs must be real exported CSVs.
+let keypointTvCSV='',keypointPyCSV='';
+for(const [inputId,infoId,kind] of [
+  ['keypointTvCsv','keypointTvInfo','tv'],
+  ['keypointPyCsv','keypointPyInfo','py']
+]){
+ const el=document.getElementById(inputId);
+ if(el)el.addEventListener('change',async e=>{
+  const f=e.target.files?.[0];
+  const text=f?await f.text():'';
+  if(kind==='tv')keypointTvCSV=text;else keypointPyCSV=text;
+  document.getElementById(infoId).textContent=f?
+    f.name+' · '+text.length.toLocaleString()+'자 · 출처 진위는 별도 확인 필요':'CSV 미선택';
+ });
+}
+const keypointButton=document.getElementById('keypointRun');
+if(keypointButton)keypointButton.addEventListener('click',async()=>{
+ const status=document.getElementById('keypointStatus');
+ const rows=document.getElementById('keypointRows');
+ if(!keypointTvCSV||!keypointPyCSV){
+  status.textContent='검증 차단 · TradingView CSV와 실제 PyneCore 실행 CSV 두 개가 필요합니다.';
+  return;
+ }
+ keypointButton.disabled=true;
+ status.textContent='정확히 같은 UTC 봉 시각·OHLC·거래/신호·플롯 비교 중';
+ try{
+   const res=await fetch('/api/keypoints',{method:'POST',
+     headers:{'Content-Type':'application/json'},
+     body:JSON.stringify({tradingview_csv:keypointTvCSV,pynecore_csv:keypointPyCSV})});
+   const data=await res.json();
+   if(!res.ok)throw Error(data.error||'HTTP '+res.status);
+   const mismatchTotal=data.mismatch_total??0;
+   const aligned=data.aligned_bars??0;
+   const caption={
+     KEYPOINTS_DIFFER:'불일치: 주문/신호·OHLC·플롯의 중요 지점을 아래에 표시',
+     KEYPOINTS_MATCH_REVIEW_REQUIRED:'봉별 중요 지점 수치 일치 · 원본 출처 및 설정 검증/육안 승인 대기',
+     KEYPOINTS_PARTIAL_NO_ORDER_OR_PLOT_EXPORT:'불충분: 주문 또는 플롯 출력 열이 없어 수치 동등성 판정 불가',
+     BLOCKED_OHLC_TIMESET_MISMATCH:'차단: 두 결과의 데이터 기간 또는 시간봉이 다릅니다'
+   };
+   status.textContent=(caption[data.status]||data.status)+
+     ' · 일치한 UTC 봉 '+aligned+'개 · 불일치 '+mismatchTotal+'개 · TradingView 승인 아님';
+   rows.innerHTML=(data.keypoints||[]).length?
+     data.keypoints.map(x=>'<tr><td>'+escapeHTML(x.timestamp_ms)+'</td><td>'+
+       escapeHTML(x.group)+'</td><td>'+escapeHTML(x.field)+'</td><td>'+
+       escapeHTML(x.tradingview)+'</td><td>'+escapeHTML(x.pynecore)+'</td><td>'+
+       escapeHTML(x.absolute_delta??'종류/시점 상이')+'</td></tr>').join(''):
+     '<tr><td colspan="6">'+escapeHTML(data.status)+
+       ' · 차이 표시 없음. 두 CSV의 종목·전략 입력값·출처 진위는 별도 검증 필요</td></tr>';
+   const notes=document.getElementById('keypointNotes');
+   notes.textContent='비교한 출력 열: OHLC '+(data.comparison_columns?.ohlc||[]).join(', ')+
+      ' / 중요 주문·신호 '+(data.comparison_columns?.orders_or_signals||[]).join(', ')+
+      ' / 플롯 '+(data.comparison_columns?.plots||[]).join(', ')+
+      ' · 표시 '+(data.keypoints||[]).length+'개 (최대 80).'+
+      ' 내보낸 소스/설정 검증 전에는 VERIFIED가 아닙니다.';
+ }catch(err){
+   status.textContent='중요 지점 검증 실패 · '+err.message;
+   rows.innerHTML='<tr><td colspan="6">오류 때문에 수치 판정 불가</td></tr>';
+ }finally{keypointButton.disabled=false}
+});
+function escapeHTML(x){return String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+
 const INVESTMENT_ADMIN_ORIGIN='https://investment-n8n-native-editor-production.up.railway.app';
 window.addEventListener('message',e=>{
  if(e.origin!==INVESTMENT_ADMIN_ORIGIN||e.source!==window.opener||e.data?.type!=='AUTONOMOUS_PINE_IMPORT')return;
