@@ -518,14 +518,44 @@ def process(run_id,sid,requested_source=None):
                 stage(run_id,"python",PYTHON,"FAILED",selected,
                       type(exc).__name__+": "+str(exc)[:260])
         stage(run_id,"chart",PARITY,"RUNNING")
-        # No legacy restricted Python graph is allowed to masquerade as output
-        # of the new PyneComp/PyneCore compiler.
+        # Existing free-PYNE DDDS child-runner executes the real converted
+        # Python only for the single pinned DDDS source; all other Pine inputs
+        # remain explicitly blocked until a supported source-specific runner
+        # is available. Never label 300 current bars equal to TV's 299 trades.
         if converted:
-            statuses["chart"]="BLOCKED_FREE_PYNE_RUNTIME_GRAPH_NOT_CONNECTED"
-            stage(run_id,"chart",PARITY,statuses["chart"],
-                 {**converted,"reason":
-                  "Free PYNE Python generated; exact same-source market runtime and TradingView keypoint parity must be verified separately",
-                  "legacy_chart_is_not_pynecore_output":True})
+            from investment_ddds_parity import DDDS_SOURCE_ID,DDDS_SOURCE_SHA
+            selected_is_ddds=(converted.get("source_id")==DDDS_SOURCE_ID and
+                 converted.get("source_sha256")==DDDS_SOURCE_SHA)
+            if selected_is_ddds:
+                try:
+                    from investment_free_pyne_chart import execute as execute_free_ddds
+                    run=execute_free_ddds(sid)
+                    if run.get("status")!="EXACT_DDDS_FREE_PYNE_EXECUTED_ON_REAL_AMZN_120_BARS":
+                        raise ValueError("REAL_DDDS_PYTHON_EXECUTION_NOT_CONFIRMED")
+                    statuses["chart"]="PYNE_FREE_DDDS_300_BARS_EXECUTED_PARITY_BLOCKED"
+                    chart={"status":"DDDS_FREE_PYNE_REAL_300BAR_CHART_READY_PARITY_UNVERIFIED",
+                           "source_id":DDDS_SOURCE_ID,
+                           "source_sha256":DDDS_SOURCE_SHA,
+                           "python_sha256":run["python_sha256"],
+                           "symbol":run["symbol"],"timeframe":run["timeframe"],
+                           "bar_count":run["bar_count"],
+                           "trade_event_count":run["strategy_event_count"],
+                           "chart_open_url":"/admin/index.html?section=convert",
+                           "tradingview_parity_verified":False,
+                           "full_history_2016_2026_verified":False,
+                           "paper_enabled":False,"live_orders_enabled":False}
+                    stage(run_id,"chart",PARITY,statuses["chart"],chart)
+                except Exception as exc:
+                    statuses["chart"]="BLOCKED_DDDS_FREE_PYNE_REAL_CHART_FAILED"
+                    stage(run_id,"chart",PARITY,statuses["chart"],
+                          {"source_id":DDDS_SOURCE_ID,
+                           "reason":type(exc).__name__+":"+str(exc)[:140],
+                           "strategy_parity_verified":False})
+            else:
+                statuses["chart"]="BLOCKED_FREE_PYNE_RUNTIME_NOT_SUPPORTED_FOR_SOURCE"
+                stage(run_id,"chart",PARITY,statuses["chart"],
+                    {**converted,"reason":"No audited compiled-Python runtime for this exact source",
+                     "strategy_parity_verified":False})
         else:
             statuses["chart"]="BLOCKED_FREE_PYNE_CONVERSION_NOT_READY"
             stage(run_id,"chart",PARITY,statuses["chart"],
