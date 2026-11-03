@@ -57,6 +57,7 @@ class PublishedStrategyReferenceTest(unittest.TestCase):
 
     def test_reject_lacking_real_published_strategy_report(self):
         html="<html><div class='monaco-editor-tv-pine-light'>//@version=6<br/>strategy(\"Other\")</div></html>"
+        html += '<!-- padding to exercise malformed DOM path -->' * 7
         with self.assertRaisesRegex(ValueError,"TRADINGVIEW_PUBLISHED_STRATEGY_CHART_REPORT_SOURCE_NOT_FOUND"):
             tv.parse_publication_html(html)
 
