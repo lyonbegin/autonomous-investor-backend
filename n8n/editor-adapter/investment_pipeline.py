@@ -255,11 +255,20 @@ def saved_sources(limit=80):
                 hashlib.sha256(row["pine_code"].encode("utf-8")).hexdigest()
                 for row in db.execute("""SELECT source_id,version_key,pine_code
                          FROM investment_pine_payloads WHERE kind='strategy'""")}
+    with closing(open_registry()) as db:
+        name_set={x[0] for x in db.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+        pynecomp_rows=set()
+        if "investment_pynecomp_artifacts" in name_set:
+            pynecomp_rows={(x[0],x[1],x[2]) for x in db.execute(
+                "SELECT source_id,version_key,source_sha256 FROM investment_pynecomp_artifacts "
+                "WHERE kind='strategy' AND compiler_id='pynecomp-http-v1-pynecore-6.11.1'")}
     result=[{**{k:row[k] for k in ("source_id","version_key","rights_state","saved_at","chars")},
         "source_sha256":hashes.get((row["source_id"],row["version_key"])),
-        "python_code_stored":(row["source_id"],row["version_key"]) in already}
+        "legacy_python_code_stored":(row["source_id"],row["version_key"]) in already,
+        "pynecomp_generated_stored":(row["source_id"],row["version_key"],
+            hashes.get((row["source_id"],row["version_key"]))) in pynecomp_rows}
         for row in records]
-    result.sort(key=lambda x:(not x["python_code_stored"],x["source_id"]))
+    result.sort(key=lambda x:(not x["pynecomp_generated_stored"],x["source_id"]))
     for entry in result:
         context=context_for_source(entry["source_id"],entry["version_key"])
         pub=tv_publication_for(entry["source_id"],entry["version_key"],entry["source_sha256"])
@@ -268,7 +277,8 @@ def saved_sources(limit=80):
         entry["tradingview_original_title"]=(pub or {}).get("title") or (context or {}).get("source_title")
     return {"status":"ok","sources":result,"count":len(result),
             "source":"EXISTING_SQLITE_SOURCE_REGISTRY",
-            "note":"python_code_stored means code was generated previously, NOT TradingView parity verified"}
+            "note":"legacy_python_code_stored is NOT PyneComp output; pynecomp_generated_stored is not yet PyneCore/TradingView parity verified",
+            "pynecomp":__import__("investment_pynecomp").compiler_status()}
 
 
 def validate_selected(source):
