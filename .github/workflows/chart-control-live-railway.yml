@@ -1,0 +1,37 @@
+name: Live Railway existing chart-control capture
+on:
+  push:
+    branches: [feature/chart-control-data-capture-20261103]
+    paths:
+      - '.github/workflows/chart-control-live-railway.yml'
+      - 'public_frontend/tests/test_chart_capture.cjs'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  real-production:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install actual browser
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Real Chromium chart-control indicator + strategy execution on existing deployed website
+        env:
+          CHART_TEST_BASE: https://autonomous-investor-public-production.up.railway.app
+          CHART_CAPTURE_SCREENSHOT: /tmp/chart-capture.png
+          CHART_CAPTURE_EXPORT_DIR: /tmp
+        run: node public_frontend/tests/test_chart_capture.cjs
+      - name: Archive actual exported chart bars, plot histories, strategy ledger and screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: live-railway-chart-control-capture
+          path: |
+            /tmp/chart-capture-*.png
+            /tmp/chart-control-*.json
+            /tmp/chart-control-*.csv
+          if-no-files-found: warn
+          retention-days: 14
