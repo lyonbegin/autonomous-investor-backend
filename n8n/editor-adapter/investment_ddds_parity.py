@@ -229,3 +229,73 @@ def readiness_from_existing_cache(*, pine: str, reference: dict|None,
       source_input_defaults=settings,
       settings_are_published_properties=False,
       missing_requirements=missing)
+
+
+def readiness_for_studio_session(sid: str) -> dict:
+    """Read existing DDDS source, exact PyneComp cache and TV 299 trades.
+
+    GET endpoint calls NO remote compiler, fetches no unsupported market feed,
+    and never executes untrusted Python. Reports actual blockers rather than
+    using the unrelated AAPL/SMA demo as a stand-in for DDDS.
+    """
+    from contextlib import closing
+    import os
+    from investment_tv_publication import latest_reference
+    from investment_tv_trade_reference import latest as latest_trades
+    from investment_source_registry import open_registry
+
+    source=latest_reference(sid)
+    if source.get("source_sha256")!=DDDS_SOURCE_SHA:
+        return _status("BLOCKED_SELECTED_PINE_IS_NOT_DDDS",
+                       "선택한 TradingView 게시 원본은 DDDS 141줄이 아닙니다.",
+                       selected_sha256=source.get("source_sha256"))
+    source_defaults_from_pine(source["pine_source"])
+    cache=None
+    rights=None
+    sqlite_present=False
+    with closing(open_registry()) as db:
+        names={row[0] for row in db.execute(
+            "SELECT name FROM sqlite_master WHERE type='table'")}
+        if "investment_pine_payloads" in names:
+            source_row=db.execute(
+                "SELECT rights_state,pine_code FROM investment_pine_payloads "
+                "WHERE kind='strategy' AND source_id=? AND version_key=?",
+                (DDDS_SOURCE_ID,DDDS_VERSION)).fetchone()
+            if source_row is not None:
+                rights=source_row["rights_state"]
+                sqlite_present=hashlib.sha256(source_row["pine_code"].encode()).hexdigest()==DDDS_SOURCE_SHA
+                if not sqlite_present:rights="BLOCKED_SHA_MISMATCH"
+        if "investment_pynecomp_artifacts" in names:
+            from investment_pynecomp import dependency_lock
+            exact_lock=dependency_lock([])
+            row=db.execute(
+                "SELECT python_code FROM investment_pynecomp_artifacts "
+                "WHERE kind='strategy' AND source_id=? AND version_key=? "
+                "AND source_sha256=? AND dependency_lock=? AND compiler_id=?",
+                (DDDS_SOURCE_ID,DDDS_VERSION,DDDS_SOURCE_SHA,
+                 exact_lock,DDDS_COMPILER)).fetchone()
+            if row is not None:
+                from investment_pynecomp import python_syntax_checked
+                cache=python_syntax_checked(row["python_code"])
+    tv=latest_trades(sid)
+    readiness=readiness_from_existing_cache(
+        pine=source["pine_source"],
+        reference=tv,cached_python=cache,
+        api_key_configured=bool(os.environ.get("PYNESYS_API_KEY")),
+        postgres_synced=None)
+    readiness.update({
+        "source_id":DDDS_SOURCE_ID,"version_key":DDDS_VERSION,
+        "stored_source_rights_state":rights,
+        "identical_source_in_workflow_db":sqlite_present,
+        "tradingview_reference_rows_sha256":tv.get("rows_sha256")
+           if tv.get("status")=="PUBLISHED_DDDS_299_TRADES_CAPTURED" else None,
+        "actual_ddds_pynecore_run_available":False,
+        "historical_data_coverage_verified":False,
+        "published_properties_verified":False,
+        "live_execution_available":False
+    })
+    if rights!="APPROVED":
+        readiness["missing_requirements"].insert(0,"EXACT_DDDS_MPL_SOURCE_APPROVAL")
+    if not sqlite_present:
+        readiness["missing_requirements"].insert(0,"EXACT_DDDS_IN_WORKFLOW_SOURCE_DB")
+    return readiness
