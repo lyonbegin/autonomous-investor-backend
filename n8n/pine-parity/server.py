@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 from urllib.parse import urlparse
 import base64, hashlib, json, os, re, sqlite3, time
 from engine import analyze, UnsupportedPine
+from keypoint_parity import compare_keypoints
 
 HERE=Path(__file__).resolve().parent
 STORAGE=Path(os.environ.get("PARITY_STORAGE","/data/parity"))
@@ -49,7 +50,7 @@ class Handler(BaseHTTPRequestHandler):
         }
         return origin if origin in allowed else None
     def do_OPTIONS(self):
-        if urlparse(self.path).path!="/api/compare":
+        if urlparse(self.path).path not in ("/api/compare","/api/keypoints"):
             return self.response(404,{"error":"NOT_FOUND"})
         if not self.cors_origin():
             return self.response(403,{"error":"CORS_ORIGIN_FORBIDDEN"})
@@ -146,7 +147,32 @@ class Handler(BaseHTTPRequestHandler):
                 return self.response(200,(STORAGE/(r["id"]+".reference")).read_bytes(),r["image_kind"])
         return self.response(404,{"error":"NOT_FOUND"})
     def do_POST(self):
-        if urlparse(self.path).path!="/api/compare":
+        path=urlparse(self.path).path
+        if path=="/api/keypoints":
+            origin=self.headers.get("Origin")
+            host=self.headers.get("Host")
+            if origin and urlparse(origin).netloc!=host and not self.cors_origin():
+                return self.response(403,{"error":"SAME_ORIGIN_ONLY"})
+            if not self.headers.get("Content-Type","").startswith("application/json"):
+                return self.response(415,{"error":"JSON_REQUIRED"})
+            try:
+                size=int(self.headers.get("Content-Length","0"))
+                if not 2<=size<=15_000_000:raise ValueError("KEYPOINT_EXPORTS_TOO_LARGE")
+                input=json.loads(self.rfile.read(size))
+                if not isinstance(input,dict):raise ValueError("OBJECT_REQUIRED")
+                tv=input.get("tradingview_csv")
+                py=input.get("pynecore_csv")
+                if not isinstance(tv,str) or not isinstance(py,str):
+                    raise ValueError("TWO_REAL_EXPORT_CSV_REQUIRED")
+                delta=compare_keypoints(tv,py)
+                return self.response(200,{**delta,
+                    "method":"STRICT_IDENTICAL_UTC_BAR_INDEX_PLUS_KEYPOINTS_V1",
+                    "comparison_type":"TV_EXPORT_VS_PYNECORE_EXPORT",
+                    "tradingview_screenshot_is_not_numeric_reference":True,
+                    "parity_approval":False})
+            except (ValueError,TypeError,json.JSONDecodeError) as exc:
+                return self.response(422,{"error":str(exc)[:150]})
+        if path!="/api/compare":
             return self.response(404,{"error":"NOT_FOUND"})
         origin=self.headers.get("Origin")
         host=self.headers.get("Host")
