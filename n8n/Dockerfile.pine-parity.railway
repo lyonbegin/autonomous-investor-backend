@@ -1,9 +1,9 @@
 FROM python:3.12-slim
 WORKDIR /srv
 RUN pip install --no-cache-dir 'psycopg[binary]>=3.2,<4'
-COPY n8n/pine-parity/engine.py n8n/pine-parity/sequence_reversal.py n8n/pine-parity/server.py n8n/pine-parity/index.html n8n/pine-parity/app.js ./
+COPY n8n/pine-parity/engine.py n8n/pine-parity/sequence_reversal.py n8n/pine-parity/keypoint_parity.py n8n/pine-parity/server.py n8n/pine-parity/index.html n8n/pine-parity/app.js ./
 COPY n8n/pine-parity/pg_bridge.py ./
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PARITY_STORAGE=/data/parity
-RUN python -m py_compile engine.py sequence_reversal.py server.py pg_bridge.py
+RUN python -m py_compile engine.py sequence_reversal.py keypoint_parity.py server.py pg_bridge.py
 EXPOSE 3000
 CMD ["python","-u","server.py"]
