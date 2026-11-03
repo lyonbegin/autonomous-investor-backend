@@ -37,7 +37,8 @@ def fixture():
         "compiler_id":DDDS_COMPILER,
         "compiler_result_origin":"REAL_PYNECOMP_API",
         "python_sha256":"a"*64,
-        "symbol":"BATS:AMZN","interval_minutes":120,
+        "symbol":"NASDAQ:AMZN","interval_minutes":120,
+        "reference_symbol_resolution":"PUBLISHED_REPORT_NASDAQ_AMZN_RECONCILED",
         "run_origin":"ISOLATED_PYNECORE_SCRIPT_RUNNER",
         "data_origin":"INDEPENDENT_LICENSED_BATS_AMZN_HISTORY",
         "data_coverage_complete":True,
@@ -89,6 +90,14 @@ class DDDSActualConversionGuardTests(unittest.TestCase):
         actual["source_id"]="PUB;WRONG"
         self.assertEqual(compare_published_ddds_trades(ref,actual)["status"],
                          "BLOCKED_IDENTICAL_PYNECOMP_ARTIFACT_NOT_PROVEN")
+
+    def test_conflicting_publication_snapshot_and_report_symbol_is_blocked(self):
+        ref,actual=fixture()
+        actual.pop("reference_symbol_resolution")
+        result=compare_published_ddds_trades(ref,actual)
+        self.assertEqual(result["status"],"BLOCKED_PUBLISHED_CHART_REPORT_SYMBOL_CONFLICT")
+        self.assertEqual(result["frozen_chart_symbol"],"BATS:AMZN")
+        self.assertEqual(result["published_report_symbol"],"NASDAQ:AMZN")
 
     def test_refuses_aapl_or_wrong_timeframe(self):
         ref,actual=fixture()
