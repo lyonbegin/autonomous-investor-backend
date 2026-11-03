@@ -1,0 +1,43 @@
+name: LIVE Railway original WF02 DDDS PyneComp and parity gate
+on:
+  push:
+    branches: [feature/wf02-ddds-verified-execution-gate-20261104]
+    paths:
+      - 'n8n/tests/test_live_ddds_strict_readiness_center.cjs'
+      - '.github/workflows/wf02-ddds-parity-live.yml'
+      - 'n8n/admin-console/index.html'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  original-center:
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install real Chromium
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Verify published WF02 source readiness endpoint on live Railway
+        run: |
+          for n in $(seq 1 45); do
+            if curl -fsS https://investment-n8n-native-editor-production.up.railway.app/api/investment/tv-publication/parity/readiness |
+              grep -q DDDS_VERIFICATION_BLOCKED; then exit 0; fi
+            sleep 5
+          done
+          echo 'new DDDS parity readiness endpoint not yet deployed' >&2
+          exit 1
+      - name: Actual production browser validates same source SHA/inputs/cache/key and no false parity
+        env:
+          WF02_EDITOR_BASE: https://investment-n8n-native-editor-production.up.railway.app
+          WF02_EVIDENCE_DIR: /tmp/ddds-parity-evidence
+        run: node n8n/tests/test_live_ddds_strict_readiness_center.cjs
+      - name: Preserve real Chromium screenshot and DDDS pipeline status
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: live-original-wf02-ddds-parity-gate
+          path: /tmp/ddds-parity-evidence/
+          if-no-files-found: warn
+          retention-days: 14
