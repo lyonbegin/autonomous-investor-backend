@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>실제 PyneCore 거래 실행 검사</title>
+<style>
+body{margin:0;background:#0b1625;color:#e5ecf4;font:15px system-ui}
+header,main{max-width:1250px;margin:auto;padding:22px}
+a{color:#7cc8ff}button{background:#267cdd;border:0;border-radius:8px;padding:13px 20px;color:white;cursor:pointer}
+section{background:#132338;border:1px solid #2c405a;border-radius:12px;padding:18px;margin-top:16px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+canvas{width:100%;height:320px;background:#0b1828;border-radius:8px}
+table{border-collapse:collapse;width:100%}th,td{padding:8px;text-align:left;border-bottom:1px solid #35506d}
+.warning{color:#ffd58b}small{color:#a0b9ce}
+@media(max-width:700px){.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body><header>
+<a href="/">기존 차트 검증 화면</a>
+<h1>PyneComp 공개 변환본 → PyneCore 실제 실행</h1>
+<p>PyneSys CC0 EUR/USD 실제 1시간봉과 공식 공개 Pine 변환 사례를 실제 Python 엔진에서 실행합니다. 새로운 Pine 컴파일 또는 TradingView 원본 동등성 검증을 대신하지 않습니다.</p>
+<button id="run">실제 전략 실행 · 차트/거래 확인</button>
+<p id="status">실행 전</p>
+</header><main>
+<div class="grid">
+<section><h3>실제 EUR/USD 종가</h3><canvas id="market" width="800" height="320"></canvas></section>
+<section><h3>PyneCore Bollinger Bands</h3><canvas id="indicator" width="800" height="320"></canvas></section>
+</div>
+<section><h3>종료 거래 기록</h3><p id="counts">실행 전</p>
+<table><thead><tr><th>청산 봉</th><th>방향</th><th>진입가</th><th>청산가</th><th>손익</th></tr></thead><tbody id="trades"></tbody></table>
+</section>
+<section><p class="warning" id="parity">TradingView 원본 기준 데이터 미제공 — 동등성 미검증 · 거래 비활성화</p>
+<p><a href="https://github.com/PyneSys/pynecore-examples/tree/main/01-standalone">원본 및 라이선스 출처</a></p>
+<pre id="metadata"></pre>
+</section>
+</main><script src="/demo.js" defer></script></body></html>
