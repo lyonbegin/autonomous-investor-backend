@@ -32,6 +32,7 @@ const evidence=process.env.WF02_EVIDENCE_DIR||'/tmp/ddds-parity-evidence';
      state.source_input_defaults.endLen!==36||
      state.source_input_defaults.commission_value!==0.05||
      state.strategy_report_symbol_conflict!==true||
+     state.published_properties_current_report_inputs_match_defaults!==true||
      state.published_chart_snapshot_symbol!=='BATS:AMZN'||
      state.current_strategy_report_properties_symbol!=='NASDAQ:AMZN'||
      state.tradingview_pynecore_parity_verified!==false||
@@ -40,7 +41,7 @@ const evidence=process.env.WF02_EVIDENCE_DIR||'/tmp/ddds-parity-evidence';
      !state.missing_requirements.includes('VERIFIED_NASDAQ_AMZN_120MIN_FULL_HISTORY_2016_2026'))
     throw Error('UNTRUSTED_DDDS_READINESS_OR_FAKE_PARITY '+JSON.stringify(state).slice(0,850));
   const cards=page.locator('#ddds-parity-conditions .card');
-  if(await cards.count()!==8)throw Error('ORIGINAL_DDDS_FIDELITY_8_CHECKS_NOT_SHOWN');
+  if(await cards.count()!==10)throw Error('ORIGINAL_DDDS_FIDELITY_10_CHECKS_NOT_SHOWN');
   if(!(await page.locator('#ddds-parity-details').textContent()).includes('commission_value'))
     throw Error('PINNED_COMMISSION_VALUE_NOT_SHOWN');
   await page.locator('#ddds-parity-check').click();
