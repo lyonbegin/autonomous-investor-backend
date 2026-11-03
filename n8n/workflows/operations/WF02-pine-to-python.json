@@ -19,7 +19,7 @@
           "python_module": "investment_node_adapter",
           "python_function": "execute_wf02_node01",
           "code_version": "wf02-n01-canonical-pine-v3",
-          "node_character": "read_exact_source"
+          "node_character": "manual_collection_start"
         }
       },
       "notes": "원본은 SQLite 및 PostgreSQL 고정 버전 대조. 예전 전략별 컴파일러는 사용하지 않음"
