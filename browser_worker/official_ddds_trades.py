@@ -47,8 +47,14 @@ def parse_visible_trade(raw: str) -> dict | None:
     for i in range(max(pos+2,0),len(lines)-1):
         if lines[i+1]=="USD" and _numeric(lines[i]) is not None:
             money.append(_numeric(lines[i]))
+    size = None
+    if pos>=0 and len(lines)>pos+6:
+        size = _numeric(lines[pos+6])
     return {
         "trade_number":number,"side":side,
+        "quantity_display":size,
+        "net_pnl_display":money[2] if len(money)>=3 else None,
+        "return_percent_display":_numeric(lines[-1].rstrip("%")) if lines and lines[-1].endswith("%") else None,
         "entry_time_display":entry_time,
         "exit_time_display":exit_time,
         "entry_price_display":money[1] if len(money)>=2 else None,
