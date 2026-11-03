@@ -326,10 +326,26 @@ async function loadFlow(f){
      '<label class="form-field">특정 저장 전략 source_id (선택)<input class="form-control" id="wf02-source-id" placeholder="미입력 시 가장 최근 저장 원본"></label>'+
      '<label class="form-field">해당 원본 version_key (source_id와 함께 입력)<input class="form-control" id="wf02-version" placeholder="예: 1.0"></label>'+
      '<div class="actions"><button class="btn" data-action="compare">↗ 저장 Pine으로 좌우 차트 비교 열기</button></div>':'';
+   const officialChartPanel=isPython?'<section class="panel" id="official-tv-chart-wf02">'+
+    '<h3>WF-02 · TradingView 공식 차트 데이터 → PyneCore 실제 실행 검증</h3>'+
+    '<p class="muted minor">기존 TradingView 브라우저 Worker가 실제 공식 차트의 WebSocket을 수동 관찰해 NASDAQ:AAPL 1일봉을 읽습니다. 같은 봉을 PyneCore 6.11.1에 전달해 공개 PyneSys 전략·지표 예제를 실제 실행합니다. 외부 CSV 업로드가 필요하지 않습니다.</p>'+
+    '<div class="notice warn"><b>검증 범위:</b> 공식 차트 OHLCV → Python 실행 경로입니다. 현재 공개 브라우저에서는 Strategy Tester 주문·체결 원장이 제공되지 않으므로 전략 동등성 판정은 미검증입니다. 여기서 쓰는 SMA 예제는 선택한 Pine 소스를 새로 PyneComp 변환한 결과가 아닙니다. 거래나 승인에 연결하지 않습니다.</div>'+
+    '<div class="actions"><button class="btn primary" data-action="tv-chart-verify" id="tv-chart-start">▶ 공식 차트 300봉 확보 → PyneCore 실행·그래프 표시</button>'+
+    '<span class="status" id="tv-chart-status" aria-live="polite">실행 이력 조회 중</span></div>'+
+    '<div class="cards"><div class="card"><small>TradingView 공식 차트 봉</small><strong id="tv-chart-bars">—</strong></div>'+
+    '<div class="card"><small>PyneCore 처리 봉</small><strong id="tv-python-bars">—</strong></div>'+
+    '<div class="card"><small>PyneCore 종료 거래</small><strong id="tv-python-trades">—</strong></div>'+
+    '<div class="card"><small>공식 Strategy Tester 동등성</small><strong id="tv-parity-state">미검증</strong></div></div>'+
+    '<div class="grid2"><div><h4>왼쪽 · TradingView 공식 차트 종가</h4><svg id="tv-official-svg" role="img" aria-label="TradingView 공식 차트 종가" viewBox="0 0 840 280" style="width:100%;height:260px;background:#0a1726;border-radius:9px"></svg></div>'+
+    '<div><h4>오른쪽 · 같은 봉에서 실행한 PyneCore 지표</h4><svg id="tv-pynecore-svg" role="img" aria-label="PyneCore 지표 계산 시계열" viewBox="0 0 840 280" style="width:100%;height:260px;background:#0a1726;border-radius:9px"></svg></div></div>'+
+    '<h4>실제 PyneCore 전략 종료 거래 (TradingView 체결 아님)</h4>'+
+    '<div class="tableWrap" style="max-height:245px;overflow:auto"><table><thead><tr><th>종료 시각 (UTC)</th><th>방향</th><th>진입</th><th>청산</th><th>손익</th></tr></thead><tbody id="tv-proof-trades"><tr><td colspan="5">실행 전</td></tr></tbody></table></div>'+
+    '<details><summary>실제 실행 결과 JSON · 출처·차단 사유</summary><pre class="code" id="tv-proof-json">아직 실행 이력이 없습니다.</pre></details>'+
+    '</section>':'';
    exec.innerHTML='<section class="panel"><h3>'+(isPython?'WF-02 · Pine→Python 실제 노드 실행':'WF-01 · Pine 원본 확보·저장 실제 노드 실행')+'</h3>'+
     '<p class="helper">서버의 실제 Python 노드를 순차 실행하며 입력·출력 JSON, SQLite 저장 이력과 실패 지점을 확인할 수 있습니다.</p>'+libraryFields+pythonInfo+
     '<div class="actions"><button class="btn primary" id="run" data-action="run">▶ '+(isLibrary?'제공한 라이브러리 등록 실행':isPython?'저장 Pine → Python 변환 실행':'전략 수집 검증 실행')+
-    '</button><button class="btn" data-action="refresh">서버 이력 조회</button><span class="status" id="progress">실행 전</span></div></section>'+
+    '</button><button class="btn" data-action="refresh">서버 이력 조회</button><span class="status" id="progress">실행 전</span></div></section>'+officialChartPanel+
     '<div class="grid2"><section class="panel"><h3>실제 실행 단계 기록</h3><div id="run-log" class="log">실행 버튼으로 서버 응답을 확인하세요.</div></section>'+
     '<section class="panel"><h3>선택한 노드의 실제 입력·출력</h3><div id="node-details" class="muted">위 노드 목록에서 확인할 항목을 선택하세요.</div></section></div>';
   }else if(isParity){
@@ -348,6 +364,80 @@ async function loadFlow(f){
   if(sid&&ver){sid.value=lastSavedSource.source_id;ver.value=lastSavedSource.version_key;}
  }
  renderNodes();await refreshSavedState();
+ if(isPython)void refreshOfficialChartEvidence();
+
+}
+function plotOfficialChart(target,rows,keys){
+ const node=document.getElementById(target);if(!node)return;
+ while(node.firstChild)node.removeChild(node.firstChild);
+ if(!Array.isArray(rows)||rows.length<2)return;
+ const ns='http://www.w3.org/2000/svg',w=840,h=280,p=33;
+ const numbers=rows.flatMap(r=>keys.map(k=>r[k])).filter(x=>Number.isFinite(x));
+ if(!numbers.length)return;
+ const low=Math.min(...numbers),high=Math.max(...numbers),spread=Math.max(high-low,0.001);
+ const x=i=>p+(w-p*2)*i/(rows.length-1);
+ const y=v=>h-p-(v-low)/spread*(h-2*p);
+ const hues=['#dbeafe','#38bdf8','#f7a96b','#34d399'];
+ for(let n=0;n<5;n++){const line=document.createElementNS(ns,'line');const yy=p+n*(h-2*p)/4;
+ line.setAttribute('x1',p);line.setAttribute('x2',w-p);line.setAttribute('y1',yy);line.setAttribute('y2',yy);
+ line.setAttribute('stroke','#28415c');node.append(line);}
+ keys.forEach((key,j)=>{let started=false,d='';
+  rows.forEach((r,i)=>{const v=r[key];if(!Number.isFinite(v)){started=false;return;}
+   d+=(started?' L':' M')+x(i).toFixed(1)+','+y(v).toFixed(1);started=true;});
+  const shape=document.createElementNS(ns,'path');shape.setAttribute('d',d);shape.setAttribute('fill','none');
+  shape.setAttribute('stroke',hues[j%hues.length]);shape.setAttribute('stroke-width','2');node.append(shape);
+  const label=document.createElementNS(ns,'text');label.setAttribute('x',p+j*130);label.setAttribute('y','21');
+  label.setAttribute('fill',hues[j%hues.length]);label.setAttribute('font-size','12');label.textContent=key;node.append(label);
+ });
+}
+function renderOfficialChartEvidence(d){
+ const status=document.getElementById('tv-chart-status');if(!status)return;
+ const sum=document.getElementById('tv-proof-json');if(sum)sum.textContent=JSON.stringify(d,null,2);
+ if(d.status!=='OFFICIAL_CHART_OHLCV_PYNECORE_EXECUTED'){
+  status.textContent=d.status==='NO_EXECUTION_YET'?'첫 실행 전':'실패 · '+(d.reason||d.status);
+  return;
+ }
+ status.textContent='실제 실행 성공 · '+d.symbol+' '+d.timeframe+' · '+(d.executed_at||'')+
+  ' · TV 전략 체결 미확보';
+ for(const [id,value] of [['tv-chart-bars',d.bars_from_official_chart],
+   ['tv-python-bars',d.bars_executed_by_pynecore],
+   ['tv-python-trades',d.closed_trades_from_pynecore]]){
+    const el=document.getElementById(id);if(el)el.textContent=String(value??'—');
+ }
+ const parity=document.getElementById('tv-parity-state');
+ if(parity)parity.textContent=d.tv_strategy_parity_verified?'검증':'미검증';
+ plotOfficialChart('tv-official-svg',d.chart,['tv_close']);
+ plotOfficialChart('tv-pynecore-svg',d.chart,['tv_close','Basis','Upper','Lower']);
+ const body=document.getElementById('tv-proof-trades');
+ if(body){body.replaceChildren();
+   for(const t of (d.pynecore_trades||[]).slice(-20).reverse()){
+     const tr=document.createElement('tr');
+     const nums=[new Date(t.time_ms).toISOString().slice(0,16),t.direction,
+       t.entry_price,t.exit_price,t.profit];
+     for(const value of nums){const td=document.createElement('td');td.textContent=String(value??'—');tr.append(td);}
+     body.append(tr);
+   }
+ }
+}
+async function refreshOfficialChartEvidence(){
+ if(!document.getElementById('official-tv-chart-wf02'))return;
+ try{const r=await api('/api/investment/tv-chart/latest');if(!r.ok)throw Error(r.data?.error||'HTTP '+r.status);
+  renderOfficialChartEvidence(r.data);}
+ catch(e){const v=document.getElementById('tv-chart-status');if(v)v.textContent='이력 조회 실패 · '+e.message;}
+}
+async function executeOfficialChart(){
+ const button=document.getElementById('tv-chart-start');
+ if(!button||button.disabled)return;
+ button.disabled=true;
+ const label=document.getElementById('tv-chart-status');
+ if(label)label.textContent='TradingView 공식 차트 WebSocket 확보 및 PyneCore 계산 중…';
+ try{
+  const r=await api('/api/investment/tv-chart/verify',{method:'POST',
+   headers:{'Content-Type':'application/json'},body:'{}'});
+  renderOfficialChartEvidence(r.data);
+  if(!r.ok)throw Error(r.data?.reason||r.data?.status||'HTTP '+r.status);
+ }catch(e){if(label)label.textContent='검증 실패 · '+e.message;}
+ finally{button.disabled=false;}
 }
 async function latestStoredPine(){
  if(lastPine?.pine_code)return lastPine;
@@ -471,7 +561,7 @@ async function executeFlow(){
  }
 }
 menu.innerHTML=MENUS.map(([id,label])=>'<button class="nav" data-page="'+esc(id)+'"><span>▧</span>'+esc(label)+'</button>').join('');
-document.addEventListener('click',e=>{const target=e.target.closest('[data-page],[data-flow],[data-node],[data-action]');if(!target)return;if(target.dataset.page)setPage(target.dataset.page);else if(target.dataset.flow)loadFlow(target.dataset.flow);else if(target.dataset.node)inspect(target.dataset.node);else if(target.dataset.action==='run')executeFlow();else if(target.dataset.action==='compare')openCompare();else if(target.dataset.action==='convert-next')setPage('convert');else if(target.dataset.action==='integrated-start')startIntegrated();else if(target.dataset.action==='integrated-refresh')refreshIntegrated();else if(target.dataset.action==='refresh')loadFlow(flow)});
+document.addEventListener('click',e=>{const target=e.target.closest('[data-page],[data-flow],[data-node],[data-action]');if(!target)return;if(target.dataset.page)setPage(target.dataset.page);else if(target.dataset.flow)loadFlow(target.dataset.flow);else if(target.dataset.node)inspect(target.dataset.node);else if(target.dataset.action==='run')executeFlow();else if(target.dataset.action==='tv-chart-verify')executeOfficialChart();else if(target.dataset.action==='compare')openCompare();else if(target.dataset.action==='convert-next')setPage('convert');else if(target.dataset.action==='integrated-start')startIntegrated();else if(target.dataset.action==='integrated-refresh')refreshIntegrated();else if(target.dataset.action==='refresh')loadFlow(flow)});
 async function bootstrapManagement(){
  try{
   const session=await api('/api/investment/session');
