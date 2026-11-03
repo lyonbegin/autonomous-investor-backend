@@ -78,6 +78,27 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(data)
     def do_GET(self):
         path=urlparse(self.path).path
+        if path=="/api/pynecore-demo/export.csv":
+            # A real PyneCore computation exported as CSV. The TradingView
+            # side must be uploaded independently; no fake TV values.
+            try:
+                import csv, io
+                from demo_engine import execute_demo
+                result=execute_demo(export_all=True)
+                buffer=io.StringIO()
+                headers=("time","open","high","low","close","volume","Basis","Upper","Lower")
+                writer=csv.DictWriter(buffer,fieldnames=headers)
+                writer.writeheader()
+                for b in result["full_chart"]:
+                    writer.writerow({
+                      "time":b["time_ms"],"open":b["open"],"high":b["high"],
+                      "low":b["low"],"close":b["close"],"volume":b["volume"],
+                      **{key:("" if b.get(key) is None else b[key]) for key in ("Basis","Upper","Lower")}
+                    })
+                return self.response(200,buffer.getvalue(),"text/csv; charset=utf-8")
+            except (RuntimeError,OSError,ImportError,ValueError,TypeError) as exc:
+                return self.response(503,{"status":"PYNECORE_CSV_EXPORT_FAILED",
+                    "error":type(exc).__name__+": "+str(exc)[:180]})
         if path=="/api/pynecore-demo":
             # The public endpoint accepts no arbitrary Python/Pine input.
             # It runs only fixed CC0 PyneSys compiled examples on bundled
