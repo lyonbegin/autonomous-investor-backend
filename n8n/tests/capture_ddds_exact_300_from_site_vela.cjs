@@ -25,8 +25,15 @@ const OUT=process.env.DDDS_SITE_COMPARE_DIR||'/tmp/ddds-site-vela-pyne-300';
    const body=await original.json();
    if(original.status()!==200||body.script_id!==ID||body.source_hash!==SHA||
       body.symbol!=='NASDAQ:AMZN'||body.horizon!=='2h'||body.market_data?.fallback_used===true||
-      !Array.isArray(body.bars)||body.bars.length<300)
-     throw Error('EXACT_LIVE_DDDS_CHART_NOT_VALID');
+      !Array.isArray(body.bars)||body.bars.length<300){
+     const diagnostic={response_status:original.status(),request_url:request.pathname+request.search,
+       script_id:body.script_id,source_hash:body.source_hash,symbol:body.symbol,
+       horizon:body.horizon,bar_count:body.bars?.length||0,
+       fallback_used:body.market_data?.fallback_used===true};
+     report.errors.push('LIVE_CHART_RESPONSE_PROVENANCE_MISMATCH '+JSON.stringify(diagnostic));
+     await route.fulfill({response:original});
+     return;
+   }
    report.chart_api_truncated_from=body.bars.length;
    truncated=body.bars.slice(-300);
    report.chart_api_sent_bars=300;
