@@ -16,8 +16,8 @@ class ChartPostgresTests(unittest.TestCase):
    pg.ARTIFACT_ROOT=Path(directory+"/artifacts")
    pg.SQLITE_PATH=Path(directory+"/studio.sqlite")
    pg.bootstrap()
-   from test_investment_wf02 import SUPPORTED
-   x=pg.record_source("strategy","PUB;parity-fixture","1",SUPPORTED,
+   from test_investment_wf02 import PINE
+   x=pg.record_source("strategy","PUB;parity-fixture","1",PINE,
       "https://www.tradingview.com/script/abcdefgh/","PENDING_REVIEW")
    python_code="def run_strategy(bars):\n    return {'trades': []}\n"
    conversion=pg.record_conversion("PUB;parity-fixture","1",python_code,"fixture-converter")
@@ -30,7 +30,7 @@ class ChartPostgresTests(unittest.TestCase):
     lines.append(f"2026-01-01T{i//24:02d}:{i%24:02d}:00Z,100,101,99,100")
    csv_bytes=("\n".join(lines)+"\n").encode()
    (pg_bridge.STORAGE/(rid+".csv")).write_bytes(csv_bytes)
-   (pg_bridge.STORAGE/(rid+".pine")).write_text(SUPPORTED)
+   (pg_bridge.STORAGE/(rid+".pine")).write_text(PINE)
    (pg_bridge.STORAGE/(rid+".svg")).write_text("<svg xmlns='http://www.w3.org/2000/svg'></svg>")
    (pg_bridge.STORAGE/(rid+".reference")).write_bytes(b"\x89PNG\r\n\x1a\n"+b"synthetic-only")
    dbpath=pg_bridge.STORAGE/"runs.sqlite3"
