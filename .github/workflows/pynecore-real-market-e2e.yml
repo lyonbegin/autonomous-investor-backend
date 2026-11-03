@@ -1,0 +1,53 @@
+name: PyneCore real-market compiled strategy E2E
+on:
+  push:
+    branches: [feature/wf02-pynecore-rights-gate-20261103]
+    paths:
+      - 'n8n/pine-parity/demo/**'
+      - 'n8n/pine-parity/demo_engine.py'
+      - 'n8n/pine-parity/demo.html'
+      - 'n8n/pine-parity/demo.js'
+      - 'n8n/pine-parity/server.py'
+      - 'n8n/pine-parity/index.html'
+      - 'n8n/Dockerfile.pine-parity.railway'
+      - 'n8n/tests/test_real_pynecore_demo.py'
+      - 'n8n/tests/test_real_pynecore_demo.cjs'
+      - '.github/workflows/pynecore-real-market-e2e.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  real-market:
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned PyneCore
+        run: python -m pip install 'pynesys-pynecore==6.11.1'
+      - name: Real compiled strategies and genuine market data
+        run: python -m unittest discover -s n8n/tests -p 'test_real_pynecore_demo.py' -v
+      - name: Install browser
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Start actual existing parity service
+        run: |
+          mkdir -p /tmp/local-parity
+          PARITY_STORAGE=/tmp/local-parity PORT=3000 python -u n8n/pine-parity/server.py > /tmp/local-parity.log 2>&1 &
+          sleep 2
+      - name: Real Chromium click-run and chart verification
+        env:
+          PYNECORE_DEMO_BASE: http://127.0.0.1:3000
+          PYNECORE_DEMO_SCREENSHOT: /tmp/real-market-pynecore.png
+        run: node n8n/tests/test_real_pynecore_demo.cjs
+      - name: Save real browser capture
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pynecore-real-market-e2e
+          path: /tmp/real-market-pynecore.png
+          if-no-files-found: warn
+          retention-days: 14
