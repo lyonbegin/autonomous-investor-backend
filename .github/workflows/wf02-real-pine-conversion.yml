@@ -21,11 +21,15 @@ jobs:
     timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
-      - name: Syntax, unit and strategy signal parity against engine
+      - name: Syntax, PyneComp transport + locked Library tests and existing parity engine tests
         run: |
-          python3 -m py_compile n8n/editor-adapter/investment_wf02.py n8n/editor-adapter/investment_node_adapter.py n8n/pine-parity/engine.py n8n/pine-parity/sequence_reversal.py
+          python3 -m py_compile n8n/editor-adapter/investment_pynecomp.py n8n/editor-adapter/investment_wf02.py n8n/editor-adapter/investment_node_adapter.py n8n/pine-parity/engine.py n8n/pine-parity/sequence_reversal.py
           PYTHONPATH=n8n/editor-adapter:n8n/pine-parity python3 -m unittest discover -s n8n/editor-adapter -p 'test_*.py' -v
           PYTHONPATH=n8n/pine-parity python3 -m unittest discover -s n8n/pine-parity -p 'test_*.py' -v
+      - name: Install and import actual PyneCore runtime
+        run: |
+          python3 -m pip install "pynesys-pynecore==6.11.1"
+          python3 -c 'import importlib.metadata; from pynecore.core.script_runner import ScriptRunner; print("PYNECORE_RUNTIME_INSTALLED",importlib.metadata.version("pynesys-pynecore"))'
       - name: Wait until real Railway WF02 workflow is present
         run: |
           python3 - <<'PY'
@@ -35,10 +39,11 @@ jobs:
               try:
                   with urllib.request.urlopen(url,timeout=9) as r: wf=json.load(r)["workflow"]
                   nodes={n["id"]:n for n in wf["nodes"]}
-                  if (len(nodes)==3 and
+                  if (len(nodes)==6 and
                       nodes["wf02-01"]["parameters"]["studioPython"]["python_function"]=="execute_wf02_node01" and
-                      nodes["wf02-02"]["parameters"]["studioPython"]["python_function"]=="execute_wf02_node02" and
-                      nodes["wf02-02"]["parameters"]["studioPython"]["code_version"]=="wf02-n02-convert-v2-nonoverlay"):
+                      nodes["wf02-04"]["parameters"]["studioPython"]["python_function"]=="execute_wf02_node04" and
+                      nodes["wf02-04"]["parameters"]["studioPython"]["code_version"]=="wf02-n04-pynecomp-strategy-v1" and
+                      nodes["wf02-06"]["parameters"]["studioPython"]["python_function"]=="execute_wf02_node06"):
                       print("WF02_REAL_NODES_DEPLOYED",flush=True)
                       break
               except Exception as exc: print("WF02_DEPLOY_WAIT",type(exc).__name__,flush=True)
@@ -48,8 +53,8 @@ jobs:
       - name: Execute actual saved Pine node by node - do not claim unsupported converted
         run: |
           set -o pipefail
-          PYTHONPATH=n8n/editor-adapter:n8n/pine-parity WF02_EXPECT_SCOPE='PINE_V6_RSI_REVERSAL_RUN_SIGNAL' WF02_REQUIRE_REAL_CONVERSION=1 WF02_SOURCE_ID='PUB;67a1548c0960450086a19d5b0ef1d467' WF02_VERSION_KEY='1.0' python3 n8n/editor-adapter/probe_wf02_real.py | tee /tmp/wf02-real.log
-          grep -q 'WF02_REAL_PINE_PYTHON_GENERATED_REQUIRES_TV_PARITY' /tmp/wf02-real.log
+          PYTHONPATH=n8n/editor-adapter:n8n/pine-parity WF02_SOURCE_ID='PUB;67a1548c0960450086a19d5b0ef1d467' WF02_VERSION_KEY='1.0' python3 n8n/editor-adapter/probe_wf02_real.py | tee /tmp/wf02-real.log
+          grep -q 'WF02_PYNECOMP_6_REAL_NODES_CONFIRMED_PYNECOMP_API_KEY_MISSING' /tmp/wf02-real.log
       - name: Retain live execution evidence
         if: always()
         uses: actions/upload-artifact@v4
