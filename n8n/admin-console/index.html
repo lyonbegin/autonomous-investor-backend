@@ -342,6 +342,7 @@ async function loadFlow(f){
     '<div class="grid2" style="grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:stretch">'+
     '<div><h4 id="publication-title">왼쪽 · TradingView 게시 원본 전략 차트</h4>'+
     '<img id="publication-official-image" alt="전략이 적용된 TradingView 게시 차트 스냅샷" style="display:none;width:100%;aspect-ratio:16/10;object-fit:contain;background:#081628;border-radius:10px">'+
+    '<div id="publication-image-fallback" role="status" style="display:none;min-height:200px;padding:24px;border:1px solid #38536c;border-radius:9px">공식 TradingView 차트 미리보기가 일시적으로 열리지 않았습니다. <a href="https://www.tradingview.com/script/LkgKT3TG-Displaced-Donchian-Decycler-Trend-Breakout-Strategy-with-MFI/" target="_blank" rel="noopener noreferrer">실제 DDDS 원본 차트 열기</a></div>'+
     '<p class="muted minor" id="publication-chart-metadata">게시된 실제 Pine 전략 차트 확인 중</p>'+
     '<a id="publication-open-original" href="https://www.tradingview.com/scripts/" target="_blank" rel="noopener noreferrer">TradingView 원본 전략 페이지 열기</a>'+
     '<h4>게시 당시 Strategy Report</h4><div class="cards" id="publication-report-facts">조회 중</div>'+
@@ -433,10 +434,27 @@ function showPublishedStrategy(d){
  lastPublishedSourceSha=d.source_sha256;
  title.textContent='왼쪽 · '+d.strategy_title+' (게시 당시 차트)';
  if(preview){
+  const fallback=document.getElementById('publication-image-fallback');
   const url=String(d.chart_preview_url||'');
   if(url.startsWith('https://s3.tradingview.com/l/')&&/\.(webp|png|jpg)(\?|$)/i.test(url)){
+   preview.onload=()=>{
+     if(preview.naturalWidth>0){preview.style.display='block';
+       if(fallback)fallback.style.display='none';}
+   };
+   preview.onerror=()=>{
+     // The CDN occasionally rejects the published snapshot's timestamped URL.
+     // Retry its exact immutable publication path once; never substitute a
+     // synthetic or unrelated chart.
+     const clean=url.split('?')[0];
+     if(preview.src!==clean){preview.src=clean;return;}
+     preview.style.display='none';
+     if(fallback)fallback.style.display='block';
+   };
    preview.src=url;preview.style.display='block';
-  }else{preview.removeAttribute('src');preview.style.display='none';}
+  }else{
+   preview.removeAttribute('src');preview.style.display='none';
+   if(fallback)fallback.style.display='block';
+  }
  }
  const symbol=document.getElementById('publication-chart-metadata');
  if(symbol)symbol.textContent=d.chart_symbol_title+' · '+d.chart_timeframe_display+
