@@ -31,7 +31,7 @@ jobs:
           from pathlib import Path
           import re
           s=Path('n8n/admin-console/index.html').read_text()
-          script=re.search(r'<script(?:[^>]*)>([\\s\\S]*?)</script>',s)
+          script=re.search(r'<script[^>]*>(.*?)</script>',s,flags=re.S)
           if not script: raise SystemExit('Admin inline JS missing')
           Path('/tmp/wf02-admin.js').write_text(script.group(1))
           assert 'official-tv-chart-wf02' in s
