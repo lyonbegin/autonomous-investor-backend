@@ -407,7 +407,7 @@ function showPublishedStrategy(d){
  title.textContent='왼쪽 · '+d.strategy_title+' (게시 당시 차트)';
  if(preview){
   const url=String(d.chart_preview_url||'');
-  if(url.startsWith('https://s3.tradingview.com/l/')&&/\\.(webp|png|jpg)(\\?|$)/i.test(url)){
+  if(url.startsWith('https://s3.tradingview.com/l/')&&/\.(webp|png|jpg)(\?|$)/i.test(url)){
    preview.src=url;preview.style.display='block';
   }else{preview.removeAttribute('src');preview.style.display='none';}
  }
