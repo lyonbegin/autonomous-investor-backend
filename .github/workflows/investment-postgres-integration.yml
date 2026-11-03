@@ -1,0 +1,104 @@
+name: Investment PostgreSQL 38-table schema and WF01-WF02 integration
+on:
+  push:
+    branches: [feature/editor-wf01-canvas-20261029]
+    paths:
+      - 'n8n/investment-db/**'
+      - 'n8n/pine-parity/pg_bridge.py'
+      - 'n8n/pine-parity/test_pg_bridge.py'
+      - 'n8n/editor-adapter/investment_pine_store.py'
+      - 'n8n/editor-adapter/investment_wf02.py'
+      - 'n8n/Dockerfile.native-editor-gateway'
+      - '.github/workflows/investment-postgres-integration.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  pg-real:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 12
+    env:
+      INVESTMENT_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
+      PYTHONPATH: n8n/investment-db:n8n/editor-adapter:n8n/pine-parity
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install 'psycopg[binary]>=3.2,<4'
+      - name: Verify schema counts, real foreign keys, artifact contents and legacy reconciliation
+        run: |
+          python3 - <<'PY'
+          import os,sys,sqlite3,tempfile,pathlib
+          from unittest.mock import patch
+          from psycopg import sql
+          with tempfile.TemporaryDirectory() as folder:
+              os.environ['STUDIO_DB_PATH']=folder+'/studio.sqlite3'
+              os.environ['INVESTMENT_ARTIFACT_ROOT']=folder+'/artifacts'
+              os.environ['INVESTMENT_BACKUP_ROOT']=folder+'/backups'
+              import investment_pg as pg
+              from investment_pine_store import save_verified_source
+              from investment_wf02 import execute_wf02_node01,execute_wf02_node02
+              with sqlite3.connect(os.environ['STUDIO_DB_PATH']) as db:
+                  db.execute('CREATE TABLE untouched_legacy(id INTEGER PRIMARY KEY,value TEXT)')
+                  db.execute("INSERT INTO untouched_legacy(value) VALUES('PRESERVE')")
+              health=pg.bootstrap()
+              assert health['tables']==38,health
+              from test_investment_wf02 import PINE
+              source=PINE
+              payload={'candidate':{'source_id':'PUB;db-integration-one','version_key':'1.0',
+                 'source_url':'https://www.tradingview.com/script/ABCDEFGH/','title':'DB TEST'},
+                 'pine_code':source}
+              result=save_verified_source(payload,'strategy')
+              assert result['script_version_id'] and result['postgres_sync'],result
+              row=pg.get_source('PUB;db-integration-one','1.0')
+              assert row['pine_code']==source,row
+              loaded=execute_wf02_node01({'ui_selection':'strategy','requested_detail_limit':1,
+                 'source_id':'PUB;db-integration-one','version_key':'1.0'},workflow_kind='strategy')
+              assert loaded['script_version_id']==result['script_version_id']
+              deps=execute_wf02_node02(loaded,workflow_kind='strategy')
+              assert deps['status']=='LIBRARIES_RESOLVED' and not deps['resolved_libraries'],deps
+              # Explicit DB write contract test only: test fixture is NOT
+              # a real PyneComp compile or validated conversion.
+              fixture=pg.record_conversion('PUB;db-integration-one','1.0',
+                   'def synthetic_db_artifact_fixture(): return 1',
+                   'DB_TEST_FIXTURE_NOT_PYNECOMP','TEST_ONLY_NOT_VALIDATED')
+              assert fixture['script_version_id']==result['script_version_id']
+              counts=pg.counts()
+              assert counts['scripts']==1 and counts['versions']==1 and counts['conversions']==1,counts
+              before=pg.record_source('strategy','PUB;db-integration-one','1.0',source)
+              assert before['script_version_id']==result['script_version_id'],'not idempotent'
+              with sqlite3.connect(os.environ['STUDIO_DB_PATH']) as db:
+                  assert db.execute("SELECT value FROM untouched_legacy").fetchone()[0]=='PRESERVE'
+              imported=pg.import_legacy()
+              assert imported['sources']==1 and imported['conversions']==0,imported
+              assert pathlib.Path(imported['backup']).is_file()
+              with pg.connect() as db:
+                  fk=db.execute("""SELECT count(*) FROM pg_constraint WHERE contype='f'
+                      AND connamespace IN (SELECT oid FROM pg_namespace WHERE nspname
+                          IN ('platform','catalog','market','research','operations','trading'))""").fetchone()[0]
+                  assert fk>=40,fk
+              print('POSTGRES_38_TABLES_AND_REAL_WF01_WF02_SYNC_PASS',counts,'FK',fk)
+          PY
+      - name: Link synthetic TV-reference fixture to exact converted strategy and verify DB idempotence
+        run: |
+          python3 -m unittest n8n/pine-parity/test_pg_bridge.py -v
+      - name: Ensure n8n database remains independent
+        run: |
+          python3 - <<'PY'
+          import psycopg
+          with psycopg.connect('postgresql://postgres:postgres@localhost:5432/postgres') as c:
+              count=c.execute("""SELECT count(*) FROM pg_namespace WHERE nspname IN
+                  ('platform','catalog','market','research','operations','trading')""").fetchone()[0]
+              assert count==0,'accidentally modified original postgres database'
+              print('N8N_DATABASE_SCHEMA_UNTOUCHED')
+          PY

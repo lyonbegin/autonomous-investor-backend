@@ -1,0 +1,321 @@
+{
+  "name": "WF-02 · 전략 1개 Pine→Python 실제 검증 흐름 → 마지막 노드에서 차트 보기",
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "project": "investment",
+    "workflow_id": "WF02-CHART-PARITY",
+    "editorOnly": true,
+    "executionEnabled": false,
+    "requiresTvScreenshotAndCsv": true,
+    "doNotClaimAutomaticVisualMatch": true,
+    "serviceUrlEnvironment": "PINE_PARITY_SERVICE_URL",
+    "nodeTypesReused": true,
+    "studioWorkflowRun": {
+      "transport": "external_json",
+      "endpoint": "https://investment-pine-parity-review-production.up.railway.app/api/compare",
+      "result_origin": "https://investment-pine-parity-review-production.up.railway.app",
+      "result_path": "/",
+      "final_node_id": "wf02-parity-08",
+      "stage_nodes": [
+        "wf02-parity-01",
+        "wf02-parity-02",
+        "wf02-parity-03",
+        "wf02-parity-04",
+        "wf02-parity-05",
+        "wf02-parity-06",
+        "wf02-parity-08"
+      ],
+      "alternate_condition_node_id": "wf02-parity-07",
+      "fields": [
+        {
+          "key": "source_url",
+          "label": "TradingView 전략 원본 주소",
+          "type": "url",
+          "required": false,
+          "placeholder": "https://www.tradingview.com/script/..."
+        },
+        {
+          "key": "symbol",
+          "label": "종목/거래소",
+          "type": "text",
+          "default": "NASDAQ:AAPL",
+          "required": true
+        },
+        {
+          "key": "timeframe",
+          "label": "시간봉",
+          "type": "text",
+          "default": "1D",
+          "required": true
+        },
+        {
+          "key": "pine_code",
+          "label": "전략 Pine Script 원본",
+          "type": "textarea",
+          "rows": 8,
+          "required": true
+        },
+        {
+          "key": "csv_text",
+          "label": "TradingView 실제 OHLC·출력 플롯 CSV",
+          "type": "file_csv",
+          "max_bytes": 1000000,
+          "required": true,
+          "help": "TradingView에서 저장한 캔들·스크립트 출력 데이터만 사용합니다."
+        },
+        {
+          "key": "screenshot_data_url",
+          "label": "TradingView 원본 전략 적용 차트 이미지",
+          "type": "file_image",
+          "max_bytes": 2400000,
+          "required": true,
+          "help": "TradingView에서 직접 캡처한 PNG/JPEG로, 합성 이미지 사용 금지"
+        },
+        {
+          "key": "columns",
+          "label": "원본 CSV 플롯 열 이름 매핑 JSON",
+          "type": "json",
+          "default": "{\"fastMA\":\"Fast TV\",\"slowMA\":\"Slow TV\",\"longCondition\":\"Long Signal\",\"shortCondition\":\"Short Signal\"}",
+          "required": true
+        }
+      ]
+    },
+    "studioProjectServiceExecutionEnabled": true,
+    "runNotes": "편집기 내 input 업로드→주식 프로젝트 서비스 검증 단계를 실제 실행→서버 저장·실행 ID 기록→마지막 노드에서만 결과 페이지 열기. 공식 n8n 8노드를 직접 구동하는 것은 아직 아님."
+  },
+  "nodes": [
+    {
+      "id": "wf02-parity-01",
+      "name": "01 입력·원본 차트 수신",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        180,
+        270
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "wf02-chart-parity",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "wf02-parity-02",
+      "name": "02 TradingView 입력자료 검사",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        270
+      ],
+      "parameters": {
+        "jsCode": "return $input.all().map(item=>{const b=item.json.body??item.json;if(!b||typeof b.pine_code!=='string'||typeof b.csv_text!=='string'||typeof b.symbol!=='string'||typeof b.timeframe!=='string')throw Error('TRADINGVIEW_PARITY_INPUT_MISSING');return {json:{source_url:b.source_url??'',symbol:b.symbol,timeframe:b.timeframe,pine_code:b.pine_code,csv_text:b.csv_text,columns:b.columns??{},screenshot_data_url:b.screenshot_data_url??''}};});"
+      }
+    },
+    {
+      "id": "wf02-parity-03",
+      "name": "03 Pine→Python·차트 비교 API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        710,
+        270
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.PINE_PARITY_SERVICE_URL}}/api/compare",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{JSON.stringify($json)}}",
+        "options": {
+          "timeout": 120000
+        }
+      }
+    },
+    {
+      "id": "wf02-parity-04",
+      "name": "04 비교 판정 정규화",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        990,
+        270
+      ],
+      "parameters": {
+        "jsCode": "return $input.all().map(({json:r})=>({json:{...r,numeric_ready:r.numeric_match===true,visual_pending:r.visual_verdict!=='VERIFIED',first_stage_complete:false,reason:r.status,trace_url:r.trace_url,python_chart_url:r.python_chart_url,reference_screenshot_url:r.reference_screenshot_url}}));"
+      }
+    },
+    {
+      "id": "wf02-parity-05",
+      "name": "05 검증 결과 분기",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1240,
+        270
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "cond-num",
+              "leftValue": "={{$json.numeric_ready}}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "wf02-parity-06",
+      "name": "06 수치 일치·시각 검토 대기",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1490,
+        170
+      ],
+      "parameters": {
+        "jsCode": "return $input.all().map(({json:r})=>({json:{...r,state:'PENDING_VISUAL_REVIEW',first_stage_complete:false}}));"
+      }
+    },
+    {
+      "id": "wf02-parity-07",
+      "name": "07 변환 불일치·기준자료 부족",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1490,
+        390
+      ],
+      "parameters": {
+        "jsCode": "return $input.all().map(({json:r})=>({json:{...r,state:r.status==='NUMERIC_MISMATCH'?'REJECTED_NUMERIC':'BLOCKED_MISSING_TV_BASELINE',first_stage_complete:false}}));"
+      }
+    },
+    {
+      "id": "wf02-parity-08",
+      "name": "08 최종 확인 · 차트 비교 결과 보기",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1770,
+        270
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{JSON.stringify($json)}}",
+        "options": {},
+        "studioResultView": {
+          "kind": "run_artifact",
+          "label": "차트 비교 결과 보기",
+          "trigger": "click_final_node_button",
+          "run_id_field": "run_id"
+        }
+      },
+      "notes": "결과가 DB/아티팩트에 기록되면 이 마지막 노드의 '차트 비교 결과 보기' 버튼으로 별도 차트 검증 페이지를 엽니다. 수치 불일치·이미지 미검증은 완료 처리하지 않습니다."
+    }
+  ],
+  "connections": {
+    "01 입력·원본 차트 수신": {
+      "main": [
+        [
+          {
+            "node": "02 TradingView 입력자료 검사",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "02 TradingView 입력자료 검사": {
+      "main": [
+        [
+          {
+            "node": "03 Pine→Python·차트 비교 API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "03 Pine→Python·차트 비교 API": {
+      "main": [
+        [
+          {
+            "node": "04 비교 판정 정규화",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "04 비교 판정 정규화": {
+      "main": [
+        [
+          {
+            "node": "05 검증 결과 분기",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "05 검증 결과 분기": {
+      "main": [
+        [
+          {
+            "node": "06 수치 일치·시각 검토 대기",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "07 변환 불일치·기준자료 부족",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "06 수치 일치·시각 검토 대기": {
+      "main": [
+        [
+          {
+            "node": "08 최종 확인 · 차트 비교 결과 보기",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "07 변환 불일치·기준자료 부족": {
+      "main": [
+        [
+          {
+            "node": "08 최종 확인 · 차트 비교 결과 보기",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "tags": [],
+  "pinData": {}
+}

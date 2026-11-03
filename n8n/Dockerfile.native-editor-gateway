@@ -1,10 +1,10 @@
 # ONE shared-n8n-studio editor, imported from its pinned GitHub commit.
 # Project-specific input = original investment workflow JSON data.
-# No trading, brokerage, production n8n credential, or execution API included.
+# No trading, brokerage or n8n execution. Only registered stock WF01 N01 and N02 Python test nodes run.
 FROM node:22-alpine AS build
 RUN apk add --no-cache git
 WORKDIR /app
-ARG SHARED_STUDIO_COMMIT=06baeef5c62436efb21eb5d4e1940e4dcfc34149
+ARG SHARED_STUDIO_COMMIT=1f7359d84b7ec02796dc0477fd1be0363837fc15
 RUN git clone https://github.com/lyonbegin/shared-n8n-studio.git /app/shared \
     && git -C /app/shared checkout --detach "$SHARED_STUDIO_COMMIT" \
     && test "$(git -C /app/shared rev-parse HEAD)" = "$SHARED_STUDIO_COMMIT"
@@ -14,18 +14,41 @@ ENV VITE_EDITOR_PROJECT=investment
 RUN npm --prefix /app/shared/playground run build
 
 # Persistent, isolated per-browser SQLite drafts. Public demo write operations
-# cannot trigger any n8n workflow, backend Python engine or broker.
-FROM python:3.12-alpine
-RUN apk add --no-cache su-exec
+# cannot trigger n8n, TradingView or broker; N01 Python selection-only is allowlisted.
+FROM python:3.12-slim
+RUN apt-get update && apt-get install -y --no-install-recommends gosu \
+    && rm -rf /var/lib/apt/lists/*
+RUN pip install --no-cache-dir "psycopg[binary]>=3.2,<4" "pynesys-pynecore==6.11.1"
 WORKDIR /app
 COPY --from=build /app/shared/playground/dist /app/dist
+COPY n8n/admin-console/index.html /app/dist/admin/index.html
+RUN python3 -c 'from pathlib import Path; p=Path("/app/dist/index.html"); s=p.read_text(); link="<a href=\"/admin/index.html\" style=\"position:fixed;bottom:18px;right:18px;z-index:9999;background:#165e9b;color:white;text-decoration:none;padding:12px 16px;border-radius:9px;box-shadow:0 6px 22px #0004;font:600 13px sans-serif\" aria-label=\"주식 자동화 종합 관제센터\">종합 관제센터 ↗</a>"; assert "</body>" in s; p.write_text(s.replace("</body>",link+"</body>"))'
 COPY --from=build /app/shared/server/studio_server.py /app/studio_server.py
-RUN mkdir -p /data && addgroup -S studio && adduser -S studio -G studio \
+COPY --from=build /app/shared/server/node_run_store.py /app/node_run_store.py
+COPY --from=build /app/shared/server/project_adapter_runtime.py /app/project_adapter_runtime.py
+COPY n8n/editor-adapter/investment_node_adapter.py /app/investment_node_adapter.py
+COPY n8n/editor-adapter/investment_wf02.py /app/investment_wf02.py
+COPY n8n/editor-adapter/investment_pynecomp.py /app/investment_pynecomp.py
+COPY n8n/editor-adapter/investment_pynecore_runtime.py /app/investment_pynecore_runtime.py
+COPY n8n/investment-db/investment_pg.py /app/investment_pg.py
+COPY n8n/investment-db/schema_v1.sql /app/schema_v1.sql
+COPY n8n/editor-adapter/investment_pipeline.py /app/investment_pipeline.py
+COPY n8n/pine-parity/engine.py /app/engine.py
+COPY n8n/pine-parity/sequence_reversal.py /app/sequence_reversal.py
+COPY n8n/editor-adapter/licensed_strategy_manifest.py /app/licensed_strategy_manifest.py
+COPY n8n/editor-adapter/investment_source_registry.py /app/investment_source_registry.py
+COPY n8n/editor-adapter/verified_pine_archive.py /app/verified_pine_archive.py
+COPY n8n/editor-adapter/verified_pine_archive_index.json /app/verified_pine_archive_index.json
+COPY n8n/editor-adapter/investment_pine_store.py /app/investment_pine_store.py
+COPY --from=build /app/shared/server/node_workspace_store.py /app/node_workspace_store.py
+RUN python3 -m py_compile /app/studio_server.py /app/node_workspace_store.py /app/node_run_store.py /app/project_adapter_runtime.py /app/investment_node_adapter.py /app/investment_wf02.py /app/investment_pynecomp.py /app/investment_pynecore_runtime.py /app/investment_pg.py /app/investment_pipeline.py /app/engine.py /app/sequence_reversal.py /app/licensed_strategy_manifest.py /app/investment_source_registry.py /app/verified_pine_archive.py
+RUN mkdir -p /data && groupadd --system studio && useradd --system --gid studio --home /app studio \
     && chown -R studio:studio /data /app
 # The Railway volume is mounted after image build as root-owned /data.
 # Fix only the dedicated draft directory before dropping to the studio user.
 ENV PORT=3000
 ENV STUDIO_STATIC_ROOT=/app/dist
 ENV STUDIO_DB_PATH=/data/studio.sqlite3
+ENV STUDIO_PROJECT_ADAPTER=investment_node_adapter
 EXPOSE 3000
-CMD ["sh", "-c", "chown -R studio:studio /data && exec su-exec studio python3 -u /app/studio_server.py"]
+CMD ["sh", "-c", "chown -R studio:studio /data && gosu studio python3 -c 'import investment_pipeline; investment_pipeline.init()' && if [ -n \"${INVESTMENT_DATABASE_URL:-}\" ]; then gosu studio python3 -u /app/investment_pg.py || exit 1; fi && exec gosu studio python3 -u /app/studio_server.py"]

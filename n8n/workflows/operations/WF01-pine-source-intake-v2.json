@@ -1,0 +1,943 @@
+{
+  "name": "WF-01 상세 · Pine 원본 등록·권리 승인 재확인 (편집 전용)",
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "nodes": [
+    {
+      "id": "wf01-01",
+      "name": "01-01 원본 제출 수신",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        120,
+        120
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "wf01-pine-intake",
+        "responseMode": "onReceived",
+        "authentication": "headerAuth",
+        "options": {}
+      },
+      "notes": "운영 n8n Credential 미설정. 인증 없는 공개 호출 금지. 활성화하지 말 것."
+    },
+    {
+      "id": "wf01-02",
+      "name": "01-02 요청 필드 추출",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        390,
+        120
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "return $input.all().map(({json})=>{ const p=json.body&&typeof json.body==='object'?json.body:json; const keys=['source_id','script_type','pine_version','source_code','author','source_url','rights_evidence']; return {json:Object.fromEntries(keys.map(k=>[k,p[k]??null]))}; });"
+      },
+      "notes": "원본 코드 필드는 문자열 그대로 전달. 샘플 전략 자동 삽입 금지"
+    },
+    {
+      "id": "wf01-03",
+      "name": "01-03 필수 필드·크기 검사",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        120
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "return $input.all().map(({json:p})=>{const errors=[];if(typeof p.source_id!=='string'||!/^[A-Za-z0-9_-]{3,80}$/.test(p.source_id)) errors.push('source_id');if(!['indicator','strategy','library'].includes(p.script_type))errors.push('script_type');if(!Number.isInteger(p.pine_version)||p.pine_version<1||p.pine_version>6)errors.push('pine_version');if(typeof p.source_code!=='string'||p.source_code.length<10||p.source_code.length>300000)errors.push('source_code');if(typeof p.author!=='string'||!p.author.trim()||p.author.length>200)errors.push('author');if(typeof p.rights_evidence!=='string'||p.rights_evidence.length<10)errors.push('rights_evidence');if(p.source_url!=null&&p.source_url!==''&&!/^https:\\/\\/[^/]+/.test(p.source_url))errors.push('source_url');return {json:{...p,validation_ok:errors.length===0,validation_errors:errors}};});"
+      },
+      "notes": ""
+    },
+    {
+      "id": "wf01-04",
+      "name": "01-04 입력 검증 통과?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        950,
+        120
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "condition-wf01-04",
+              "leftValue": "={{$json.validation_ok}}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ]
+        }
+      },
+      "notes": ""
+    },
+    {
+      "id": "wf01-05",
+      "name": "01-05 입력 거절 기록",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1230,
+        370
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "return $input.all().map(({json:p})=>({json:{state:'INVALID_INPUT',errors:p.validation_errors||[],wf02_started:false}}));"
+      },
+      "notes": ""
+    },
+    {
+      "id": "wf01-06",
+      "name": "01-06 Pine 버전·선언 검사",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1230,
+        75
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "return $input.all().map(({json:p})=>{const code=p.source_code||'';const version=new RegExp('^\\\\s*//\\\\s*@version='+p.pine_version+'\\\\s*$','m').test(code);const declared=new RegExp('(^|\\\\n)\\\\s*'+p.script_type+'\\\\s*\\\\(','m').test(code);return {json:{...p,declaration_ok:version&&declared,version_directive_ok:version,type_declaration_ok:declared,parse_note:'1차 선언 확인. Pine AST 유효성 검증 아님'}};});"
+      },
+      "notes": ""
+    },
+    {
+      "id": "wf01-07",
+      "name": "01-07 선언 정합?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1510,
+        75
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "condition-wf01-07",
+              "leftValue": "={{$json.declaration_ok}}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ]
+        }
+      },
+      "notes": ""
+    },
+    {
+      "id": "wf01-08",
+      "name": "01-08 선언 오류 격리",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1790,
+        310
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "return $input.all().map(({json:p})=>({json:{state:'DECLARATION_CHECK_FAILED',version_directive_ok:p.version_directive_ok,type_declaration_ok:p.type_declaration_ok,wf02_started:false}}));"
+      },
+      "notes": ""
+    },
+    {
+      "id": "wf01-09",
+      "name": "01-09 출처·권한 증빙 표시",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1790,
+        30
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "return $input.all().map(({json:p})=>({json:{...p,origin_url:p.source_url||null,rights_state:'PENDING_REVIEW',rights_evidence_present:typeof p.rights_evidence==='string'&&p.rights_evidence.trim().length>=10,conversion_allowed:false,paper_allowed:false}}));"
+      },
+      "notes": "증빙 존재 여부만 표시. 권리 자동 승인 아님"
+    },
+    {
+      "id": "wf01-10",
+      "name": "01-10 권한 근거 첨부?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2080,
+        30
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "condition-wf01-10",
+              "leftValue": "={{$json.rights_evidence_present}}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ]
+        }
+      },
+      "notes": ""
+    },
+    {
+      "id": "wf01-11",
+      "name": "01-11 근거 미충족 보류",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2370,
+        310
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "return $input.all().map(({json:p})=>({json:{state:'RIGHTS_EVIDENCE_MISSING',source_id:p.source_id,wf02_started:false}}));"
+      },
+      "notes": ""
+    },
+    {
+      "id": "wf01-12",
+      "name": "01-12 Pine 원본 저장 API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2370,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.INVESTMENT_API_URL}}/api/v1/alpha/pine/sources",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 30000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { source_id:$json.source_id, script_type:$json.script_type, pine_version:$json.pine_version, source_code:$json.source_code, author:$json.author, source_url:$json.source_url||null, rights_evidence:$json.rights_evidence } }}"
+      },
+      "notes": "실제 n8n Credential와 Python API의 통합·허가 필요. 에디터에서 API는 실행되지 않음."
+    },
+    {
+      "id": "wf01-13",
+      "name": "01-13 저장 결과 버전 고정",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2650,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "return $input.all().map(({json:p})=>({json:{...p,pinned_source_id:p.source_id,pinned_version:p.version,pinned_sha256:p.sha256,paper_allowed:false}}));"
+      },
+      "notes": ""
+    },
+    {
+      "id": "wf01-14",
+      "name": "01-14 기존 SHA 중복?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2930,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "condition-wf01-14",
+              "leftValue": "={{$json.duplicate}}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ]
+        }
+      },
+      "notes": ""
+    },
+    {
+      "id": "wf01-15",
+      "name": "01-15 기존 버전 반환",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3210,
+        -120
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "return $input.all().map(({json:p})=>({json:{...p,result:'DUPLICATE_VERSION',wf02_started:false}}));"
+      },
+      "notes": ""
+    },
+    {
+      "id": "wf01-16",
+      "name": "01-16 저장된 버전 재조회",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3210,
+        135
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "={{$env.INVESTMENT_API_URL}}/api/v1/alpha/pine/sources/{{$json.pinned_source_id}}/versions/{{$json.pinned_version}}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 30000
+        },
+        "sendBody": false
+      },
+      "notes": "실제 n8n Credential와 Python API의 통합·허가 필요. 에디터에서 API는 실행되지 않음."
+    },
+    {
+      "id": "wf01-17",
+      "name": "01-17 해시·버전 불변성 검사",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3490,
+        135
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const registered=$('01-12 Pine 원본 저장 API').first().json;return $input.all().map(({json:p})=>({json:{...p,integrity_ok:p.source_id===registered.source_id&&p.version===registered.version&&p.sha256===registered.sha256&&p.rights_state==='PENDING_REVIEW',original_register_sha256:registered.sha256}}));"
+      },
+      "notes": ""
+    },
+    {
+      "id": "wf01-18",
+      "name": "01-18 해시와 버전 일치?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        3780,
+        135
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "condition-wf01-18",
+              "leftValue": "={{$json.integrity_ok}}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ]
+        }
+      },
+      "notes": ""
+    },
+    {
+      "id": "wf01-19",
+      "name": "01-19 무결성 오류 격리",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4050,
+        350
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "return $input.all().map(({json:p})=>({json:{state:'INTEGRITY_BLOCKED',source_id:p.source_id,version:p.version,wf02_started:false}}));"
+      },
+      "notes": ""
+    },
+    {
+      "id": "wf01-20",
+      "name": "01-20 권리 검토 대기 등록",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4050,
+        60
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "return $input.all().map(({json:p})=>({json:{...p,state:'PENDING_REVIEW',next_action:'HUMAN_RIGHTS_REVIEW',conversion_allowed:false,paper_allowed:false,wf02_started:false}}));"
+      },
+      "notes": "여기서 종료. 별도 WF01-21 검토 재조회 진입으로만 다음 단계"
+    },
+    {
+      "id": "wf01-21",
+      "name": "01-21 검토 상태 재조회 요청",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        120,
+        1050
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "wf01-pine-rights-recheck",
+        "responseMode": "onReceived",
+        "authentication": "headerAuth",
+        "options": {}
+      },
+      "notes": "운영 n8n Credential 미설정. 인증 없는 공개 호출 금지. 활성화하지 말 것."
+    },
+    {
+      "id": "wf01-22",
+      "name": "01-22 버전 조회 대상 검증",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        390,
+        1050
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "return $input.all().map(({json})=>{const p=json.body&&typeof json.body==='object'?json.body:json;const id=typeof p.source_id==='string'?p.source_id:'';const ver=p.version;return {json:{source_id:id,version:ver,lookup_ok:/^[A-Za-z0-9_-]{3,80}$/.test(id)&&Number.isInteger(ver)&&ver>0,read_only:true}};});"
+      },
+      "notes": "승인 상태는 사용자의 입력이 아니라 백엔드 조회값만 신뢰"
+    },
+    {
+      "id": "wf01-23",
+      "name": "01-23 조회 대상 유효?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        670,
+        1050
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "condition-wf01-23",
+              "leftValue": "={{$json.lookup_ok}}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ]
+        }
+      },
+      "notes": ""
+    },
+    {
+      "id": "wf01-24",
+      "name": "01-24 검토 요청 오류",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        940,
+        1260
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "return $input.all().map(({json:p})=>({json:{state:'INVALID_RECHECK_TARGET',source_id:p.source_id,version:p.version}}));"
+      },
+      "notes": ""
+    },
+    {
+      "id": "wf01-25",
+      "name": "01-25 백엔드 승인 상태 조회",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        940,
+        995
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "={{$env.INVESTMENT_API_URL}}/api/v1/alpha/pine/sources/{{$json.source_id}}/versions/{{$json.version}}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 30000
+        },
+        "sendBody": false
+      },
+      "notes": "실제 n8n Credential와 Python API의 통합·허가 필요. 에디터에서 API는 실행되지 않음."
+    },
+    {
+      "id": "wf01-26",
+      "name": "01-26 실제 승인 상태?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1230,
+        995
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "condition-wf01-26",
+              "leftValue": "={{$json.rights_state}}",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              },
+              "rightValue": "APPROVED"
+            }
+          ]
+        }
+      },
+      "notes": ""
+    },
+    {
+      "id": "wf01-27",
+      "name": "01-27 승인된 원본만 읽기",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1510,
+        875
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "={{$env.INVESTMENT_API_URL}}/api/v1/alpha/pine/sources/{{$json.source_id}}/versions/{{$json.version}}/conversion-input",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 30000
+        },
+        "sendBody": false
+      },
+      "notes": "실제 n8n Credential와 Python API의 통합·허가 필요. 에디터에서 API는 실행되지 않음."
+    },
+    {
+      "id": "wf01-28",
+      "name": "01-28 WF-02 전달 준비",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1800,
+        875
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "return $input.all().map(({json:p})=>({json:{source_id:p.source_id,version:p.version,sha256:p.sha256,pine_version:p.pine_version,script_type:p.script_type,source_code:p.source_code,state:'WF02_INPUT_READY',wf02_started:false,paper_allowed:false}}));"
+      },
+      "notes": "WF02 실행 노드 없음. 승인된 원본 읽기를 테스트하기 위한 전달 계약"
+    },
+    {
+      "id": "wf01-29",
+      "name": "01-29 명시적 거절인가?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1510,
+        1130
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "condition-wf01-29",
+              "leftValue": "={{$json.rights_state}}",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              },
+              "rightValue": "REJECTED"
+            }
+          ]
+        }
+      },
+      "notes": ""
+    },
+    {
+      "id": "wf01-30",
+      "name": "01-30 권리 거절 종료",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1790,
+        1075
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "return $input.all().map(({json:p})=>({json:{source_id:p.source_id,version:p.version,state:'RIGHTS_REJECTED',wf02_started:false}}));"
+      },
+      "notes": ""
+    },
+    {
+      "id": "wf01-31",
+      "name": "01-31 검토 중 유지",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1790,
+        1280
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "return $input.all().map(({json:p})=>({json:{source_id:p.source_id,version:p.version,state:'PENDING_REVIEW',wf02_started:false}}));"
+      },
+      "notes": ""
+    }
+  ],
+  "connections": {
+    "01-01 원본 제출 수신": {
+      "main": [
+        [
+          {
+            "node": "01-02 요청 필드 추출",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "01-02 요청 필드 추출": {
+      "main": [
+        [
+          {
+            "node": "01-03 필수 필드·크기 검사",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "01-03 필수 필드·크기 검사": {
+      "main": [
+        [
+          {
+            "node": "01-04 입력 검증 통과?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "01-04 입력 검증 통과?": {
+      "main": [
+        [
+          {
+            "node": "01-06 Pine 버전·선언 검사",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "01-05 입력 거절 기록",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "01-06 Pine 버전·선언 검사": {
+      "main": [
+        [
+          {
+            "node": "01-07 선언 정합?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "01-07 선언 정합?": {
+      "main": [
+        [
+          {
+            "node": "01-09 출처·권한 증빙 표시",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "01-08 선언 오류 격리",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "01-09 출처·권한 증빙 표시": {
+      "main": [
+        [
+          {
+            "node": "01-10 권한 근거 첨부?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "01-10 권한 근거 첨부?": {
+      "main": [
+        [
+          {
+            "node": "01-12 Pine 원본 저장 API",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "01-11 근거 미충족 보류",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "01-12 Pine 원본 저장 API": {
+      "main": [
+        [
+          {
+            "node": "01-13 저장 결과 버전 고정",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "01-13 저장 결과 버전 고정": {
+      "main": [
+        [
+          {
+            "node": "01-14 기존 SHA 중복?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "01-14 기존 SHA 중복?": {
+      "main": [
+        [
+          {
+            "node": "01-15 기존 버전 반환",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "01-16 저장된 버전 재조회",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "01-16 저장된 버전 재조회": {
+      "main": [
+        [
+          {
+            "node": "01-17 해시·버전 불변성 검사",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "01-17 해시·버전 불변성 검사": {
+      "main": [
+        [
+          {
+            "node": "01-18 해시와 버전 일치?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "01-18 해시와 버전 일치?": {
+      "main": [
+        [
+          {
+            "node": "01-20 권리 검토 대기 등록",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "01-19 무결성 오류 격리",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "01-21 검토 상태 재조회 요청": {
+      "main": [
+        [
+          {
+            "node": "01-22 버전 조회 대상 검증",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "01-22 버전 조회 대상 검증": {
+      "main": [
+        [
+          {
+            "node": "01-23 조회 대상 유효?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "01-23 조회 대상 유효?": {
+      "main": [
+        [
+          {
+            "node": "01-25 백엔드 승인 상태 조회",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "01-24 검토 요청 오류",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "01-25 백엔드 승인 상태 조회": {
+      "main": [
+        [
+          {
+            "node": "01-26 실제 승인 상태?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "01-26 실제 승인 상태?": {
+      "main": [
+        [
+          {
+            "node": "01-27 승인된 원본만 읽기",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "01-29 명시적 거절인가?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "01-27 승인된 원본만 읽기": {
+      "main": [
+        [
+          {
+            "node": "01-28 WF-02 전달 준비",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "01-29 명시적 거절인가?": {
+      "main": [
+        [
+          {
+            "node": "01-30 권리 거절 종료",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "01-31 검토 중 유지",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "staticData": null,
+  "pinData": {},
+  "meta": {
+    "project": "investment",
+    "mode": "editor-only",
+    "version": "wf01-detail-v2",
+    "rightsAutoApprove": false,
+    "executionEnabled": false
+  },
+  "tags": []
+}

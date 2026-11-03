@@ -1,0 +1,49 @@
+name: Strict TradingView vs PyneCore keypoints on live comparison service
+on:
+  push:
+    branches: [feature/editor-wf01-canvas-20261029]
+    paths:
+      - n8n/pine-parity/**
+      - n8n/Dockerfile.pine-parity.railway
+      - .github/workflows/live-tv-pynecore-keypoints.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  actual-api:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify exact UTC and entry-exit mismatch without fake TradingView validation
+        run: |
+          PYTHONPATH=n8n/pine-parity python3 -m unittest n8n/pine-parity/test_keypoint_parity.py -v
+      - name: Exercise LIVE Railway keypoint comparison endpoint with labelled test CSVs
+        run: |
+          python3 - <<'PY'
+          import json,time,urllib.request,urllib.error
+          URL='https://investment-pine-parity-review-production.up.railway.app/api/keypoints'
+          header="time,open,high,low,close,stop,entry,exit\n"
+          tv=header+"2026-01-01T00:00:00Z,100,102,99,101,99,BUY,\n2026-01-01T01:00:00Z,101,106,100,105,102,,EXIT\n"
+          py=header+"2026-01-01T00:00:00Z,100,102,99,101,99,BUY,\n2026-01-01T01:00:00Z,101,106,100,105,102,,WAIT\n"
+          for attempt in range(38):
+            try:
+              body=json.dumps({'tradingview_csv':tv,'pynecore_csv':py}).encode()
+              request=urllib.request.Request(URL,data=body,method='POST',headers={
+                 'Content-Type':'application/json','User-Agent':'investment-true-keypoint-probe/1'})
+              with urllib.request.urlopen(request,timeout=15) as resp:d=json.load(resp)
+              assert d['status']=='KEYPOINTS_DIFFER',d
+              assert d['keypoints'][0]['group']=='ORDER_OR_SIGNAL',d
+              assert d['keypoints'][0]['field']=='exit',d
+              assert d['numeric_match'] is False and d['verified'] is False
+              assert d['tradingview_screenshot_is_not_numeric_reference'] is True
+              assert d['parity_approval'] is False
+              print('LIVE_TV_PYNECORE_KEYPOINT_DIFFERENCES_PASS',
+                json.dumps({'api_status':d['status'],'event_first':d['keypoints'][0],
+                  'mismatches':d['mismatch_total'],'not_validated':d['verified']},ensure_ascii=False),flush=True)
+              break
+            except Exception as exc:
+              print('KEYPOINT_LIVE_WAIT',attempt,type(exc).__name__,str(exc)[:100],flush=True)
+              time.sleep(6)
+          else:raise RuntimeError('LIVE_KEYPOINT_COMPARATOR_NOT_DEPLOYED')
+          PY

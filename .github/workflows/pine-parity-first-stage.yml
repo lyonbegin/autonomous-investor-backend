@@ -1,0 +1,129 @@
+name: WF02 Pine strategy -> Python chart parity (project owned)
+on:
+  push:
+    branches: [feature/editor-wf01-canvas-20261029]
+    paths:
+      - 'n8n/pine-parity/**'
+      - 'n8n/Dockerfile.pine-parity.railway'
+      - '.github/workflows/pine-parity-first-stage.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  parity-engine-and-http:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Strict Pine subset parser, Python generated code and numeric comparator tests
+        run: |
+          PYTHONPATH=n8n/pine-parity python3 -m unittest discover -s n8n/pine-parity -p 'test_*.py' -v
+          python3 -m py_compile n8n/pine-parity/server.py n8n/pine-parity/engine.py n8n/pine-parity/sequence_reversal.py
+      - name: Build real Railway image
+        run: docker build -f n8n/Dockerfile.pine-parity.railway -t pine-parity-contract:test .
+      - name: Start actual HTTP service with independent test data volume
+        run: |
+          docker run -d --name pine-parity-contract -p 19765:3000 -e PORT=3000 -e PARITY_STORAGE=/tmp/test-artifacts pine-parity-contract:test
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:19765/health; then break; fi
+            sleep 1
+          done
+      - name: End-to-end JSON response, run logs, SVG and real generated .py artifact
+        run: |
+          PYTHONPATH=n8n/pine-parity python3 - <<'PY'
+          import json,urllib.request,urllib.error
+          from test_engine import PINE,COLS,synthetic_csv
+          root="http://127.0.0.1:19765"
+          payload={"pine_code":PINE,"csv_text":synthetic_csv(),"columns":COLS,
+                   "symbol":"SYNTHETIC:CI","timeframe":"1D","source_url":""}
+          req=urllib.request.Request(root+"/api/compare",data=json.dumps(payload).encode(),
+              headers={"Content-Type":"application/json"},method="POST")
+          result=json.load(urllib.request.urlopen(req))
+          assert result["numeric_match"] is True,result
+          assert result["status"]=="TRADINGVIEW_SCREENSHOT_REQUIRED",result
+          detail=json.load(urllib.request.urlopen(root+result["details_url"]))
+          trace=json.load(urllib.request.urlopen(root+result["trace_url"]))
+          assert detail["pine_sha256"]==result["pine_sha256"]
+          assert len(trace["events"])==7
+          assert trace["events"][-1]["status"]=="PENDING"
+          assert urllib.request.urlopen(root+result["python_chart_url"]).read().startswith(b"<svg")
+          assert b"def run_strategy(bars):" in urllib.request.urlopen(root+result["python_code_url"]).read()
+          assert b"strategy(" in urllib.request.urlopen(root+result["pine_source_url"]).read()
+          assert b"Fast TV" in urllib.request.urlopen(root+result["tv_export_csv_url"]).read()
+          assert b"TradingView" in urllib.request.urlopen(root+"/").read()
+          assert b"overlayPython" in urllib.request.urlopen(root+"/").read()
+          assert b"updateOverlay" in urllib.request.urlopen(root+"/app.js").read()
+          print("API_OK",result["run_id"],result["status"],len(trace["events"]))
+          unsupported={**payload,"pine_code":PINE+"\nstrategy.exit('X',stop=1)"}
+          try:
+              urllib.request.urlopen(urllib.request.Request(root+"/api/compare",
+                  data=json.dumps(unsupported).encode(),headers={"Content-Type":"application/json"},method="POST"))
+              raise AssertionError("Unsupported Pine must fail closed")
+          except urllib.error.HTTPError as exc:
+              assert exc.code==422
+          PY
+      - name: Real Pine from public mirror and synthetic OHLC - no TradingView baseline claim
+        run: |
+          python3 - <<'PY'
+          import json,urllib.request,math
+          root="http://127.0.0.1:19765"
+          pine_url="https://raw.githubusercontent.com/venkatalokeshanne/trading_strategies_indicators/a9a6f4a9145de22bacacc24b827fb4095a3a425c/TradingView/strategies/49jNhJXM-Sequence-Snap-RSI-Confirmed-Reversal-Scalper.pine"
+          with urllib.request.urlopen(pine_url,timeout=20) as r: pine=r.read().decode("utf-8")
+          lines=["time,open,high,low,close"]
+          for i in range(100):
+              o=100+3*math.sin(i*.3)
+              c=o+1.6*math.cos(i*.61)
+              lines.append(f"syn{i},{o},{max(o,c)+0.7},{min(o,c)-0.7},{c}")
+          payload={"pine_code":pine,"csv_text":"\n".join(lines)+"\n",
+                   "columns":{},"symbol":"SYNTHETIC:CI_NOT_TV","timeframe":"1D"}
+          req=urllib.request.Request(root+"/api/compare",data=json.dumps(payload).encode(),
+                                    headers={"Content-Type":"application/json"},method="POST")
+          result=json.load(urllib.request.urlopen(req,timeout=30))
+          assert result["status"]=="REFERENCE_COLUMNS_REQUIRED",result
+          assert result["numeric_match"] is False,result
+          with urllib.request.urlopen(root+result["python_chart_url"]) as response:
+              assert response.read().startswith(b"<svg")
+          with urllib.request.urlopen(root+result["python_code_url"]) as response:
+              assert b"def run_strategy(bars):" in response.read()
+          with urllib.request.urlopen(root+result["details_url"]) as response: detail=json.load(response)
+          assert detail["strategy"]["supported_subset"]=="PINE_V6_RSI_REVERSAL_RUN_SIGNAL"
+          print("ACTUAL_SEQUENCE_PINE_SYNTHETIC_CHART_NO_TV_BASELINE",result["run_id"])
+          PY
+      - name: Verify Railway production deployment exposes exact parity release and real run traces
+        run: |
+          PYTHONPATH=n8n/pine-parity python3 - <<'PY'
+          import json,time,urllib.request
+          from test_engine import PINE,COLS,synthetic_csv
+          root="https://investment-pine-parity-review-production.up.railway.app"
+          for attempt in range(70):
+              try:
+                  health=json.load(urllib.request.urlopen(root+"/health",timeout=8))
+                  if health.get("release")=="pine-parity-stage2-rsi-run-v1": break
+              except Exception: pass
+              time.sleep(3)
+          else: raise RuntimeError("EXACT_RAILWAY_RELEASE_NOT_LIVE")
+          payload={"pine_code":PINE,"csv_text":synthetic_csv(),"columns":COLS,
+                   "symbol":"SYNTHETIC:CI-RAILWAY","timeframe":"1D","source_url":""}
+          req=urllib.request.Request(root+"/api/compare",data=json.dumps(payload).encode(),
+                    headers={"Content-Type":"application/json"},method="POST")
+          result=json.load(urllib.request.urlopen(req,timeout=25))
+          assert result["numeric_match"] is True,result
+          assert result["status"]=="TRADINGVIEW_SCREENSHOT_REQUIRED",result
+          assert result["visual_verdict"]=="NOT_YET_VERIFIED"
+          details=json.load(urllib.request.urlopen(root+result["details_url"],timeout=12))
+          trace=json.load(urllib.request.urlopen(root+result["trace_url"],timeout=12))
+          assert len(trace["events"])==7
+          assert trace["events"][-1]["status"]=="PENDING"
+          assert details["pine_sha256"]==result["pine_sha256"]
+          assert urllib.request.urlopen(root+result["python_chart_url"],timeout=12).read().startswith(b"<svg")
+          assert b"def run_strategy(bars):" in urllib.request.urlopen(root+result["python_code_url"],timeout=12).read()
+          assert b"Fast TV" in urllib.request.urlopen(root+result["tv_export_csv_url"],timeout=12).read()
+          assert b"strategy(" in urllib.request.urlopen(root+result["pine_source_url"],timeout=12).read()
+          html=urllib.request.urlopen(root+"/",timeout=12).read()
+          assert b"overlayPython" in html
+          assert b"updateOverlay" in urllib.request.urlopen(root+"/app.js",timeout=12).read()
+          print("RAILWAY_LIVE_E2E_SUCCESS",result["run_id"],result["status"],"7 staged trace events")
+          PY
+      - name: Logs on failure
+        if: failure()
+        run: docker logs pine-parity-contract || true

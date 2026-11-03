@@ -1,0 +1,106 @@
+name: WF01 real sequential Pine collection
+on:
+  push:
+    branches: [feature/editor-wf01-canvas-20261029]
+    paths:
+      - 'n8n/editor-adapter/**'
+      - 'n8n/workflows/operations/WF01-latest-strategy-one.json'
+      - 'n8n/workflows/operations/WF01-latest-library-one.json'
+      - '.github/workflows/wf01-real-node-by-node.yml'
+  workflow_dispatch:
+concurrency:
+  group: wf01-real-pine-${{ github.ref }}
+  cancel-in-progress: true
+permissions:
+  contents: read
+jobs:
+  real-pine:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check Python syntax and functional tests
+        run: |
+          python3 -m compileall -q n8n/editor-adapter
+          PYTHONPATH=n8n/editor-adapter python3 -m unittest discover -s n8n/editor-adapter -p 'test_*.py' -v
+      - name: Retrieve actual 125KB+ public Pine and execute N11 -> N15 -> N16 with real SQLite
+        run: |
+          PYTHONPATH=n8n/editor-adapter python3 - <<'PY'
+          import os,sqlite3,tempfile
+          from unittest.mock import patch
+          from investment_node_adapter import execute_node11,execute_node15,execute_node16
+          candidate={
+              "kind":"strategy",
+              "source_url":"https://www.tradingview.com/script/nmnHkA02/",
+              "source_id":"PUB;live-regression-nmnHkA02",
+              "version_key":"pinned-mirror-a9a6f4a"
+          }
+          with tempfile.TemporaryDirectory() as folder, patch.dict(
+              os.environ,{"STUDIO_DB_PATH":folder+"/source.db"}):
+              source=execute_node11({
+                  "kind":"strategy","has_candidate":True,
+                  "candidate":candidate
+              },workflow_kind="strategy")
+              raw=source["pine_code"].encode("utf-8")
+              assert 60000<len(raw)<=512*1024,len(raw)
+              saved=execute_node15(source,workflow_kind="strategy")
+              result=execute_node16(saved,workflow_kind="strategy")
+              assert result["status"]=="PINE_SAVED_CONVERSION_PENDING"
+              assert result["conversion_validated"] is False
+              with sqlite3.connect(folder+"/source.db") as db:
+                  persisted=db.execute(
+                      "SELECT pine_code FROM investment_pine_payloads WHERE source_id=?",
+                      (candidate["source_id"],)).fetchone()[0]
+                  assert persisted.encode("utf-8")==raw
+              print("WF01_REAL_LARGE_PINE_N11_N15_N16_OK",len(raw),"bytes",flush=True)
+          PY
+      - name: Wait until the current workflow is deployed to Railway
+        run: |
+          python3 - <<'PY'
+          import json,time,urllib.request
+          url="https://investment-n8n-native-editor-production.up.railway.app/api/studio/workflows/operations/WF01-latest-strategy-one.json"
+          for attempt in range(50):
+              try:
+                  with urllib.request.urlopen(url,timeout=12) as r: data=json.load(r)["workflow"]
+                  nodes={n["id"]:n for n in data["nodes"]}
+                  names={n["name"] for n in data["nodes"]}
+                  n8=nodes["wf01-strategy-08"]
+                  n9=nodes["wf01-strategy-09"]
+                  n10=nodes["wf01-strategy-10"]
+                  n11=nodes["wf01-strategy-11"]
+                  n15=nodes["wf01-strategy-15"]
+                  n16=nodes["wf01-strategy-16"]
+                  connection=data["connections"][n11["name"]]["main"][0][0]["node"]
+                  if (not any("wf01-strategy-"+i in nodes for i in ("12","13","14"))
+                      and n8["parameters"]["studioPython"]["python_function"]=="execute_node08"
+                      and n9["parameters"]["studioPython"]["python_function"]=="execute_node09"
+                      and n10["parameters"]["studioPython"]["python_function"]=="execute_node10"
+                      and n11["parameters"]["studioPython"]["python_function"]=="execute_node11"
+                      and n15["parameters"]["studioPython"]["python_function"]=="execute_node15"
+                      and n16["parameters"]["studioPython"]["python_function"]=="execute_node16"
+                      and connection==n15["name"]):
+                      print("WF01_SIMPLIFIED_WORKFLOW_DEPLOYED")
+                      break
+              except Exception as exc:
+                  print("WAITING_FOR_RAILWAY",str(exc)[:100],flush=True)
+              time.sleep(5)
+          else: raise RuntimeError("SIMPLIFIED_WORKFLOW_NOT_DEPLOYED")
+          PY
+      - name: Execute actual strategy collection node by node
+        run: |
+          set -o pipefail
+          PYTHONPATH=n8n/editor-adapter WF01_KIND=strategy python3 n8n/editor-adapter/probe_real_chain.py | tee /tmp/wf01-strategy.log
+          grep -Eq 'WF01_PINE_SOURCE_SAVED_REAL_RUN|WF01_NO_FETCHABLE_NEW_PINE' /tmp/wf01-strategy.log
+      - name: Verify missing library feed fails transparently
+        if: always()
+        run: |
+          set -o pipefail
+          PYTHONPATH=n8n/editor-adapter WF01_KIND=library python3 n8n/editor-adapter/probe_real_chain.py | tee /tmp/wf01-library.log
+          grep -q 'WF01_LIBRARY_NOT_AVAILABLE' /tmp/wf01-library.log
+      - name: Save real node results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wf01-pine-source-execution
+          path: /tmp/wf01-*.log
+          if-no-files-found: ignore
