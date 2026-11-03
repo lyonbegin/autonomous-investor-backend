@@ -40,7 +40,7 @@ async function stage(page,name,report) {
  const page=await context.newPage();page.setDefaultTimeout(7000);
  const report={started:new Date().toISOString(),url:'https://www.tradingview.com/chart/?symbol=NASDAQ%3AAAPL',
   stages:[],wsMethodsSent:{},ws_methods:{},httpPaths:{},wsConnections:[],errors:[],
-  indicatorSelected:false,strategyPanelVisible:false,authWall:false};
+  indicatorSelected:false,strategyPanelVisible:false,authWall:false,baseStudyCommands:0,status:'NOT_CHECKED'};
  function key(m,n){m[n]=(m[n]||0)+1}
  function parseMethods(payload,dest){
   if(typeof payload!=='string')return;
@@ -61,6 +61,7 @@ async function stage(page,name,report) {
   const nav=await page.goto(report.url,{waitUntil:'domcontentloaded',timeout:45000});
   report.navigationStatus=nav?.status()||0;
   await sleep(8500);await stage(page,'01-chart-loaded',report);
+  report.baseStudyCommands=report.wsMethodsSent.create_study||0;
   const indicatorButton=page.getByRole('button',{name:/Indicators, metrics, and strategies/}).filter({visible:true}).first();
   const indicator=(await indicatorButton.count())?indicatorButton:page.getByText('Indicators',{exact:true}).filter({visible:true}).first();
   if(await indicator.count()){
@@ -100,7 +101,8 @@ async function stage(page,name,report) {
     if(await candidates.count()){
       // Clicking exact public strategy result may be denied without a login.
       try {await candidates.last().click({timeout:6000});
-       await sleep(6500);report.indicatorSelected=true;
+       await sleep(6500);
+       report.indicatorSelected=(report.wsMethodsSent.create_study||0)>report.baseStudyCommands;
        await stage(page,'05-selected-study',report);}
       catch(e){report.errors.push('ADD_STRATEGY:'+String(e).slice(0,170))}
     }
@@ -113,14 +115,18 @@ async function stage(page,name,report) {
    try {await tester.click({timeout:5000});await sleep(3500);await stage(page,'06-strategy-tester',report);}
    catch(e){report.errors.push('OPEN_TESTER:'+String(e).slice(0,220))}
   }
-  report.authWall=await page.getByText(/Sign in|Log in|Sign up/i).count()>0;
+  const body=await page.locator('body').innerText();
+  report.authWall=/Access over 100,000 trading indicators|You'll need a free account|Join for free|sign in to access/i.test(body);
+  report.indicatorSelected=!report.authWall&&(report.wsMethodsSent.create_study||0)>report.baseStudyCommands;
+  report.status=report.authWall?'AUTH_REQUIRED_TO_ADD_OFFICIAL_STRATEGY':
+    report.indicatorSelected?'OFFICIAL_STRATEGY_REQUEST_OBSERVED':'OFFICIAL_STRATEGY_NOT_MOUNTED';
  }catch(e){
   report.errors.push('FATAL:'+String(e).slice(0,600));
  }finally{
   report.completed=new Date().toISOString();
   fs.writeFileSync(path.join(out,'strategy-ui-network.json'),JSON.stringify(report,null,2));
   console.log('TV_OFFICIAL_STRATEGY_INSPECTOR_RESULT',JSON.stringify({
-   navigationStatus:report.navigationStatus,indicatorSelected:report.indicatorSelected,
+   navigationStatus:report.navigationStatus,status:report.status,indicatorSelected:report.indicatorSelected,
    strategyPanelVisible:report.strategyPanelVisible,authWall:report.authWall,
    methodsSent:report.wsMethodsSent,methodsReceived:report.ws_methods,
    httpPaths:report.httpPaths,stages:report.stages.map(s=>s.name),errors:report.errors
