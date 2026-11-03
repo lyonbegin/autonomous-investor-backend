@@ -28,3 +28,19 @@ jobs:
         working-directory: public_frontend
       - name: Read-only probe of LIVE public DDDS source and actual chart API
         run: node public_frontend/tests/test_live_ddds_public_api_source.cjs
+      - name: Install Chromium for existing deployed DDDS native Pine probe
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Check actual existing website DDDS Pine engine and capture result
+        env:
+          DDDS_VELA_PROBE_OUT: /tmp/ddds-vela-native-probe
+        run: node public_frontend/tests/test_live_ddds_native_runtime_probe.cjs
+      - name: Save screenshots, exact Vela runtime and error evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: existing-site-ddds-native-pine-real-browser-probe
+          path: /tmp/ddds-vela-native-probe/
+          retention-days: 7
+          if-no-files-found: warn
