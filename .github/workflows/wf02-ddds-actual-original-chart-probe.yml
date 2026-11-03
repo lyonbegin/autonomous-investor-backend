@@ -1,0 +1,29 @@
+name: Inspect original published DDDS TradingView chart DOM and data connection
+on:
+  pull_request:
+    branches: [feature/wf02-free-pyne-ddds-converter-20261104]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Playwright browser
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Inspect only original DDDS publication chart
+        env:
+          DDDS_ORIGINAL_CHART_PROBE_DIR: /tmp/ddds-original-chart-probe
+        run: node n8n/tests/inspect_ddds_actual_published_chart.cjs
+      - name: Save original chart DOM/network evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ddds-actual-published-chart-UI-network-inspection
+          path: /tmp/ddds-original-chart-probe/
+          retention-days: 7
+          if-no-files-found: warn
