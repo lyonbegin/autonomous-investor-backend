@@ -164,7 +164,10 @@ def exact_stored_pine(source_id,version_key):
         if canonical["source_sha256"]!=sha or canonical["pine_code"]!=code:
             raise ValueError("CANONICAL_PINE_VERSION_MISMATCH")
         version_uuid=canonical["script_version_id"]
+    context=context_for_source(source_id,version_key)
     return {"source_id":source_id,"version_key":version_key,
+       "tradingview_original_url":(context or {}).get("source_url"),
+       "tradingview_original_title":(context or {}).get("source_title"),
        "source_sha256":sha,"source":code,"kind":"strategy",
        "rights_state":row["rights_state"],"script_version_id":version_uuid,
        "original_record":"SQLITE_WITH_POSTGRES_READBACK" if version_uuid else "SQLITE_ONLY"}
@@ -190,6 +193,10 @@ def saved_sources(limit=80):
         "python_code_stored":(row["source_id"],row["version_key"]) in already}
         for row in records]
     result.sort(key=lambda x:(not x["python_code_stored"],x["source_id"]))
+    for entry in result:
+        context=context_for_source(entry["source_id"],entry["version_key"])
+        entry["tradingview_original_url"]=(context or {}).get("source_url")
+        entry["tradingview_original_title"]=(context or {}).get("source_title")
     return {"status":"ok","sources":result,"count":len(result),
             "source":"EXISTING_SQLITE_SOURCE_REGISTRY",
             "note":"python_code_stored means code was generated previously, NOT TradingView parity verified"}
