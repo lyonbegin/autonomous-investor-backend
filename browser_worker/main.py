@@ -15,6 +15,12 @@ from playwright.async_api import async_playwright
 
 app = FastAPI(title="Autonomous Investor Data Browser Worker", version="2.0.0")
 
+# WF-02 read-only public-chart verification. This is a fixed test case,
+# never a generic market-data scraping or account-session proxy.
+_WF02_CHART_PROBE_LOCK = asyncio.Lock()
+_WF02_CHART_PROBE_CACHE: tuple[float, dict] | None = None
+
+
 _PLAYWRIGHT = None
 _SHARED_BROWSER = None
 _BROWSER_LOCK = asyncio.Lock()
@@ -657,6 +663,40 @@ async def source_detail(req: DetailRequest) -> dict[str, Any]:
         raise HTTPException(status_code=502, detail=f"{type(exc).__name__}: {exc}") from exc
     finally:
         await _close(p, browser, context)
+
+
+
+@app.post("/v1/inspect/official-chart-wf02")
+async def official_chart_wf02() -> dict[str, Any]:
+    """Existing browser worker passively observes real TradingView AAPL OHLCV.
+
+    Restricted fixed instrument/timeframe, bounded retention in RAM only,
+    no raw WebSocket data, account tokens, Pine user scripts, or order execution.
+    """
+    global _WF02_CHART_PROBE_CACHE
+    now = time.monotonic()
+    if _WF02_CHART_PROBE_CACHE and now - _WF02_CHART_PROBE_CACHE[0] < 90:
+        return {**_WF02_CHART_PROBE_CACHE[1], "cache_hit": True}
+    if _WF02_CHART_PROBE_LOCK.locked():
+        raise HTTPException(status_code=429, detail="TV_CHART_PROBE_IN_PROGRESS")
+    async with _WF02_CHART_PROBE_LOCK:
+        p, browser, context = await _browser()
+        try:
+            from official_chart_probe import observe_public_chart
+            result = await observe_public_chart(context)
+            if result.get("status") != "OFFICIAL_CHART_OHLCV_CAPTURED":
+                raise HTTPException(status_code=424, detail=result)
+            _WF02_CHART_PROBE_CACHE = (time.monotonic(), result)
+            return {**result, "cache_hit": False}
+        except HTTPException:
+            raise
+        except Exception as exc:
+            raise HTTPException(status_code=502, detail={
+                "error": "TV_BROWSER_CHART_CAPTURE_FAILED",
+                "reason": type(exc).__name__,
+            }) from exc
+        finally:
+            await _close(p, browser, context)
 
 
 @app.post("/v1/inspect/network")
