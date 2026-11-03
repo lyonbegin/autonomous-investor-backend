@@ -141,6 +141,23 @@ def _worker(folder):
             trade_rows.append({k:getattr(trade,k,None) for k in
                 ("entry_id","exit_id","size","entry_time","exit_time",
                  "entry_price","exit_price","profit","profit_percent","commission")})
+    # Pin entry/exit events to the actual filled timestamps, never to signal
+    # detection bars. Closed trades expose both fill timestamps and prices.
+    by_time={row["time"]:row for row in output_rows}
+    for row in output_rows:
+        row.update({"entry":"","exit":"","entry_price":"","exit_price":"","profit":""})
+    for item in trade_rows:
+        enter=by_time.get(item.get("entry_time"))
+        leave=by_time.get(item.get("exit_time"))
+        if enter is not None:
+            enter["entry"]=str(enter["entry"])+(
+                (";" if enter["entry"] else "")+str(item.get("entry_id") or "ENTRY"))
+            enter["entry_price"]=item.get("entry_price") or ""
+        if leave is not None:
+            leave["exit"]=str(leave["exit"])+(
+                (";" if leave["exit"] else "")+str(item.get("exit_id") or "EXIT"))
+            leave["exit_price"]=item.get("exit_price") or ""
+            leave["profit"]=item.get("profit") or ""
     fields=list(dict.fromkeys([key for row in output_rows for key in row]))
     csv_buffer=io.StringIO()
     writer=csv.DictWriter(csv_buffer,fieldnames=fields,extrasaction="ignore")
