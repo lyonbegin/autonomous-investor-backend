@@ -206,6 +206,38 @@ def comparison_for_source(source_id,version):
              "numeric_match":row[2],"visual_verdict":row[3],
              "reference_id":str(row[4])} if row else None)
 
+def link_original_tradingview_publication(source_id,version,sha256,public_url):
+    """Bind a real browser-inspected TradingView publication URL to the exact
+    canonical Pine version. The public publisher's source bytes may differ,
+    so this records a publication link, NOT a numeric equivalence result.
+    """
+    import re
+    if not re.fullmatch(
+        r"https://www\.tradingview\.com/script/[A-Za-z0-9]{8}(?:-[A-Za-z0-9._-]+)?/",
+        public_url):
+        raise ValueError("INVALID_OFFICIAL_TRADINGVIEW_PUBLICATION_URL")
+    if not re.fullmatch(r"[0-9a-f]{64}",sha256):
+        raise ValueError("INVALID_PINNED_PINE_SHA256")
+    with connect() as db:
+        with db.cursor() as cur:
+            match=cur.execute("""SELECT s.script_id,s.canonical_url
+                 FROM catalog.scripts s
+                 JOIN catalog.script_versions sv ON sv.script_id=s.script_id
+                 WHERE s.external_script_key=%s AND sv.provider_version=%s
+                   AND sv.content_sha256=%s LIMIT 1""",
+                (source_id,version,sha256)).fetchone()
+            if not match:
+                raise ValueError("TRADINGVIEW_PUBLICATION_PINNED_VERSION_NOT_FOUND")
+            if match[1] not in (None,"",public_url):
+                raise ValueError("TRADINGVIEW_PUBLICATION_EXISTING_URL_CONFLICT")
+            cur.execute("""UPDATE catalog.scripts SET canonical_url=%s
+                WHERE script_id=%s AND (canonical_url IS NULL OR canonical_url=%s)""",
+                (public_url,match[0],public_url))
+        db.commit()
+    return {"script_id":str(match[0]),"original_page_url":public_url,
+            "content_equivalence_verified":False}
+
+
 def get_source(source_id,version):
     """Fetch the exact canonical immutable Pine version, not a random latest row."""
     with connect() as db:
