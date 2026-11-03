@@ -140,7 +140,7 @@ def run_compiled_pynecore(script_path, expected_python_sha256, csv_text, syminfo
     if not isinstance(syminfo_values, dict):
         raise ParityInputError("EXPLICIT_SYMBOL_METADATA_REQUIRED")
     required_sym = ("prefix", "ticker", "currency", "period", "type",
-                    "mintick", "pricescale", "minmove", "pointvalue", "timezone",
+                    "mintick", "pricescale", "minmove", "pointvalue", "mincontract", "timezone",
                     "volumetype", "opening_hours", "session_starts", "session_ends")
     if any(x not in syminfo_values for x in required_sym):
         raise ParityInputError("EXPLICIT_SYMBOL_METADATA_REQUIRED")
