@@ -27,14 +27,17 @@ const evidence=process.env.WF02_EVIDENCE_DIR||'/tmp/ddds-parity-evidence';
   if(before.status()!==200)throw Error('READINESS_API_HTTP_'+before.status());
   const state=await before.json();
   if(state.pine_sha256!=='5a245e99447f13012dd026528235fc2c299cad5cb7b228653c684886dcba6507'||
-     state.symbol!=='BATS:AMZN'||state.timeframe_minutes!==120||
+     state.symbol!=='NASDAQ:AMZN'||state.timeframe_minutes!==120||
      state.source_input_defaults.startLen!==31||
      state.source_input_defaults.endLen!==36||
      state.source_input_defaults.commission_value!==0.05||
+     state.strategy_report_symbol_conflict!==true||
+     state.published_chart_snapshot_symbol!=='BATS:AMZN'||
+     state.current_strategy_report_properties_symbol!=='NASDAQ:AMZN'||
      state.tradingview_pynecore_parity_verified!==false||
      state.actual_ddds_pynecore_run_available!==false||
      state.live_orders_enabled!==false||
-     !state.missing_requirements.includes('VERIFIED_BATS_AMZN_120MIN_FULL_HISTORY_2016_2026'))
+     !state.missing_requirements.includes('VERIFIED_NASDAQ_AMZN_120MIN_FULL_HISTORY_2016_2026'))
     throw Error('UNTRUSTED_DDDS_READINESS_OR_FAKE_PARITY '+JSON.stringify(state).slice(0,850));
   const cards=page.locator('#ddds-parity-conditions .card');
   if(await cards.count()!==8)throw Error('ORIGINAL_DDDS_FIDELITY_8_CHECKS_NOT_SHOWN');
