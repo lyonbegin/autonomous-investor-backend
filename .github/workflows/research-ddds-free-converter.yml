@@ -17,7 +17,7 @@ jobs:
         with:
           python-version: '3.12'
       - name: Install actual open-source offline Python Pine compiler
-        run: python -m pip install 'hoox-pyne==0.6.31'
+        run: python -m pip install 'hoox-pyne[compile]==0.6.31'
       - name: Run source-specific DDDS 141-line parse, compile-to-Python and synthetic smoke diagnostics
         run: |
           python - <<'PY'
