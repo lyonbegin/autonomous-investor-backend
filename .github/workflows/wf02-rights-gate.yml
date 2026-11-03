@@ -7,6 +7,7 @@ on:
       - 'n8n/tests/test_wf02_rights_gate_20261103.py'
       - 'n8n/tests/test_pynecore_bridge.py'
       - 'n8n/pine-parity/pynecore_bridge.py'
+      - 'n8n/pine-parity/pynecore_worker.py'
       - '.github/workflows/wf02-rights-gate.yml'
   workflow_dispatch:
 permissions:
@@ -22,7 +23,7 @@ jobs:
           python-version: '3.12'
       - name: Syntax check
         run: |
-          python -m py_compile n8n/editor-adapter/investment_wf02.py n8n/tests/test_wf02_rights_gate_20261103.py
+          python -m py_compile n8n/editor-adapter/investment_wf02.py n8n/tests/test_wf02_rights_gate_20261103.py n8n/pine-parity/pynecore_bridge.py n8n/pine-parity/pynecore_worker.py
       - name: Execute real SQLite rights regression
         run: |
           python -m unittest discover -s n8n/tests -p 'test_wf02_rights_gate_20261103.py' -v
