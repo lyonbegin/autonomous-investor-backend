@@ -87,7 +87,7 @@ def capture(sid: str, *, root: Path = ROOT, transport=None) -> dict:
         # internally consistent but potentially corrupted parsed JSON.
         import re
         fields=[line.strip().replace("\u202f"," ") for line in raw.splitlines() if line.strip()]
-        first=re.match(r"^(\\d{1,4})\\s*(Long|Short)\\b",fields[0],re.I) if fields else None
+        first=re.match(r"^(\d{1,4})\s*(Long|Short)\b",fields[0],re.I) if fields else None
         if not first or int(first.group(1))!=t["trade_number"] or first.group(2).upper()!=t["side"]:
             raise ValueError("OFFICIAL_PUBLISHED_TRADE_NUMBER_SIDE_RAW_MISMATCH")
         usd_prices=[]
