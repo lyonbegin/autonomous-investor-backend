@@ -16,7 +16,8 @@ DDDS_SOURCE_SHA = "5a245e99447f13012dd026528235fc2c299cad5cb7b228653c684886dcba6
 DDDS_SOURCE_ID = "PUB;5442675d418140c58486eb4a7ae12768"
 DDDS_VERSION = "snapshot-sha256-" + DDDS_SOURCE_SHA[:16]
 DDDS_COMPILER = "pynecomp-http-v1-pynecore-6.11.1"
-DDDS_PUBLICATION_SYMBOL = "BATS:AMZN"
+DDDS_PUBLICATION_SYMBOL = "NASDAQ:AMZN"
+DDDS_FROZEN_SNAPSHOT_SYMBOL = "BATS:AMZN"
 DDDS_PUBLICATION_TIMEFRAME = "120"
 EXPECTED_TRADES = 299
 # Source defaults, not a claim that the author's published Properties tab is
@@ -118,6 +119,14 @@ def compare_published_ddds_trades(reference: dict, runtime: dict,
         re.fullmatch(r"[0-9a-f]{64}",runtime["python_sha256"]) is None):
         return _status("BLOCKED_IDENTICAL_PYNECOMP_ARTIFACT_NOT_PROVEN",
                        "동일 Pine 원본에서 PyneComp로 생성된 Python 산출물의 출처·해시가 필요합니다.")
+    # The original author-posted chart snapshot and the current published
+    # Strategy Report Properties disagree (BATS vs NASDAQ). No equivalence
+    # can be declared until the chosen original reference is reconciled.
+    if runtime.get("reference_symbol_resolution") != "PUBLISHED_REPORT_NASDAQ_AMZN_RECONCILED":
+        return _status("BLOCKED_PUBLISHED_CHART_REPORT_SYMBOL_CONFLICT",
+                       "공식 게시 차트 BATS:AMZN과 Strategy Report 속성 NASDAQ:AMZN이 일치하지 않습니다.",
+                       frozen_chart_symbol=DDDS_FROZEN_SNAPSHOT_SYMBOL,
+                       published_report_symbol=DDDS_PUBLICATION_SYMBOL)
     if (runtime.get("symbol")!=DDDS_PUBLICATION_SYMBOL or
         str(runtime.get("interval_minutes"))!="120"):
         return _status("BLOCKED_MARKET_SYMBOL_TIMEFRAME_MISMATCH",
@@ -134,7 +143,7 @@ def compare_published_ddds_trades(reference: dict, runtime: dict,
                        "격리 PyneCore 실행 및 실제 BATS:AMZN OHLCV 출처를 확인할 수 없습니다.")
     if runtime.get("data_coverage_complete") is not True:
         return _status("BLOCKED_BATS_AMZN_2H_HISTORY_COVERAGE",
-                       "2016년부터 2026년까지의 해당 2시간봉 전체 입력 구간이 확인되지 않았습니다.",
+                       "2016년부터 2026년까지의 NASDAQ:AMZN 2시간봉 전체 입력 구간이 확인되지 않았습니다.",
                        actual_trade_count=len(trades))
     if len(trades)!=EXPECTED_TRADES:
         return _status("DDDS_TRADE_COUNT_MISMATCH",
@@ -212,7 +221,8 @@ def readiness_from_existing_cache(*, pine: str, reference: dict|None,
     if not cached_python and not api_key_configured:missing.append("PYNESYS_API_KEY")
     if not cached_python:missing.append("EXACT_DDDS_PYNECOMP_PYTHON")
     missing.extend([
-        "VERIFIED_BATS_AMZN_120MIN_FULL_HISTORY_2016_2026",
+        "VERIFIED_NASDAQ_AMZN_120MIN_FULL_HISTORY_2016_2026",
+        "RECONCILE_BATS_CHART_VS_NASDAQ_STRATEGY_REPORT",
         "ISOLATED_DDDS_PYNECORE_RUNTIME_RESULT",
         "PUBLISHED_TV_PROPERTIES_AND_INPUTS",
         "PUBLISHED_TRADE_TIMEZONE",
@@ -227,6 +237,9 @@ def readiness_from_existing_cache(*, pine: str, reference: dict|None,
       pynecomp_api_key_configured=bool(api_key_configured),
       postgres_synced=postgres_synced,
       source_input_defaults=settings,
+      published_chart_snapshot_symbol=DDDS_FROZEN_SNAPSHOT_SYMBOL,
+      current_strategy_report_properties_symbol=DDDS_PUBLICATION_SYMBOL,
+      strategy_report_symbol_conflict=True,
       settings_are_published_properties=False,
       missing_requirements=missing)
 
