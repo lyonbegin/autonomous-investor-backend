@@ -4,6 +4,9 @@ on:
     branches: [feature/wf02-ddds-real-node-registration-20261103]
     paths:
       - 'n8n/tests/test_live_ddds_299_official_trades_center.cjs'
+      - 'n8n/admin-console/index.html'
+      - 'n8n/editor-adapter/investment_tv_trade_reference.py'
+      - 'n8n/editor-adapter/investment_studio_server.py'
       - '.github/workflows/wf02-ddds-299-trades-live.yml'
   workflow_dispatch:
 permissions:
