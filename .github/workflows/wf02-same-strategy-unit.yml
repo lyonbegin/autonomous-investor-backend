@@ -1,0 +1,40 @@
+name: WF02 same-strategy chart contract and source consistency
+on:
+  push:
+    branches: [feature/wf02-real-tv-widget-strategy-markers-20261103]
+    paths:
+      - 'n8n/editor-adapter/investment_tv_chart_integration.py'
+      - 'n8n/admin-console/index.html'
+      - 'n8n/tests/test_wf02_official_chart_integration.py'
+      - '.github/workflows/wf02-same-strategy-unit.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  source-fidelity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install real PyneCore v6.11.1
+        run: python -m pip install 'pynesys-pynecore==6.11.1'
+      - name: Verify genuine broker trade times, same-source SMA and no Bollinger substitution
+        run: python -m unittest discover -s n8n/tests -p 'test_wf02_official_chart_integration.py' -v
+      - name: Validate existing administrator JavaScript syntax and source consistency
+        run: |
+          python - <<'PY'
+          import re
+          from pathlib import Path
+          src=Path('n8n/admin-console/index.html').read_text()
+          block=re.search(r'<script[^>]*>(.*?)</script>',src,flags=re.S)
+          if not block: raise SystemExit('ADMIN_INLINE_SCRIPT_MISSING')
+          Path('/tmp/admin-wf02.js').write_text(block.group(1))
+          assert 'tv-advanced-chart symbol="NASDAQ:AAPL"' in src
+          assert 'id="tv-official-svg"' not in src
+          assert 'drawPyneCoreStrategy(d.chart,d.pynecore_trades||[])' in src
+          assert 'strategy_indicator' in Path('n8n/editor-adapter/investment_tv_chart_integration.py').read_text()
+          PY
+          node --check /tmp/admin-wf02.js
