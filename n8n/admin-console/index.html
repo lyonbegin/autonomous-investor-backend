@@ -345,7 +345,7 @@ async function loadFlow(f){
     '<div id="publication-image-fallback" role="status" style="display:none;min-height:200px;padding:24px;border:1px solid #38536c;border-radius:9px">공식 TradingView 차트 미리보기가 일시적으로 열리지 않았습니다. <a href="https://www.tradingview.com/script/LkgKT3TG-Displaced-Donchian-Decycler-Trend-Breakout-Strategy-with-MFI/" target="_blank" rel="noopener noreferrer">실제 DDDS 원본 차트 열기</a></div>'+
     '<p class="muted minor" id="publication-chart-metadata">게시된 실제 Pine 전략 차트 확인 중</p>'+
     '<a id="publication-open-original" href="https://www.tradingview.com/scripts/" target="_blank" rel="noopener noreferrer">TradingView 원본 전략 페이지 열기</a>'+
-    '<h4>게시 당시 Strategy Report</h4><div class="cards" id="publication-report-facts">조회 중</div>'+
+    '<h4>게시 당시 Strategy Report</h4><div class="cards" id="publication-report-facts" style="grid-template-columns:repeat(2,minmax(0,1fr))">조회 중</div>'+
     '<div class="actions" style="margin-top:8px"><button class="btn" id="ddds-trades-capture" data-action="ddds-trades-capture">▶ TradingView 원본 Strategy Report 거래 299건 가져오기</button>'+
     '<button class="btn" id="ddds-trades-export" data-action="ddds-trades-export" disabled>↓ 검증된 TV 거래 299건 CSV 저장</button>'+
     '<span id="ddds-trades-status" class="status" aria-live="polite">거래 원장 미수집</span></div>'+
@@ -370,7 +370,7 @@ async function loadFlow(f){
     '<pre class="code" id="free-pyne-source" style="max-height:200px;overflow:auto;white-space:pre-wrap">생성된 Python이 없으면 코드를 표시하지 않습니다.</pre>'+
     '<div class="actions"><button class="btn" data-action="ddds-parity-check" id="ddds-parity-check">▶ DDDS 동등성 조건 실제 점검</button>'+
     '<span class="status" id="ddds-parity-summary" aria-live="polite">컴파일·시장·거래 동등성 점검 전</span></div>'+
-    '<div class="cards" id="ddds-parity-conditions" aria-label="DDDS 정확한 원본 동등성 검증 상태">서버 저장 원본 및 변환본 상태를 조회 중</div>'+
+    '<div class="cards" id="ddds-parity-conditions" style="grid-template-columns:repeat(2,minmax(0,1fr))" aria-label="DDDS 정확한 원본 동등성 검증 상태">서버 저장 원본 및 변환본 상태를 조회 중</div>'+
     '<details><summary>DDDS 입력 설정·실행 조건·차단 원인 JSON</summary><pre class="code" id="ddds-parity-details">아직 확인하지 않았습니다.</pre></details>'+
     '<h4>원본 식별자·SHA-256</h4><pre class="code" id="publication-source-identity">원본 로딩 중</pre></div></div>'+
     '<details><summary>TradingView에서 추출한 Pine 전체 코드 (저작권·출처 유지)</summary><pre class="code" id="publication-pine-code" style="max-height:370px;overflow:auto;white-space:pre-wrap">조회 중</pre></details>'+
@@ -592,7 +592,8 @@ function renderDDDSParityReadiness(d){
   ['공식 TradingView 거래',d.saved_published_trade_count===299?'299/299 확보':'미확보'],
   ['AMZN 2시간봉 전체 기간',d.historical_data_coverage_verified===true?'확보 확인':'2016~2026 미검증'],
   ['공식 전략 입력·속성',d.published_properties_verified===true?'동일 확인':'게시 설정 미확인'],
-  ['DDDS Python 실행 결과',d.actual_ddds_pynecore_run_available===true?'실행 확인':'아직 없음'],
+  ['DDDS 무료 Python 실제 실행',d.actual_ddds_free_pyne_run_available===true?
+    '실제 AMZN '+d.actual_ddds_free_pyne_run_bars+'봉 실행 · 주문 '+d.actual_ddds_free_pyne_order_events+'건':'아직 실행 전'],
   ['전략 주문·체결·지표 동등성',d.tradingview_pynecore_parity_verified===true?
      '승인': '미검증'],
  ];
