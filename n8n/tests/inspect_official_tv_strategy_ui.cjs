@@ -61,7 +61,8 @@ async function stage(page,name,report) {
   const nav=await page.goto(report.url,{waitUntil:'domcontentloaded',timeout:45000});
   report.navigationStatus=nav?.status()||0;
   await sleep(8500);await stage(page,'01-chart-loaded',report);
-  const indicator=page.getByText('Indicators',{exact:true}).first();
+  const indicatorButton=page.getByRole('button',{name:/Indicators, metrics, and strategies/}).filter({visible:true}).first();
+  const indicator=(await indicatorButton.count())?indicatorButton:page.getByText('Indicators',{exact:true}).filter({visible:true}).first();
   if(await indicator.count()){
    await indicator.click({timeout:10000});
    await sleep(3000);
