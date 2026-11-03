@@ -51,13 +51,14 @@ const evidence=process.env.WF02_EVIDENCE_DIR||'/tmp/ddds-parity-evidence';
   },null,{timeout:25000});
   // This session may not have previously captured its published 299 trade rows.
   const count=state.saved_published_trade_count;
-  const keySet=state.pynecomp_api_key_configured;
-  if(keySet===false){
-    if(!state.missing_requirements.includes('PYNESYS_API_KEY'))
-      throw Error('ACTUAL_REMOTE_PYNECOMP_KEY_GATE_MISSING');
-    if(state.exact_pynecomp_code_available!==false)
-      throw Error('NEW_DDDS_PYTHON_ALLEGEDLY_EXISTS_WITH_NO_KEY');
-  }
+  const freeInstalled=state.free_pyne_compiler_installed;
+  if(freeInstalled!==true)
+    throw Error('LOCAL_FREE_PYNE_MUST_BE_INSTALLED_IN_PRODUCTION');
+  if(state.missing_requirements.includes('PYNESYS_API_KEY'))
+    throw Error('PAID_PYNECOMP_KEY_SHOULD_NO_LONGER_BE_A_GATE');
+  if(state.exact_free_pyne_code_available===true &&
+      !state.exact_free_pyne_python_sha256)
+    throw Error('FREE_PYNE_PYTHON_SHA_MISSING');
   await page.waitForFunction(()=>{
     const img=document.getElementById('publication-official-image');
     const backup=document.getElementById('publication-image-fallback');
@@ -78,8 +79,8 @@ const evidence=process.env.WF02_EVIDENCE_DIR||'/tmp/ddds-parity-evidence';
     timeout:25000});
   fs.writeFileSync(evidence+'/ddds-real-readiness.json',JSON.stringify(state,null,2));
   console.log('LIVE_DDDS_ORIGINAL_WF02_REAL_PARITY_READINESS_PASS',JSON.stringify({
-    pineSha:state.pine_sha256,pynecompKeyConfigured:keySet,
-    exactCompiled:state.exact_pynecomp_code_available,
+    pineSha:state.pine_sha256,freeCompilerInstalled:freeInstalled,
+    exactFreeCompiled:state.exact_free_pyne_code_available,
     tvPublishedTrades:count,history:state.historical_data_coverage_verified,
     parity:state.tradingview_pynecore_parity_verified,
     unmet:state.missing_requirements
