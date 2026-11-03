@@ -40,6 +40,25 @@ def check_cli(pine):
         return {"returncode":r.returncode,"stdout_tail":r.stdout[-1800:],
                 "stderr_tail":r.stderr[-4000:]}
 
+def probe_emit(pine):
+    """Capture actual compiler --emit diagnostics without executing output."""
+    with tempfile.TemporaryDirectory(prefix="wf02-ddds-emit-") as tmp:
+        src=Path(tmp)/"DDDS.pine"
+        dest=Path(tmp)/"DDDS.py"
+        src.write_text(pine,encoding="utf-8")
+        try:
+            r=subprocess.run(["pyne","compile",str(src),"--emit","-o",str(dest)],
+                cwd=tmp,stdin=subprocess.DEVNULL,capture_output=True,
+                text=True,timeout=80)
+        except FileNotFoundError:
+            return {"returncode":127,"reason":"PYNE_CLI_NOT_INSTALLED"}
+        except subprocess.TimeoutExpired:
+            return {"returncode":124,"reason":"PYNE_COMPILE_TIMEOUT"}
+        return {"returncode":r.returncode,
+                "stdout_tail":r.stdout[-3000:],
+                "stderr_tail":r.stderr[-9000:],
+                "output_file_created":dest.exists()}
+
 def compile_ddds(out, *, source=None, compiler=None, diagnostic=None):
     out=Path(out)
     out.mkdir(parents=True,exist_ok=True)
@@ -70,7 +89,8 @@ def compile_ddds(out, *, source=None, compiler=None, diagnostic=None):
         if not isinstance(reason,str) or not reason.startswith("PYNE_FREE_"):
             reason="PYNE_FREE_UNEXPECTED_FAILURE"
         return record("BLOCKED_PYNE_COMPILE",pine_lines=141,
-            reason=reason,error_type=type(exc).__name__,check=check)
+            reason=reason,error_type=type(exc).__name__,check=check,
+            emit_probe=probe_emit(pine) if reason=="PYNE_FREE_PINE_COMPILE_FAILED" else None)
     if not isinstance(code,str) or not code.strip():
         return record("BLOCKED_EMPTY_PYTHON_OUTPUT",check=check)
     try:
