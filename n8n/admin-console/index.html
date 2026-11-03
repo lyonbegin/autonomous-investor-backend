@@ -60,6 +60,7 @@ const flowLabels={
  [W.audit]:'F05 · 독립 감사'
 };
 let lastPublishedSourceSha=null;
+let verifiedDDDSReference=null;
 let page='overview',flow=W.strategy,workflow=null,running=false,selectedNode=null,runEvents=[],session={},connected=false,lastPine=null,lastSavedSource=null,compareWindow=null,pendingCompare=null,integratedRunId=null,availableSources=[];
 const PARITY_ORIGIN='https://investment-pine-parity-review-production.up.railway.app';
 window.addEventListener('message',event=>{if(event.origin!==PARITY_ORIGIN||!compareWindow||event.source!==compareWindow||event.data?.type!=='PARITY_READY'||!pendingCompare)return;compareWindow.postMessage({type:'AUTONOMOUS_PINE_IMPORT',...pendingCompare},PARITY_ORIGIN);pendingCompare=null;});
@@ -345,6 +346,7 @@ async function loadFlow(f){
     '<a id="publication-open-original" href="https://www.tradingview.com/scripts/" target="_blank" rel="noopener noreferrer">TradingView 원본 전략 페이지 열기</a>'+
     '<h4>게시 당시 Strategy Report</h4><div class="cards" id="publication-report-facts">조회 중</div>'+
     '<div class="actions" style="margin-top:8px"><button class="btn" id="ddds-trades-capture" data-action="ddds-trades-capture">▶ TradingView 원본 Strategy Report 거래 299건 가져오기</button>'+
+    '<button class="btn" id="ddds-trades-export" data-action="ddds-trades-export" disabled>↓ 검증된 TV 거래 299건 CSV 저장</button>'+
     '<span id="ddds-trades-status" class="status" aria-live="polite">거래 원장 미수집</span></div>'+
     '<div class="tableWrap" style="max-height:350px;overflow:auto"><table style="width:100%;min-width:650px;font-size:12px;border-collapse:collapse"><thead><tr>'+
     '<th>번호</th><th>방향</th><th>진입일 (사이트 표시)</th><th>청산일 (사이트 표시)</th>'+
@@ -418,6 +420,11 @@ function showPublishedStrategy(d){
   status.textContent=d.status||'원본 불러오기 실패';return;
  }
  status.textContent='원본 확인 · '+d.source_line_count+'줄 · 저작권 '+d.source_rights;
+ if(lastPublishedSourceSha!==d.source_sha256){
+   verifiedDDDSReference=null;
+   const exportButton=document.getElementById('ddds-trades-export');
+   if(exportButton)exportButton.disabled=true;
+ }
  lastPublishedSourceSha=d.source_sha256;
  title.textContent='왼쪽 · '+d.strategy_title+' (게시 당시 차트)';
  if(preview){
@@ -450,6 +457,9 @@ function renderOfficialDDDSTrades(d){
  const status=document.getElementById('ddds-trades-status'),body=document.getElementById('ddds-trades-rows');
  if(!status||!body)return;
  body.replaceChildren();
+ verifiedDDDSReference=null;
+ const exportButton=document.getElementById('ddds-trades-export');
+ if(exportButton)exportButton.disabled=true;
  const exact=(d?.status==='PUBLISHED_DDDS_299_TRADES_CAPTURED'&&
    d.source==='OFFICIAL_TRADINGVIEW_PUBLICATION_VISIBLE_STRATEGY_REPORT'&&
    d.capture_verified_complete===true&&d.observed_trade_count===299&&
@@ -471,8 +481,39 @@ function renderOfficialDDDSTrades(d){
     if(j===7&&Number(v)<0)td.style.color='#fca5a5';tr.append(td);});
   body.append(tr);
  }
+ verifiedDDDSReference=d;
+ if(exportButton)exportButton.disabled=false;
  status.textContent='공식 공개 Strategy Report 원장 299/299 거래 확보 · '+d.rows_sha256?.slice(0,12)+
   ' · 사이트 표시 시각의 시간대 미확정 · Python 일치 미검증';
+}
+function exportVerifiedDDDSTrades(){
+ const d=verifiedDDDSReference;
+ if(!d||d.capture_verified_complete!==true||d.observed_trade_count!==299||
+    d.trades?.length!==299||
+    d.pine_source_sha256!==lastPublishedSourceSha||
+    d.tradingview_pynecore_parity_verified!==false)return;
+ const columns=['trade_number','side','entry_time_display','exit_time_display',
+   'entry_price_display','exit_price_display','quantity_display',
+   'net_pnl_display','return_percent_display','pine_source_sha256'];
+ const headers=['trade_number','side','entry_time_display_timezone_unspecified',
+   'exit_time_display_timezone_unspecified','entry_price_usd','exit_price_usd',
+   'quantity','net_pnl_usd','return_percent','pine_source_sha256'];
+ const csvCell=v=>{
+   const raw=v===null||v===undefined?'':String(v);
+   const safe=/^[=+@]/.test(raw)?"'"+raw:raw;
+   return '"'+safe.replaceAll('"','""')+'"';
+ };
+ const rows=[headers.map(csvCell).join(',')];
+ for(const trade of d.trades){
+   const values=columns.map(k=>k==='pine_source_sha256'?d.pine_source_sha256:trade[k]);
+   rows.push(values.map(csvCell).join(','));
+ }
+ const text='\\uFEFF'+rows.join('\\r\\n')+'\\r\\n';
+ const url=URL.createObjectURL(new Blob([text],{type:'text/csv;charset=utf-8'}));
+ const link=document.createElement('a');link.href=url;
+ link.download='DDDS_BATS-AMZN_2h_TradingView_published_299_trades.csv';
+ document.body.append(link);link.click();link.remove();
+ setTimeout(()=>URL.revokeObjectURL(url),1500);
 }
 async function refreshDDDSTrades(){
  if(!document.getElementById('ddds-trades-status'))return;
@@ -762,7 +803,7 @@ async function executeFlow(){
  }
 }
 menu.innerHTML=MENUS.map(([id,label])=>'<button class="nav" data-page="'+esc(id)+'"><span>▧</span>'+esc(label)+'</button>').join('');
-document.addEventListener('click',e=>{const target=e.target.closest('[data-page],[data-flow],[data-node],[data-action]');if(!target)return;if(target.dataset.page)setPage(target.dataset.page);else if(target.dataset.flow)loadFlow(target.dataset.flow);else if(target.dataset.node)inspect(target.dataset.node);else if(target.dataset.action==='run')executeFlow();else if(target.dataset.action==='ddds-trades-capture')captureDDDSTrades();else if(target.dataset.action==='ddds-wf02-run')registerPublishedStrategyAndRunWF02();else if(target.dataset.action==='tv-publication-import')importPublishedStrategy();else if(target.dataset.action==='tv-chart-verify')executeOfficialChart();else if(target.dataset.action==='compare')openCompare();else if(target.dataset.action==='convert-next')setPage('convert');else if(target.dataset.action==='integrated-start')startIntegrated();else if(target.dataset.action==='integrated-refresh')refreshIntegrated();else if(target.dataset.action==='refresh')loadFlow(flow)});
+document.addEventListener('click',e=>{const target=e.target.closest('[data-page],[data-flow],[data-node],[data-action]');if(!target)return;if(target.dataset.page)setPage(target.dataset.page);else if(target.dataset.flow)loadFlow(target.dataset.flow);else if(target.dataset.node)inspect(target.dataset.node);else if(target.dataset.action==='run')executeFlow();else if(target.dataset.action==='ddds-trades-export')exportVerifiedDDDSTrades();else if(target.dataset.action==='ddds-trades-capture')captureDDDSTrades();else if(target.dataset.action==='ddds-wf02-run')registerPublishedStrategyAndRunWF02();else if(target.dataset.action==='tv-publication-import')importPublishedStrategy();else if(target.dataset.action==='tv-chart-verify')executeOfficialChart();else if(target.dataset.action==='compare')openCompare();else if(target.dataset.action==='convert-next')setPage('convert');else if(target.dataset.action==='integrated-start')startIntegrated();else if(target.dataset.action==='integrated-refresh')refreshIntegrated();else if(target.dataset.action==='refresh')loadFlow(flow)});
 async function bootstrapManagement(){
  try{
   const session=await api('/api/investment/session');
