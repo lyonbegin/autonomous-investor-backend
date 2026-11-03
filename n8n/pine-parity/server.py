@@ -127,6 +127,11 @@ class Handler(BaseHTTPRequestHandler):
             return self.response(200,(HERE/"index.html").read_bytes(),"text/html; charset=utf-8")
         if path=="/app.js":
             return self.response(200,(HERE/"app.js").read_bytes(),"application/javascript; charset=utf-8")
+        if path in ("/demo", "/demo.html"):
+            return self.response(200,(HERE/"demo.html").read_bytes(),"text/html; charset=utf-8")
+        if path=="/demo.js":
+            return self.response(200,(HERE/"demo.js").read_bytes(),"application/javascript; charset=utf-8")
+
         parts=path.strip("/").split("/")
         if len(parts)==3 and parts[:2]==["api","runs"]:
             r=read_run(parts[2])
