@@ -339,7 +339,7 @@ async function loadFlow(f){
     '<div class="grid2"><div><h4>왼쪽 · TradingView 공식 차트 종가</h4><svg id="tv-official-svg" role="img" aria-label="TradingView 공식 차트 종가" viewBox="0 0 840 280" style="width:100%;height:260px;background:#0a1726;border-radius:9px"></svg></div>'+
     '<div><h4>오른쪽 · 같은 봉에서 실행한 PyneCore 지표</h4><svg id="tv-pynecore-svg" role="img" aria-label="PyneCore 지표 계산 시계열" viewBox="0 0 840 280" style="width:100%;height:260px;background:#0a1726;border-radius:9px"></svg></div></div>'+
     '<h4>실제 PyneCore 전략 종료 거래 (TradingView 체결 아님)</h4>'+
-    '<div class="tableWrap" style="max-height:245px;overflow:auto"><table><thead><tr><th>종료 시각 (UTC)</th><th>방향</th><th>진입</th><th>청산</th><th>손익</th></tr></thead><tbody id="tv-proof-trades"><tr><td colspan="5">실행 전</td></tr></tbody></table></div>'+
+    '<div class="tableWrap" style="max-height:245px;overflow:auto"><table style="width:100%;border-collapse:collapse;font-size:12px;min-width:580px"><thead><tr><th style="padding:9px;text-align:left">종료 시각 (UTC)</th><th style="padding:9px;text-align:left">방향</th><th style="padding:9px;text-align:right">진입</th><th style="padding:9px;text-align:right">청산</th><th style="padding:9px;text-align:right">손익</th></tr></thead><tbody id="tv-proof-trades"><tr><td colspan="5">실행 전</td></tr></tbody></table></div>'+
     '<details><summary>실제 실행 결과 JSON · 출처·차단 사유</summary><pre class="code" id="tv-proof-json">아직 실행 이력이 없습니다.</pre></details>'+
     '</section>':'';
    exec.innerHTML='<section class="panel"><h3>'+(isPython?'WF-02 · Pine→Python 실제 노드 실행':'WF-01 · Pine 원본 확보·저장 실제 노드 실행')+'</h3>'+
@@ -414,7 +414,11 @@ function renderOfficialChartEvidence(d){
      const tr=document.createElement('tr');
      const nums=[new Date(t.time_ms).toISOString().slice(0,16),t.direction,
        t.entry_price,t.exit_price,t.profit];
-     for(const value of nums){const td=document.createElement('td');td.textContent=String(value??'—');tr.append(td);}
+     nums.forEach((value,i)=>{const td=document.createElement('td');
+       td.style.padding='8px 9px';td.style.borderBottom='1px solid #29415a';
+       td.style.textAlign=i>1?'right':'left';
+       td.textContent=i>1&&Number.isFinite(value)?Number(value).toFixed(2):String(value??'—');
+       tr.append(td);});
      body.append(tr);
    }
  }
