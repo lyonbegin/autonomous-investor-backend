@@ -59,6 +59,46 @@ jobs:
           (output/'manifest.json').write_text(json.dumps(manifest,indent=2,ensure_ascii=False))
           print('ACTUAL_DDDS_FREE_PINE_COMPILER_RESEARCH',json.dumps(manifest,ensure_ascii=False)[:13500])
           PY
+      - name: Execute actual emitted Python directly (explicitly SYNTHETIC bars)
+        run: |
+          python - <<'PY'
+          import importlib.util,json,math,traceback,hashlib
+          from pathlib import Path
+          import numpy as np
+          root=Path('/tmp/free-ddds-evidence')
+          target=root/'DDDS_generated_hoox.py'
+          result={'test':'EMITTED_PYTHON_ACTUAL_EXECUTION','market_data_kind':'SYNTHETIC_ONLY',
+                  'tv_parity_verified':False,'success':False}
+          try:
+              assert target.exists()
+              spec=importlib.util.spec_from_file_location('ddds_generated_hoox',target)
+              module=importlib.util.module_from_spec(spec)
+              spec.loader.exec_module(module)
+              n=240
+              c=np.array([150.0+0.05*i+13*math.sin(i/10) for i in range(n)],dtype=float)
+              o=c-0.1
+              h=np.maximum(o,c)+2.1
+              l=np.minimum(o,c)-2.1
+              v=np.full(n,1000000.0)
+              t=np.array([1735689600000+i*7200000 for i in range(n)],dtype=float)
+              out=module.execute_script_compiled(o,h,l,c,v,t)
+              needed=['Decycler','Price anchor','Lower band','Upper band','Stop','Target','__events']
+              assert all(k in out for k in needed),list(out)
+              assert len(out['Decycler'])==n
+              event_list=out['__events']
+              result.update({'success':True,'bars':n,
+                'strategy_events_emitted':len(event_list),
+                'strategy_event_kinds':sorted({str(x.get('kind')) for x in event_list if isinstance(x,dict)}),
+                'all_plot_names':[k for k in out if not k.startswith('__')],
+                'valid_decycler_values':sum(math.isfinite(float(x)) for x in out['Decycler'])
+              })
+          except Exception as exc:
+              result['error_type']=type(exc).__name__
+              result['error']=str(exc)[:500]
+              result['trace_tail']=traceback.format_exc()[-1600:]
+          (root/'direct_generated_python_execution.json').write_text(json.dumps(result,indent=2))
+          print('FREE_DDDS_EMITTED_PYTHON_DIRECT_EXECUTION',json.dumps(result)[:3000])
+          PY
       - name: Archive exact source / generated Python if present / detailed result
         if: always()
         uses: actions/upload-artifact@v4
