@@ -142,8 +142,9 @@ def _execute(sid):
         raise ValueError("TV_TO_PYNECORE_STRATEGY_BAR_MISMATCH")
 
     plotted = [
-        {"time_ms": bar["time_ms"], "tv_close": bar["close"],
-         "SMA9": moving_average}
+        {"time_ms": bar["time_ms"], "open": bar["open"],
+         "high": bar["high"], "low": bar["low"], "close": bar["close"],
+         "tv_close": bar["close"], "SMA9": moving_average}
         for bar, moving_average in zip(bars, sma9)
     ]
     result = {
