@@ -4,6 +4,8 @@ on:
     branches: [feature/wf02-ddds-shared-bars-compare-api-20261104]
     paths:
       - 'n8n/editor-adapter/investment_shared_bars_compare.py'
+      - 'n8n/tests/capture_ddds_exact_300_from_site_vela.cjs'
+      - 'n8n/tests/compare_actual_ddds_same_300_vela_python.py'
       - 'n8n/editor-adapter/investment_studio_server.py'
       - 'n8n/tests/test_ddds_shared_bars_compare.py'
       - '.github/workflows/wf02-ddds-shared-bars-api.yml'
