@@ -1,0 +1,23 @@
+name: WF02 editor browser acceptance
+on:
+  push:
+    branches: [feature/wf02-pynecore-rights-gate-20261103]
+    paths:
+      - 'n8n/admin-console/**'
+      - 'n8n/editor-adapter/investment_wf02.py'
+      - '.github/workflows/wf02-editor-browser.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install browser
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Browser test
+        run: node n8n/admin-console/test_admin.cjs
