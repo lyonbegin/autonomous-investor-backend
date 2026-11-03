@@ -7,6 +7,7 @@ on:
       - 'n8n/editor-adapter/investment_wf02.py'
       - 'n8n/tests/test_wf02_free_pyne_compiler.py'
       - 'n8n/admin-console/index.html'
+      - 'n8n/workflows/operations/WF02-pine-to-python.json'
       - 'n8n/Dockerfile.native-editor-gateway'
       - '.github/workflows/wf02-free-pyne-ddds.yml'
   workflow_dispatch:
@@ -26,6 +27,29 @@ jobs:
           python -m pip install 'hoox-pyne[compile]==0.6.31' 'beautifulsoup4==4.13.4' 'psycopg[binary]>=3.2,<4'
       - name: Actual full 141-line DDDS Pine through existing WF02 N01 to N06
         run: python -m unittest discover -s n8n/tests -p 'test_wf02_free_pyne_compiler.py' -v
+      - name: Fail closed graph binding and actual 6-step connection map
+        run: |
+          python - <<'PY'
+          import sys,json
+          sys.path.insert(0,'n8n/editor-adapter')
+          from investment_node_adapter import node_binding
+          obj=json.load(open('n8n/workflows/operations/WF02-pine-to-python.json'))
+          nodes=obj['nodes']
+          assert len(nodes)==6
+          workflow='operations/WF02-pine-to-python.json'
+          for n in nodes:
+              assert n['parameters']['studioPython']==node_binding(workflow,n['id']),n['id']
+          keys={n['name'] for n in nodes}
+          assert all(k in keys for k in obj['connections']),obj['connections'].keys()
+          connected=[]
+          for name,data in obj['connections'].items():
+              for output in data.get('main',[]):
+                  for edge in output:
+                      assert edge['node'] in keys,edge
+                      connected.append(edge['node'])
+          assert len(connected)==5,connected
+          print('DDDS_ORIGINAL_6_NODE_GRAPH_BOUND_AND_CONNECTED')
+          PY
       - name: Python and frontend syntax
         run: |
           python -m py_compile n8n/editor-adapter/investment_free_pyne.py n8n/editor-adapter/investment_wf02.py n8n/editor-adapter/investment_studio_server.py
