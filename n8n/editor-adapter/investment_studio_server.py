@@ -4,6 +4,7 @@ The only new entrypoints are bounded read-only WF-02 chart test endpoints.
 Original saved workflows and SQLite session history remain managed upstream.
 """
 import json
+import threading
 import urllib.error
 from http.server import ThreadingHTTPServer
 from urllib.parse import urlsplit
@@ -15,9 +16,33 @@ import investment_tv_trade_reference as official_trades
 import investment_ddds_parity as ddds_parity
 import investment_free_pyne as free_pyne
 import investment_free_pyne_chart as free_ddds_chart
+import investment_shared_bars_compare as shared_compare
+
+# The public React chart is the ONLY permitted cross-origin caller.
+PUBLIC_CHART_ORIGIN="https://autonomous-investor-public-production.up.railway.app"
+SHARED_COMPARE_ROUTE="/api/investment/free-pyne/ddds/chart/compare-input"
+_SHARED_COMPARE_LOCK=threading.Lock()
 
 
 class InvestmentHandler(studio.Handler):
+    def end_headers(self):
+        if (urlsplit(self.path).path==SHARED_COMPARE_ROUTE and
+            self.headers.get("Origin")==PUBLIC_CHART_ORIGIN):
+            self.send_header("Access-Control-Allow-Origin",PUBLIC_CHART_ORIGIN)
+            self.send_header("Access-Control-Allow-Methods","POST, OPTIONS")
+            self.send_header("Access-Control-Allow-Headers","Content-Type")
+            self.send_header("Vary","Origin")
+        return super().end_headers()
+
+    def do_OPTIONS(self):
+        if urlsplit(self.path).path != SHARED_COMPARE_ROUTE:
+            return self.send_error(404)
+        if self.headers.get("Origin")!=PUBLIC_CHART_ORIGIN:
+            return self.send_error(403)
+        self.send_response(204)
+        self.send_header("Content-Length","0")
+        self.end_headers()
+
     def do_GET(self):
         if urlsplit(self.path).path == "/api/investment/free-pyne/ddds/chart/latest":
             sid, fresh=self._sid()
@@ -84,6 +109,34 @@ class InvestmentHandler(studio.Handler):
         return super().do_GET()
 
     def do_POST(self):
+        if urlsplit(self.path).path == SHARED_COMPARE_ROUTE:
+            sid,fresh=self._sid()
+            if self.headers.get("Origin")!=PUBLIC_CHART_ORIGIN:
+                return self._json(403,{"status":"PUBLIC_CHART_ORIGIN_REQUIRED"},sid,fresh)
+            if not self.headers.get("Content-Type","").startswith("application/json"):
+                return self._json(415,{"status":"JSON_REQUIRED"},sid,fresh)
+            try:
+                length=int(self.headers.get("Content-Length","-1"))
+                if not 1000<=length<=220_000:
+                    return self._json(413,{"status":"SHARED_BARS_PAYLOAD_SIZE_INVALID"},sid,fresh)
+                body=json.loads(self.rfile.read(length))
+            except (ValueError,TypeError):
+                return self._json(400,{"status":"INVALID_SHARED_CHART_JSON"},sid,fresh)
+            if not _SHARED_COMPARE_LOCK.acquire(blocking=False):
+                return self._json(429,{"status":"DDDS_COMPARISON_ALREADY_RUNNING"},sid,fresh)
+            try:
+                result=shared_compare.execute_shared_bars(body)
+                return self._json(200,result,sid,fresh)
+            except (ValueError,TypeError) as exc:
+                return self._json(422,{"status":"DDDS_SHARED_CHART_COMPARISON_BLOCKED",
+                   "reason":str(exc)[:220],"paper_enabled":False,
+                   "live_orders_enabled":False},sid,fresh)
+            except (RuntimeError,OSError) as exc:
+                return self._json(502,{"status":"DDDS_SHARED_CHART_PYTHON_FAILED",
+                   "reason":type(exc).__name__,"paper_enabled":False,
+                   "live_orders_enabled":False},sid,fresh)
+            finally:
+                _SHARED_COMPARE_LOCK.release()
         if urlsplit(self.path).path == "/api/investment/free-pyne/ddds/chart/execute":
             sid,fresh=self._sid()
             origin=self.headers.get("Origin")
