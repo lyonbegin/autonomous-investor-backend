@@ -15,8 +15,16 @@ const dir=process.env.WF02_299_EVIDENCE||'/tmp/ddds-299-live';
     {waitUntil:'domcontentloaded',timeout:45000});
   if(response?.status()!==200)throw Error('EXISTING_WF02_NOT_HTTP_200');
   const diagnostics=page.locator('#wf02-unrelated-aapl-diagnostics');
-  if(await diagnostics.count()!==1 || await diagnostics.getAttribute('open')!==null)
-    throw Error('UNRELATED_AAPL_SMA_DIAGNOSTICS_MUST_BE_COLLAPSED');
+  const diagnosticState={
+    count:await diagnostics.count(),
+    open:await diagnostics.count()?await diagnostics.getAttribute('open'):null,
+    sourceMarker:await page.locator('body').evaluate(el=>el.innerHTML.includes('wf02-unrelated-aapl-diagnostics')),
+    currentUrl:page.url(),
+    detailsCount:await page.locator('details').count()
+  };
+  console.log('WF02_DIAGNOSTIC_UI_PROOF',JSON.stringify(diagnosticState));
+  if(diagnosticState.count!==1 || diagnosticState.open!==null)
+    throw Error('UNRELATED_AAPL_SMA_DIAGNOSTICS_MUST_BE_COLLAPSED '+JSON.stringify(diagnosticState));
   const primary=page.locator('#published-strategy-reference');
   if(await primary.count()!==1)
     throw Error('ORIGINAL_DDDS_STRATEGY_PANEL_MISSING');
