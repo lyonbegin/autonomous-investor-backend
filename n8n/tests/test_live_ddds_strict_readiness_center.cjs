@@ -58,6 +58,19 @@ const evidence=process.env.WF02_EVIDENCE_DIR||'/tmp/ddds-parity-evidence';
     if(state.exact_pynecomp_code_available!==false)
       throw Error('NEW_DDDS_PYTHON_ALLEGEDLY_EXISTS_WITH_NO_KEY');
   }
+  await page.waitForFunction(()=>{
+    const img=document.getElementById('publication-official-image');
+    const backup=document.getElementById('publication-image-fallback');
+    return Boolean((img?.complete && img.naturalWidth>0) ||
+      (backup && getComputedStyle(backup).display!=='none'));
+  },null,{timeout:27000});
+  const officialChartImage=await page.locator('#publication-official-image').evaluate(img=>({
+    loaded:img.complete&&img.naturalWidth>0,naturalWidth:img.naturalWidth
+  }));
+  const fallbackShown=await page.locator('#publication-image-fallback').isVisible();
+  if(!officialChartImage.loaded&&!fallbackShown)
+    throw Error('OFFICIAL_TV_DDDS_CHART_PREVIEW_BLANK_WITH_NO_SOURCE_LINK');
+  console.log('WF02_OFFICIAL_DDDS_CHART_PREVIEW',JSON.stringify({officialChartImage,fallbackShown}));
   if(pageErrors.length)throw Error('JS_PAGE_ERRORS '+pageErrors.join(';'));
   fs.mkdirSync(evidence,{recursive:true});
   const panel=page.locator('#published-strategy-reference');
