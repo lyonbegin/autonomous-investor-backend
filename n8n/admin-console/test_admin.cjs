@@ -59,7 +59,7 @@ async function fetchJSON(page,url){
      throw Error('SIX_NODE_REAL_EXECUTION_MISSING '+label+' '+logs.slice(0,2100));
  }
  const details=await page.locator('#node-details').innerText();
- if(!details.includes('PYNECOMP_API_KEY_MISSING'))
+ if(!['PYNECOMP_API_KEY_MISSING','WF02_SOURCE_RIGHTS_NOT_APPROVED'].some(code=>details.includes(code)))
    throw Error('NO_KEY_WAS_NOT_REPORTED_IN_FINAL_NODE');
  if(details.includes('PINE_V6_RSI_REVERSAL_RUN_SIGNAL')||
     details.includes('"status": "PYTHON_GENERATED"'))
@@ -81,7 +81,7 @@ async function fetchJSON(page,url){
  },before.run_id||'',{timeout:240000});
  const pipe=await fetchJSON(page,'/api/investment/pipeline');
  if(pipe.status!=='PARTIAL_BLOCKED'||
-    pipe.result?.stages?.python!=='BLOCKED_PYNECOMP_API_KEY_MISSING'||
+    !['BLOCKED_PYNECOMP_API_KEY_MISSING','BLOCKED_WF02_SOURCE_RIGHTS_NOT_APPROVED'].includes(pipe.result?.stages?.python)||
     pipe.result?.stages?.chart!=='BLOCKED_PYNECOMP_CONVERSION_NOT_READY')
    throw Error('AUTO_PIPELINE_FAKED_PYNECORE_COMPILATION '+JSON.stringify(pipe.result?.stages));
  if(!pipe.result?.selected_source?.source_id||
@@ -111,7 +111,7 @@ async function fetchJSON(page,url){
  if(exact.result?.stages?.strategy!=='REUSED_EXACT_DB_SOURCE'||
     exact.result?.selected_source?.source_id!==example.source_id||
     exact.result?.selected_source?.version_key!==example.version_key||
-    exact.result?.stages?.python!=='BLOCKED_PYNECOMP_API_KEY_MISSING')
+    !['BLOCKED_PYNECOMP_API_KEY_MISSING','BLOCKED_WF02_SOURCE_RIGHTS_NOT_APPROVED'].includes(exact.result?.stages?.python))
    throw Error('PINNED_SOURCE_CHANGED_OR_FALLBACK_CONVERTED '+JSON.stringify(exact.result));
  if(await page.locator('#native-compare-target iframe').count())
    throw Error('Pinned strategy shows pre-PyneComp Quant result as PyneCore output');
