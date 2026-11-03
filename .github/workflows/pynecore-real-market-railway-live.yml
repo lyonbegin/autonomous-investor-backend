@@ -1,0 +1,33 @@
+name: Live Railway PyneCore real market browser validation
+on:
+  push:
+    branches: [feature/wf02-pynecore-rights-gate-20261103]
+    paths:
+      - '.github/workflows/pynecore-real-market-railway-live.yml'
+      - 'n8n/tests/test_real_pynecore_demo.cjs'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  live-railway:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install actual Chromium
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Exercise deployed Railway URL with click/run and real trade data
+        env:
+          PYNECORE_DEMO_BASE: https://investment-pine-parity-review-production.up.railway.app
+          PYNECORE_DEMO_SCREENSHOT: /tmp/railway-live-real-market.png
+        run: node n8n/tests/test_real_pynecore_demo.cjs
+      - name: Save screenshot from production browser session
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: railway-live-pynecore-real-market
+          path: /tmp/railway-live-real-market.png
+          if-no-files-found: warn
+          retention-days: 14

@@ -59,6 +59,17 @@ def execute_wf02_node01(input_json,*,workflow_kind):
                 investment_pine_payloads WHERE kind='strategy'
                 AND source_id=? AND version_key=?""",(sid,version)).fetchone()
     if not row or not row["pine_code"].strip():raise ValueError("WF02_PINE_NOT_IN_DATABASE")
+    # Never send an unapproved source to the external PyneComp service.
+    # Permission must be checked again at execution, not only during intake.
+    if row["rights_state"] != "APPROVED":
+        return {
+            "kind": "strategy", "source_id": row["source_id"],
+            "version_key": row["version_key"], "rights_state": row["rights_state"],
+            "status": "WF02_SOURCE_RIGHTS_NOT_APPROVED",
+            "blocked_at": "SOURCE_RIGHTS", "python_code": None,
+            "conversion_validated": False, "tradingview_chart_validated": False,
+            "paper_enabled": False, "live_orders_enabled": False
+        }
     pine=row["pine_code"]
     try:scan_imports(pine)
     except PyneCompBlocked as exc:raise ValueError(exc.code) from None
@@ -91,8 +102,10 @@ def _load_exact_library(import_name):
 
 def execute_wf02_node02(input_json,*,workflow_kind):
     """Recursively find exact Pine library versions; no stand-in placeholders."""
-    if workflow_kind!="strategy" or input_json.get("status")!="PINE_LOADED":
+    if workflow_kind!="strategy" or not isinstance(input_json,dict):
         raise ValueError("WF02_PINE_INPUT_MISSING")
+    if input_json.get("status")!="PINE_LOADED":
+        return input_json
     pine=input_json["pine_code"]
     requested=scan_imports(pine)
     try:libs=resolve_imports(pine,_load_exact_library)

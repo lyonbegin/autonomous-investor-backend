@@ -78,6 +78,41 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(data)
     def do_GET(self):
         path=urlparse(self.path).path
+        if path=="/api/pynecore-demo/export.csv":
+            # A real PyneCore computation exported as CSV. The TradingView
+            # side must be uploaded independently; no fake TV values.
+            try:
+                import csv, io
+                from demo_engine import execute_demo
+                result=execute_demo(export_all=True)
+                buffer=io.StringIO()
+                headers=("time","open","high","low","close","volume","Basis","Upper","Lower")
+                writer=csv.DictWriter(buffer,fieldnames=headers)
+                writer.writeheader()
+                for b in result["full_chart"]:
+                    writer.writerow({
+                      "time":b["time_ms"],"open":b["open"],"high":b["high"],
+                      "low":b["low"],"close":b["close"],"volume":b["volume"],
+                      **{key:("" if b.get(key) is None else b[key]) for key in ("Basis","Upper","Lower")}
+                    })
+                return self.response(200,buffer.getvalue(),"text/csv; charset=utf-8")
+            except (RuntimeError,OSError,ImportError,ValueError,TypeError) as exc:
+                return self.response(503,{"status":"PYNECORE_CSV_EXPORT_FAILED",
+                    "error":type(exc).__name__+": "+str(exc)[:180]})
+        if path=="/api/pynecore-demo":
+            # The public endpoint accepts no arbitrary Python/Pine input.
+            # It runs only fixed CC0 PyneSys compiled examples on bundled
+            # genuine EURUSD bars. No broker credentials or trade execution.
+            try:
+                from demo_engine import execute_demo
+                return self.response(200, execute_demo())
+            except (RuntimeError, OSError, ImportError, ValueError, TypeError) as exc:
+                return self.response(503, {
+                    "status": "PYNECORE_DEMO_FAILED",
+                    "error": type(exc).__name__ + ": " + str(exc)[:200],
+                    "tradingview_chart_validated": False,
+                    "live_orders_enabled": False
+                })
         if path=="/api/references/lookup":
             from urllib.parse import parse_qs
             q=parse_qs(urlparse(self.path).query)
@@ -113,6 +148,11 @@ class Handler(BaseHTTPRequestHandler):
             return self.response(200,(HERE/"index.html").read_bytes(),"text/html; charset=utf-8")
         if path=="/app.js":
             return self.response(200,(HERE/"app.js").read_bytes(),"application/javascript; charset=utf-8")
+        if path in ("/demo", "/demo.html"):
+            return self.response(200,(HERE/"demo.html").read_bytes(),"text/html; charset=utf-8")
+        if path=="/demo.js":
+            return self.response(200,(HERE/"demo.js").read_bytes(),"application/javascript; charset=utf-8")
+
         parts=path.strip("/").split("/")
         if len(parts)==3 and parts[:2]==["api","runs"]:
             r=read_run(parts[2])
