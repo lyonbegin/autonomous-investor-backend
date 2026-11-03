@@ -1,0 +1,45 @@
+name: WF02 original browser worker official chart test
+on:
+  push:
+    branches: [feature/tv-browser-official-bars-20261103]
+    paths:
+      - 'browser_worker/**'
+      - '.github/workflows/wf02-official-chart-browser-worker.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install original browser worker requirements and Chromium
+        run: |
+          python -m pip install -r browser_worker/requirements.txt
+          python -m playwright install --with-deps chromium
+      - name: Verify official-chart frame decoding
+        run: python -m unittest discover -s browser_worker/tests -p 'test_official_chart_probe.py' -v
+      - name: Boot original FastAPI browser worker
+        run: |
+          cd browser_worker
+          uvicorn main:app --host 127.0.0.1 --port 8088 >/tmp/stock_browser_worker.log 2>&1 &
+          for n in $(seq 1 20); do if curl -fsS http://127.0.0.1:8088/health >/dev/null; then break; fi; sleep 1; done
+          curl -fsS http://127.0.0.1:8088/health
+      - name: Execute real TradingView chart in Chromium via original worker
+        run: |
+          python - <<'PY'
+          import json, urllib.request
+          req=urllib.request.Request('http://127.0.0.1:8088/v1/inspect/official-chart-wf02',data=b'{}',headers={'Content-Type':'application/json'},method='POST')
+          with urllib.request.urlopen(req,timeout=80) as r:
+              out=json.load(r)
+          assert out['status']=='OFFICIAL_CHART_OHLCV_CAPTURED',out
+          assert out['provenance']=='TRADINGVIEW_PUBLIC_CHART_PASSIVE_WEBSOCKET'
+          assert 20<=out['bar_count']<=300
+          assert out['bars'][-1]['close']>0
+          assert out['tv_strategy_trades_available'] is False
+          print('TV_BROWSER_WORKER_REAL_OHLCV_PASS',out['bar_count'],out['bars'][-1]['close'])
+          PY

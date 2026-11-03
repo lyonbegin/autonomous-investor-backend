@@ -1,0 +1,60 @@
+name: Official public DDDS 299 trades Chromium in ORIGINAL browser worker
+on:
+  push:
+    branches: [feature/tv-browser-official-bars-20261103]
+    paths:
+      - 'browser_worker/official_ddds_trades.py'
+      - 'browser_worker/main.py'
+      - 'browser_worker/tests/test_official_ddds_trades.py'
+      - '.github/workflows/wf02-worker-ddds-299-trades.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install existing browser-worker dependencies and headless Chromium
+        run: |
+          pip install -r browser_worker/requirements.txt
+          python -m playwright install --with-deps chromium
+      - name: Parse real 299th DDDS published trade accurately
+        run: python -m unittest discover -s browser_worker/tests -p 'test_official_ddds_trades.py' -v
+      - name: Launch ORIGINAL browser worker and capture all 299 public published trades
+        run: |
+          cd browser_worker
+          uvicorn main:app --host 127.0.0.1 --port 8088 >/tmp/worker-ddds.log 2>&1 &
+          for n in $(seq 1 20); do
+            if curl -fsS http://127.0.0.1:8088/health >/dev/null; then break; fi
+            sleep 1
+          done
+          python - <<'PY'
+          import json, urllib.request, pathlib
+          url='http://127.0.0.1:8088/v1/inspect/official-published-ddds-trades'
+          req=urllib.request.Request(url,data=b'{}',headers={'Content-Type':'application/json'},method='POST')
+          with urllib.request.urlopen(req,timeout=160) as response:
+              obj=json.load(response)
+          assert obj['status']=='PUBLISHED_DDDS_299_TRADES_CAPTURED',obj
+          assert obj['observed_trade_count']==299
+          assert len(obj['trades'])==299
+          assert [x['trade_number'] for x in obj['trades']]==list(range(299,0,-1))
+          assert obj['trades'][0]['entry_price_display']==250.04
+          assert obj['trades'][0]['net_pnl_display']==-656.85
+          assert obj['tradingview_pynecore_parity_verified'] is False
+          pathlib.Path('/tmp/ddds-public-api.json').write_text(json.dumps({
+            k:v for k,v in obj.items() if k!='trades'},indent=2))
+          print('TV_DDDS_299_OFFICIAL_WORKER_PASSED',obj['observed_trade_count'],obj['rows_sha256'])
+          PY
+      - name: Archive source identity and numbers (not complete third-party data export)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ddss-299-official-published-trades-worker-summary
+          path: /tmp/ddds-public-api.json
+          if-no-files-found: warn
+          retention-days: 14
