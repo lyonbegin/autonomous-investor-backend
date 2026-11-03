@@ -1,0 +1,59 @@
+name: DDDS real TradingView AMZN 120m passive public OHLCV
+on:
+  push:
+    branches: [feature/tv-browser-ddds-amzn-2h-20261104]
+    paths:
+      - 'browser_worker/main.py'
+      - 'browser_worker/official_chart_probe.py'
+      - '.github/workflows/wf02-ddds-amzn-120-browser.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  real-amzn:
+    runs-on: ubuntu-latest
+    timeout-minutes: 13
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install actual browser service dependencies and Chromium
+        run: |
+          pip install -r browser_worker/requirements.txt
+          python -m playwright install --with-deps chromium
+      - name: Use real original browser worker to probe AMZN 120min chart
+        run: |
+          cd browser_worker
+          uvicorn main:app --host 127.0.0.1 --port 8092 >/tmp/browser-worker.log 2>&1 &
+          for n in $(seq 1 25); do
+            if curl -fsS http://127.0.0.1:8092/health >/dev/null; then break; fi
+            sleep 1
+          done
+          python - <<'PY'
+          import json,urllib.request,pathlib,traceback
+          output=pathlib.Path('/tmp/ddds-amzn-120-report.json')
+          try:
+              req=urllib.request.Request('http://127.0.0.1:8092/v1/inspect/official-ddds-amzn-120-bars',data=b'{}',headers={'Content-Type':'application/json'},method='POST')
+              with urllib.request.urlopen(req,timeout=100) as response:
+                  result=json.load(response)
+              evidence={k:v for k,v in result.items() if k!='bars'}
+              output.write_text(json.dumps(evidence,indent=2))
+              print('DDDS_AMZN_120_REAL_BROWSER_PROBE',json.dumps(evidence)[:2500])
+              assert result['status']=='OFFICIAL_CHART_OHLCV_CAPTURED'
+              assert result['symbol']=='NASDAQ:AMZN'
+              assert result['timeframe']=='120'
+              assert result['interval_120_observed_gap_count']>=12
+              assert not result['complete_2016_2026_history']
+          except Exception:
+              print('DDDS_AMZN_120_REAL_BROWSER_PROBE_NOT_PROVEN',traceback.format_exc()[-2000:])
+              raise
+          PY
+      - name: Archive bounded provenance and timeframe observations
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ddss-amzn-120-browser-provenance
+          path: /tmp/ddds-amzn-120-report.json
+          if-no-files-found: warn
+          retention-days: 14

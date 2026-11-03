@@ -20,6 +20,8 @@ app = FastAPI(title="Autonomous Investor Data Browser Worker", version="2.0.0")
 _WF02_CHART_PROBE_LOCK = asyncio.Lock()
 _WF02_DDDS_TRADES_LOCK = asyncio.Lock()
 _WF02_DDDS_TRADES_CACHE: tuple[float, dict] | None = None
+_WF02_DDDS_AMZN_LOCK = asyncio.Lock()
+_WF02_DDDS_AMZN_CACHE: tuple[float,dict] | None = None
 _WF02_CHART_PROBE_CACHE: tuple[float, dict] | None = None
 
 
@@ -700,6 +702,61 @@ async def official_published_ddds_trades() -> dict[str, Any]:
         except Exception as exc:
             raise HTTPException(status_code=502,detail={
                 "status":"DDDS_OFFICIAL_PUBLISHED_REPORT_BROWSER_FAILED",
+                "reason":type(exc).__name__
+            }) from exc
+        finally:
+            await _close(p,browser,context)
+
+
+@app.post("/v1/inspect/official-ddds-amzn-120-bars")
+async def official_ddds_amzn_120_bars() -> dict[str,Any]:
+    """Fixed NASDAQ:AMZN 120-minute public chart, latest <=300 bars only.
+
+    Passive normal chart, NOT a documented licensed market-data API.
+    Does not include strategy Tester fills or provide ten-year data coverage.
+    """
+    global _WF02_DDDS_AMZN_CACHE
+    now=time.monotonic()
+    if _WF02_DDDS_AMZN_CACHE and now-_WF02_DDDS_AMZN_CACHE[0]<300:
+        return {**_WF02_DDDS_AMZN_CACHE[1],"cache_hit":True}
+    if _WF02_DDDS_AMZN_LOCK.locked():
+        raise HTTPException(status_code=429,detail="DDDS_AMZN_CHART_PROBE_IN_PROGRESS")
+    async with _WF02_DDDS_AMZN_LOCK:
+        p,browser,context=await _browser()
+        try:
+            from official_chart_probe import observe_public_chart
+            result=await observe_public_chart(
+                context,
+                target="https://www.tradingview.com/chart/?symbol=NASDAQ%3AAMZN&interval=120",
+                symbol="NASDAQ:AMZN",timeframe="120"
+            )
+            if result.get("status")!="OFFICIAL_CHART_OHLCV_CAPTURED":
+                raise HTTPException(status_code=424,detail={
+                    "status":result.get("status"),
+                    "bars":result.get("bar_count",0)
+                })
+            bars=result["bars"]
+            # Confirm actual 120-minute bars were delivered (not page default
+            # 1D despite requested interval). Overnight gaps are expected.
+            deltas=[(b["time_ms"]-a["time_ms"])//60000
+                    for a,b in zip(bars,bars[1:])]
+            exact=sum(delta==120 for delta in deltas)
+            if len(bars)<40 or exact<max(12,len(deltas)//3):
+                raise HTTPException(status_code=424,detail={
+                    "status":"DDDS_AMZN_INTERVAL_120_NOT_CONFIRMED",
+                    "observed_120_minute_gaps":exact,"sample_gap_minutes":deltas[:12]
+                })
+            result["interval_120_observed_gap_count"]=exact
+            result["strategies_tested_on_this_chart"]=False
+            result["ddds_tradingview_orders_available"]=False
+            result["complete_2016_2026_history"]=False
+            _WF02_DDDS_AMZN_CACHE=(time.monotonic(),result)
+            return {**result,"cache_hit":False}
+        except HTTPException:
+            raise
+        except Exception as exc:
+            raise HTTPException(status_code=502,detail={
+                "status":"DDDS_AMZN_PUBLIC_CHART_BROWSER_FAILED",
                 "reason":type(exc).__name__
             }) from exc
         finally:
