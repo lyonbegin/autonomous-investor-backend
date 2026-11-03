@@ -1,0 +1,42 @@
+name: WF02 existing conversion center official chart integration
+on:
+  push:
+    branches: [feature/wf02-integrated-official-chart-20261103]
+    paths:
+      - 'n8n/editor-adapter/investment_studio_server.py'
+      - 'n8n/editor-adapter/investment_tv_chart_integration.py'
+      - 'n8n/admin-console/index.html'
+      - 'n8n/Dockerfile.native-editor-gateway'
+      - 'n8n/tests/test_wf02_official_chart_integration.py'
+      - '.github/workflows/wf02-integrated-official-chart.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install real PyneCore runtime
+        run: python -m pip install 'pynesys-pynecore==6.11.1'
+      - name: Run actual Python engine against bar-transfer contract and rejected Vela provenance
+        run: python -m unittest discover -s n8n/tests -p 'test_wf02_official_chart_integration.py' -v
+      - name: Validate original admin JavaScript syntax
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          s=Path('n8n/admin-console/index.html').read_text()
+          script=re.search(r'<script(?:[^>]*)>([\\s\\S]*?)</script>',s)
+          if not script: raise SystemExit('Admin inline JS missing')
+          Path('/tmp/wf02-admin.js').write_text(script.group(1))
+          assert 'official-tv-chart-wf02' in s
+          assert '/api/investment/tv-chart/verify' in s
+          PY
+          node --check /tmp/wf02-admin.js
+      - name: Verify Python files compile
+        run: python -m py_compile n8n/editor-adapter/investment_studio_server.py n8n/editor-adapter/investment_tv_chart_integration.py
