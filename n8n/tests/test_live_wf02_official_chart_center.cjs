@@ -33,15 +33,35 @@ const target=process.env.WF02_EDITOR_BASE||
     result.bars_from_official_chart<20||
     result.bars_executed_by_pynecore!==result.bars_from_official_chart||
     !result.chart||result.chart.length!==result.bars_from_official_chart||
-    !result.chart.some(b=>b.Basis!==null&&Number.isFinite(b.Basis))||
+    !result.chart.some(b=>b.SMA9!==null&&Number.isFinite(b.SMA9))||
+    result.chart.some(b=>'Basis' in b)||
+    result.strategy_display_plot!=='SMA9'||
+    result.official_tv_widget_pine_strategy_supported!==false||
+    !result.pynecore_trades.every(t=>Number.isInteger(t.entry_time_ms)&&Number.isInteger(t.exit_time_ms))||
     result.provenance!=='TRADINGVIEW_PUBLIC_CHART_PASSIVE_WEBSOCKET'||
     result.tv_strategy_parity_verified!==false||
     result.new_pynecomp_compilation!==false||
     result.live_orders_enabled!==false)
    throw Error('INVALID_REAL_TV_PYNECORE_CONTRACT '+JSON.stringify(result).slice(0,900));
-  if(await page.locator('#tv-official-svg path').count()<1||
-     await page.locator('#tv-pynecore-svg path').count()<3)
-   throw Error('ACTUAL_DUAL_CHARTS_NOT_DRAWN');
+  const realWidget=page.locator('#tv-live-chart tv-advanced-chart');
+  if(await realWidget.count()!==1)throw Error('OFFICIAL_TRADINGVIEW_CONTROL_MISSING');
+  const widgetState=await realWidget.evaluate(x=>({
+    name:x.localName,symbol:x.getAttribute('symbol'),interval:x.getAttribute('interval'),
+    height:x.getBoundingClientRect().height,shadow:x.shadowRoot?.innerHTML.length||0
+  }));
+  if(widgetState.symbol!=='NASDAQ:AAPL'||widgetState.interval!=='D'||widgetState.height<400)
+    throw Error('TRADINGVIEW_WIDGET_NOT_MOUNTED '+JSON.stringify(widgetState));
+  if(await page.locator('#tv-official-svg').count()!==0)
+    throw Error('FAKE_TRADINGVIEW_SVG_STILL_PRESENT');
+  if(await page.locator('#tv-pynecore-svg path').count()<1||
+     await page.locator('#tv-pynecore-svg polygon[data-marker]').count()<1)
+    throw Error('PYNECORE_ACTUAL_STRATEGY_MARKERS_MISSING');
+  if(await page.locator('#tv-pynecore-svg').getAttribute('data-strategy-name')!=='MovingAvg Cross')
+    throw Error('WRONG_STRATEGY_IDENTITY');
+  const markers=await page.locator('#tv-pynecore-svg').getAttribute('data-strategy-markers');
+  if(Number(markers)<result.closed_trades_from_pynecore)
+    throw Error('NOT_ENOUGH_ACTUAL_TRADE_MARKERS '+markers);
+
   if(await page.locator('#tv-proof-trades tr').count()<1)
    throw Error('PYNECORE_TRADES_NOT_SHOWN');
   if(errors.length)throw Error('BROWSER_ERRORS '+errors.join(';'));
@@ -53,7 +73,7 @@ const target=process.env.WF02_EDITOR_BASE||
   }
   console.log('WF02_EXISTING_CENTER_ACTUAL_TV_PYNECORE_PASS',JSON.stringify({
     nodes,bars:result.bars_from_official_chart,pynecore:result.bars_executed_by_pynecore,
-    trades:result.closed_trades_from_pynecore,source:result.provenance,
+    trades:result.closed_trades_from_pynecore,markers:Number(markers),widget:widgetState.name,source:result.provenance,
     strategyParity:result.tv_strategy_parity_verified,session:result.executed_at
   }));
  }finally{await browser.close();}
