@@ -1,0 +1,58 @@
+name: DDDS old React chart and exact Python same OHLCV frontend
+on:
+  push:
+    branches: [feature/ddds-site-chart-python-same-bars-20261104]
+    paths:
+      - 'public_frontend/src/components/DddsSharedChartCompare.tsx'
+      - 'public_frontend/src/pages/scripts/PineSideBySidePage.tsx'
+      - '.github/workflows/ddds-site-same-bars-frontend.yml'
+  pull_request:
+    branches: [feature/chart-control-data-capture-20261103]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  compile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install existing React Vela/PineTS packages
+        run: npm install --no-audit --no-fund
+        working-directory: public_frontend
+      - name: Run actual strict TypeScript + Vite build
+        run: npm run build
+        working-directory: public_frontend
+      - name: Read-only probe of LIVE public DDDS source and actual chart API
+        run: node public_frontend/tests/test_live_ddds_public_api_source.cjs
+      - name: Install Chromium for existing deployed DDDS native Pine probe
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Check actual existing website DDDS Pine engine and capture result
+        env:
+          DDDS_VELA_PROBE_OUT: /tmp/ddds-vela-native-probe
+        run: node public_frontend/tests/test_live_ddds_native_runtime_probe.cjs
+      - name: Save screenshots, exact Vela runtime and error evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: existing-site-ddds-native-pine-real-browser-probe
+          path: /tmp/ddds-vela-native-probe/
+          retention-days: 7
+          if-no-files-found: warn
+      - name: E2E click newly DEPLOYED Vela and Python SAME 300-bar charts
+        env:
+          DDDS_WEB_UI_EVIDENCE: /tmp/ddds-same-bars-ui-e2e
+        run: node public_frontend/tests/test_live_ddds_same_bars_comparison.cjs
+      - name: Save deployed DDDS two chart screenshot and numeric comparison
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployed-site-actual-DDDS-300-bars-vela-python
+          path: /tmp/ddds-same-bars-ui-e2e/
+          if-no-files-found: warn
+          retention-days: 14

@@ -1,0 +1,32 @@
+name: Live deployed DDDS Vela and Python charts SAME 300 bars browser E2E
+on:
+  push:
+    branches: [feature/ddds-site-chart-python-same-bars-20261104]
+    paths:
+      - '.github/workflows/ddds-live-deployed-same-bars-e2e.yml'
+      - 'public_frontend/tests/test_live_ddds_same_bars_comparison.cjs'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  real-browser-click:
+    runs-on: ubuntu-latest
+    timeout-minutes: 13
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install real browser
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Click EXISTING public site DDDS compare button and verify 300 same bars and numeric plots
+        env:
+          DDDS_WEB_UI_EVIDENCE: /tmp/ddds-same-bars-ui-e2e
+        run: node public_frontend/tests/test_live_ddds_same_bars_comparison.cjs
+      - name: Save user-visible actual site screenshot and verification
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: real-site-ddds-vela-python-same-300-bars-ui-e2e
+          path: /tmp/ddds-same-bars-ui-e2e/
+          if-no-files-found: warn
+          retention-days: 14
