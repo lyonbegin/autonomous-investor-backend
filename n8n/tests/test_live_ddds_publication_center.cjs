@@ -27,10 +27,16 @@ const out=process.env.WF02_PUBLISHED_EVIDENCE_DIR;
     throw Error('WRONG_TRADINGVIEW_PUBLICATION_OR_UNVERIFIED_SHOWN_AS_VALID '+JSON.stringify(ref).slice(0,650));
   if(await page.locator('#node-list .step').count()!==6)
     throw Error('WF02_ORIGINAL_NODES_NOT_PRESERVED');
+  const imgSrc=await page.locator('#publication-official-image').getAttribute('src');
+  const actualSource=await page.locator('#publication-pine-code').textContent();
   if(await page.locator('#publication-official-image').count()!==1||
-     await page.locator('#publication-official-image').getAttribute('src')!==ref.chart_preview_url||
-     await page.locator('#publication-pine-code').innerText()!==ref.pine_source)
-    throw Error('REAL_CHART_SNAPSHOT_OR_FULL_PINE_NOT_RENDERED');
+     imgSrc!==ref.chart_preview_url||
+     actualSource!==ref.pine_source)
+    throw Error('REAL_CHART_SNAPSHOT_OR_FULL_PINE_NOT_RENDERED '+JSON.stringify({
+      imgSrc,expectedImage:ref.chart_preview_url,
+      actualSourceChars:actualSource?.length,expectedSourceChars:ref.pine_source.length,
+      sourceHead:actualSource?.slice(0,80),expectedHead:ref.pine_source.slice(0,80)
+    }));
   const state=await page.locator('#publication-python-state').innerText();
   if(!state.includes('미검증')||!state.includes('DDDS'))
     throw Error('UNRELATED_PYTHON_RESULT_WAS_PRESENTED_AS_DDDS '+state);
