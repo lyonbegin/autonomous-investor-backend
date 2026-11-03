@@ -36,6 +36,46 @@ def now():
 
 def init():
     with closing(open_registry()) as db:
+        db.execute("""CREATE TABLE IF NOT EXISTS investment_tv_publication_previews (
+          source_id TEXT NOT NULL, version_key TEXT NOT NULL,
+          source_sha256 TEXT NOT NULL, publication_id TEXT NOT NULL,
+          original_page_url TEXT NOT NULL, published_chart_image_url TEXT NOT NULL,
+          evidence TEXT NOT NULL, observed_on TEXT NOT NULL,
+          source_byte_match_verified INTEGER NOT NULL DEFAULT 0,
+          PRIMARY KEY(source_id,version_key,source_sha256)
+        )""")
+        db.execute("""CREATE TABLE IF NOT EXISTS investment_source_context (
+          kind TEXT NOT NULL, source_id TEXT NOT NULL, version_key TEXT NOT NULL,
+          source_url TEXT NOT NULL, source_title TEXT,
+          observed_at TEXT NOT NULL, PRIMARY KEY(kind,source_id,version_key)
+        )""")
+        has_sources=bool(db.execute("""SELECT 1 FROM sqlite_master
+            WHERE type='table' AND name='investment_pine_payloads'""").fetchone())
+        if has_sources:
+            for (sid,version,sha),pub in TV_PUBLICATION_SNAPSHOTS.items():
+                stored=db.execute("""SELECT pine_code FROM investment_pine_payloads
+                    WHERE kind='strategy' AND source_id=? AND version_key=?""",
+                    (sid,version)).fetchone()
+                if not stored or hashlib.sha256(stored[0].encode("utf-8")).hexdigest()!=sha:
+                    continue
+                db.execute("""INSERT INTO investment_tv_publication_previews
+                   (source_id,version_key,source_sha256,publication_id,original_page_url,
+                    published_chart_image_url,evidence,observed_on,source_byte_match_verified)
+                   VALUES(?,?,?,?,?,?,?,?,0) ON CONFLICT DO NOTHING""",
+                   (sid,version,sha,pub["publication_id"],pub["page_url"],
+                    pub["image_url"],pub["evidence"],pub["verified_on"]))
+                old=db.execute("""SELECT source_url FROM investment_source_context
+                    WHERE kind='strategy' AND source_id=? AND version_key=?""",
+                    (sid,version)).fetchone()
+                if old and old[0]!=pub["page_url"]:
+                    print("TV_PUBLICATION_ORIGINAL_URL_CONFLICT",sid,version,flush=True)
+                    continue
+                db.execute("""INSERT INTO investment_source_context
+                    (kind,source_id,version_key,source_url,source_title,observed_at)
+                    VALUES('strategy',?,?,?,?,?)
+                    ON CONFLICT(kind,source_id,version_key) DO NOTHING""",
+                    (sid,version,pub["page_url"],pub["title"],now()))
+
         db.execute("""CREATE TABLE IF NOT EXISTS investment_pipeline_runs(
            run_id TEXT PRIMARY KEY, sid TEXT NOT NULL, status TEXT NOT NULL,
            started_at TEXT NOT NULL, finished_at TEXT,
@@ -191,6 +231,11 @@ def exact_stored_pine(source_id,version_key):
         if canonical["source_sha256"]!=sha or canonical["pine_code"]!=code:
             raise ValueError("CANONICAL_PINE_VERSION_MISMATCH")
         version_uuid=canonical["script_version_id"]
+        if tv_publication_for(source_id,version_key,sha):
+            from investment_pg import link_original_tradingview_publication
+            link_original_tradingview_publication(
+                source_id,version_key,sha,
+                tv_publication_for(source_id,version_key,sha)["page_url"])
     context=context_for_source(source_id,version_key)
     publication=tv_publication_for(source_id,version_key,sha)
     return {"source_id":source_id,"version_key":version_key,
