@@ -26,6 +26,10 @@ const CASES=[
    const download=await downloadWait;
    const file=await download.path();
    const payload=JSON.parse(fs.readFileSync(file,'utf8'));
+   if(process.env.CHART_CAPTURE_EXPORT_DIR){
+     const root=process.env.CHART_CAPTURE_EXPORT_DIR;
+     fs.writeFileSync(root+'/chart-control-'+item.kind+'.json',JSON.stringify(payload,null,2));
+   }
    if(payload.provenance!=='VELA_PINETS_CHART_CONTROL'||payload.tv_original_export!==false||
       payload.script_id!==item.id||!payload.complete||payload.forming||
       payload.bars.length<40||!payload.bars[0].time_ms||
@@ -41,6 +45,9 @@ const CASES=[
    await panel.getByRole('button',{name:'지표·OHLCV CSV 내려받기'}).click();
    const csvDl=await csvWait;
    const csv=fs.readFileSync(await csvDl.path(),'utf8');
+   if(process.env.CHART_CAPTURE_EXPORT_DIR){
+     fs.writeFileSync(process.env.CHART_CAPTURE_EXPORT_DIR+'/chart-control-'+item.kind+'.csv',csv);
+   }
    if(csv.trim().split(/\r?\n/).length!==payload.bars.length+1)
     throw Error('CSV_BAR_COUNT_MISMATCH');
    if(process.env.CHART_CAPTURE_SCREENSHOT)
