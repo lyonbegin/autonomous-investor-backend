@@ -1,0 +1,49 @@
+name: Original Pine chart-control data capture E2E
+on:
+  push:
+    branches: [feature/chart-control-data-capture-20261103]
+    paths:
+      - 'public_frontend/**'
+      - '.github/workflows/chart-control-data-capture.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  chart-capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build original chart-control UI with real capture
+        working-directory: public_frontend
+        run: |
+          npm install
+          npm run build
+      - name: Install browser
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Start actual React app using the already-connected public API
+        run: |
+          (cd public_frontend && npm run dev -- --host 127.0.0.1 --port 5173 > /tmp/stock-chart-capture-ui.log 2>&1 &)
+          for n in $(seq 1 25); do
+            if curl -fsS http://127.0.0.1:5173 >/dev/null; then break; fi
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:5173 >/dev/null
+      - name: Chromium real indicator + strategy chart execution, numeric series and trade downloads
+        env:
+          CHART_TEST_BASE: http://127.0.0.1:5173
+          CHART_CAPTURE_SCREENSHOT: /tmp/chart-capture.png
+        run: node public_frontend/tests/test_chart_capture.cjs
+      - name: Save real browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: chart-control-pine-capture-real-browser
+          path: /tmp/chart-capture-*.png
+          if-no-files-found: warn
+          retention-days: 14
