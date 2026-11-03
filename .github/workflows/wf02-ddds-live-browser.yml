@@ -1,0 +1,33 @@
+name: Railway LIVE WF02 original DDDS publication UI
+on:
+  push:
+    branches: [feature/wf02-published-strategy-reference-20261103]
+    paths:
+      - 'n8n/tests/test_live_ddds_publication_center.cjs'
+      - '.github/workflows/wf02-ddds-live-browser.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  publication-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Chromium
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Verify live ORIGINAL Railway convert center with complete DDDS publication data
+        env:
+          WF02_EDITOR_BASE: https://investment-n8n-native-editor-production.up.railway.app
+          WF02_PUBLISHED_EVIDENCE_DIR: /tmp/wf02-published-evidence
+        run: node n8n/tests/test_live_ddds_publication_center.cjs
+      - name: Save real browser screenshots and provenance JSON
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: live-ddds-original-wf02-publication
+          path: /tmp/wf02-published-evidence/
+          if-no-files-found: warn
+          retention-days: 14
