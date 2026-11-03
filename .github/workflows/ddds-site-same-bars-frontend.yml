@@ -26,3 +26,5 @@ jobs:
       - name: Run actual strict TypeScript + Vite build
         run: npm run build
         working-directory: public_frontend
+      - name: Read-only probe of LIVE public DDDS source and actual chart API
+        run: node public_frontend/tests/test_live_ddds_public_api_source.cjs
