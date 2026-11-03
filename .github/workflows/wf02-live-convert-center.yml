@@ -1,0 +1,41 @@
+name: LIVE original WF02 conversion center TV->PyneCore Chromium E2E
+on:
+  push:
+    branches: [feature/wf02-integrated-official-chart-20261103]
+    paths:
+      - 'n8n/tests/test_live_wf02_official_chart_center.cjs'
+      - '.github/workflows/wf02-live-convert-center.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  user-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install actual Chromium
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Ensure original center has deployed new same-origin bridge
+        run: |
+          for n in $(seq 1 28); do
+            if curl -fsS https://investment-n8n-native-editor-production.up.railway.app/api/investment/tv-chart/latest | grep -q 'status'; then exit 0; fi
+            sleep 5
+          done
+          echo "WF02 deployed API not yet available" >&2
+          exit 1
+      - name: Execute real official TV and real PyneCore from deployed conversion center
+        env:
+          WF02_EDITOR_BASE: https://investment-n8n-native-editor-production.up.railway.app
+          WF02_EVIDENCE_DIR: /tmp/wf02-real-browser
+        run: node n8n/tests/test_live_wf02_official_chart_center.cjs
+      - name: Save rendered charts and real executed JSON
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wf02-existing-center-actual-tv-pynecore-live
+          path: /tmp/wf02-real-browser/
+          if-no-files-found: warn
+          retention-days: 14
