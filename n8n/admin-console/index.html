@@ -361,6 +361,10 @@ async function loadFlow(f){
     '<img id="publication-official-image" alt="전략이 적용된 TradingView 게시 차트 스냅샷" style="display:none;width:100%;aspect-ratio:16/10;object-fit:contain;background:#081628;border-radius:10px">'+
     '<div id="publication-image-fallback" role="status" style="display:none;min-height:200px;padding:24px;border:1px solid #38536c;border-radius:9px">공식 TradingView 차트 미리보기가 일시적으로 열리지 않았습니다. <a href="https://www.tradingview.com/script/LkgKT3TG-Displaced-Donchian-Decycler-Trend-Breakout-Strategy-with-MFI/" target="_blank" rel="noopener noreferrer">실제 DDDS 원본 차트 열기</a></div>'+
     '<p class="muted minor" id="publication-chart-metadata">게시된 실제 Pine 전략 차트 확인 중</p>'+
+    '<h4>이번 비교 기준 · TradingView 공개 NASDAQ:AMZN 최근 2시간봉</h4>'+
+    '<svg id="ddds-market-tv-svg" role="img" aria-label="TradingView 공개 차트에서 받아온 동일 2시간봉 종가" viewBox="0 0 840 280" style="display:none;width:100%;height:280px;background:#0a1726;border-radius:8px"></svg>'+
+    '<p class="muted minor">이 그래프는 위 BATS:AMZN 게시 스냅샷의 과거 데이터를 재현한 것이 아닙니다. 오른쪽 Python 차트에 실제 입력한 공개 차트 봉 데이터만 비교합니다.</p>'+
+    '<div id="ddds-market-compare-status" class="notice warn" role="status" aria-live="polite">시장 데이터 비교 전 · 오른쪽 Python 실제 실행 버튼을 누르세요.</div>'+
     '<a id="publication-open-original" href="https://www.tradingview.com/scripts/" target="_blank" rel="noopener noreferrer">TradingView 원본 전략 페이지 열기</a>'+
     '<h4>게시 당시 Strategy Report</h4><div class="cards" id="publication-report-facts" style="grid-template-columns:repeat(2,minmax(0,1fr))">조회 중</div>'+
     '<div class="actions" style="margin-top:8px"><button class="btn" id="ddds-trades-capture" data-action="ddds-trades-capture">▶ TradingView 원본 Strategy Report 거래 299건 가져오기</button>'+
@@ -749,6 +753,8 @@ function renderRealDDDSFreePythonChart(d){
  const info=document.getElementById('ddds-free-chart-desc');
  const svg=document.getElementById('ddds-free-python-svg');
  const events=document.getElementById('ddds-free-chart-events');
+ const tvSvg=document.getElementById('ddds-market-tv-svg');
+ const tvCompare=document.getElementById('ddds-market-compare-status');
  if(!msg||!svg||!info)return;
  const exact=d&&d.status==='EXACT_DDDS_FREE_PYNE_EXECUTED_ON_REAL_AMZN_120_BARS'&&
    d.pine_source_sha256==='5a245e99447f13012dd026528235fc2c299cad5cb7b228653c684886dcba6507'&&
@@ -759,18 +765,37 @@ function renderRealDDDSFreePythonChart(d){
    d.tradingview_strategies_parity_verified===false&&
    d.complete_2016_2026_history===false&&
    Array.isArray(d.chart)&&d.chart.length>=40&&d.bar_count===d.chart.length;
- if(!exact){
+ const compare=d?.market_data_comparison;
+ const sameInput=exact&&compare?.status==='SAME_TV_MARKET_BARS_USED_BY_PYTHON'&&
+   compare.scope==='INPUT_OHLCV_ONLY'&&compare.symbol===d.symbol&&
+   compare.tv_bar_count===d.bar_count&&compare.python_bar_count===d.bar_count&&
+   compare.matching_bars===d.bar_count&&compare.mismatching_bars===0&&
+   compare.tv_ohlcv_sha256===compare.python_input_ohlcv_sha256&&
+   Array.isArray(d.chart)&&d.chart.every(p=>p.close===p.python_input_close);
+ if(!sameInput){
   svg.style.display='none';
+  if(tvSvg)tvSvg.style.display='none';
+  if(tvCompare)tvCompare.textContent=exact?
+     '시장 데이터 비교 실패 · Python이 받은 봉 데이터를 확인할 수 없습니다.':
+     '시장 데이터 비교 전 · DDDS Python 실행 결과가 없습니다.';
   msg.textContent=d?.status||'DDDS 무료 Python 실행 전';
   info.textContent=d?.reason||'정확히 같은 DDDS Pine에서 생성된 Python 결과가 없습니다.';
   return;
  }
  svg.style.display='block';
+ if(tvSvg){
+   tvSvg.style.display='block';
+   plotOfficialChart('ddds-market-tv-svg',d.chart,['close']);
+ }
+ if(tvCompare)tvCompare.textContent='시장 데이터 입력 일치 '+d.bar_count+'/'+d.bar_count+
+   '봉 · 시각·시가·고가·저가·종가·거래량 동일 · '+d.symbol+' 2시간봉'+
+   ' · Pine 지표값·거래 결과 일치를 뜻하지 않습니다.';
  plotOfficialChart('ddds-free-python-svg',d.chart,
     ['close','Decycler','Lower band','Upper band']);
  info.textContent='진짜 DDDS Python 생성본 · '+d.bar_count+
     '봉 실행 · '+d.symbol+' · '+d.timeframe+'분 · '+d.captured_at+
-    ' · TradingView 공개 차트 OHLCV. 299건 전체 기간 동등성은 미검증.';
+    ' · TradingView 공개 차트 OHLCV를 그대로 입력. 시장 데이터 '+d.bar_count+
+    '봉 일치 · 원래 게시 BATS 차트의 Pine 지표값은 미비교.';
  msg.textContent='DDDS Python 실제 실행 성공 · '+d.bar_count+
     '봉 · 생성된 주문 이벤트 '+d.strategy_event_count+
     '건 · Pine↔TV 동등성 미검증';
