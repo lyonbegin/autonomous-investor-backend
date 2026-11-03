@@ -35,7 +35,7 @@ def _files():
     return {name: hashlib.sha256((DATA / name).read_bytes()).hexdigest() for name in _REQUIRED}
 
 
-def execute_demo():
+def execute_demo(*, export_all=False):
     """Compute both indicator plots and real strategy closed trades every call."""
     if not _LOCK.acquire(blocking=False):
         raise RuntimeError("DEMO_EXECUTION_ALREADY_IN_PROGRESS")
@@ -109,6 +109,7 @@ def execute_demo():
         output_rows = [
             {"time_ms": m["time_ms"], "open": m["open"],
              "high": m["high"], "low": m["low"], "close": m["close"],
+             "volume": m["volume"],
              **p}
             for m, p in zip(market, plots)
         ]
@@ -130,6 +131,7 @@ def execute_demo():
             "time_from_ms": market[0]["time_ms"], "time_to_ms": market[-1]["time_ms"],
             "plots_calculated": len(plots),
             "chart": output_rows[-260:],
+            "full_chart": output_rows if export_all else None,
             "executed_at": datetime.now(timezone.utc).isoformat(),
             "not_verified_reason": "A genuine TradingView plot/trade reference and exact chart settings were not provided."
         }
