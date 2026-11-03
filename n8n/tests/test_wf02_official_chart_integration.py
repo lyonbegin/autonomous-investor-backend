@@ -28,7 +28,7 @@ def contract_bars():
     first = datetime(2025, 1, 1, tzinfo=timezone.utc)
     return [{
         "time_ms": int((first + timedelta(days=i)).timestamp() * 1000),
-        "open": 100+i, "high": 102+i, "low": 99+i,
+        "open": 100+i, "high": 110+i, "low": 90+i,
         "close": 101+i+((i % 7)-3)*1.3, "volume": 1_000_000+i
     } for i in range(90)]
 
