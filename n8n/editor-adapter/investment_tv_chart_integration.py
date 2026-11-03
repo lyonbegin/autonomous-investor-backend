@@ -105,22 +105,16 @@ def _execute(sid):
     ohlcv = [OHLCV(timestamp=x["time_ms"], open=x["open"], high=x["high"], low=x["low"],
                   close=x["close"], volume=x["volume"] or 0) for x in bars]
 
-    # Both are previously-published PyneSys examples, not the DB-selected Pine source.
-    indicator_path = _SAMPLES / "bollinger_bands.py"
+    # One strategy, one chart. Do not juxtapose an unrelated Bollinger study
+    # with a standalone SMA strategy. The line below is the exact SMA9 formula
+    # used by the published translated strategy, calculated for drawing only.
+    # Trade fills/entries come exclusively from the PyneCore broker emulator.
     strategy_path = _SAMPLES / "sma_crossover.py"
-    if not indicator_path.is_file() or not strategy_path.is_file():
-        raise ValueError("PINNED_PYNECORE_EXAMPLE_MISSING")
-    indicator = ScriptRunner(script_path=indicator_path, ohlcv_iter=ohlcv, syminfo=symbol)
-    plots = []
-    for record in indicator.run_iter():
-        if len(record) not in (2, 3):
-            raise ValueError("PYNECORE_INDICATOR_UNEXPECTED_OUTPUT")
-        values = dict(record[1])
-        plots.append({k: _finite(values.get(k)) for k in ("Basis", "Upper", "Lower")})
-    if len(plots) != len(bars):
-        raise ValueError("TV_TO_PYNECORE_INDICATOR_BAR_MISMATCH")
-    if not any(x["Basis"] is not None for x in plots):
-        raise ValueError("PYNECORE_INDICATOR_NO_NUMERIC_PLOTS")
+    if not strategy_path.is_file():
+        raise ValueError("PINNED_PYNECORE_STRATEGY_MISSING")
+    closes = [b["close"] for b in bars]
+    sma9 = [None if i < 8 else sum(closes[i-8:i+1]) / 9.0
+            for i in range(len(bars))]
 
     strategy = ScriptRunner(script_path=strategy_path, ohlcv_iter=ohlcv, syminfo=symbol)
     trade_rows = []
@@ -134,8 +128,13 @@ def _execute(sid):
                 "close_bar_index": executed - 1,
                 "time_ms": bars[executed - 1]["time_ms"],
                 "direction": "LONG" if trade.size > 0 else "SHORT",
+                "size": _finite(trade.size),
                 "entry_price": _finite(trade.entry_price),
                 "exit_price": _finite(trade.exit_price),
+                "entry_time_ms": int(trade.entry_time),
+                "exit_time_ms": int(trade.exit_time),
+                "entry_bar_index": int(trade.entry_bar_index),
+                "exit_bar_index": int(trade.exit_bar_index),
                 "profit": _finite(trade.profit),
                 "cum_profit": _finite(trade.cum_profit)
             })
@@ -143,8 +142,9 @@ def _execute(sid):
         raise ValueError("TV_TO_PYNECORE_STRATEGY_BAR_MISMATCH")
 
     plotted = [
-        {"time_ms": bar["time_ms"], "tv_close": bar["close"], **indicator_output}
-        for bar, indicator_output in zip(bars, plots)
+        {"time_ms": bar["time_ms"], "tv_close": bar["close"],
+         "SMA9": moving_average}
+        for bar, moving_average in zip(bars, sma9)
     ]
     result = {
         "status": "OFFICIAL_CHART_OHLCV_PYNECORE_EXECUTED",
@@ -155,11 +155,17 @@ def _execute(sid):
         "closed_trades_from_pynecore": len(trade_rows),
         "pynecore_version": installed_version("pynesys-pynecore"),
         "pynecore_strategy": "PyneSys public SMA Crossover sample",
-        "pynecore_indicator": "PyneSys public Bollinger Bands sample",
+        "strategy_indicator": "Same Pine strategy's ta.sma(close, 9), for display",
         "source_hashes": {
-            "sample_strategy_sha256": hashlib.sha256(strategy_path.read_bytes()).hexdigest(),
-            "sample_indicator_sha256": hashlib.sha256(indicator_path.read_bytes()).hexdigest()
+            "sample_strategy_sha256": hashlib.sha256(strategy_path.read_bytes()).hexdigest()
         },
+        "strategy_identity": "PyneSys published MovingAvg Cross PyneComp sample",
+        "strategy_source_url": "https://github.com/PyneSys/pynecore-examples/blob/main/01-standalone/sma_crossover.py",
+        "strategy_input_length": 9,
+        "strategy_input_confirm_bars": 1,
+        "strategy_display_plot": "SMA9",
+        "official_tv_widget_pine_strategy_supported": False,
+        "source_pine_strategy_tester_reference": False,
         "new_pynecomp_compilation": False,
         "user_selected_source_converted": False,
         "tv_strategy_tester_orders_available": False,
