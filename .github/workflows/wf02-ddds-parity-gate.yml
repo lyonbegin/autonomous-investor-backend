@@ -1,0 +1,49 @@
+name: WF02 DDDS same-Pine source and parity gating
+on:
+  push:
+    branches: [feature/wf02-ddds-verified-execution-gate-20261104]
+    paths:
+      - 'n8n/editor-adapter/investment_ddds_parity.py'
+      - 'n8n/editor-adapter/investment_studio_server.py'
+      - 'n8n/admin-console/index.html'
+      - 'n8n/Dockerfile.native-editor-gateway'
+      - 'n8n/tests/test_ddds_strict_pynecomp_parity.py'
+      - 'n8n/tests/test_ddds_existing_studio_readiness.py'
+      - '.github/workflows/wf02-ddds-parity-gate.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  ddss:
+    runs-on: ubuntu-latest
+    timeout-minutes: 11
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install only existing WF02 runtime/HTML dependencies
+        run: python -m pip install 'pynesys-pynecore==6.11.1' 'beautifulsoup4==4.13.4'
+      - name: Same-source 141-line Pine defaults and 299-trade guard tests
+        run: python -m unittest discover -s n8n/tests -p 'test_ddds_strict_pynecomp_parity.py' -v
+      - name: Existing SQLite WF02 source/compiled artifact readiness integration
+        run: python -m unittest discover -s n8n/tests -p 'test_ddds_existing_studio_readiness.py' -v
+      - name: Validate new source-only server and original convert center script
+        run: |
+          python -m py_compile n8n/editor-adapter/investment_ddds_parity.py n8n/editor-adapter/investment_studio_server.py
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          html=Path('n8n/admin-console/index.html').read_text()
+          code=re.search(r'<script[^>]*>(.*?)</script>',html,flags=re.S)
+          assert code
+          Path('/tmp/wf02-ddds-parity.js').write_text(code.group(1))
+          required=(
+            'ddds-parity-check','DDDS 동등성 조건 실제 점검',
+            '/api/investment/tv-publication/parity/readiness',
+            'ddds-parity-conditions','OFFICIAL_PUBLISHED_DDDS_299_TRADES'
+          )
+          for text in required:
+            assert text in html or text in Path('n8n/editor-adapter/investment_ddds_parity.py').read_text(),text
+          PY
+          node --check /tmp/wf02-ddds-parity.js

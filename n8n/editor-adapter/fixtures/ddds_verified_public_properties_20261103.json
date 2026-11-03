@@ -1,0 +1,45 @@
+{
+  "evidence_kind": "TRADINGVIEW_PUBLIC_DDDS_STRATEGY_REPORT_PROPERTIES_CHROMIUM",
+  "observed_at": "2026-11-03T15:32:13.420Z",
+  "evidence_run": "https://github.com/lyonbegin/autonomous-investor-backend/actions/runs/41664820680",
+  "raw_properties_text_sha256": "bd6f98715fd4c5462130dac2aa31d188d42875655cf87e5a1fc5d8e30ab0aab7",
+  "publication_chart_snapshot_symbol": "BATS:AMZN",
+  "currently_displayed_report_symbol": "NASDAQ:AMZN",
+  "symbol_discrepancy": true,
+  "current_report_timeframe_minutes": 120,
+  "current_report_currency": "USD",
+  "tick_size": 0.01,
+  "current_report_strategy_inputs": {
+    "startLen": 31,
+    "endLen": 36,
+    "allowLongs": true,
+    "allowShorts": true,
+    "useDecycler": true,
+    "decPeriod": 60,
+    "slopeBars": 3,
+    "useMFI": true,
+    "mfiLen": 14,
+    "mfiSmooth": 4,
+    "atrLen": 14,
+    "stopMult": 2,
+    "tpMult": 3
+  },
+  "current_report_execution": {
+    "initial_capital": 10000,
+    "default_qty_type": "strategy.percent_of_equity",
+    "default_qty_value": 100,
+    "pyramiding": 0,
+    "commission_type": "strategy.commission.percent",
+    "commission_value": 0.05,
+    "slippage_ticks": 0
+  },
+  "current_report_backtesting_range_display": "Jan 4, 2016, 14:30 — Oct 30, 2026, 19:30",
+  "current_report_trading_range_display": "Jan 15, 2016, 16:30 — Oct 30, 2026, 19:30",
+  "provenance_notes": [
+    "The public Strategy Report Properties is not guaranteed to be the original author's frozen BATS snapshot",
+    "A matching default input value does not prove same market OHLCV or broker fills",
+    "Time strings in the published trades lack an explicit timezone",
+    "Do not approve strategy parity while publication snapshot and report symbol disagree"
+  ],
+  "tradingview_pynecore_parity_verified": false
+}

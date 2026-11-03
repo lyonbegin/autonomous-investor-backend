@@ -12,10 +12,30 @@ import studio_server as studio
 import investment_tv_chart_integration as chart_integration
 import investment_tv_publication as published
 import investment_tv_trade_reference as official_trades
+import investment_ddds_parity as ddds_parity
 
 
 class InvestmentHandler(studio.Handler):
     def do_GET(self):
+        if urlsplit(self.path).path == "/api/investment/tv-publication/parity/readiness":
+            sid, fresh = self._sid()
+            try:
+                report = ddds_parity.readiness_for_studio_session(sid)
+                return self._json(200, report, sid, fresh)
+            except (ValueError,TypeError) as exc:
+                return self._json(422, {
+                    "status":"DDDS_PARITY_READINESS_INVALID",
+                    "reason":str(exc)[:200],
+                    "tradingview_pynecore_parity_verified":False,
+                    "paper_enabled":False,"live_orders_enabled":False
+                },sid,fresh)
+            except OSError as exc:
+                return self._json(503, {
+                    "status":"DDDS_PARITY_READINESS_STORAGE_UNAVAILABLE",
+                    "reason":type(exc).__name__,
+                    "tradingview_pynecore_parity_verified":False,
+                    "paper_enabled":False,"live_orders_enabled":False
+                },sid,fresh)
         if urlsplit(self.path).path == "/api/investment/tv-publication/trades/latest":
             sid, fresh = self._sid()
             try:
