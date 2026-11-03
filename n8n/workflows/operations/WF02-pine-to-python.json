@@ -1,5 +1,5 @@
 {
-  "name": "WF-02 · 저장한 Pine 1개 Python 변환 (실행 노드 3개)",
+  "name": "WF-02 · PyneComp/PyneCore Pine 전체 변환 및 Library 재사용 (실행 노드 6개)",
   "active": false,
   "settings": {
     "executionOrder": "v1"
@@ -7,7 +7,7 @@
   "nodes": [
     {
       "id": "wf02-01",
-      "name": "01 저장된 Pine 코드 읽기",
+      "name": "DB의 정확한 Pine 원본·버전 로드",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
       "position": [
@@ -18,72 +18,168 @@
         "studioPython": {
           "python_module": "investment_node_adapter",
           "python_function": "execute_wf02_node01",
-          "code_version": "wf02-n01-load-db-v1",
-          "node_character": "manual_collection_start"
+          "code_version": "wf02-n01-canonical-pine-v3",
+          "node_character": "read_exact_source"
         }
       },
-      "notes": "저장된 실제 Pine 코드 1개를 투자 프로젝트 SQLite에서 조회. ID/버전 지정 또는 최신 1개."
+      "notes": "원본은 SQLite 및 PostgreSQL 고정 버전 대조. 예전 전략별 컴파일러는 사용하지 않음"
     },
     {
       "id": "wf02-02",
-      "name": "02 Pine 계산·신호 Python 생성",
+      "name": "import Library 재귀 탐색·버전 고정",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        410,
+        435,
         220
       ],
       "parameters": {
         "studioPython": {
           "python_module": "investment_node_adapter",
           "python_function": "execute_wf02_node02",
-          "code_version": "wf02-n02-convert-v2-nonoverlay",
-          "node_character": "convert_pine_to_python"
+          "code_version": "wf02-n02-library-dependency-v1",
+          "node_character": "resolve_exact_library_dependencies"
         },
         "mode": "runOnceForAllItems",
-        "jsCode": "return $input.all().map(({json:p})=>({json:{...p,status:'PINE_LOADED'}})); // Actual Python adapter performs conversion; JS-only execution is not conversion."
+        "jsCode": "return $input.all(); // Adapter executes the verified Python project node, not this JS placeholder."
       },
-      "notes": "기존 제한형 Pine 변환 엔진으로 실제 Python 소스 생성. 미지원이면 UNSUPPORTED_PINE과 오류 표시, 거짓 변환 금지."
+      "notes": "Pine import 작성자/Library/버전 재귀 해결; 누락·충돌 시 차단, 다른 버전 대체 금지"
     },
     {
       "id": "wf02-03",
-      "name": "03 변환 결과 또는 미지원 내용 보기",
+      "name": "미변환 Library PyneComp 변환·캐시",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        730,
+        750,
         220
       ],
       "parameters": {
         "studioPython": {
           "python_module": "investment_node_adapter",
           "python_function": "execute_wf02_node03",
-          "code_version": "wf02-n03-conversion-result-v1",
-          "node_character": "display_conversion_result"
+          "code_version": "wf02-n03-pynecomp-library-v1",
+          "node_character": "compile_and_cache_pine_libraries"
         },
         "mode": "runOnceForAllItems",
-        "jsCode": "return $input.all().map(({json:p})=>({json:{...p,paper_enabled:false,live_orders_enabled:false}}));"
+        "jsCode": "return $input.all(); // Adapter executes the verified Python project node, not this JS placeholder."
       },
-      "notes": "변환 산출물/미지원 사유 표시. TradingView 차트 동등성 및 주문 기능은 검증하지 않음."
+      "notes": "PyneSys PyneComp API로 Library Python 생성. 버전·SHA·의존성 잠금값이 같으면 DB 재사용"
+    },
+    {
+      "id": "wf02-04",
+      "name": "메인 Pine 전체 PyneComp→PyneCore 변환",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1065,
+        220
+      ],
+      "parameters": {
+        "studioPython": {
+          "python_module": "investment_node_adapter",
+          "python_function": "execute_wf02_node04",
+          "code_version": "wf02-n04-pynecomp-strategy-v1",
+          "node_character": "compile_pine_to_pynecore"
+        },
+        "mode": "runOnceForAllItems",
+        "jsCode": "return $input.all(); // Adapter executes the verified Python project node, not this JS placeholder."
+      },
+      "notes": "공식 PyneComp API 호출; API 키 없으면 차단. SMA/EMA·RSI 제한형 변환기로 우회 금지"
+    },
+    {
+      "id": "wf02-05",
+      "name": "PyneCore 확인·미검증 산출물 DB 저장",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1380,
+        220
+      ],
+      "parameters": {
+        "studioPython": {
+          "python_module": "investment_node_adapter",
+          "python_function": "execute_wf02_node05",
+          "code_version": "wf02-n05-store-pynecore-v1",
+          "node_character": "store_generated_unvalidated_code"
+        },
+        "mode": "runOnceForAllItems",
+        "jsCode": "return $input.all(); // Adapter executes the verified Python project node, not this JS placeholder."
+      },
+      "notes": "PyneCore 패키지 확인, 생성 Python 문법 확인 및 PostgreSQL GENERATED 기록. 정확성 미검증"
+    },
+    {
+      "id": "wf02-06",
+      "name": "변환 성공·차단 사유 확인",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1695,
+        220
+      ],
+      "parameters": {
+        "studioPython": {
+          "python_module": "investment_node_adapter",
+          "python_function": "execute_wf02_node06",
+          "code_version": "wf02-n06-review-status-v1",
+          "node_character": "display_conversion_and_blockers"
+        },
+        "mode": "runOnceForAllItems",
+        "jsCode": "return $input.all(); // Adapter executes the verified Python project node, not this JS placeholder."
+      },
+      "notes": "원본·Library·변환 상태를 전달, 실제 TradingView 수치 일치 전에는 실거래 금지"
     }
   ],
   "connections": {
-    "01 저장된 Pine 코드 읽기": {
+    "DB의 정확한 Pine 원본·버전 로드": {
       "main": [
         [
           {
-            "node": "02 Pine 계산·신호 Python 생성",
+            "node": "import Library 재귀 탐색·버전 고정",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "02 Pine 계산·신호 Python 생성": {
+    "import Library 재귀 탐색·버전 고정": {
       "main": [
         [
           {
-            "node": "03 변환 결과 또는 미지원 내용 보기",
+            "node": "미변환 Library PyneComp 변환·캐시",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "미변환 Library PyneComp 변환·캐시": {
+      "main": [
+        [
+          {
+            "node": "메인 Pine 전체 PyneComp→PyneCore 변환",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "메인 Pine 전체 PyneComp→PyneCore 변환": {
+      "main": [
+        [
+          {
+            "node": "PyneCore 확인·미검증 산출물 DB 저장",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PyneCore 확인·미검증 산출물 DB 저장": {
+      "main": [
+        [
+          {
+            "node": "변환 성공·차단 사유 확인",
             "type": "main",
             "index": 0
           }
@@ -100,8 +196,14 @@
     "editorOnly": true,
     "executionEnabled": false,
     "nodeLevelProjectPythonExecution": true,
-    "converterScope": "PINE_V5_V6_CLOSE_SMA_EMA_CROSS_STRATEGY",
+    "converterEngine": "PYNECOMP_CLOUD_COMPILER_WITH_PYNECORE_RUNTIME",
     "source": "investment_pine_payloads",
+    "requireEnvironment": [
+      "PYNESYS_API_KEY"
+    ],
+    "openpineInstalled": false,
+    "legacyConvertersAllowed": false,
+    "libraryDependencyPolicy": "EXACT_SOURCE_VERSION_AND_SHA",
     "tradeOrdersEnabled": false,
     "tradingviewParityValidated": false
   }
