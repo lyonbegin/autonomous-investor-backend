@@ -1,8 +1,22 @@
 import {useEffect,useState} from 'react';
 import {api,API} from '../../api';
 import type {PineSource,PineVisualResponse} from '../../types';
-import {NativePineChartControl} from '../../components/NativePineChartControl';
 import {PineChartControl} from '../../components/PineChartControl';
+
+type TradingViewPublication={
+  title:string;
+  page_url:string;
+  image_url:string;
+  publication_id:string;
+  pine_editor_source_id:string;
+  published_chart_symbol:string;
+  published_chart_timeframe:string;
+  evidence:string;
+  verified_on:string;
+  source_byte_match_verified:boolean;
+  strategy_report_parity_verified:boolean;
+  published_snapshot_not_live_chart:boolean;
+};
 
 const clean=(v:string)=>String(v||'').trim().slice(0,160);
 const horizons=['1m','3m','5m','10m','15m','30m','1h','2h','4h','6h','8h','12h','1d'];
@@ -29,7 +43,8 @@ export function PineSideBySidePage({id,go}:{id:string,go:(p:string)=>void}){
   const [chart,setChart]=useState<PineVisualResponse|null>(null);
   const [error,setError]=useState('');
   const [fetching,setFetching]=useState(true);
-  const [pine,setPine]=useState<{state:string,message?:string}>({state:'loading'});
+  const [original,setOriginal]=useState<TradingViewPublication|null>(null);
+  const [originalImage,setOriginalImage]=useState<'pending'|'loaded'|'error'>('pending');
 
   async function exactLoad(targetSymbol:string,targetHorizon:string){
     const params=new URLSearchParams({
@@ -43,18 +58,27 @@ export function PineSideBySidePage({id,go}:{id:string,go:(p:string)=>void}){
        result.chart?.source_hash!==expectedSha||
        result.chart?.script_id!==id)
       throw Error('서로 다른 버전의 전략 원본으로 차트를 만들 수 없습니다.');
-    return result as {source:{source:string;source_sha256:string},chart:PineVisualResponse};
+    return result as {source:{source:string;source_sha256:string;
+      tradingview_publication?:TradingViewPublication|null},chart:PineVisualResponse};
   }
 
   useEffect(()=>{
     let alive=true;
-    setError('');setFetching(true);setSource(null);setChart(null);setPine({state:'loading'});
+    setError('');setFetching(true);setSource(null);setChart(null);
+    setOriginal(null);setOriginalImage('pending');
     if(exactMode){
       const actualSymbol=clean(query.get('symbol')||'NASDAQ:NVDA');
       const actualHorizon=clean(query.get('horizon')||'2h');
       setSymbol(actualSymbol);setHorizon(actualHorizon);
       exactLoad(actualSymbol,actualHorizon).then(result=>{
         if(!alive)return;
+        const p=result.source.tradingview_publication||null;
+        if(p&&(!/^https:\/\/www\.tradingview\.com\/script\/[A-Za-z0-9]{8}[-/]/.test(p.page_url)||
+          !/^https:\/\/s3\.tradingview\.com\/[A-Za-z0-9]\/\w+_mid\.webp$/.test(p.image_url)||
+          p.pine_editor_source_id!==id)){
+          throw Error('TradingView 공개 게시물 신원 또는 이미지 호스트 검증 실패');
+        }
+        setOriginal(p);
         setSource({script_id_part:id,version:pinnedVersion,kind:'strategy',
                    source:result.source.source,source_hash:result.source.source_sha256});
         setChart(result.chart);
@@ -84,7 +108,7 @@ export function PineSideBySidePage({id,go}:{id:string,go:(p:string)=>void}){
  
   async function rerun(){
     if(!source?.source||!symbol.trim()||!horizons.includes(horizon))return;
-    setError('');setFetching(true);setChart(null);setPine({state:'loading'});
+    setError('');setFetching(true);setChart(null);
     try{
       const d=exactMode?(await exactLoad(symbol.trim(),horizon)).chart:
           await api.scriptChart(id,symbol.trim(),horizon);
@@ -97,18 +121,16 @@ export function PineSideBySidePage({id,go}:{id:string,go:(p:string)=>void}){
   }
 
   const supported=Boolean(chart?.visual&&chart.visual.adapter!=='unsupported'&&!chart.visual.error);
-  const nativeReady=pine.state==='ready';
-  const identicalData=Boolean(chart?.bars?.length);
-  return <main className="pine-compare-page">
+  const previewReady=original!==null&&originalImage==='loaded'&&supported;  return <main className="pine-compare-page">
     <button className="back" onClick={()=>go('/scripts/'+encodeURIComponent(id))}>← 기존 전략 상세</button>
     <section className="panel">
-      <h1>동일 원본 Pine · Python 전략 차트 나란히 확인</h1>
-      <p>좌측은 저장된 Pine 원문을 Vela/PineTS로 실행한 차트, 우측은 기존 Python Quant 계산 결과입니다. 두 화면은 <b>동일한 OHLCV 데이터</b>를 사용합니다. {exactMode?'관리화면에서 고정한 PostgreSQL 전략 버전 '+pinnedVersion+'을 양쪽에 적용합니다. ':''}이 화면은 TradingView 웹사이트의 실제 렌더링 캡처나 정식 동등성 판정이 아닙니다.</p>
+      <h1>TradingView 원본 게시 차트 ↔ Python 전략 차트</h1>
+      <p>왼쪽은 <b>TradingView 원본 사이트에 작성자가 게시한 전략 적용 차트 이미지</b>입니다. Vela/PineTS나 자체 제작 차트가 아닙니다. 오른쪽은 고정한 Pine 버전으로 Python Quant가 계산한 결과입니다. 게시 당시 TradingView 데이터와 현재 Python OHLCV 구간은 같다고 가정하지 않습니다.</p>
       <div><b>선택 전략 ID</b> <code>{id}</code>　<b>원본 SHA-256</b> <code>{source?.source_hash||'확인 중'}</code></div>
       <div className="runtime-controls" style={{marginTop:14}}>
         <label>종목 <input value={symbol} onChange={e=>setSymbol(e.target.value)} /></label>
         <label>시간봉 <select value={horizon} onChange={e=>setHorizon(e.target.value)}>{horizons.map(x=><option value={x} key={x}>{x}</option>)}</select></label>
-        <button disabled={fetching||!source?.source} onClick={rerun}>{fetching?'실제 데이터 조회 중':'동일 OHLCV로 차트 다시 계산'}</button>
+        <button disabled={fetching||!source?.source} onClick={rerun}>{fetching?'실제 데이터 조회 중':'오른쪽 Python 차트 다시 계산'}</button>
       </div>
       {expectedSha&&<p><b>DB 고정 원본 SHA 검증:</b> {source?'일치 — 변경된 소스는 차단':'검증 중'}</p>}
       {error&&<div className="empty-state">{error}</div>}
@@ -116,16 +138,27 @@ export function PineSideBySidePage({id,go}:{id:string,go:(p:string)=>void}){
         <span>시장 데이터 <b>{chart.market_data?.provider}</b></span>
         <span>가격 캔들 <b>{chart.market_data?.count}</b></span>
         <span>시간봉 <b>{chart.market_data?.effective_interval||chart.horizon}</b></span>
-        <span>같은 OHLCV <b>{identicalData?'사용':'불가'}</b></span>
+        <span>Python 데이터셋 <b>실제 OHLCV · 게시 차트 구간 동일성 미검증</b></span>
       </div>}
       {chart?.market_data?.fallback_used&&<div className="runtime-note">원래 요청 데이터 대신 제공된 데이터: {chart.market_data.fallback_reason||'세부 사항 미확인'}</div>}
     </section>
     <div className="pine-compare-grid">
       <section className="panel">
-        <h2>왼쪽 · 저장된 원본 Pine 실행</h2>
-        <p>기존 Vela + PineTS 런타임 · {pine.state==='ready'?'실행 성공':pine.state==='error'?'실행 오류':fetching?'데이터 조회 중':'Pine 실행 중'}</p>
-        {chart&&source?.source?<NativePineChartControl data={chart} source={source.source} onRuntime={x=>setPine({state:x.state,message:x.message})}/>:<div className="empty-state">원본 소스와 OHLCV 대기</div>}
-        {pine.message&&<div className="runtime-note">런타임 진단: {pine.message}</div>}
+        <h2>왼쪽 · TradingView 공식 원본 게시 차트</h2>
+        {original?<>
+          <p><b>{original.title}</b> · TradingView 공개 전략 게시물</p>
+          <a href={original.page_url} target="_blank" rel="noopener noreferrer" className="external-link">TradingView 원본 전략 페이지 및 Strategy Report 직접 보기</a>
+          <a href={original.page_url} target="_blank" rel="noopener noreferrer" title="TradingView에서 공개한 실제 전략 차트 열기">
+            <img data-testid="tradingview-original-chart" className="tv-original-publication-image"
+              src={original.image_url} alt={'TradingView가 공개한 '+original.title+' 전략 적용 차트 이미지'}
+              onLoad={()=>setOriginalImage('loaded')} onError={()=>setOriginalImage('error')}/>
+          </a>
+          <p>{originalImage==='loaded'?'TradingView 게시 차트 이미지 로드 완료':
+             originalImage==='error'?'원본 TradingView 이미지 로드 실패 — 위 원본 페이지 링크에서 확인':
+             'TradingView 원본 게시 차트 이미지 로드 중'}</p>
+          <p>게시 차트: {original.published_chart_symbol} · {original.published_chart_timeframe} · 게시 당시 고정 화면</p>
+          <p>TradingView Pine Editor 스크립트 ID와 저장 전략 ID 일치 확인. <b>게시 버전의 전체 소스 바이트 일치·정식 수치 동등성은 미검증</b>입니다.</p>
+        </>:<div className="empty-state">해당 저장 Pine 버전에 연결된 TradingView 원본 게시물과 차트 이미지가 확인되지 않았습니다. 임의의 차트나 PineTS로 대신 표시하지 않습니다.</div>}
       </section>
       <section className="panel">
         <h2>오른쪽 · 기존 Python Quant 전략 계산</h2>
@@ -138,10 +171,13 @@ export function PineSideBySidePage({id,go}:{id:string,go:(p:string)=>void}){
     </div>
     <section className="panel">
       <h3>검증 상태</h3>
-      <p>{!chart?'실제 데이터 또는 소스 부족 — 비교 불가':
-        nativeReady&&supported?'동일 데이터의 두 실행 화면 준비 완료. TradingView 실제 차트 캡처·CSV 수치 동등성은 별도 검증 필요':
-        '일부 런타임 미지원 또는 로드 중 — 원본과 Python 동등성 미확인'}</p>
-      <p>TradingView 원문 그대로의 차트 캡처/플롯 CSV가 없으면 연구용 비교만 가능합니다. 검증 없이 에이전트 승격 또는 실거래를 허용하지 않습니다.</p>
+      <p>{previewReady?
+        'TradingView 원본 게시 차트 이미지와 Python 계산 차트가 모두 실제로 표시되었습니다. 서로 다른 데이터 구간·설정일 수 있으므로 수치 동등성은 검증되지 않았습니다.':
+        !original?'원본 TradingView 게시 차트가 아직 연결되지 않았습니다.':
+        originalImage==='error'?'TradingView 공식 이미지 로드 실패. 원본 페이지를 직접 열어 확인하세요.':
+        !chart?'Python 원본 데이터 또는 계산 결과가 없어 비교할 수 없습니다.':
+        '원본 게시 이미지 또는 Python 차트를 로드 중이거나 실행 지원이 제한됩니다.'}</p>
+      <p>원본 게시 스냅샷은 TradingView 사이트의 게시물 그대로이며 현재 시장에 같은 Pine을 다시 적용한 실시간 차트가 아닙니다. TradingView CSV·플롯·전략 입력값과 Python 결과의 정확성 판정은 별도입니다.</p>
     </section>
   </main>;
 }
