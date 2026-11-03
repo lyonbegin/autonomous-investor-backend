@@ -13,10 +13,25 @@ import investment_tv_chart_integration as chart_integration
 import investment_tv_publication as published
 import investment_tv_trade_reference as official_trades
 import investment_ddds_parity as ddds_parity
+import investment_free_pyne as free_pyne
 
 
 class InvestmentHandler(studio.Handler):
     def do_GET(self):
+        if urlsplit(self.path).path in ("/api/investment/free-pyne/ddds/latest",
+                                         "/api/investment/free-pyne/ddds/python"):
+            sid, fresh = self._sid()
+            with_source=(urlsplit(self.path).path.endswith("/python"))
+            try:
+                return self._json(200, free_pyne.ddds_artifact(sid,include_code=with_source),sid,fresh)
+            except (ValueError,TypeError) as exc:
+                return self._json(422,{"status":"PYNE_FREE_ARTIFACT_REJECTED",
+                    "reason":str(exc)[:160],"parity_verified":False,
+                    "live_orders_enabled":False},sid,fresh)
+            except OSError as exc:
+                return self._json(503,{"status":"PYNE_FREE_ARTIFACT_STORAGE_UNAVAILABLE",
+                    "reason":type(exc).__name__,"parity_verified":False,
+                    "live_orders_enabled":False},sid,fresh)
         if urlsplit(self.path).path == "/api/investment/tv-publication/parity/readiness":
             sid, fresh = self._sid()
             try:
