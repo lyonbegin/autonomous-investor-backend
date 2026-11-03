@@ -19,6 +19,10 @@ jobs:
         env:
           DDDS_ORIGINAL_CHART_PROBE_DIR: /tmp/ddds-original-chart-probe
         run: node n8n/tests/inspect_ddds_actual_published_chart.cjs
+      - name: Probe original DDDS chart's own AJAX and WebSocket history
+        env:
+          DDDS_ORIGINAL_CHART_PROBE_DIR: /tmp/ddds-original-chart-probe
+        run: node n8n/tests/inspect_ddds_original_chart_payloads.cjs
       - name: Save original chart DOM/network evidence
         if: always()
         uses: actions/upload-artifact@v4
