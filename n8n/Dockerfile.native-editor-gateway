@@ -92,5 +92,9 @@ ENV PORT=3000
 ENV STUDIO_STATIC_ROOT=/app/dist
 ENV STUDIO_DB_PATH=/data/studio.sqlite3
 ENV STUDIO_PROJECT_ADAPTER=investment_node_adapter
+# Boot the actual packaged server with an isolated temp DB. Verify HTTP
+# routes and that an unverified source cannot be published on a same-origin POST.
+COPY n8n/tests/smoke_verified_http.py /app/verified_tests/smoke_verified_http.py
+RUN python3 /app/verified_tests/smoke_verified_http.py
 EXPOSE 3000
 CMD ["sh", "-c", "chown -R studio:studio /data && gosu studio python3 -c 'import investment_pipeline; investment_pipeline.init()' && if [ -n \"${INVESTMENT_DATABASE_URL:-}\" ]; then gosu studio python3 -u /app/investment_pg.py || exit 1; fi && exec gosu studio python3 -u /app/investment_studio_server.py"]
