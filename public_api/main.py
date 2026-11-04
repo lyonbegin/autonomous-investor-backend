@@ -12,6 +12,8 @@ import httpx
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
+from pinned_ddds_source import DDDS_ID, pinned_ddds_source_response, pinned_ddds_meta_response
+
 TV_API = os.getenv("TRADINGVIEW_API", "https://autonomous-investor-tradingview-production.up.railway.app").rstrip("/")
 QUANT_API = os.getenv("QUANT_API", "https://autonomous-investor-quant-lab-production.up.railway.app").rstrip("/")
 INVESTMENT_STUDIO_API = os.getenv("INVESTMENT_STUDIO_API", "https://investment-n8n-native-editor-production.up.railway.app").rstrip("/")
@@ -330,6 +332,10 @@ async def script_search(
 
 @app.get("/api/public/scripts/{script_id_part}/meta")
 async def script_meta(script_id_part: str) -> dict[str, Any]:
+    if script_id_part == DDDS_ID:
+        # The saved immutable author's public publication remains available
+        # even while the independent TradingView SQLite catalog is locked.
+        return pinned_ddds_meta_response()
     return await _get(
         TV_API,
         f"/api/v1/tradingview/scripts/{quote(script_id_part, safe='')}/meta",
@@ -346,6 +352,11 @@ async def script_full(script_id_part: str) -> dict[str, Any]:
 
 @app.get("/api/public/scripts/{script_id_part}/source")
 async def script_source(script_id_part: str) -> dict[str, Any]:
+    if script_id_part == DDDS_ID:
+        # Do NOT re-crawl or proxy a flaky live source when the exact original
+        # 141-line Pine is already saved and checked by immutable SHA-256.
+        # This route is informational, not evidence of TradingView parity.
+        return pinned_ddds_source_response()
     return await _get(
         TV_API,
         f"/api/v1/tradingview/scripts/{quote(script_id_part, safe='')}/source",
