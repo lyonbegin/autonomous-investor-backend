@@ -21,14 +21,17 @@ def instrument_from_row(row):
                       row['contract_type'])
 
 
-def eligible_manifest(store, asof, *, verify_digest=True):
+def eligible_manifest(store, asof, *, verify_digest=True, only_keys=None):
     """Require the identical [asof-10 years, asof) snapshot for every output."""
     start,end=ten_year_window(asof)
     report=store.status()
+    only_keys=set(only_keys) if only_keys is not None else None
     included=[]
     dropped={'NOT_ELIGIBLE':0,'WRONG_TEN_YEAR_SNAPSHOT':0,
              'MISSING_PARQUET':0,'DIGEST_MISMATCH':0}
     for row in report['instruments']:
+        if only_keys is not None and row['key'] not in only_keys:
+            continue
         if not row['eligible']:
             dropped['NOT_ELIGIBLE']+=1
             continue
@@ -61,6 +64,7 @@ def eligible_manifest(store, asof, *, verify_digest=True):
         'asof':str(asof),'timeframe':'1d',
         'window_start':str(start),'window_end_exclusive':str(end),
         'listing_catalog_stored':report['stored'],
+        'scope':'SELECTED_INSTRUMENTS' if only_keys is not None else 'ALL_INSTRUMENTS',
         'ready':len(included),'excluded':dropped,
         'instruments':included,
     }
@@ -68,7 +72,7 @@ def eligible_manifest(store, asof, *, verify_digest=True):
 
 def export_pair(store, left, right, asof, path):
     """Never fill holidays or compare nonidentical underlying 10Y windows."""
-    manifest=eligible_manifest(store,asof)
+    manifest=eligible_manifest(store,asof,only_keys={left,right})
     lookup={r['key']:r for r in manifest['instruments']}
     if left not in lookup or right not in lookup:
         raise ValueError('WF04_INPUT_NOT_SNAPSHOT_ELIGIBLE')
