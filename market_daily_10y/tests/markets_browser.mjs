@@ -1,0 +1,34 @@
+import { chromium } from "playwright";
+import assert from "node:assert/strict";
+import fs from "node:fs";
+const base=process.env.MARKET_BROWSER_URL||"http://127.0.0.1:8765";
+const browser=await chromium.launch({headless:true});
+const page=await browser.newPage({viewport:{width:1440,height:1000}});
+const responses=[];
+page.on("response",r=>{if(r.status()>=400)responses.push([r.status(),r.url()]);});
+try {
+ await page.goto(base+"/markets/",{waitUntil:"networkidle"});
+ await page.locator("#statListed").waitFor();
+ assert.match(await page.title(),/10년 일봉/);
+ const text=await page.locator("#statListed").innerText();
+ assert.ok(/[\d,]+/.test(text),"real listed count displayed");
+ assert.equal(await page.locator(".category-tile").count(),8);
+ assert.equal(await page.locator(".side-link").count(),8);
+ await page.locator('.category-tile[data-category="crypto"]').click();
+ assert.equal(await page.locator("#currentCategory").innerText(),"암호화폐");
+ await page.locator("#rows button[data-key]").first().waitFor();
+ await page.locator("#rows button[data-key]").first().click();
+ assert.equal(await page.locator("#detailPanel").getAttribute("aria-hidden"),"false");
+ assert.match(await page.locator("#chartEmpty").innerText(),/실제 일봉/);
+ await page.locator("#closePanel").click();
+ await page.locator("#updateAllButton").click();
+ assert.equal(await page.locator("#keyModal").isVisible(),true,"must not auto-download publicly");
+ assert.equal(await page.locator("#jobBox").isVisible(),false,"no auto-run before manual authorization");
+ await page.locator("#keyCancel").click();
+ fs.mkdirSync("/tmp/market-ui-evidence",{recursive:true});
+ await page.screenshot({path:"/tmp/market-ui-evidence/markets-desktop.png",fullPage:true});
+ await page.setViewportSize({width:390,height:844});
+ await page.screenshot({path:"/tmp/market-ui-evidence/markets-mobile.png",fullPage:true});
+ assert.equal(responses.length,0,JSON.stringify(responses));
+ console.log("MARKETS_BROWSER_E2E_PASSED desktop+mobile screenshots, 8 categories, manual-only authorization, missing real chart correctly flagged");
+}finally{await browser.close();}
