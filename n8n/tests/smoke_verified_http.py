@@ -15,11 +15,12 @@ from urllib.error import HTTPError,URLError
 from urllib.request import Request,urlopen
 
 
-def call(url,body=None,origin=None):
+def call(url,body=None,origin=None,host=None):
     raw=None if body is None else json.dumps(body).encode()
     headers={"Accept":"application/json"}
     if body is not None:headers["Content-Type"]="application/json"
     if origin:headers["Origin"]=origin
+    if host:headers["Host"]=host
     req=Request(url,data=raw,headers=headers,method="POST" if body is not None else "GET")
     try:
         with urlopen(req,timeout=5) as r:
@@ -72,13 +73,18 @@ def main():
                 {"source_id":"PUB;not-verified","version_key":"v1","pine_sha256":"a"*64},
                 origin="https://investment-n8n-native-editor-production.up.railway.app")
             assert code==403,"WRONG_HOST_PUBLISH_SHOULD_BLOCK"
+            code,data=call(base+"/api/investment/verified-scripts/publish",
+                {"source_id":"PUB;not-verified","version_key":"v1","pine_sha256":"a"*64},
+                origin="https://investment-n8n-native-editor-production.up.railway.app",
+                host="investment-n8n-native-editor-production.up.railway.app")
+            assert code==422 and json.loads(data)["status"]=="PUBLISH_ONLY_ACTUALLY_VERIFIED_SOURCE",(code,data)
             code,data=call(base+"/api/investment/verified-scripts/catalog?limit=50&offset=0")
             assert code==200 and json.loads(data)["count"]==0,"UNVERIFIED_PUBLISHED"
             code,html=call(base+"/")
             assert code==200 and "<html" in html.lower(),"ORIGINAL_NODE_EDITOR_DISAPPEARED"
             print("VERIFIED_ADMIN_FULL_HTTP_SMOKE_PASS",json.dumps(
               {"admin_html":200,"original_editor":200,"copied_react":200,
-               "catalog":200,"candidates":200,"unverified_publish":403,
+               "catalog":200,"candidates":200,"unverified_publish":422,
                "default_published_count":0},ensure_ascii=False))
         finally:
             process.terminate()
