@@ -137,6 +137,17 @@ class CollectionQueue:
                   int(success),int(eligible),inst.key))
         return next_due
 
+    def mirror_retry(self, inst, asof, reason):
+        """Preserve valid local bars while retrying failed private S3 transfer soon."""
+        with sqlite3.connect(self.db,timeout=30) as conn:
+            updated=conn.execute("""
+                UPDATE collection_queue
+                   SET next_due=?,last_result='MIRROR_PENDING',last_error=?
+                 WHERE instrument_key=?
+            """,(str(asof+timedelta(days=1)),str(reason)[:300],inst.key))
+            if updated.rowcount!=1:
+                raise ValueError('QUEUE_ENTRY_MISSING_FOR_MIRROR_RETRY')
+
     def report(self, asof, batch_limit=100, refresh_days=7):
         with sqlite3.connect(self.db,timeout=30) as conn:
             counts = dict(conn.execute("""
