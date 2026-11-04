@@ -1,0 +1,32 @@
+name: DDDS real two-chart identical visible date-range E2E
+on:
+  push:
+    branches: [feature/ddds-synchronized-visible-interval-20261104]
+    paths: ['.github/workflows/ddds-visible-range-live-e2e.yml','public_frontend/tests/test_ddds_visible_range_e2e.cjs']
+  pull_request:
+    branches: [feature/ddds-compare-auto-render-readable-20261104]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  live-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install real Chromium
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Verify same stock, timeframe, UTC visible date range, 40/80/120/300 windows and pan
+        env:
+          DDDS_RANGE_EVIDENCE: /tmp/ddds-two-renderers-visible-range
+        run: node public_frontend/tests/test_ddds_visible_range_e2e.cjs
+      - name: Upload screen images and actual Vela/lightweight time ranges
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: actual-DDDS-visible-UTC-range-944px-and-wide
+          path: /tmp/ddds-two-renderers-visible-range
+          retention-days: 14
+          if-no-files-found: warn
