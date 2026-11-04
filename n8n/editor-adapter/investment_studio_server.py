@@ -18,6 +18,7 @@ import investment_free_pyne as free_pyne
 import investment_free_pyne_chart as free_ddds_chart
 import investment_shared_bars_compare as shared_compare
 import investment_verified_catalog as verified_catalog
+import investment_wf04_one_ai_tpu as wf04
 
 # The public React chart is the ONLY permitted cross-origin caller.
 # The retired standalone React frontend is NOT an accepted chart caller.
@@ -148,6 +149,46 @@ class InvestmentHandler(studio.Handler):
         return super().do_GET()
 
     def do_POST(self):
+        if urlsplit(self.path)=="":
+            return self.send_error(404)
+        if urlsplit(self.path).path == "/api/investment/wf04/one-ai-generate-tpu":
+            sid,fresh=self._sid()
+            # Only the existing administration host can request paid AI calls
+            # or execute candidate screening; all original UI controls remain.
+            origin=self.headers.get("Origin","")
+            if (origin!=ADMIN_CHART_ORIGIN or
+                urlsplit(origin).netloc!=self.headers.get("Host")):
+                return self._json(403,{"status":"WF04_ADMIN_SAME_ORIGIN_REQUIRED"},sid,fresh)
+            if not self.headers.get("Content-Type","").startswith("application/json"):
+                return self._json(415,{"status":"WF04_JSON_REQUIRED"},sid,fresh)
+            try:
+                length=int(self.headers.get("Content-Length","-1"))
+                if not 10<=length<=3000:
+                    return self._json(413,{"status":"WF04_BODY_SIZE_INVALID"},sid,fresh)
+                body=json.loads(self.rfile.read(length))
+                if not isinstance(body,dict) or not set(body).issubset({
+                    "source_id","version_key","dataset_uri","top_k",
+                    "lookback","min_signal_density"}) or not {"source_id","version_key"}.issubset(body):
+                    raise ValueError("WF04_EXACT_SOURCE_SELECTION_REQUIRED")
+                result=wf04.build_for_saved(body["source_id"],body["version_key"])
+                dataset=body.get("dataset_uri")
+                if dataset:
+                    result["tpu_result"]=wf04.dispatch_to_tpu(result,dataset,
+                        top_k=body.get("top_k",100),
+                        min_signal_density=body.get("min_signal_density",0.02),
+                        lookback=body.get("lookback",100))
+                else:
+                    result["tpu_result"]={"status":"TPU_NOT_DISPATCHED_NO_DATASET"}
+                return self._json(200,result,sid,fresh)
+            except (ValueError,TypeError,KeyError) as exc:
+                return self._json(422,{"status":"WF04_GENERATION_OR_MATCH_REJECTED",
+                    "reason":str(exc)[:230]},sid,fresh)
+            except RuntimeError as exc:
+                return self._json(503,{"status":"WF04_CLOUD_CREDENTIAL_OR_TPU_NOT_CONFIGURED",
+                    "reason":str(exc)[:230]},sid,fresh)
+            except OSError as exc:
+                return self._json(503,{"status":"WF04_MODEL_NETWORK_OR_DB_FAILED",
+                    "reason":type(exc).__name__},sid,fresh)
         if urlsplit(self.path).path == "/api/investment/verified-scripts/publish":
             sid,fresh=self._sid()
             origin=self.headers.get("Origin","")
