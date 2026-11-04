@@ -53,7 +53,9 @@ def import_global_eod(pool,csv_path,*,exchange=None,asset_class="equity",timezon
 
 
 def import_intraday_csv(pool,inst,path,*,timestamp_col="timestamp",rollover_hour=0):
-    daily=intraday_to_daily(pd.read_csv(path),timezone_name=inst.timezone,
+    src=Path(path)
+    existing=pd.read_parquet(src) if src.suffix.lower()==".parquet" else pd.read_csv(src)
+    daily=intraday_to_daily(existing,timezone_name=inst.timezone,
                             utc_column=timestamp_col,rollover_hour=rollover_hour)
     return pool.ingest(inst,daily,source="existing-intraday:resampled",
                 detail=f"{path};tz={inst.timezone};rollover={rollover_hour}")
