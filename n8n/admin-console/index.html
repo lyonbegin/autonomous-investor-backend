@@ -101,7 +101,7 @@ async function loadVerifiedCandidates(){
  }
  area.innerHTML='<p class="muted">전체 등록 후보 '+items.length+'개 · 검증 통과 '+ready.length+
     '개 · 이미 목록에 게시된 전략 '+published.length+'개</p>'+
-  items.map(x=>'<div class="area"><b>'+esc(x.tradingview_original_title||x.source_id)+'</b>'+
+  (ready.length?ready.map(x=>'<div class="area"><b>'+esc(x.tradingview_original_title||x.source_id)+'</b>'+
    '<p class="muted">원본 '+esc(x.source_id)+' · 버전 '+esc(x.version_key)+
    ' · 검증 '+(x.publish_ready?'통과':'미통과 · '+esc(x.reason))+'</p>'+
    (x.publish_ready?
@@ -110,7 +110,7 @@ async function loadVerifiedCandidates(){
        'data-source="'+esc(x.source_id)+'" data-version="'+esc(x.version_key)+'" '+
        'data-sha="'+esc(x.source_sha256)+'">▶ 이 검증 통과 전략을 목록에 등록</button>'):
     '<span class="muted">등록 차단 · 변환 및 실제 차트 수치 검증부터 완료해야 합니다.</span>')+
-   '</div>').join('');
+   '</div>').join(''):'<p class="muted">아직 차트 비교까지 통과한 전략이 없습니다. 전략센터에서 원본을 선택해 검증하세요.</p>');
 }
 async function publishVerifiedStrategy(target){
  const message=document.getElementById('verified-selection-message');
@@ -317,8 +317,8 @@ async function refreshIntegrated(runId){
        '<p class="muted minor">실제 공개 NASDAQ:AMZN 2시간봉 300개 · 원본 299건과의 동등성 미검증</p>';
     }else if(chosen&&metadata?.source_sha256&&/^[0-9a-f]{64}$/.test(metadata.source_sha256)
        &&d.status!=='RUNNING'&&states.python==='PYNECORE_RUNTIME_EXECUTED'){
-      const src='https://autonomous-investor-public-production.up.railway.app/compare/'+
-         encodeURIComponent(chosen.source_id)+'?version='+encodeURIComponent(chosen.version_key)+
+      const src='/verified/index.html?view=compare&id='+
+         encodeURIComponent(chosen.source_id)+'&version='+encodeURIComponent(chosen.version_key)+
          '&sha256='+encodeURIComponent(metadata.source_sha256);
       if(preview.dataset.loaded!==src){
         preview.dataset.loaded=src;
@@ -343,7 +343,8 @@ async function refreshIntegrated(runId){
     }else if(tvUrl&&tvUrl.startsWith('https://investment-pine-parity-review-production.up.railway.app/?run=')){
       links.innerHTML='<a class="btn" href="'+esc(tvUrl)+'" target="_blank" rel="noopener">TradingView 캡처·CSV 수치 결과 보기</a>';
     }else if(chartUrl&&chartUrl.startsWith('https://autonomous-investor-public-production.up.railway.app/compare/')){
-      links.innerHTML='<a class="btn" href="'+esc(chartUrl)+'" target="_blank" rel="noopener">실제 시장 OHLCV 기반 Pine ↔ Python 차트 보기</a>'+
+      const verifiedUrl='/admin/index.html?section=verified';
+      links.innerHTML='<a class="btn" href="'+verifiedUrl+'">검증 완료 전략의 Pine ↔ Python 차트 열기</a>'+
         '<span class="muted minor">TradingView 웹사이트에서 내보낸 기준 CSV와 동등성은 별도 검증 필요</span>';
     }else{
       links.innerHTML='<span class="muted minor">실제 Pine/Python 차트가 준비되지 않았습니다. 차단 사유를 확인하세요.</span>';
