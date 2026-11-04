@@ -21,18 +21,8 @@ jobs:
           python -m py_compile n8n/editor-adapter/investment_verified_catalog.py n8n/editor-adapter/investment_studio_server.py n8n/investment-db/investment_pg.py
       - name: Persistent catalog security and exact DDDS verifier tests
         run: python n8n/tests/test_verified_strategy_catalog.py -v
-      - name: Original admin HTML JS still parses and verified UI registered
-        run: |
-          node - <<'NODE'
-          const fs=require('fs'),vm=require('vm'),assert=require('assert');
-          const text=fs.readFileSync('n8n/admin-console/index.html','utf8');
-          const scripts=[...text.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)].map(m=>m[1]).filter(s=>s.trim());
-          for(const code of scripts)new vm.Script(code);
-          assert(text.includes("['verified','검증 완료 전략'"));
-          assert(text.includes('/verified/index.html?view=list'));
-          assert(text.includes("verified-publish"));
-          console.log('ADMIN_VERIFIED_SCRIPTS_EMBED_JS_PASS');
-          NODE
+      - name: Original admin HTML JS and verified UI integration syntax
+        run: node n8n/tests/test_verified_admin_static.cjs
   docker:
     runs-on: ubuntu-latest
     timeout-minutes: 20
