@@ -60,6 +60,8 @@ function PythonPlot({data,result,visibleWindow,onApplied}:
    // Vela is in epoch milliseconds; lightweight-charts takes UTC seconds.
    const from=Math.floor(r.from/1000) as UTCTimestamp;
    const to=Math.floor(r.to/1000) as UTCTimestamp;
+   el.dataset.requestedFrom=String(r.from);
+   el.dataset.requestedTo=String(r.to);
    chart.timeScale().setVisibleRange({from,to});
    const actual=chart.timeScale().getVisibleRange();
    if(actual && typeof actual.from==='number' && typeof actual.to==='number'){
@@ -225,7 +227,7 @@ export function DddsSharedChartCompare({id,source,sourceSha,chart}:{id:string;so
     </section>
     <section className="panel"><h2>오른쪽 · 동일 봉의 DDDS 생성 Python</h2>
      <p>Python 변환 실행 · <b>NASDAQ:AMZN · 120분 · {formatWindow}</b></p>
-     {aligned&&result?<PythonPlot data={sameData} result={result}
+     {aligned&&result?<PythonPlot key={'python-window-'+visibleBars} data={sameData} result={result}
           visibleWindow={viewport} onApplied={setPythonWindow}/>:<div className="empty-state" data-testid="ddds-python-loading">{error?'Python 실행 오류: '+error:running?'동일한 '+bars.length+'개 봉으로 실제 DDDS Python 계산 중…':'동일 시장 데이터 확인 및 Python 자동 계산 준비 중…'}</div>}
     </section>
    </div>
