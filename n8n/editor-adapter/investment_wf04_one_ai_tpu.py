@@ -307,8 +307,8 @@ def dispatch_to_tpu(manifest, dataset_uri, *, top_k=100, min_signal_density=0.02
     """
     if manifest.get("status")!="GENERATED_SCREENING_PROXY_NOT_VALIDATED":
         raise ValueError("WF04_NOT_AN_UNCHANGED_GENERATED_MANIFEST")
-    from investment_wf04_tpu_worker import GCS_URI
-    if not isinstance(dataset_uri,str) or not GCS_URI.fullmatch(dataset_uri):
+    gcs_uri=re.compile(r"^gs://[A-Za-z0-9._-]+/[A-Za-z0-9_./=-]+\.npz$")
+    if not isinstance(dataset_uri,str) or not gcs_uri.fullmatch(dataset_uri) or ".." in dataset_uri:
         raise ValueError("WF04_GCS_DATASET_URI_REQUIRED")
     request_body={
        "plan":manifest["plan"],
