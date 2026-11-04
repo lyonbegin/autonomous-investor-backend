@@ -92,5 +92,25 @@ jobs:
           python-version: '3.11'
       - name: Install workbook reader
         run: pip install -r market_daily_10y/requirements.txt
-      - name: Probe official current HKEX securities listing (not prices)
-        run: python -m market_daily_10y.official_listing_smoke --allow-network
+      - name: Fetch current official HKEX listing and select Tencent stock
+        run: |
+          python -m market_daily_10y.official_listing_smoke --allow-network --one-ticker 0700.HK --universe-output /tmp/hkex-live-one.csv
+      - name: Download actual HKEX 0700.HK 10-year Yahoo 1D OHLC
+        run: |
+          python -m market_daily_10y.collector --root /tmp/hkex-10y --universe /tmp/hkex-live-one.csv --asof 2026-11-04 --limit 1 --pause 0
+          python -m market_daily_10y.collector --root /tmp/hkex-10y --status > /tmp/hkex-price-status.json
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/hkex-price-status.json'))
+          assert d['stored']==1 and d['eligible']==1, ('HKEX_10Y_NOT_ELIGIBLE',d)
+          x=d['instruments'][0]
+          assert x['vendor_symbol']=='0700.HK'
+          assert x['rows']>1800 and x['coverage']>=0.8
+          print('REAL_HKEX_10Y_1D_VERIFIED', x['vendor_symbol'], x['rows'], x['first_date'], x['last_date'])
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hkex-official-listing-and-price-evidence
+          path: /tmp/hkex-price-status.json
+          if-no-files-found: warn
