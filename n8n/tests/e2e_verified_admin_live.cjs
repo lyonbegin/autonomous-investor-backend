@@ -62,7 +62,7 @@ async function json(response){let body;try{body=await response.json()}catch{body
    await snapshot('02-original-DDDS-Pine-source-detail');
    await iframe.getByRole('button',{name:/원본 Pine.*Python 좌우 비교/}).click({timeout:15000});
    await iframe.locator('[data-testid="ddds-shared-chart-comparison"]').waitFor({timeout:60000});
-   await iframe.page().waitForTimeout(1800);
+   await page.waitForTimeout(1800);
    const innerFrame=page.frame({url: /\/verified\/index\.html/});
    if(!innerFrame)throw Error('ADMIN_SCRIPT_IFRAME_NOT_FOUND');
    await innerFrame.waitForFunction(()=>{
