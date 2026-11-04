@@ -52,6 +52,8 @@ function PythonPlot({data,result,visibleWindow,onApplied}:
  const root=useRef<HTMLDivElement>(null);
  const instance=useRef<IChartApi|null>(null);
  const appliedRef=useRef(onApplied);
+ const latestWindowRef=useRef(visibleWindow);
+ latestWindowRef.current=visibleWindow;
  useEffect(()=>{appliedRef.current=onApplied},[onApplied]);
  function applyWindow(chart:IChartApi,el:HTMLDivElement,r:ChartWindow|null){
    if(!validWindow(r))return;
@@ -89,10 +91,12 @@ function PythonPlot({data,result,visibleWindow,onApplied}:
   }
   // Deliberately NO fitContent(): that showed all 300 Python bars while
   // native Vela displayed just the latest ~80; the screenshot was misleading.
-  applyWindow(chart,el,visibleWindow);
+  applyWindow(chart,el,latestWindowRef.current);
   const ro=new ResizeObserver(()=>{
     chart.applyOptions({width:Math.max(100,el.clientWidth)});
-    applyWindow(chart,el,visibleWindow);
+    // Never restore the initial 80-bar window after a user changes it to 40.
+    // The observer was created at mount; only the live ref is current.
+    applyWindow(chart,el,latestWindowRef.current);
   });ro.observe(el);
   return()=>{ro.disconnect();instance.current=null;chart.remove()};
  },[data,result]);
