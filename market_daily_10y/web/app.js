@@ -266,6 +266,8 @@ function displayJob(job){
  el("jobProgress").style.width=(Math.min(100,(job.attempted||0)/total*100))+"%";
  el("jobMeta").textContent="요청 "+number(job.total)+"개 · 처리 "+number(job.attempted)+
   "개 · 성공 "+number(job.completed)+"개 · 실패 "+number(job.failed)+"개"+
+  (job.catalog_count?" · 등록 목록 "+number(job.catalog_count)+"개":"")+
+  (job.catalog_error?" · 목록 오류: "+job.catalog_error:"")+
   (job.current?" · 최근 "+job.current:"")+(job.last_error?" · 오류: "+job.last_error:"");
 }
 async function refreshJob(){
@@ -293,6 +295,7 @@ function init(){
  });
  el("keyCancel").addEventListener("click",()=>{el("keyModal").hidden=true;state.pending=null;});
  el("authButton").addEventListener("click",()=>{state.authToken="";requireKey(()=>toast("관리 키가 적용됐습니다."));});
+ el("refreshCatalogButton").addEventListener("click",()=>requireKey(()=>updateRequest("catalog")));
  el("updateAllButton").addEventListener("click",()=>requireKey(()=>updateRequest("all")));
  el("updateCategoryButton").addEventListener("click",()=>requireKey(()=>updateRequest("category")));
  el("updateOneButton").addEventListener("click",()=>requireKey(()=>updateRequest("instrument")));
