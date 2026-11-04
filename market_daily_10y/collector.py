@@ -146,7 +146,7 @@ class Store:
         return {'stored':len(rows),'eligible':sum(x['eligible'] for x in rows),
                 'total_rows':sum(x['rows'] for x in rows),'instruments':rows}
 
-    def align(self,a,b,min_overlap=0.8):
+    def align(self,a,b,min_overlap=0.8,asof=None,max_snapshot_age_days=7):
         lookup={x['key']:x for x in self.status()['instruments']}
         aa,bb=lookup.get(a.key),lookup.get(b.key)
         if not aa or not bb or not aa['eligible'] or not bb['eligible']:
@@ -159,6 +159,11 @@ class Store:
                        date.fromisoformat(bb['end_exclusive']))
         if (newest_end-oldest_end).days>7:
             raise ValueError('STALE_UNALIGNED_TEN_YEAR_SNAPSHOT')
+        evaluation_date=asof or datetime.now(timezone.utc).date()
+        if oldest_end>evaluation_date:
+            raise ValueError('FUTURE_MARKET_SNAPSHOT')
+        if (evaluation_date-oldest_end).days>max_snapshot_age_days:
+            raise ValueError('STALE_MARKET_SNAPSHOT')
         start,_=ten_year_window(oldest_end)
         x=self.read(a)
         y=self.read(b)
@@ -279,7 +284,8 @@ def main(argv=None):
     universe=load_universe(args.universe)
     if args.align:
         by_key={x.key:x for x in universe}
-        joined,info=store.align(by_key[args.align[0]],by_key[args.align[1]])
+        joined,info=store.align(by_key[args.align[0]],by_key[args.align[1]],
+                                 asof=date.fromisoformat(args.asof) if args.asof else None)
         print(json.dumps({'info':info,'first_rows':joined.head(3).to_dict('records')},
                          ensure_ascii=False));return
     if args.asset:universe=[x for x in universe if x.asset_class==args.asset]
