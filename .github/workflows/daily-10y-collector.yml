@@ -162,3 +162,36 @@ jobs:
           assert Path('/tmp/official-world-pool/universe/world.csv').exists()
           print('ACTUAL_RAILWAY_COMMAND_EQUIVALENT_10Y_STORED',v['instruments'][0]['key'],v['total_rows'])
           PY
+
+
+  korea-japan-real-yahoo-ten-year:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install collectors
+        run: pip install -r market_daily_10y/requirements.txt
+      - name: Verify real Samsung KRX and Toyota JPX rolling 10-year daily bars
+        run: |
+          python - <<'PY'
+          from datetime import date
+          from market_daily_10y.collector import Store, load_universe, sync, ten_year_window
+          store=Store('/tmp/asia-10yr-price')
+          all_instruments=load_universe('market_daily_10y/universe.csv')
+          start,end=ten_year_window(date(2026,11,4))
+          matched=[]
+          for symbol in ('005930.KS','7203.T'):
+              inst=next(i for i in all_instruments if i.vendor_symbol==symbol)
+              result=sync(store,inst,start,end,retries=1)
+              assert result['status']=='COLLECTED' and result['eligible'], (symbol,result)
+              assert result['rows']>=2000
+              assert result['first_date']<='2016-12-06'
+              assert result['last_date']>='2026-10-25'
+              matched.append(inst)
+              print('REAL_ASIA_10Y_1D_VERIFIED',symbol,result['rows'],result['first_date'],result['last_date'])
+          both,alignment=store.align(matched[0],matched[1],asof=end)
+          assert alignment['common_dates']>1900
+          print('REAL_KRX_JPX_IDENTICAL_DATE_OVERLAP',alignment)
+          PY
