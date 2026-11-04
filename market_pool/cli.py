@@ -20,6 +20,8 @@ def main(argv=None):
     p=sub.add_parser("register",help="Register all market asset categories")
     p.add_argument("--catalog",default=str(Path(__file__).resolve().parent/
                       "catalog"/"starter_universe.json"))
+    p=sub.add_parser("import-universe",help="Load pre-existing exchange symbol directories with explicit asset class")
+    p.add_argument("file",help="CSV columns: asset_class,exchange,symbol,vendor,vendor_symbol[,currency,timezone,contract_type,notes]")
     sub.add_parser("status")
     p=sub.add_parser("symbols");p.add_argument("--asset")
     p=sub.add_parser("import-eod",help="Import existing Global EOD CSV")
@@ -47,6 +49,11 @@ def main(argv=None):
     pool=MarketPool(opts.root,storage=opts.format)
     if opts.command=="register":
         result={"ids":pool.load_registry(opts.catalog),"coverage":pool.coverage()}
+    elif opts.command=="import-universe":
+        rows=pd.read_csv(opts.file,dtype=str,keep_default_na=False).to_dict("records")
+        allowed={"asset_class","exchange","symbol","vendor","vendor_symbol","currency","timezone","contract_type","notes"}
+        result={"registered":sum(bool(pool.register(Instrument(**{k:v for k,v in row.items() if k in allowed and v}))) for row in rows),
+                "coverage":pool.coverage()}
     elif opts.command=="status":result=pool.coverage()
     elif opts.command=="symbols":result=pool.instruments(opts.asset)
     elif opts.command=="import-eod":
