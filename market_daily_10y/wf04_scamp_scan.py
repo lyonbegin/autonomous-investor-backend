@@ -47,7 +47,8 @@ def scan_candidates(store, anchor, candidates, asof, *, window=60,
                 "error_type":type(exc).__name__,
             })
     results.sort(key=lambda r: (r["best_correlation"] is None,
-                -(r["best_correlation"] or -1),r["candidate_key"]))
+                -float(r["best_correlation"]) if r["best_correlation"] is not None else 0.0,
+                r["candidate_key"]))
     start,end=ten_year_window(asof)
     return {
         "workflow":"WF-04","engine":"pyscamp.abjoin",
@@ -57,7 +58,7 @@ def scan_candidates(store, anchor, candidates, asof, *, window=60,
         "feature":feature,"motif_window_trading_days":window,
         "attempted":len(candidates),"scored":len(results),
         "blocked":len(errors),
-        "skipped_not_downloaded_or_unverified":len(errors),
+        "blocked_candidate_count":len(errors),
         "trading_enabled":False,
         "ranking_is_forecast":False,
         "ranked":results,"excluded":errors,
