@@ -58,6 +58,17 @@ jobs:
           kinds={x['asset_class'] for x in data['instruments'] if x['eligible']}
           assert {'equity','fx','crypto_spot'}.issubset(kinds), ('NON_EQUITY_TEN_YEAR_YAHOO_DATA_NOT_VERIFIED',kinds)
           print('LIVE_YAHOO_MULTI_ASSET_10Y_VERIFIED', data['stored'], data['eligible'])
+          from market_daily_10y.collector import Store,load_universe
+          items={x.key:x for x in load_universe('market_daily_10y/universe.csv')}
+          store=Store('/tmp/market_10yr_real')
+          eq=next(x for x in data['instruments'] if x['eligible'] and x['asset_class']=='equity')
+          for asset in ('fx','crypto_spot'):
+              candidate=next(x for x in data['instruments'] if x['eligible'] and x['asset_class']==asset)
+              joined,quality=store.align(items[eq['key']],items[candidate['key']])
+              assert quality['common_dates']>1800 and not quality['filled_gaps']
+              assert joined['date'].is_unique
+              print('REAL_IDENTICAL_DATE_ALIGNMENT',eq['key'],candidate['key'],
+                    quality['common_dates'],quality['start'],quality['end_exclusive'])
           PY
       - uses: actions/upload-artifact@v4
         if: always()
