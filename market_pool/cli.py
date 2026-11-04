@@ -63,7 +63,7 @@ def main(argv=None):
           for x in entries}
         if opts.command=="yahoo":
             selected=[x for x in index.values() if x.vendor=="yahoo"
-                       and (not opts.asset or opts.asset_class==x.asset_class)]
+                       and (not opts.asset or opts.asset==x.asset_class)]
             if opts.limit:selected=selected[:opts.limit]
             result=yahoo_backfill(pool,selected,start=opts.start,end=opts.end,
                    pause=opts.pause,full_refresh=opts.full_refresh)
