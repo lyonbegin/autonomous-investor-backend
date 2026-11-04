@@ -11,14 +11,16 @@ import './styles.css';
  * controls and same-OHLCV Pine/Python comparison components are REUSED.
  * Other former public frontend sections are NOT mounted.
  */
-type Catalog={items:CommunityScript[];count:number;total_count:number;has_more:boolean;limit:number;offset:number};
+type ApprovedScript=CommunityScript & {source_hash:string;python_sha256:string;
+  evidence_url:string;numeric_points:number;numeric_mismatches:0};
+type Catalog={items:ApprovedScript[];count:number;total_count:number;has_more:boolean;limit:number;offset:number};
 const BASE='/api/investment/verified-scripts';
 async function verified<T>(path:string):Promise<T>{
   const res=await fetch(BASE+path,{credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}});
   if(!res.ok)throw Error('검증 완료 전략 조회 실패 · HTTP '+res.status);
   return res.json() as Promise<T>;
 }
-let catalogCache=new Map<string,CommunityScript>();
+let catalogCache=new Map<string,ApprovedScript>();
 const sourceApi=api.scriptSource;
 const metaApi=api.scriptMeta;
 const detailApi=api.scriptDetail;
@@ -85,11 +87,19 @@ export function VerifiedScriptsApp(){
  const [reload,setReload]=useState(0);
  useEffect(()=>{
    let alive=true;
-   verified<Catalog>('/catalog?limit=100&offset=0')
-     .then(r=>{
+   (async()=>{
+     const all:ApprovedScript[]=[];
+     for(let offset=0;offset<=10000;offset+=100){
+       const page=await verified<Catalog>('/catalog?limit=100&offset='+offset);
+       all.push(...page.items);
+       if(!page.has_more)break;
+     }
+     return all;
+   })()
+     .then(items=>{
        if(!alive)return;
-       catalogCache=new Map(r.items.map(item=>[item.script_id_part,item]));
-       setApproved(new Set(r.items.map(x=>x.script_id_part)));
+       catalogCache=new Map(items.map(item=>[item.script_id_part,item]));
+       setApproved(new Set(items.map(x=>x.script_id_part)));
        setError('');
      }).catch(e=>{if(alive)setError(String(e))});
    return()=>{alive=false};
@@ -114,7 +124,7 @@ export function VerifiedScriptsApp(){
    if(id)params.set('id',id);else params.delete('id');
    history.pushState({},'',location.pathname+'?'+params.toString());
    setScreen({kind,id});
-   window.scrollTo({top:0,behavior:'instant'});
+   window.scrollTo({top:0,behavior:'auto'});
  }
  if(error)return <main className="verified-operations-panel"><div className="empty-state">{error}</div></main>;
  if(!approved)return <main className="verified-operations-panel"><div className="loading">검증 완료 전략 기록을 확인하는 중...</div></main>;
