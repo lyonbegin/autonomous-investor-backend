@@ -26,3 +26,7 @@ jobs:
           python -m market_pool.cli --root /tmp/sample_pool --format parquet register
           python -m market_pool.cli --root /tmp/sample_pool --format parquet import-symbol 'equity:NASDAQ:AAPL:spot' market_pool/fixtures/REAL_plotly_AAPL_2015_2017.csv --source plotly-MIT-2015-2017
           python -m market_pool.cli --root /tmp/sample_pool --format parquet status
+      - name: Fetch actual prebuilt 2012-2026 Bitstamp BTCUSD OHLCV CSV via GitHub
+        run: |
+          python -m market_pool.cli --root /tmp/sample_pool --format parquet import-public-csv 'crypto_spot:BITSTAMP:BTCUSD:spot' 'https://raw.githubusercontent.com/alessiostomeo/btc-cycle-data/main/bitstamp/1day/BTCUSD_bitstamp_daily_2012-2026.csv'
+          python -m market_pool.cli --root /tmp/sample_pool --format parquet status
