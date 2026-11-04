@@ -3,6 +3,8 @@ on:
   push:
     branches: [feature/ddds-compare-auto-render-readable-20261104]
     paths: ['.github/workflows/ddds-auto-live-browser-e2e.yml','public_frontend/tests/test_live_ddds_same_bars_comparison.cjs']
+  pull_request:
+    branches: [feature/ddds-site-chart-python-same-bars-20261104]
   workflow_dispatch:
 permissions:
   contents: read
