@@ -122,3 +122,25 @@
   margin: 16px 0 10px;
   background: #f5f7fa;
 }
+
+/* DDDS exact same-bars comparison: no unreadable 420px-wide strategy charts.
+   A full-width chart is preferable to a broken two-column mobile screenshot. */
+.ddds-shared-compare{width:100%;max-width:1760px;margin:0 auto;padding:12px 18px 32px}
+.ddds-shared-compare .pine-compare-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+.ddds-shared-compare .pine-compare-grid>.panel{min-width:0;padding:16px;margin:8px 0}
+.ddds-shared-compare .pine-compare-grid h2{font-size:18px;line-height:1.35;margin-bottom:8px}
+.ddds-shared-compare .native-pine-shell,
+.ddds-shared-compare .native-pine-chart{width:100%;min-width:0;height:620px;min-height:620px}
+.ddds-shared-compare .ddds-license-note{font-size:12px;color:#64748b}
+.ddds-shared-compare .ddds-auto-controls{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.ddds-shared-compare .ddds-auto-controls span{font-size:13px;font-weight:700}
+.ddds-shared-compare .ddds-auto-controls button{margin-left:auto}
+@media(max-width:1540px){
+  .ddds-shared-compare .pine-compare-grid{grid-template-columns:minmax(0,1fr)}
+}
+@media(max-width:720px){
+  .ddds-shared-compare{padding:8px}
+  .ddds-shared-compare .pine-compare-grid>.panel{padding:10px}
+  .ddds-shared-compare .native-pine-shell,
+  .ddds-shared-compare .native-pine-chart{height:520px;min-height:520px}
+}

@@ -1,0 +1,18 @@
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const app=fs.readFileSync('public_frontend/src/components/DddsSharedChartCompare.tsx','utf8');
+const css=fs.readFileSync('public_frontend/src/styles.css','utf8');
+const e2e=fs.readFileSync('public_frontend/tests/test_live_ddds_same_bars_comparison.cjs','utf8');
+assert.match(app,/useEffect\(\(\)=>\{\s*if\(!ready\)/);
+assert.match(app,/await fetch\(API,/);
+assert.match(app,/acknowledge_mpl:true/);
+assert.doesNotMatch(app,/getByRole\('checkbox'\)\.check\(/);
+assert.doesNotMatch(app,/<input type="checkbox"/);
+assert.match(app,/ddds-python-auto-status/);
+assert.match(app,/retryCount/);
+assert.match(css,/@media\(max-width:1540px\)/);
+assert.match(css,/\.ddds-shared-compare \.pine-compare-grid\{grid-template-columns:minmax\(0,1fr\)/);
+assert.match(e2e,/width:944,height:850/);
+assert.match(e2e,/responsive\.pine_width\|\|0\)<600/);
+assert.match(e2e,/DDDS_REAL_SITE_TWO_CHARTS_SAME_300_BARS_VERIFIED/);
+console.log('DDDS_AUTO_RENDER_944PX_REGRESSION_CONTRACT_PASS');

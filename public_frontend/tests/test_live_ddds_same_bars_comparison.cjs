@@ -16,15 +16,12 @@ const out=process.env.DDDS_WEB_UI_EVIDENCE||'/tmp/ddds-same-bars-ui-e2e';
    if(response?.status()!==200)throw Error('SITE_COMPARE_HTTP_FAILURE');
    const root=page.getByTestId('ddds-shared-chart-comparison');
    await root.waitFor({timeout:85000});
-   const buttons=root.getByRole('button',{name:/같은 봉을 Python에 전달해 비교/});
-   await buttons.waitFor({timeout:30000});
-   if(await buttons.isEnabled())throw Error('MPL_RIGHTS_CONFIRMATION_NOT_REQUIRED');
-   await root.getByRole('checkbox').check();
-   if(!await buttons.isEnabled())throw Error('EXACT_DDDS_300_BAR_SITE_CHART_NOT_READY');
-   await buttons.click();
+   // Exactly the problem in the user screenshot: opening this page must
+   // trigger the actual Python execution without a manual approval/click.
+   if(await root.getByRole('checkbox').count())throw Error('BLOCKING_APPROVAL_STILL_VISIBLE');
    await page.waitForFunction(()=>{
      const t=document.querySelector('[data-testid="ddds-same-bar-status"]')?.textContent||'';
-     return t.includes('300/300')||document.body.innerText.includes('Python 실행 실패:');
+     return t.includes('300/300')||document.body.innerText.includes('Python 자동 실행 실패:');
    },{timeout:160000});
    const status=await root.getByTestId('ddds-same-bar-status').innerText();
    if(!status.includes('300/300'))throw Error('NOT_SAME_300_BARS '+status+' '+(await root.innerText()).slice(0,700));
@@ -35,9 +32,29 @@ const out=process.env.DDDS_WEB_UI_EVIDENCE||'/tmp/ddds-same-bars-ui-e2e';
      throw Error('DDDS_COMMON_NUMERIC_INDICATOR_OUTPUT_MISSING '+plots);
    if(/불일치 [1-9][0-9]*개/.test(plots))throw Error('DDDS_SAME_BARS_PLOT_MISMATCH '+plots);
    if(errors.length)throw Error('PAGE_JS_ERRORS '+errors.join('|'));
-   await page.screenshot({path:path.join(out,'real-site-DDDS-vela-python-300-bars.png'),fullPage:true});
+   // Reproduce the 944px screenshot: a strategy plot must not be crammed
+   // into a 420px half-column. At this width, charts must stack.
+   await page.setViewportSize({width:944,height:850});
+   await page.waitForTimeout(1200);
+   const responsive=await page.evaluate(()=>{
+     const root=document.querySelector('[data-testid="ddds-shared-chart-comparison"]');
+     const plot=root?.querySelector('.native-pine-chart');
+     const py=root?.querySelector('[data-testid="ddds-python-chart"]');
+     const grid=root?.querySelector('.pine-compare-grid');
+     const cols=grid?getComputedStyle(grid).gridTemplateColumns.split(' ').length:0;
+     return {columns:cols,pine_width:plot?.getBoundingClientRect().width,
+             python_width:py?.getBoundingClientRect().width,
+             visible_python:!!py};
+   });
+   if(responsive.columns!==1||!responsive.visible_python||
+       (responsive.pine_width||0)<600||(responsive.python_width||0)<600)
+     throw Error('USER_SCREENSHOT_944PX_LAYOUT_UNUSABLE '+JSON.stringify(responsive));
+   await page.screenshot({path:path.join(out,'real-site-DDDS-944px-both-charts-auto.png'),fullPage:true});
+   await page.setViewportSize({width:1710,height:1000});
+   await page.waitForTimeout(900);
+   await page.screenshot({path:path.join(out,'real-site-DDDS-wide-both-charts-auto.png'),fullPage:true});
    const result={status:'DDDS_REAL_SITE_TWO_CHARTS_SAME_300_BARS_VERIFIED',
-     website:BASE,source_id:ID,bar_count:300,plots,vela_status:capture,errors};
+     website:BASE,source_id:ID,bar_count:300,plots,vela_status:capture,responsive_944px:responsive,automatic_run:true,errors};
    fs.writeFileSync(path.join(out,'actual-browser-ui-result.json'),JSON.stringify(result,null,2));
    console.log('REAL_SITE_DDDS_TWO_CHART_PASS '+JSON.stringify(result));
  }finally{await browser.close()}

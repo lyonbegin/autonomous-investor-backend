@@ -1,0 +1,32 @@
+name: Verify DDDS Python auto-render on real Railway site at 944px
+on:
+  push:
+    branches: [feature/ddds-compare-auto-render-readable-20261104]
+    paths: ['.github/workflows/ddds-auto-live-browser-e2e.yml','public_frontend/tests/test_live_ddds_same_bars_comparison.cjs']
+  pull_request:
+    branches: [feature/ddds-site-chart-python-same-bars-20261104]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  screenshot-and-parity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Chromium browser
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Open actual public Railway DDDS comparison without clicking Run
+        env:
+          DDDS_WEB_UI_EVIDENCE: /tmp/ddds-auto-ui
+        run: node public_frontend/tests/test_live_ddds_same_bars_comparison.cjs
+      - name: Upload 944px and wide screenshots and exact result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ddds-real-site-autoload-944px-and-wide-screenshots
+          path: /tmp/ddds-auto-ui/
+          retention-days: 14
+          if-no-files-found: warn

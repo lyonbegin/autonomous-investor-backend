@@ -1,0 +1,27 @@
+name: DDDS compare auto-render regression and production React build
+on:
+  push:
+    branches: [feature/ddds-compare-auto-render-readable-20261104]
+  pull_request:
+    branches: [feature/ddds-site-chart-python-same-bars-20261104]
+permissions:
+  contents: read
+jobs:
+  frontend-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install project existing chart dependencies
+        working-directory: public_frontend
+        run: npm install --no-audit --no-fund
+      - name: TypeScript and Vite production build
+        working-directory: public_frontend
+        run: npm run build
+      - name: Validate auto-execution and responsive regression contract
+        run: |
+          node --check public_frontend/tests/test_live_ddds_same_bars_comparison.cjs
+          node public_frontend/tests/test_ddds_auto_render_contract.cjs
