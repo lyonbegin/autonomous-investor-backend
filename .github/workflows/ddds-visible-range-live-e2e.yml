@@ -2,7 +2,7 @@ name: DDDS real two-chart identical visible date-range E2E
 on:
   push:
     branches: [feature/ddds-synchronized-visible-interval-20261104]
-    paths: ['.github/workflows/ddds-visible-range-live-e2e.yml','public_frontend/tests/test_ddds_visible_range_e2e.cjs']
+    paths: ['.github/workflows/ddds-visible-range-live-e2e.yml','public_frontend/tests/test_ddds_visible_range_e2e.cjs','public_frontend/src/components/DddsSharedChartCompare.tsx','public_frontend/src/components/NativePineChartControl.tsx']
   pull_request:
     branches: [feature/ddds-compare-auto-render-readable-20261104]
   workflow_dispatch:
