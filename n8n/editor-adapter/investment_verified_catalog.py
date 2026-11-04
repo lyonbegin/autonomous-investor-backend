@@ -178,7 +178,10 @@ def select_and_publish(source_id,version_key,pine_sha):
         "script_type":"strategy","script_access":1,"version":version_key,
         "source_hash":pine_sha,"python_sha256":exact["python_sha256"],
         "symbol":proof["symbol"],"interval":"120" if proof["timeframe"]=="2h" else proof["timeframe"],
-        "chart_url":url,"image_url":None,"likes_count":0,"comments_count":0,
+        "chart_url":url,
+        "image_url":("https://s3.tradingview.com/l/LkgKT3TG_mid.webp?v=1793614735"
+                     if source_id==DDDS_ID else None),
+        "likes_count":0,"comments_count":0,
         "verified_bar_count":proof["verified_bar_count"],
         "numeric_points":proof["numeric_points"],
         "numeric_mismatches":0,"verification_type":proof["verification_type"],
