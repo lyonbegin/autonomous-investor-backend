@@ -1,16 +1,19 @@
 name: WF02 exact DDDS same-site-bars Pine-Python execution
 on:
   push:
-    branches: [feature/wf02-ddds-shared-bars-compare-api-20261104]
+    branches: [feature/wf02-ddds-shared-bars-compare-api-20261104, feature/admin-verified-strategies-catalog-20261104]
     paths:
       - 'n8n/editor-adapter/investment_shared_bars_compare.py'
+      - 'n8n/editor-adapter/investment_verified_catalog.py'
+      - 'n8n/verified-ui/**'
+      - 'n8n/admin-console/index.html'
       - 'n8n/tests/capture_ddds_exact_300_from_site_vela.cjs'
       - 'n8n/tests/compare_actual_ddds_same_300_vela_python.py'
       - 'n8n/editor-adapter/investment_studio_server.py'
       - 'n8n/tests/test_ddds_shared_bars_compare.py'
       - '.github/workflows/wf02-ddds-shared-bars-api.yml'
   pull_request:
-    branches: [feature/wf02-free-pyne-ddds-converter-20261104]
+    branches: [feature/wf02-free-pyne-ddds-converter-20261104, feature/wf02-ddds-shared-bars-compare-api-20261104]
   workflow_dispatch:
 permissions:
   contents: read
@@ -63,3 +66,25 @@ jobs:
           path: /tmp/ddds-site-vela-pyne-300/
           retention-days: 14
           if-no-files-found: warn
+
+  verified-admin-migration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install catalog tests deps
+        run: python -m pip install "beautifulsoup4==4.13.4" "psycopg[binary]>=3.2,<4"
+      - name: Verify exact-source selected-only cumulative catalog
+        run: |
+          python -m py_compile n8n/editor-adapter/investment_verified_catalog.py n8n/editor-adapter/investment_studio_server.py n8n/investment-db/investment_pg.py
+          python n8n/tests/test_verified_strategy_catalog.py -v
+      - name: Verify admin inline JS and retained React UI link
+        run: node n8n/tests/test_verified_admin_static.cjs
+      - name: Build REAL production Docker with original React scripts bundle
+        run: docker build -f n8n/Dockerfile.native-editor-gateway -t verified-stock-editor:test .
+      - name: Inspect embedded artifacts
+        run: |
+          docker run --rm --entrypoint sh verified-stock-editor:test -c 'test -s /app/dist/admin/index.html && test -s /app/dist/verified/index.html && ls /app/dist/verified/assets/*.js >/dev/null'
