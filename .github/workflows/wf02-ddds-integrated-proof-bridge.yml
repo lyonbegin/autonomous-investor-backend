@@ -36,6 +36,9 @@ jobs:
           docker run --rm --entrypoint sh ddss-bridge:test -c 'test -s /app/investment_pipeline_ddds_bridge.py && test -s /app/dist/verified/index.html && test -s /app/dist/admin/index.html'
 
   live-integrated-four-stages:
+    concurrency:
+      group: actual-DDDS-production-four-stage-only-one-at-a-time
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     timeout-minutes: 13
     steps:
