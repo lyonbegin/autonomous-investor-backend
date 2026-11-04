@@ -1,0 +1,7 @@
+pandas>=2.1,<3
+numpy>=1.24
+pyarrow>=17,<30
+yfinance>=0.2.50
+pytest>=8
+# Optional, only when importing an existing Microsoft Qlib binary archive:
+# pyqlib
