@@ -11,7 +11,7 @@ import json
 import os
 import tempfile
 from datetime import date, datetime, timezone
-from importlib.metadata import version
+from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 
 import numpy as np
@@ -102,6 +102,16 @@ def scamp_ab_matches(series_a, series_b, dates, window,
     return selected
 
 
+def _installed_scamp_version():
+    for package in ("pyscamp", "pyscamp-cpu", "pyscamp-gpu"):
+        try:
+            return version(package)
+        except PackageNotFoundError:
+            continue
+    import pyscamp
+    return str(getattr(pyscamp, "__version__", "UNKNOWN"))
+
+
 def run_wf04(store, left_key, right_key, asof, *,
              window=60, feature="log_returns", threshold=0.0, top=5,
              threads=2, backend=None):
@@ -123,7 +133,7 @@ def run_wf04(store, left_key, right_key, asof, *,
     return {
         "status":"MATCHES_FOUND" if hits else "NO_MATCHES_ABOVE_THRESHOLD",
         "workflow":"WF-04", "engine":"pyscamp.abjoin",
-        "engine_version":version("pyscamp") if backend is None else "injected_test_backend",
+        "engine_version":_installed_scamp_version() if backend is None else "injected_test_backend",
         "compute_device":"CPU", "thread_limit":threads,
         "left":left_key, "right":right_key,
         "left_parquet_sha256":lookup[left_key]["sha256"],
