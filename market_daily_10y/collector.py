@@ -229,6 +229,7 @@ def main(argv=None):
     ap.add_argument('--status',action='store_true')
     ap.add_argument('--progress',action='store_true',help='compact persistent queue and actual price coverage report')
     ap.add_argument('--queue',action='store_true',help='stable SQLite pending/refresh/retry scheduling; no offset cursor')
+    ap.add_argument('--mirror-s3',action='store_true',help='explicit private S3 transport; never enabled by default')
     ap.add_argument('--align',nargs=2)
     ap.add_argument('--pause',type=float,default=1.5)
     ap.add_argument('--offset',type=int,default=None,help='manual batch offset; default rotating cursor')
@@ -289,6 +290,11 @@ def main(argv=None):
         print(json.dumps({'info':info,'first_rows':joined.head(3).to_dict('records')},
                          ensure_ascii=False));return
     if args.asset:universe=[x for x in universe if x.asset_class==args.asset]
+    bridge=None
+    if args.mirror_s3:
+        from .s3_bridge import PrivatePoolBridge, s3_client_from_env
+        client,bucket=s3_client_from_env()
+        bridge=PrivatePoolBridge(store,client,bucket)
     start,end=ten_year_window(date.fromisoformat(args.asof) if args.asof else None)
     results=[]
     if args.limit<1:raise ValueError('BATCH_LIMIT_POSITIVE_REQUIRED')
@@ -309,6 +315,14 @@ def main(argv=None):
         item=sync(store,inst,start,end)
         if queue is not None:
             item['next_due']=queue.record(inst,end,item)
+        if bridge is not None and item['status']=='COLLECTED':
+            try:
+                mirror=bridge.mirror_instrument(inst)
+                item['s3_mirror_status']=mirror['status']
+                item['s3_object_sha256']=mirror['sha256']
+            except Exception as exc:
+                item['s3_mirror_status']='FAILED'
+                item['s3_error']=f'{type(exc).__name__}: {str(exc)[:180]}'
         results.append(item)
         print(json.dumps(item,ensure_ascii=False),flush=True)
         if args.pause:time.sleep(args.pause)
@@ -320,6 +334,13 @@ def main(argv=None):
         'eligible':sum(x.get('eligible',False) for x in results),
         'failed':sum(x['status']=='FAILED' for x in results),
         'worldwide_coverage_verified':False}
+    if bridge is not None:
+        summary['s3_mirror_failed']=sum(x.get('s3_mirror_status')=='FAILED' for x in results)
+        try:
+            summary['s3_manifest']=bridge.publish(end)
+        except Exception as exc:
+            summary['s3_manifest']={'status':'NOT_PUBLISHED',
+                                    'error':f'{type(exc).__name__}: {str(exc)[:180]}'}
     if queue is not None:
         summary['queue_progress']=queue.report(end,args.limit)
         report_path=store.root/'latest-run-summary.json'
