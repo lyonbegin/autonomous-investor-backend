@@ -1,0 +1,34 @@
+name: LIVE DDDS four-step integrated node execution and chart
+on:
+  push:
+    branches: [feature/wf02-bridge-real-ddds-verified-site-20261104]
+    paths:
+      - '.github/workflows/wf02-ddds-integrated-live-e2e.yml'
+      - 'n8n/tests/e2e_integrated_ddds_4stage.cjs'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  integrated-real-site:
+    runs-on: ubuntu-latest
+    timeout-minutes: 13
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Chromium to actually click and execute the selected DDDS four-step workflow
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Verify one real WF01 saved source, WF02 PYNE generated Python, live 300-bars execution and site comparison
+        env:
+          INTEGRATED_DDDS_EVIDENCE: /tmp/wf02-ddds-four-stage-evidence
+        run: |
+          node --check n8n/tests/e2e_integrated_ddds_4stage.cjs
+          node n8n/tests/e2e_integrated_ddds_4stage.cjs
+      - name: Save 4-step node states, exact source SHA, OHLCV hash and actual both renderer screenshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wf02-DDDS-original-Pine-300-OHLCV-Python-reverified-admin
+          path: /tmp/wf02-ddds-four-stage-evidence
+          retention-days: 14
+          if-no-files-found: warn
