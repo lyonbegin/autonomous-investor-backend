@@ -12,6 +12,11 @@ RUN npm install --prefix /app/shared/playground --no-audit --no-fund
 COPY n8n/workflows/ /app/shared/playground/public/stock-workflows/
 ENV VITE_EDITOR_PROJECT=investment
 RUN npm --prefix /app/shared/playground run build
+# Compile-check the REAL final administrator UI inline script at image build.
+COPY n8n/admin-console/index.html /app/n8n/admin-console/index.html
+COPY n8n/tests/test_verified_admin_static.cjs /app/n8n/tests/test_verified_admin_static.cjs
+RUN node /app/n8n/tests/test_verified_admin_static.cjs
+
 
 # Migrate ONLY the existing /scripts React UI and all its original child pages
 # into this SAME editor/operations service. Pin precisely the last known-good
@@ -73,6 +78,12 @@ COPY n8n/editor-adapter/verified_pine_archive_index.json /app/verified_pine_arch
 COPY n8n/editor-adapter/investment_pine_store.py /app/investment_pine_store.py
 COPY --from=build /app/shared/server/node_workspace_store.py /app/node_workspace_store.py
 RUN python3 -m py_compile /app/studio_server.py /app/node_workspace_store.py /app/node_run_store.py /app/project_adapter_runtime.py /app/investment_node_adapter.py /app/investment_wf02.py /app/investment_pynecomp.py /app/investment_free_pyne.py /app/investment_free_pyne_runner.py /app/investment_free_pyne_chart.py /app/investment_shared_bars_compare.py /app/investment_verified_catalog.py /app/investment_pg.py /app/investment_pipeline.py /app/investment_studio_server.py /app/investment_tv_chart_integration.py /app/investment_tv_publication.py /app/investment_tv_trade_reference.py /app/investment_ddds_parity.py /app/pynecore_samples/bollinger_bands.py /app/pynecore_samples/sma_crossover.py /app/engine.py /app/sequence_reversal.py /app/licensed_strategy_manifest.py /app/investment_source_registry.py /app/verified_pine_archive.py
+
+# Fail deployment before it starts if a promotion could leak an unverified
+# strategy or break the existing persistent ledger/idempotency guarantees.
+COPY n8n/tests/test_verified_strategy_catalog.py /app/verified_tests/test_verified_strategy_catalog.py
+RUN DDDS_FIXTURE_PATH=/app/fixtures/ddds_published_source.gz.b64 \
+    PYTHONPATH=/app python3 /app/verified_tests/test_verified_strategy_catalog.py -v
 RUN mkdir -p /data && groupadd --system studio && useradd --system --gid studio --home /app studio \
     && chown -R studio:studio /data /app
 # The Railway volume is mounted after image build as root-owned /data.
