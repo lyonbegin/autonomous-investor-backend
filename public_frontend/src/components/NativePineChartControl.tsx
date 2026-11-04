@@ -187,8 +187,11 @@ export function NativePineChartControl({data,source,onRuntime,onCapture,visibleR
     let viewportInitialized=false;
     const offViewport=chart.on('viewport:changed',(range)=>{
       if(disposed||!viewportInitialized)return;
-      if(Number.isFinite(range.from)&&Number.isFinite(range.to)&&range.from<range.to)
+      if(Number.isFinite(range.from)&&Number.isFinite(range.to)&&range.from<range.to){
+        el.dataset.visibleFrom=String(range.from);
+        el.dataset.visibleTo=String(range.to);
         viewportRef.current?.({from:range.from,to:range.to});
+      }
     });
 
     chart.registerEngine('pine',new PineWorkerEngine());
@@ -236,8 +239,11 @@ export function NativePineChartControl({data,source,onRuntime,onCapture,visibleR
       if(initialVisibleRef.current)chart.setVisibleRange(initialVisibleRef.current);
       viewportInitialized=true;
       const actual=chart.getVisibleRange();
-      if(actual&&Number.isFinite(actual.from)&&Number.isFinite(actual.to))
+      if(actual&&Number.isFinite(actual.from)&&Number.isFinite(actual.to)){
+        el.dataset.visibleFrom=String(actual.from);
+        el.dataset.visibleTo=String(actual.to);
         viewportRef.current?.(actual);
+      }
     }).catch((err:any)=>{
       if(disposed)return;
       const message=err?.message||String(err);
