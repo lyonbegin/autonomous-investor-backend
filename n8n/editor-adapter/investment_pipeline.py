@@ -503,12 +503,14 @@ def process(run_id,sid,requested_source=None):
                     # The old ④ gate incorrectly treated this same DDDS as
                     # an unsupported source because its SHA was missing.
                     pinned=exact_stored_pine(selected["source_id"],selected["version_key"])
+                    emitted_sha=hashlib.sha256(result["python_code"].encode("utf-8")).hexdigest()
                     if (result.get("source_id")!=selected["source_id"] or
                         result.get("version_key")!=selected["version_key"] or
-                        result.get("pine_sha256",pinned["source_sha256"])!=pinned["source_sha256"]):
-                        raise ValueError("WF02_GENERATED_CODE_SOURCE_VERSION_SHA_MISMATCH")
+                        result.get("source_sha256")!=pinned["source_sha256"] or
+                        result.get("python_sha256")!=emitted_sha):
+                        raise ValueError("WF02_GENERATED_CODE_SOURCE_VERSION_OR_EMITTED_SHA_MISMATCH")
                     converted={**selected,"source_sha256":pinned["source_sha256"],
-                        "python_sha256":hashlib.sha256(result["python_code"].encode("utf-8")).hexdigest()}
+                        "python_sha256":emitted_sha}
                     generated_code=result["python_code"]
                     statuses["python"]="PYNE_FREE_GENERATED_UNVALIDATED"
                     stage(run_id,"python",PYTHON,statuses["python"],
