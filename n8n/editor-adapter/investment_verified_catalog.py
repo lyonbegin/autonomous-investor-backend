@@ -94,24 +94,13 @@ def _verified_evidence(source_id,version_key,sha,python_sha):
             "official_tradingview_publication_parity_verified":False,
             "tradingview_299_trades_compared":False
         }
-    # Future strategies require a server-owned exact-version comparison record.
-    # Do not treat compile success, graph screenshot or JS assertions as proof.
+    # Future scripts can pass ONLY when the canonical DB owns complete
+    # source/version/conversion/reference/dataset and numeric+visual proof.
     try:
-        from investment_pg import comparison_for_source
-        comparison=comparison_for_source(source_id,version_key)
+        from investment_pg import verified_chart_evidence_for_source
+        return verified_chart_evidence_for_source(source_id,version_key,sha)
     except (OSError,ValueError,TypeError,ImportError):
         return None
-    if not comparison:return None
-    if (comparison.get("status") not in ("PASS","PASSED","VERIFIED") or
-        comparison.get("numeric_match") is not True or
-        comparison.get("visual_verdict") not in ("PASS","PASSED","MATCH") or
-        not comparison.get("reference_id") or
-        not comparison.get("comparison_id")):
-        return None
-    # A canonical DB comparison is not yet a same-OHLCV Vela-vs-Python proof;
-    # don't allow accidental publication under this project's strict gate.
-    return None
-
 
 def candidate_check(entry):
     source_id=entry.get("source_id","")
