@@ -1,0 +1,40 @@
+{
+  "name": "WF-04 · 단일 AI 노드 — 전략 분석·Ta-Cuda 매칭·Google TPU 실행 코드 생성",
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "project": "investment",
+    "workflow_id": "WF04-ONE-AI-GPU-TPU",
+    "studioProjectServiceExecutionEnabled": true,
+    "description": "한 개 노드에서 Pine+Python 원본을 검증하고 AI 지표/조건 분석, Ta-Cuda batch와 JAX/XLA TPU 실행 코드 생성, 선택적 GCS 배치 스캔을 수행. 생성 코드는 스크리닝 프록시이며 전략 정식 백테스트/매매 검증이 아님.",
+    "gcp_tpu_required_for_dispatch": true,
+    "source_is_pinned_to_wf02": true,
+    "autoTrade": false
+  },
+  "nodes": [
+    {
+      "id": "wf04-ai-tpu-01",
+      "name": "전략 1개 → AI 지표·조건 분석 + Ta-Cuda 매칭 + Google TPU JAX 코드 생성/배치 검색",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        280,
+        260
+      ],
+      "parameters": {
+        "studioPython": {
+          "python_module": "investment_node_adapter",
+          "python_function": "execute_wf04_one_ai_node",
+          "code_version": "wf04-ai-indicators-tacuda-jax-tpu-v1",
+          "node_character": "one_node_generation_and_optional_tpu_dispatch"
+        },
+        "mode": "runOnceForAllItems",
+        "jsCode": "return $input.all(); // Project adapter executes one validated Python function and returns actual generated code."
+      },
+      "notes": "입력: source_id, version_key, 선택 dataset_uri(gs://bucket/path.npz), top_k, min_signal_density, lookback. 출력: indicator mapping, 조건식, Ta-Cuda Batch Python 코드, JAX TPU Python 코드, source SHA, generated code SHA, optional real TPU batch result. OPENAI_API_KEY와 Google Cloud TPU Worker 토큰이 없으면 실제 실행하지 않음."
+    }
+  ],
+  "connections": {}
+}
