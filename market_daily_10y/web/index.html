@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="light" />
+<title>전체 시장 · 10년 일봉 데이터 현황</title>
+<link rel="stylesheet" href="/markets/assets/styles.css" />
+<script defer src="/markets/assets/app.js"></script>
+</head>
+<body>
+<div class="shell">
+<header class="topbar">
+  <a class="brand" href="/markets/" aria-label="시장 홈">
+    <span class="brand-mark">A</span>
+    <span class="brand-stack"><b>Alpha Market</b><small>RESEARCH DATA</small></span>
+  </a>
+  <nav class="toplinks" aria-label="주 메뉴">
+    <a class="active" href="/markets/">마켓</a>
+    <a href="/markets/#data">10년 일봉 데이터</a>
+    <a href="/markets/#status">수집 현황</a>
+  </nav>
+  <div class="top-actions">
+    <span class="pill neutral"><span class="pulse"></span>수동 업데이트 전용</span>
+    <button class="button outline" id="authButton">관리 키 입력</button>
+  </div>
+</header>
+<section class="masthead">
+ <div>
+  <div class="eyebrow">GLOBAL MARKET COVERAGE · 1D DATA</div>
+  <h1>모든 곳의 시장<span class="accent">.</span></h1>
+  <p>시장 분류와 종목을 탐색하고, 실제 확보된 최근 10년 일봉을 직접 확인합니다.</p>
+ </div>
+ <div class="headline-right">
+   <div class="asof-label">비교 기준일 · 확정된 일봉만</div>
+   <div id="asof" class="asof">—</div>
+   <div class="subtle">날짜가 다르면 자동으로 채우지 않습니다.</div>
+ </div>
+</section>
+<main class="layout">
+ <aside class="sidebar" aria-label="시장 카테고리">
+   <div class="sidebar-heading">시장 둘러보기</div>
+   <div id="sideCategories" class="side-categories"></div>
+   <div class="sidebar-note">
+     <strong>데이터 수집 원칙</strong>
+     <p>상장 목록은 10년 데이터 확보를 의미하지 않습니다. 다운로드하지 않은 종목은 미확보로 표시합니다.</p>
+   </div>
+ </aside>
+ <div class="main">
+   <section class="summary" id="status" aria-label="실제 저장 상태">
+      <div class="summary-main">
+       <div class="eyebrow">ACTUAL STORED DATA · 저장소 기준</div>
+       <h2>글로벌 데이터 확보 현황</h2>
+       <p>Railway 영구 볼륨에서 읽은 결과입니다. CI 테스트의 임시 데이터는 포함되지 않습니다.</p>
+       <div class="numbers">
+         <div><strong id="statListed">—</strong><span>등록 목록</span></div>
+         <div><strong id="statStored">—</strong><span>실제 일봉 파일</span></div>
+         <div><strong id="statEligible">—</strong><span>10년 품질 통과</span></div>
+         <div><strong id="statMissing">—</strong><span>미확보</span></div>
+       </div>
+      </div>
+      <div class="summary-side">
+       <span class="chip" id="updateSchedule">Cron 없음</span>
+       <h3>필요할 때만 업데이트</h3>
+       <p>이미 저장한 종목은 마지막 일봉 부근부터 보충하고, 미확보 종목은 최근 10년을 처음부터 요청합니다.</p>
+       <label for="batchSize">이번 실행 최대 종목 수</label>
+       <select id="batchSize">
+         <option value="20">20개 · 빠른 확인</option>
+         <option value="100" selected>100개 · 일반 실행</option>
+         <option value="1000">1,000개</option>
+         <option value="all">현재 필터 전체 (장시간 실행)</option>
+       </select>
+       <button id="updateAllButton" class="button primary wide">전체 시장 업데이트</button>
+       <div class="help">버튼을 눌러야만 수집합니다. 한 번에 한 작업만 실행됩니다.</div>
+      </div>
+   </section>
+   <section class="job-box" id="jobBox" hidden>
+     <div class="job-head"><strong>수동 수집 작업 현황</strong><span id="jobState">—</span></div>
+     <div class="progress-track"><div id="jobProgress"></div></div>
+     <div class="job-meta" id="jobMeta">—</div>
+   </section>
+   <section class="explore" id="data">
+     <div class="section-head">
+       <div>
+         <div class="eyebrow">MARKET EXPLORER</div>
+         <h2>마켓 탐색</h2>
+         <p>TradingView Markets의 시장 분류에 맞춘 탐색 구조. 가격과 보유 현황은 자체 데이터 저장소 기준입니다.</p>
+       </div>
+     </div>
+     <div id="categoryTiles" class="category-tiles" aria-label="시장 카테고리 카드"></div>
+   </section>
+   <section class="market-table-section">
+      <div class="section-head">
+        <div><div class="eyebrow" id="currentCategoryCaption">STOCK MARKETS</div>
+             <h2 id="currentCategory">주식</h2><p id="categoryDescription">국가 및 거래소별 전체 등록 종목</p></div>
+        <button id="updateCategoryButton" class="button outline">이 시장 업데이트</button>
+      </div>
+      <div class="filters">
+        <label class="search-wrap"><span class="sr-only">종목 검색</span>
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="1.8"></circle><path d="m16 16 5 5" stroke="currentColor" stroke-width="1.8"/></svg>
+          <input id="search" placeholder="심볼 · Yahoo 코드 검색" autocomplete="off" />
+        </label>
+        <label class="sr-only" for="exchangeSelect">거래소</label><select id="exchangeSelect"><option value="">모든 거래소</option></select>
+        <label class="sr-only" for="statusSelect">수집 상태</label><select id="statusSelect">
+          <option value="">모든 수집 상태</option>
+          <option>10년 확보</option><option>갱신 필요</option>
+          <option>10년 미충족</option><option>미확보</option><option>파일 누락</option>
+        </select>
+      </div>
+      <div class="table-scroll">
+       <table><thead><tr>
+        <th>종목 / 티커</th><th>국가 · 거래소</th><th>데이터 상태</th><th class="num">확보 봉 수</th>
+        <th>최초 거래일</th><th>최종 거래일</th><th>10년 일봉</th>
+       </tr></thead><tbody id="rows"><tr><td colspan="7" class="empty">실제 데이터를 조회하고 있습니다.</td></tr></tbody></table>
+      </div>
+      <div class="pagination"><span id="paginationLabel">—</span>
+        <div><button class="button small outline" id="prevPage">이전</button><button class="button small outline" id="nextPage">다음</button></div>
+      </div>
+   </section>
+   <div class="footer-warning">
+     <strong>표시 기준</strong> · 종목 목록, 파일 저장, 10년 적격성, 최신 갱신은 서로 다른 상태입니다.
+     시장 카테고리와 메뉴의 분류를 참고했으며 TradingView의 시세와 화면 소스는 가져오지 않습니다.
+     <a href="https://kr.tradingview.com/markets/" target="_blank" rel="noopener noreferrer">TradingView 마켓 참고</a>
+   </div>
+ </div>
+</main>
+</div>
+<div id="detailBackdrop" class="backdrop" hidden></div>
+<aside id="detailPanel" class="detail-panel" aria-hidden="true" aria-label="10년 일봉 상세">
+ <div class="panel-top">
+   <div><div class="eyebrow">10-YEAR DAILY HISTORY · 1D</div>
+     <h2 id="detailTitle">종목</h2><span id="detailSub" class="subtle">—</span>
+   </div><button id="closePanel" class="icon-button" aria-label="닫기">×</button>
+ </div>
+ <div id="detailState" class="detail-state">—</div>
+ <div class="chart-controls"><div><button class="period active" data-years="10">10년</button><button class="period" data-years="5">5년</button><button class="period" data-years="1">1년</button><button class="period" data-years="0.25">3개월</button></div><span>종가 · 일봉</span></div>
+ <div class="chart-wrap"><canvas id="priceChart" width="840" height="350" aria-label="실제 보유 일봉 종가 차트"></canvas><div id="chartEmpty" class="chart-empty" hidden>저장된 실제 일봉 데이터가 없습니다. 업데이트 후 확인할 수 있습니다.</div></div>
+ <div id="chartTooltip" class="chart-tooltip">일봉을 가리키면 OHLC를 확인할 수 있습니다.</div>
+ <div class="panel-metrics" id="panelMetrics"></div>
+ <div class="panel-table-title"><strong>최근 일봉 상세</strong><span>실제 저장 데이터만 표시</span></div>
+ <div class="detail-table-scroll"><table><thead><tr><th>거래일</th><th>시가</th><th>고가</th><th>저가</th><th>종가</th><th>거래량</th></tr></thead><tbody id="detailRows"></tbody></table></div>
+ <button id="updateOneButton" class="button primary wide">이 종목만 업데이트</button>
+</aside>
+<div id="keyModal" class="modal-backdrop" hidden>
+ <div class="auth-modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+  <div class="eyebrow">PRIVATE RESEARCH DATA</div>
+  <h3 id="modalTitle">관리 키 입력</h3>
+  <p>실제 일봉 조회 및 수동 다운로드는 인증된 관리자만 실행할 수 있습니다. 키는 브라우저에 저장하지 않고 현재 화면에서만 사용합니다.</p>
+  <form id="keyForm">
+   <label for="keyInput">Railway MARKET_UPDATE_TOKEN</label>
+   <input id="keyInput" type="password" autocomplete="off" required placeholder="관리 키" />
+   <p id="keyError" class="form-error" hidden>관리 키를 확인해 주세요.</p>
+   <div class="modal-actions"><button type="button" id="keyCancel" class="button outline">취소</button><button type="submit" class="button primary">확인</button></div>
+  </form>
+ </div>
+</div>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
