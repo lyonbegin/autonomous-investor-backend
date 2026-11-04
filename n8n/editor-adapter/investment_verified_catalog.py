@@ -133,7 +133,12 @@ def candidate_check(entry):
 def candidates():
     from investment_pipeline import saved_sources
     initialize()
-    sources=saved_sources(limit=120)["sources"]
+    # Fresh/empty admin environments must return zero candidates, not crash
+    # because the WF01 import table has not been created yet.
+    with closing(open_registry()) as db:
+        has_payloads=db.execute("""SELECT 1 FROM sqlite_master
+            WHERE type='table' AND name='investment_pine_payloads'""").fetchone() is not None
+    sources=saved_sources(limit=120)["sources"] if has_payloads else []
     checks=[candidate_check(entry) for entry in sources]
     with closing(open_registry()) as db:
         approved={(x["source_id"],x["version_key"],x["pine_sha256"])
