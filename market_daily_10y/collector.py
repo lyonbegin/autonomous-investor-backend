@@ -215,7 +215,7 @@ def load_universe(path):
 def main(argv=None):
     ap=argparse.ArgumentParser()
     ap.add_argument('--root',default=os.getenv('DAILY_POOL_ROOT','/data/market_daily_10y'))
-    ap.add_argument('--universe',default=str(Path(__file__).parent/'universe.csv'))
+    ap.add_argument('--universe',default=os.getenv('DAILY_UNIVERSE_FILE',str(Path(__file__).parent/'universe.csv')))\n    ap.add_argument('--refresh-us-universe',action='store_true',help='fetch official US directory first, then use its expanded CSV')
     ap.add_argument('--asof',help='UTC exclusive end, e.g. 2026-11-04')
     ap.add_argument('--limit',type=int,default=int(os.getenv('DAILY_BATCH_LIMIT','20')))
     ap.add_argument('--asset')
@@ -227,7 +227,7 @@ def main(argv=None):
     store=Store(args.root)
     if args.status:
         print(json.dumps(store.status(),ensure_ascii=False,indent=2));return
-    universe=load_universe(args.universe)
+    if args.refresh_us_universe:\n        from .universe_discovery import SOURCES, build_universe, fetch_text\n        snapshot_dir=store.root/'universe'\n        snapshot_dir.mkdir(parents=True,exist_ok=True)\n        expanded=snapshot_dir/'expanded.csv'\n        try:\n            snapshots={k:fetch_text(url) for k,url in SOURCES.items()}\n            report=build_universe(args.universe,snapshots,expanded,snapshot_dir/'report.json')\n            print(json.dumps({'status':'UNIVERSE_REFRESHED',**report},ensure_ascii=False),flush=True)\n        except Exception as exc:\n            if not expanded.exists():\n                raise RuntimeError('UNIVERSE_REFRESH_FAILED_NO_SNAPSHOT') from exc\n            print(json.dumps({'status':'UNIVERSE_REFRESH_FAILED_USING_PREVIOUS_SNAPSHOT',\n                              'error':str(exc)[:180]},ensure_ascii=False),flush=True)\n        args.universe=str(expanded)\n    universe=load_universe(args.universe)
     if args.align:
         by_key={x.key:x for x in universe}
         joined,info=store.align(by_key[args.align[0]],by_key[args.align[1]])
