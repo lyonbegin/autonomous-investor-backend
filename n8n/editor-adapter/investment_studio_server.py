@@ -30,6 +30,16 @@ _SHARED_COMPARE_LOCK=threading.Lock()
 
 
 class InvestmentHandler(studio.Handler):
+    def send_header(self, keyword, value):
+        # The original shared studio deliberately blocks framing everywhere.
+        # Allow ONLY the migrated original React scripts UI to be embedded by
+        # its same-origin /admin/console. Never weaken protection on admin,
+        # workflow editor, API routes, or another host.
+        if (keyword.lower()=="x-frame-options" and value=="DENY" and
+            urlsplit(self.path).path.startswith("/verified/")):
+            value="SAMEORIGIN"
+        return super().send_header(keyword,value)
+
     def end_headers(self):
         if (urlsplit(self.path).path==SHARED_COMPARE_ROUTE and
             self.headers.get("Origin") in CHART_ORIGINS):
