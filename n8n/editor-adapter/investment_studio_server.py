@@ -7,7 +7,7 @@ import json
 import threading
 import urllib.error
 from http.server import ThreadingHTTPServer
-from urllib.parse import urlsplit
+from urllib.parse import urlsplit, parse_qs
 
 import studio_server as studio
 import investment_tv_chart_integration as chart_integration
@@ -17,18 +17,32 @@ import investment_ddds_parity as ddds_parity
 import investment_free_pyne as free_pyne
 import investment_free_pyne_chart as free_ddds_chart
 import investment_shared_bars_compare as shared_compare
+import investment_verified_catalog as verified_catalog
 
 # The public React chart is the ONLY permitted cross-origin caller.
-PUBLIC_CHART_ORIGIN="https://autonomous-investor-public-production.up.railway.app"
+# The retired standalone React frontend is NOT an accepted chart caller.
+# All retained scripts, detail and comparison UI live under this admin origin.
+ADMIN_CHART_ORIGIN="https://investment-n8n-native-editor-production.up.railway.app"
+CHART_ORIGINS={ADMIN_CHART_ORIGIN}
 SHARED_COMPARE_ROUTE="/api/investment/free-pyne/ddds/chart/compare-input"
 _SHARED_COMPARE_LOCK=threading.Lock()
 
 
 class InvestmentHandler(studio.Handler):
+    def send_header(self, keyword, value):
+        # The original shared studio deliberately blocks framing everywhere.
+        # Allow ONLY the migrated original React scripts UI to be embedded by
+        # its same-origin /admin/console. Never weaken protection on admin,
+        # workflow editor, API routes, or another host.
+        if (keyword.lower()=="x-frame-options" and value=="DENY" and
+            urlsplit(self.path).path.startswith("/verified/")):
+            value="SAMEORIGIN"
+        return super().send_header(keyword,value)
+
     def end_headers(self):
         if (urlsplit(self.path).path==SHARED_COMPARE_ROUTE and
-            self.headers.get("Origin")==PUBLIC_CHART_ORIGIN):
-            self.send_header("Access-Control-Allow-Origin",PUBLIC_CHART_ORIGIN)
+            self.headers.get("Origin") in CHART_ORIGINS):
+            self.send_header("Access-Control-Allow-Origin",self.headers.get("Origin"))
             self.send_header("Access-Control-Allow-Methods","POST, OPTIONS")
             self.send_header("Access-Control-Allow-Headers","Content-Type")
             self.send_header("Vary","Origin")
@@ -37,14 +51,39 @@ class InvestmentHandler(studio.Handler):
     def do_OPTIONS(self):
         if urlsplit(self.path).path != SHARED_COMPARE_ROUTE:
             return self.send_error(404)
-        if self.headers.get("Origin")!=PUBLIC_CHART_ORIGIN:
+        if self.headers.get("Origin") not in CHART_ORIGINS:
             return self.send_error(403)
         self.send_response(204)
         self.send_header("Content-Length","0")
         self.end_headers()
 
     def do_GET(self):
-        if urlsplit(self.path).path == "/api/investment/free-pyne/ddds/chart/latest":
+        current=urlsplit(self.path)
+        if current.path == "/api/investment/verified-scripts/catalog":
+            sid,fresh=self._sid()
+            q=parse_qs(current.query)
+            try:
+                limit=int((q.get("limit") or ["50"])[0])
+                offset=int((q.get("offset") or ["0"])[0])
+                query=(q.get("q") or [""])[0]
+                script_type=(q.get("type") or ["all"])[0]
+                return self._json(200,verified_catalog.catalog(
+                    limit=limit,offset=offset,query=query,
+                    script_type=script_type),sid,fresh)
+            except (ValueError,TypeError) as exc:
+                return self._json(400,{"status":"VERIFIED_CATALOG_INVALID_QUERY",
+                    "reason":str(exc)[:200]},sid,fresh)
+            except OSError as exc:
+                return self._json(503,{"status":"VERIFIED_CATALOG_DB_UNAVAILABLE",
+                    "reason":type(exc).__name__},sid,fresh)
+        if current.path == "/api/investment/verified-scripts/candidates":
+            sid,fresh=self._sid()
+            try:
+                return self._json(200,verified_catalog.candidates(),sid,fresh)
+            except (ValueError,TypeError,OSError) as exc:
+                return self._json(503,{"status":"VERIFIED_CANDIDATES_UNAVAILABLE",
+                  "reason":type(exc).__name__+": "+str(exc)[:180]},sid,fresh)
+        if current.path == "/api/investment/free-pyne/ddds/chart/latest":
             sid, fresh=self._sid()
             try:
                 return self._json(200,free_ddds_chart.latest(sid),sid,fresh)
@@ -109,10 +148,33 @@ class InvestmentHandler(studio.Handler):
         return super().do_GET()
 
     def do_POST(self):
+        if urlsplit(self.path).path == "/api/investment/verified-scripts/publish":
+            sid,fresh=self._sid()
+            origin=self.headers.get("Origin","")
+            if origin!=ADMIN_CHART_ORIGIN or urlsplit(origin).netloc!=self.headers.get("Host"):
+                return self._json(403,{"status":"VERIFIED_PUBLICATION_SAME_ORIGIN_REQUIRED"},sid,fresh)
+            if not self.headers.get("Content-Type","").startswith("application/json"):
+                return self._json(415,{"status":"JSON_REQUIRED"},sid,fresh)
+            try:
+                length=int(self.headers.get("Content-Length","-1"))
+                if not 10<=length<=1500:raise ValueError("PUBLICATION_BODY_SIZE_INVALID")
+                body=json.loads(self.rfile.read(length))
+                if not isinstance(body,dict) or set(body)!={
+                   "source_id","version_key","pine_sha256"}:
+                    raise ValueError("EXACT_SELECTED_PINE_ID_VERSION_SHA_REQUIRED")
+                result=verified_catalog.select_and_publish(
+                   body["source_id"],body["version_key"],body["pine_sha256"])
+                return self._json(200,result,sid,fresh)
+            except (ValueError,TypeError) as exc:
+                return self._json(422,{"status":"PUBLISH_ONLY_ACTUALLY_VERIFIED_SOURCE",
+                     "reason":str(exc)[:210]},sid,fresh)
+            except OSError as exc:
+                return self._json(503,{"status":"VERIFIED_PUBLICATION_STORAGE_FAILED",
+                     "reason":type(exc).__name__},sid,fresh)
         if urlsplit(self.path).path == SHARED_COMPARE_ROUTE:
             sid,fresh=self._sid()
-            if self.headers.get("Origin")!=PUBLIC_CHART_ORIGIN:
-                return self._json(403,{"status":"PUBLIC_CHART_ORIGIN_REQUIRED"},sid,fresh)
+            if self.headers.get("Origin") not in CHART_ORIGINS:
+                return self._json(403,{"status":"APPROVED_CHART_ORIGIN_REQUIRED"},sid,fresh)
             if not self.headers.get("Content-Type","").startswith("application/json"):
                 return self._json(415,{"status":"JSON_REQUIRED"},sid,fresh)
             try:
@@ -271,5 +333,20 @@ class InvestmentHandler(studio.Handler):
 if __name__ == "__main__":
     studio.archive_verified_old_sqlite_backup()
     studio.init_db()
+    verified_catalog.initialize()
+    # Diagnostic only: does not automatically publish or copy any strategy.
+    try:
+        from investment_pipeline import saved_sources
+        entries=saved_sources(limit=120)["sources"]
+        matches=[x for x in entries if x["source_id"]==verified_catalog.DDDS_ID]
+        detail=(verified_catalog.candidate_check(matches[0]) if matches else {})
+        print("VERIFIED_CATALOG_DDDS_ELIGIBILITY",json.dumps({
+            "saved_ddds_versions":len(matches),
+            "ddds_pine_rights":detail.get("rights_state"),
+            "ddds_converted":detail.get("free_pyne_generated_stored"),
+            "publish_ready":detail.get("publish_ready",False),
+            "reason":detail.get("reason","NOT_IN_SOURCE_STORE")},ensure_ascii=False),flush=True)
+    except Exception as exc:
+        print("VERIFIED_CATALOG_BOOT_DIAGNOSTIC_ONLY_FAILED",type(exc).__name__,flush=True)
     print("Investment studio with original workflow canvas and official chart-to-PyneCore WF02 verification", flush=True)
     ThreadingHTTPServer(("0.0.0.0", studio.PORT), InvestmentHandler).serve_forever()

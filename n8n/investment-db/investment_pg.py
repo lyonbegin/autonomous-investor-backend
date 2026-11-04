@@ -300,6 +300,54 @@ def comparison_for_source(source_id,version):
              "numeric_match":row[2],"visual_verdict":row[3],
              "reference_id":str(row[4])} if row else None)
 
+def verified_chart_evidence_for_source(source_id,version,sha256):
+    """Strong canonical proof for a future, non-DDDS publish candidate.
+
+    Both the source/conversion and original captured reference are pinned to
+    the same version. An actual captured dataset and nonempty per-point numeric
+    comparison counts are required: a success label alone is insufficient.
+    """
+    with connect() as db:
+        row=db.execute("""SELECT cc.comparison_id,cc.status,cc.numeric_match,
+              cc.visual_verdict,cc.mismatch_metrics,r.reference_id,
+              r.capture_state,r.timeframe,d.bars_count,d.quality_state,
+              i.venue,i.native_symbol,c.status,sv.content_sha256
+            FROM catalog.scripts s
+            JOIN catalog.script_versions sv ON sv.script_id=s.script_id
+            JOIN research.conversions c ON c.script_version_id=sv.script_version_id
+            JOIN research.chart_comparisons cc ON cc.conversion_id=c.conversion_id
+            JOIN research.tv_references r ON r.reference_id=cc.reference_id
+             AND r.script_version_id=sv.script_version_id
+            JOIN market.dataset_snapshots d ON d.dataset_id=r.dataset_id
+             AND d.instrument_id=r.instrument_id AND d.timeframe=r.timeframe
+            JOIN market.instruments i ON i.instrument_id=r.instrument_id
+            WHERE s.external_script_key=%s AND sv.provider_version=%s
+              AND sv.content_sha256=%s
+            ORDER BY cc.computed_at DESC LIMIT 1""",
+             (source_id,version,sha256)).fetchone()
+    if not row:return None
+    (cid,status,numeric,visual,metrics,rid,capture,timeframe,
+     bars,quality,venue,native,conversion_status,actual_sha)=row
+    if (status!="VERIFIED" or numeric is not True or visual not in ("PASS","MATCH") or
+        capture not in ("VERIFIED","VALIDATED") or conversion_status!="GENERATED" or
+        quality not in ("PASS","APPROVED","VERIFIED") or actual_sha!=sha256 or
+        not isinstance(metrics,dict)):
+        return None
+    compared=metrics.get("compared_numeric_points")
+    mismatches=metrics.get("mismatched_numeric_points")
+    if type(compared) is not int or type(mismatches) is not int or compared<=0 or mismatches!=0:
+        return None
+    if type(bars) is not int or bars<40 or not native or not venue or not timeframe:return None
+    return {"verified_bar_count":bars,"numeric_points":compared,
+      "numeric_mismatches":0,"symbol":venue+":"+native,
+      "timeframe":timeframe,
+      "verification_type":"CANONICAL_PINNED_TV_REFERENCE_VS_CONVERTED_PYTHON_NUMERIC_VERIFIED",
+      "evidence_url":"urn:autonomous-investor:comparison:"+str(cid),
+      "comparison_id":str(cid),"reference_id":str(rid),
+      "official_tradingview_publication_parity_verified":False,
+      "tradingview_299_trades_compared":False}
+
+
 def link_original_tradingview_publication(source_id,version,sha256,public_url):
     """Bind a real browser-inspected TradingView publication URL to the exact
     canonical Pine version. The public publisher's source bytes may differ,

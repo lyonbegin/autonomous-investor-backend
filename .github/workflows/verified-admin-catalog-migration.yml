@@ -1,0 +1,60 @@
+name: Verified Scripts Admin Migration — Exact React UI and Cumulative Proof Gate
+on:
+  push:
+    branches: [feature/admin-verified-strategies-catalog-20261104]
+  pull_request:
+    branches: [feature/wf02-ddds-shared-bars-compare-api-20261104]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  catalog:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install studio metadata dependencies
+        run: python -m pip install "beautifulsoup4==4.13.4" "psycopg[binary]>=3.2,<4"
+      - name: Python syntax for real server, registry and Postgres verifier
+        run: |
+          python -m py_compile n8n/editor-adapter/investment_verified_catalog.py n8n/editor-adapter/investment_studio_server.py n8n/investment-db/investment_pg.py
+      - name: Persistent catalog security and exact DDDS verifier tests
+        run: python n8n/tests/test_verified_strategy_catalog.py -v
+      - name: Original admin HTML JS and verified UI integration syntax
+        run: node n8n/tests/test_verified_admin_static.cjs
+  docker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build ACTUAL native editor production Docker with pinned /scripts React
+        run: docker build -f n8n/Dockerfile.native-editor-gateway -t verified-stock-editor:test .
+      - name: Check both original admin and copied verified static assets exist
+        run: |
+          docker run --rm --entrypoint sh verified-stock-editor:test -c \
+            'test -s /app/dist/admin/index.html && test -s /app/dist/verified/index.html && ls /app/dist/verified/assets/*.js >/dev/null && python3 -m py_compile /app/investment_verified_catalog.py'
+
+  live-verified-admin:
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install real Chromium for actual Railway administration UI
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Admin selects DDDS, preserve approval, open original details and both aligned charts
+        env:
+          VERIFIED_ADMIN_EVIDENCE: /tmp/verified-admin-e2e
+        run: node n8n/tests/e2e_verified_admin_live.cjs
+      - name: Save actual screenshots plus proven rendered UTC windows
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: verified-admin-DDDS-list-detail-both-chart-UTC
+          path: /tmp/verified-admin-e2e
+          retention-days: 14
+          if-no-files-found: warn
