@@ -20,7 +20,7 @@ jobs:
       - name: Install real Parquet and Yahoo dependencies
         run: pip install -r market_daily_10y/requirements.txt
       - name: Verify exact date alignment, 10Y eligibility and incremental saves
-        run: python -m pytest -q market_daily_10y/tests/test_collector.py market_daily_10y/tests/test_universe_discovery.py market_daily_10y/tests/test_global_universe.py
+        run: python -m pytest -q market_daily_10y/tests/test_collector.py market_daily_10y/tests/test_universe_discovery.py market_daily_10y/tests/test_global_universe.py market_daily_10y/tests/test_world_bootstrap.py
       - name: Display empty persistent-store schema (never fake populated data)
         run: python -m market_daily_10y.collector --root /tmp/market_10yr_unit --status
   yahoo-real-ten-year-smoke:
@@ -114,3 +114,27 @@ jobs:
           name: hkex-official-listing-and-price-evidence
           path: /tmp/hkex-price-status.json
           if-no-files-found: warn
+
+  global-official-universe-probe:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install collector and workbook requirements
+        run: pip install -r market_daily_10y/requirements.txt
+      - name: Combine actual Nasdaq Trader directories and actual HKEX official workbook
+        run: |
+          python - <<'PY'
+          from market_daily_10y.world_bootstrap import prepare_global_universe
+          p,d=prepare_global_universe(
+              '/tmp/official-world-pool','market_daily_10y/universe.csv',
+              allow_network=True)
+          print('ACTUAL_WORLD_LISTING_SNAPSHOT', d, 'csv=',p)
+          assert d['hkex_accepted']>2000
+          assert d['us_universe_count']>3000
+          assert d['world_universe_count']>5000
+          assert not d['full_worldwide_universe']
+          PY
