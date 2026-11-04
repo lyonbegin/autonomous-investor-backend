@@ -38,7 +38,7 @@ function PythonPlot({data,result}:{data:PineVisualResponse;result:Result}){
  const root=useRef<HTMLDivElement>(null);
  useEffect(()=>{
   const el=root.current;if(!el)return;
-  const chart=createChart(el,{width:el.clientWidth,height:520,
+  const chart=createChart(el,{width:el.clientWidth,height:620,
    layout:{background:{type:ColorType.Solid,color:'#ffffff'},textColor:'#475569'},
    timeScale:{timeVisible:true,secondsVisible:false},localization:{locale:'ko-KR'}});
   chart.addCandlestickSeries({upColor:'#16a34a',downColor:'#dc2626',borderUpColor:'#16a34a',borderDownColor:'#dc2626',wickUpColor:'#16a34a',wickDownColor:'#dc2626'})
@@ -52,13 +52,13 @@ function PythonPlot({data,result}:{data:PineVisualResponse;result:Result}){
   const ro=new ResizeObserver(()=>chart.applyOptions({width:Math.max(100,el.clientWidth)}));ro.observe(el);
   return()=>{ro.disconnect();chart.remove()};
  },[data,result]);
- return <div data-testid="ddds-python-chart" ref={root} style={{width:'100%',height:520}}/>;
+ return <div data-testid="ddds-python-chart" ref={root} style={{width:'100%',height:620}}/>;
 }
 
 export function DddsSharedChartCompare({id,source,sourceSha,chart}:{id:string;source:string;sourceSha:string;chart:PineVisualResponse}){
  const [capture,setCapture]=useState<NativePineCapture|null>(null);
  const [runtime,setRuntime]=useState('Pine 실행 준비');
- const [mpl,setMpl]=useState(false);
+ const [retryCount,setRetryCount]=useState(0);
  const [running,setRunning]=useState(false);
  const [result,setResult]=useState<Result|null>(null);
  const [error,setError]=useState('');
@@ -67,32 +67,52 @@ export function DddsSharedChartCompare({id,source,sourceSha,chart}:{id:string;so
  const ready=id===DDDS_ID&&sourceSha===DDDS_SHA&&sameData.source_hash===DDDS_SHA&&sameData.symbol==='NASDAQ:AMZN'&&sameData.horizon==='2h'&&sameData.market_data.fallback_used!==true&&bars.length>=40&&bars.every(b=>[b.timestamp,b.open,b.high,b.low,b.close,b.volume].every(Number.isFinite));
  const aligned=result!==null&&result.status==='EXACT_SITE_CHART_INPUT_PYTHON_EXECUTED'&&result.source_id===DDDS_ID&&result.pine_source_sha256===DDDS_SHA&&result.python_sha256===PY_SHA&&result.symbol==='NASDAQ:AMZN'&&result.timeframe==='120'&&result.bar_count===bars.length&&result.market_data_same_as_python_input===true&&result.official_tradingview_publication_parity_verified===false&&result.live_orders_enabled===false&&result.time_ms.length===bars.length&&result.close.length===bars.length&&result.time_ms.every((v,i)=>v===bars[i].timestamp)&&result.close.every((v,i)=>v===bars[i].close);
  const stats=comparePlotValues(capture,aligned?result:null);
- async function execute(){
-  if(!ready||!mpl||running)return;
-  setError('');setResult(null);setRunning(true);
+ useEffect(()=>{
+  if(!ready){setResult(null);setRunning(false);return;}
+  let active=true;
   const controller=new AbortController();
-  const timer=setTimeout(()=>controller.abort(),130000);
-  try{
-   const response=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},signal:controller.signal,
-    body:JSON.stringify({source_id:DDDS_ID,pine_source_sha256:DDDS_SHA,symbol:'NASDAQ:AMZN',timeframe:'120',acknowledge_mpl:true,
-      bars:bars.map(b=>({time_ms:b.timestamp,open:b.open,high:b.high,low:b.low,close:b.close,volume:b.volume}))})});
-   const body=await response.json();
-   if(!response.ok)throw Error(body.reason||body.status||('HTTP '+response.status));
-   if(body.status!=='EXACT_SITE_CHART_INPUT_PYTHON_EXECUTED'||body.python_sha256!==PY_SHA||body.bar_count!==bars.length||!Array.isArray(body.time_ms)||!Array.isArray(body.close)||!body.time_ms.every((v:number,i:number)=>v===bars[i].timestamp)||!body.close.every((v:number,i:number)=>v===bars[i].close))throw Error('DDDS_PYTHON_INPUT_DIFFERENT_FROM_REACT_CHART');
-   setResult(body as Result);
-  }catch(e){setError(String(e))}
-  finally{clearTimeout(timer);setRunning(false)}
- }
- return <div className="pine-compare-page" data-testid="ddds-shared-chart-comparison">
+  // Deferred start avoids duplicate requests during React StrictMode mount.
+  const start=setTimeout(()=>{
+    if(!active)return;
+    setError('');setResult(null);setRunning(true);
+    const limit=setTimeout(()=>controller.abort(),120000);
+    void (async()=>{
+      try{
+        const response=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},
+          signal:controller.signal,
+          body:JSON.stringify({source_id:DDDS_ID,pine_source_sha256:DDDS_SHA,
+            symbol:'NASDAQ:AMZN',timeframe:'120',acknowledge_mpl:true,
+            bars:bars.map(b=>({time_ms:b.timestamp,open:b.open,high:b.high,
+              low:b.low,close:b.close,volume:b.volume}))})});
+        const output=await response.json();
+        if(!response.ok)throw Error(output.reason||output.status||('HTTP '+response.status));
+        if(output.status!=='EXACT_SITE_CHART_INPUT_PYTHON_EXECUTED'||
+            output.source_id!==DDDS_ID||output.pine_source_sha256!==DDDS_SHA||
+            output.python_sha256!==PY_SHA||output.bar_count!==bars.length||
+            !Array.isArray(output.time_ms)||!Array.isArray(output.close)||
+            output.time_ms.length!==bars.length||output.close.length!==bars.length||
+            !output.time_ms.every((v:number,i:number)=>v===bars[i].timestamp)||
+            !output.close.every((v:number,i:number)=>v===bars[i].close))
+          throw Error('DDDS_PYTHON_INPUT_DIFFERENT_FROM_REACT_CHART');
+        if(active)setResult(output as Result);
+      }catch(e){if(active)setError(e instanceof Error?e.message:String(e))}
+      finally{clearTimeout(limit);if(active)setRunning(false)}
+    })();
+  },200);
+  return()=>{active=false;clearTimeout(start);controller.abort()};
+ },[ready,sameData,retryCount]);
+ return <div className="pine-compare-page ddds-shared-compare" data-testid="ddds-shared-chart-comparison">
    <section className="panel">
      <h1>DDDS · 기존 우리 사이트 Pine 차트와 Python 차트</h1>
      <p>동일한 {bars.length}개 OHLCV 봉(종목·시간축·시각 포함)을 두 실행 엔진에 입력합니다. 왼쪽은 기존 Vela/PineWorkerEngine, 오른쪽은 DDDS 141줄을 변환한 Python입니다.</p>
      <p><a href={TV_URL} target="_blank" rel="noopener noreferrer">원본 TradingView 전략 실제 차트 열기</a> · 이 비교의 시세는 TradingView 원본 페이지에서 추출한 값이 아닌 <b>우리 사이트 기존 차트 API의 값</b>입니다.</p>
      <p>데이터 제공자: {sameData.market_data.provider||'알 수 없음'} · {sameData.symbol} · {sameData.horizon}</p>
      {!ready&&<div className="empty-state">정확한 DDDS Pine SHA, NASDAQ:AMZN 2h, 대체 시세 없는 40~300봉을 확보하지 못해 실행을 차단했습니다.</div>}
-     <label><input type="checkbox" checked={mpl} onChange={e=>setMpl(e.target.checked)}/> DDDS 원본 MPL-2.0 출처·저작권 표시 확인 및 Python 변환 실행 승인</label>
-     <div className="runtime-controls"><button disabled={!ready||!mpl||running} onClick={execute}>{running?'같은 봉으로 계산 중…':'▶ 같은 봉을 Python에 전달해 비교'}</button></div>
-     {error&&<div className="empty-state">DDDS Python 실행 실패: {error}</div>}
+     <p className="ddds-license-note">원본 DDDS Pine: MPL-2.0 · 원작자 출처는 위 TradingView 링크에서 확인할 수 있습니다. Python 계산은 차트 준비 시 자동으로 실행됩니다.</p>
+     <div className="runtime-controls ddds-auto-controls"><span data-testid="ddds-python-auto-status">{running?'Python에서 동일 봉 자동 계산 중…':aligned?'Python 계산 완료 · 실제 차트 표시':'Python 자동 계산 준비'}</span>
+       <button type="button" disabled={!ready||running} onClick={()=>setRetryCount(v=>v+1)}>↻ 다시 계산</button>
+     </div>
+     {error&&<div className="empty-state" role="alert">DDDS Python 자동 실행 실패: {error} · 다시 계산 버튼으로 재실행할 수 있습니다.</div>}
      <div className="runtime-note" data-testid="ddds-same-bar-status">{aligned?'두 엔진 입력 데이터 '+bars.length+'/'+bars.length+'봉 동일':'동일 시장 데이터 Python 실행 확인 전'}</div>
    </section>
    <div className="pine-compare-grid">
@@ -102,7 +122,7 @@ export function DddsSharedChartCompare({id,source,sourceSha,chart}:{id:string;so
      <p data-testid="ddds-vela-status">{runtime} · {capture?'지표 '+capture.plot_names.length+'개 추출':'지표 출력 확인 전'}</p>
     </section>
     <section className="panel"><h2>오른쪽 · 동일 봉의 DDDS 생성 Python</h2>
-     {aligned&&result?<PythonPlot data={sameData} result={result}/>:<div className="empty-state">Python 실행 결과 미확인. 별도 시세를 가져오지 않습니다.</div>}
+     {aligned&&result?<PythonPlot data={sameData} result={result}/>:<div className="empty-state" data-testid="ddds-python-loading">{error?'Python 실행 오류: '+error:running?'동일한 '+bars.length+'개 봉으로 실제 DDDS Python 계산 중…':'동일 시장 데이터 확인 및 Python 자동 계산 준비 중…'}</div>}
     </section>
    </div>
    <section className="panel" data-testid="ddds-plot-comparison">
