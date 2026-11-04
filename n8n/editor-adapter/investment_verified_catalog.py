@@ -99,7 +99,9 @@ def _verified_evidence(source_id,version_key,sha,python_sha):
     try:
         from investment_pg import verified_chart_evidence_for_source
         return verified_chart_evidence_for_source(source_id,version_key,sha)
-    except (OSError,ValueError,TypeError,ImportError):
+    except (OSError,ValueError,TypeError,ImportError,RuntimeError):
+        # Missing Postgres settings cannot transform an unverified candidate
+        # into an approved strategy.
         return None
 
 def candidate_check(entry):
