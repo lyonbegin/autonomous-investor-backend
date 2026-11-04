@@ -1,0 +1,29 @@
+name: DDDS recovered 502 source and auto two chart real site E2E
+on:
+  pull_request:
+    branches: [public-platform]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  actual-user-error:
+    runs-on: ubuntu-latest
+    timeout-minutes: 13
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Playwright/Chromium to verify the REAL public site
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Recreate user's DDDS /source 502 request and inspect auto Python chart at 944px
+        env:
+          DDDS_WEB_UI_EVIDENCE: /tmp/ddds-source-502-recovered-browser
+        run: node n8n/tests/live_ddds_source_502_recovery_browser.cjs
+      - name: Save actual 944px screenshots and comparison JSON
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ddds-502-source-fixed-site-944px-actual-browser
+          path: /tmp/ddds-source-502-recovered-browser
+          if-no-files-found: warn
+          retention-days: 14
