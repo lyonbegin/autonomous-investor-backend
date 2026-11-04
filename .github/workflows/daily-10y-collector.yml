@@ -81,3 +81,16 @@ jobs:
             /tmp/crypto-10yr.log
             /tmp/multiasset-10yr-status.json
           if-no-files-found: warn
+
+  hkex-official-listing-probe:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install workbook reader
+        run: pip install -r market_daily_10y/requirements.txt
+      - name: Probe official current HKEX securities listing (not prices)
+        run: python -m market_daily_10y.official_listing_smoke --allow-network
