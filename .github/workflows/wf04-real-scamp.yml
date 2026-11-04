@@ -28,7 +28,7 @@ jobs:
           print('REAL_PYSCAMP_CPU_IMPORTED',pyscamp)
           assert callable(pyscamp.abjoin)
           PY
-          python -m pytest -q market_daily_10y/tests/test_wf04_scamp.py market_daily_10y/tests/test_wf04_scamp_scan.py
+          python -m pytest -q market_daily_10y/tests/test_wf04_scamp.py market_daily_10y/tests/test_wf04_scamp_scan.py market_daily_10y/tests/test_s3_bridge.py
       - name: Fetch actual synchronized AAPL and USDJPY Yahoo 10Y to temporary local Parquet
         shell: bash -l {0}
         run: |
