@@ -138,3 +138,15 @@ jobs:
           assert d['world_universe_count']>5000
           assert not d['full_worldwide_universe']
           PY
+      - name: Run same global refresh path as Railway and persist one actual 10Y instrument
+        run: |
+          python -m market_daily_10y.collector --refresh-global-universe --root /tmp/official-world-pool --limit 1 --pause 0 --asof 2026-11-04
+          python -m market_daily_10y.collector --root /tmp/official-world-pool --status > /tmp/world-bootstrap-one-price.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          v=json.loads(Path('/tmp/world-bootstrap-one-price.json').read_text())
+          assert v['stored']==1, ('GLOBAL_REFRESH_DID_NOT_STORE_PRICES',v)
+          assert Path('/tmp/official-world-pool/universe/world.csv').exists()
+          print('ACTUAL_RAILWAY_COMMAND_EQUIVALENT_10Y_STORED',v['instruments'][0]['key'],v['total_rows'])
+          PY
