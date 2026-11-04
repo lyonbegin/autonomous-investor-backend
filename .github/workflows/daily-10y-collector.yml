@@ -20,9 +20,21 @@ jobs:
       - name: Install real Parquet and Yahoo dependencies
         run: pip install -r market_daily_10y/requirements.txt
       - name: Verify exact date alignment, 10Y eligibility and incremental saves
-        run: python -m pytest -q market_daily_10y/tests/test_collector.py market_daily_10y/tests/test_universe_discovery.py market_daily_10y/tests/test_global_universe.py market_daily_10y/tests/test_world_bootstrap.py
+        run: python -m pytest -q market_daily_10y/tests/test_collector.py market_daily_10y/tests/test_universe_discovery.py market_daily_10y/tests/test_global_universe.py market_daily_10y/tests/test_world_bootstrap.py market_daily_10y/tests/test_scheduler.py
       - name: Display empty persistent-store schema (never fake populated data)
         run: python -m market_daily_10y.collector --root /tmp/market_10yr_unit --status
+      - name: Verify durable queue progress with one real Yahoo historical symbol
+        run: |
+          python -m market_daily_10y.collector --root /tmp/market_10yr_unit --queue --limit 1 --pause 0 --asof 2026-11-04
+          python -m market_daily_10y.collector --root /tmp/market_10yr_unit --progress --asof 2026-11-04 --limit 100 > /tmp/daily-10y-progress.json
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/daily-10y-progress.json'))
+          assert d['listing_candidates']>=1
+          assert d['never_attempted']<d['listing_candidates']
+          assert 'capacity_below_7d_full_refresh' in d
+          print('DURABLE_QUEUE_PROGRESS_TEST',d)
+          PY
   yahoo-real-ten-year-smoke:
     runs-on: ubuntu-latest
     needs: alignment-and-storage
