@@ -16,7 +16,7 @@ class CatalogTests(TestCase):
     self.previous=os.environ.get("STUDIO_DB_PATH")
     os.environ["STUDIO_DB_PATH"]=str(Path(self.temp.name)/"catalog.sqlite3")
     cat.initialize()
-    fixture=Path(__file__).resolve().parents[1]/"editor-adapter"/"fixtures"/"ddds_published_source.gz.b64"
+    fixture=Path(os.environ.get("DDDS_FIXTURE_PATH") or (Path(__file__).resolve().parents[1]/"editor-adapter"/"fixtures"/"ddds_published_source.gz.b64"))
     self.original=gzip.decompress(base64.b64decode(fixture.read_text().strip())).decode()
     self.assertEqual(hashlib.sha256(self.original.encode()).hexdigest(),cat.DDDS_SHA)
     self.assertEqual(len(self.original.splitlines()),141)
