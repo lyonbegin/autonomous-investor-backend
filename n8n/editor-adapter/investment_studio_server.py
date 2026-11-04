@@ -20,11 +20,10 @@ import investment_shared_bars_compare as shared_compare
 import investment_verified_catalog as verified_catalog
 
 # The public React chart is the ONLY permitted cross-origin caller.
-# During cutover accept the previous public chart only for backwards compatibility.
-# After its shutdown, the only maintained browser UI is the same-origin admin.
-PUBLIC_CHART_ORIGIN="https://autonomous-investor-public-production.up.railway.app"
+# The retired standalone React frontend is NOT an accepted chart caller.
+# All retained scripts, detail and comparison UI live under this admin origin.
 ADMIN_CHART_ORIGIN="https://investment-n8n-native-editor-production.up.railway.app"
-CHART_ORIGINS={PUBLIC_CHART_ORIGIN,ADMIN_CHART_ORIGIN}
+CHART_ORIGINS={ADMIN_CHART_ORIGIN}
 SHARED_COMPARE_ROUTE="/api/investment/free-pyne/ddds/chart/compare-input"
 _SHARED_COMPARE_LOCK=threading.Lock()
 
