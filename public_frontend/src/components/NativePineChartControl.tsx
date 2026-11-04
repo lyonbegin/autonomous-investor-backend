@@ -184,8 +184,9 @@ export function NativePineChartControl({data,source,onRuntime,onCapture,visibleR
       visibleRange:initialVisibleRef.current,
     } as any);
     chartRef.current=chart;
+    let viewportInitialized=false;
     const offViewport=chart.on('viewport:changed',(range)=>{
-      if(disposed)return;
+      if(disposed||!viewportInitialized)return;
       if(Number.isFinite(range.from)&&Number.isFinite(range.to)&&range.from<range.to)
         viewportRef.current?.({from:range.from,to:range.to});
     });
@@ -233,6 +234,7 @@ export function NativePineChartControl({data,source,onRuntime,onCapture,visibleR
       if(disposed)return;
       chart.resize();
       if(initialVisibleRef.current)chart.setVisibleRange(initialVisibleRef.current);
+      viewportInitialized=true;
       const actual=chart.getVisibleRange();
       if(actual&&Number.isFinite(actual.from)&&Number.isFinite(actual.to))
         viewportRef.current?.(actual);
