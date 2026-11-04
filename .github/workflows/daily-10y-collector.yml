@@ -1,0 +1,57 @@
+name: Independent synchronized 10-year 1D collection verification
+on:
+  push:
+    paths:
+      - 'market_daily_10y/**'
+      - '.github/workflows/daily-10y-collector.yml'
+  pull_request:
+    paths:
+      - 'market_daily_10y/**'
+      - '.github/workflows/daily-10y-collector.yml'
+  workflow_dispatch:
+jobs:
+  alignment-and-storage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install real Parquet and Yahoo dependencies
+        run: pip install -r market_daily_10y/requirements.txt
+      - name: Verify exact date alignment, 10Y eligibility and incremental saves
+        run: python -m pytest -q market_daily_10y/tests/test_collector.py
+      - name: Display empty persistent-store schema (never fake populated data)
+        run: python -m market_daily_10y.collector --root /tmp/market_10yr_unit --status
+  yahoo-real-ten-year-smoke:
+    runs-on: ubuntu-latest
+    needs: alignment-and-storage
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install collector dependencies
+        run: pip install -r market_daily_10y/requirements.txt
+      - name: Fetch ACTUAL 10 years of one Yahoo symbol, no old fixture
+        run: |
+          python -m market_daily_10y.collector --root /tmp/market_10yr_real --limit 1 --pause 0 --asof 2026-11-04 2>&1 | tee /tmp/yahoo-10yr.log
+          python -m market_daily_10y.collector --root /tmp/market_10yr_real --status > /tmp/market-10yr-status.json
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/market-10yr-status.json'))
+          assert d['eligible']==1, 'Yahoo live ten-year daily data not confirmed; see fetch log'
+          x=d['instruments'][0]
+          assert x['start']=='2016-11-04' and x['end_exclusive']=='2026-11-04'
+          assert x['rows']>2000 and x['coverage']>=0.8
+          print('LIVE_YAHOO_10Y_1D_VERIFIED',x['key'],x['rows'],x['first_date'],x['last_date'])
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: yahoo-real-ten-year-smoke-evidence
+          path: |
+            /tmp/yahoo-10yr.log
+            /tmp/market-10yr-status.json
+          if-no-files-found: warn
