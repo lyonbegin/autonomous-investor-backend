@@ -296,3 +296,47 @@ def build_for_saved(source_id,version_key,*,ai=None):
              datetime.now(timezone.utc).isoformat()))
         db.commit()
     return manifest
+
+
+def dispatch_to_tpu(manifest, dataset_uri, *, top_k=100, min_signal_density=0.02, lookback=100,
+                    transport=None):
+    """Dispatch generated program plan to an isolated TPU VM worker via HTTPS.
+
+    No CUDA is sent to TPU; worker regenerates the vetted JAX code from the
+    same plan and rejects mismatched code SHA. Requires explicit caller opt-in.
+    """
+    if manifest.get("status")!="GENERATED_SCREENING_PROXY_NOT_VALIDATED":
+        raise ValueError("WF04_NOT_AN_UNCHANGED_GENERATED_MANIFEST")
+    from investment_wf04_tpu_worker import GCS_URI
+    if not isinstance(dataset_uri,str) or not GCS_URI.fullmatch(dataset_uri):
+        raise ValueError("WF04_GCS_DATASET_URI_REQUIRED")
+    request_body={
+       "plan":manifest["plan"],
+       "jax_tpu_code_sha256":manifest["jax_tpu_code_sha256"],
+       "dataset_uri":dataset_uri,
+       "top_k":top_k,"min_signal_density":min_signal_density,
+       "lookback":lookback,
+    }
+    if transport is None:
+        url=os.environ.get("WF04_TPU_WORKER_URL","")
+        token=os.environ.get("WF04_TPU_WORKER_TOKEN","")
+        from urllib.parse import urlsplit
+        parts=urlsplit(url)
+        if (not token or parts.scheme!="https" or not parts.hostname or
+            parts.username or parts.password or parts.fragment or parts.query or
+            parts.path not in ("","/execute")):
+            raise RuntimeError("WF04_GOOGLE_TPU_WORKER_URL_OR_TOKEN_NOT_CONFIGURED")
+        endpoint=url.rstrip("/") if parts.path=="/execute" else url.rstrip("/")+"/execute"
+        def transport(body):
+            req=Request(endpoint,data=json.dumps(body).encode(),method="POST",
+                headers={"Authorization":"Bearer "+token,
+                         "Content-Type":"application/json"})
+            with urlopen(req,timeout=120) as response:
+                return json.loads(response.read(1_000_000))
+    result=transport(request_body)
+    if (result.get("status")!="TPU_SCREENING_PROXY_COMPLETED" or
+        result.get("backend")!="tpu" or
+        result.get("jax_tpu_code_sha256")!=manifest["jax_tpu_code_sha256"] or
+        result.get("plan_sha256")!=manifest["plan_sha256"]):
+        raise ValueError("WF04_TPU_WORKER_RESULT_NOT_DEVICE_OR_CODE_VERIFIED")
+    return result
