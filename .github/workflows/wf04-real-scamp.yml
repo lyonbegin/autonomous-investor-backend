@@ -28,7 +28,7 @@ jobs:
           print('REAL_PYSCAMP_CPU_IMPORTED',pyscamp)
           assert callable(pyscamp.abjoin)
           PY
-          python -m pytest -q market_daily_10y/tests/test_wf04_scamp.py
+          python -m pytest -q market_daily_10y/tests/test_wf04_scamp.py market_daily_10y/tests/test_wf04_scamp_scan.py
       - name: Fetch actual synchronized AAPL and USDJPY Yahoo 10Y to temporary local Parquet
         shell: bash -l {0}
         run: |
@@ -38,7 +38,7 @@ jobs:
           store=Store('/tmp/wf04-scamp-real')
           items=load_universe('market_daily_10y/universe.csv')
           start,end=ten_year_window(date(2026,11,4))
-          for ticker in ('AAPL','JPY=X'):
+          for ticker in ('AAPL','JPY=X','BTC-USD'):
               inst=next(x for x in items if x.vendor_symbol==ticker)
               result=sync(store,inst,start,end,retries=2)
               print('REAL_WF04_MARKET_DATA',ticker,result)
@@ -73,10 +73,34 @@ jobs:
                 obj['engine_version'],obj['aligned_common_trading_days'],
                 len(obj['results']),obj['results'][0])
           PY
+      - name: Execute actual WF04 one-to-many SCAMP ranking without any market fetch
+        shell: bash -l {0}
+        run: |
+          python -m market_daily_10y.wf04_scamp_scan \
+            --root /tmp/wf04-scamp-real \
+            --asof 2026-11-04 \
+            --anchor equity:NASDAQ:AAPL:spot \
+            --candidate fx:FX:USDJPY:spot \
+            --candidate crypto_spot:GLOBAL:BTCUSD:spot \
+            --window 60 --threshold 0.0 --top 2 \
+            --output /tmp/wf04-real-batch-ranking.json
+          python - <<'PY'
+          import json
+          result=json.load(open('/tmp/wf04-real-batch-ranking.json'))
+          assert result['attempted']==2
+          assert result['scored']==2
+          assert result['blocked']==0
+          assert len(result['ranked'])==2
+          assert all(r['best_correlation'] is not None for r in result['ranked'])
+          print('REAL_WF04_MULTI_ASSET_RANKING_VERIFIED',
+                [(r['candidate_key'],r['best_correlation']) for r in result['ranked']])
+          PY
       - name: Retain analysis evidence JSON, not redistributable raw market prices
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: wf04-real-scamp-cpu-match-evidence
-          path: /tmp/wf04-real-scamp-results.json
+          path: |
+            /tmp/wf04-real-scamp-results.json
+            /tmp/wf04-real-batch-ranking.json
           if-no-files-found: warn
