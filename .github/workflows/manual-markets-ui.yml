@@ -42,7 +42,7 @@ jobs:
           done
           cat /tmp/market-ui-server.log
           exit 1
-      - name: Real browser test: markets, missing data, manual gate, mobile layout
+      - name: "Real browser test: markets, missing data, manual gate, mobile layout"
         run: |
           node market_daily_10y/tests/markets_browser.mjs
       - name: Upload actual browser screenshots
