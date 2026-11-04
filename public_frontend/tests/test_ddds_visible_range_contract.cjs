@@ -1,0 +1,18 @@
+const assert=require('node:assert/strict'),fs=require('node:fs');
+const vela=fs.readFileSync('public_frontend/src/components/NativePineChartControl.tsx','utf8');
+const py=fs.readFileSync('public_frontend/src/components/DddsSharedChartCompare.tsx','utf8');
+const e2e=fs.readFileSync('public_frontend/tests/test_ddds_visible_range_e2e.cjs','utf8');
+assert.match(vela,/chart\.on\('viewport:changed'/);
+assert.match(vela,/chart\.setVisibleRange\(initialVisibleRef\.current\)/);
+assert.match(vela,/chart\.getVisibleRange\(\)/);
+assert.match(py,/chart\.timeScale\(\)\.setVisibleRange\(\{from,to\}\)/);
+assert.doesNotMatch(py,/chart\.timeScale\(\)\.fitContent\(\)/);
+assert.match(py,/handleScroll:false,handleScale:false/);
+assert.match(py,/SHOW_BARS_DEFAULT=80/);
+assert.match(py,/ddds-shared-symbol-timeframe/);
+assert.match(py,/ddds-visible-interval/);
+assert.match(py,/ddds-viewport-sync/);
+assert.match(e2e,/LIVE_VELA_PYTHON_VIEWPORT_MATCH/);
+assert.match(e2e,/Math\.abs\(a-c\)<=tolerance/);
+assert.match(e2e,/for\(const count of \[40,120,300,80\]\)/);
+console.log('DDDS_VISIBLE_UTC_DATE_RANGE_RENDERER_CONTRACT_PASS');

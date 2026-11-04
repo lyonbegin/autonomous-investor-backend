@@ -1,0 +1,28 @@
+name: DDDS visible date range exact comparison production build
+on:
+  push:
+    branches: [feature/ddds-synchronized-visible-interval-20261104]
+  pull_request:
+    branches: [feature/ddds-compare-auto-render-readable-20261104]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  typescript:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install exact Vela 0.9 and lightweight-charts deps
+        working-directory: public_frontend
+        run: npm install --no-audit --no-fund
+      - name: TypeScript + Vite production compile
+        working-directory: public_frontend
+        run: npm run build
+      - name: Check Chromium E2E syntax and viewport sync contract
+        run: |
+          node --check public_frontend/tests/test_ddds_visible_range_e2e.cjs
+          node public_frontend/tests/test_ddds_visible_range_contract.cjs

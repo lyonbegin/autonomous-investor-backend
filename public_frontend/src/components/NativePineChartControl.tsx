@@ -134,16 +134,28 @@ type Props={
   source:string;
   onRuntime?:(x:{state:'loading'|'ready'|'error';message?:string;kind?:string})=>void;
   onCapture?:(x:NativePineCapture|null)=>void;
+  /** Epoch milliseconds; the same explicit visible UTC interval used by Python. */
+  visibleRange?:{from:number;to:number};
+  onViewport?:(range:{from:number;to:number})=>void;
 };
 
-export function NativePineChartControl({data,source,onRuntime,onCapture}:Props){
+export function NativePineChartControl({data,source,onRuntime,onCapture,visibleRange,onViewport}:Props){
   const host=useRef<HTMLDivElement>(null);
   const runtimeRef=useRef(onRuntime);
   const captureRef=useRef(onCapture);
+  const viewportRef=useRef(onViewport);
+  const chartRef=useRef<Vela|null>(null);
+  const initialVisibleRef=useRef(visibleRange);
   const [localError,setLocalError]=useState('');
 
   useEffect(()=>{runtimeRef.current=onRuntime},[onRuntime]);
   useEffect(()=>{captureRef.current=onCapture},[onCapture]);
+  useEffect(()=>{viewportRef.current=onViewport},[onViewport]);
+  useEffect(()=>{
+    if(visibleRange&&chartRef.current){
+      chartRef.current.setVisibleRange(visibleRange);
+    }
+  },[visibleRange?.from,visibleRange?.to]);
 
   useEffect(()=>{
     const el=host.current;
@@ -169,7 +181,18 @@ export function NativePineChartControl({data,source,onRuntime,onCapture}:Props){
       timeframe:data.horizon||'1h',
       live:false,
       theme:'light',
+      visibleRange:initialVisibleRef.current,
     } as any);
+    chartRef.current=chart;
+    let viewportInitialized=false;
+    const offViewport=chart.on('viewport:changed',(range)=>{
+      if(disposed||!viewportInitialized)return;
+      if(Number.isFinite(range.from)&&Number.isFinite(range.to)&&range.from<range.to){
+        el.dataset.visibleFrom=String(range.from);
+        el.dataset.visibleTo=String(range.to);
+        viewportRef.current?.({from:range.from,to:range.to});
+      }
+    });
 
     chart.registerEngine('pine',new PineWorkerEngine());
     // The component already runs actual Pine on the supplied chart OHLCV.
@@ -211,7 +234,16 @@ export function NativePineChartControl({data,source,onRuntime,onCapture}:Props){
     });
 
     chart.ready().then(()=>{
-      if(!disposed) chart.resize();
+      if(disposed)return;
+      chart.resize();
+      if(initialVisibleRef.current)chart.setVisibleRange(initialVisibleRef.current);
+      viewportInitialized=true;
+      const actual=chart.getVisibleRange();
+      if(actual&&Number.isFinite(actual.from)&&Number.isFinite(actual.to)){
+        el.dataset.visibleFrom=String(actual.from);
+        el.dataset.visibleTo=String(actual.to);
+        viewportRef.current?.(actual);
+      }
     }).catch((err:any)=>{
       if(disposed)return;
       const message=err?.message||String(err);
@@ -228,6 +260,8 @@ export function NativePineChartControl({data,source,onRuntime,onCapture}:Props){
       try{offReady?.()}catch{}
       try{offError?.()}catch{}
       try{offScript?.()}catch{}
+      try{offViewport?.()}catch{}
+      if(chartRef.current===chart)chartRef.current=null;
       chart.destroy();
       el.innerHTML='';
     };
