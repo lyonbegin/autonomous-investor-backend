@@ -9,6 +9,7 @@ import json
 import math
 import sqlite3
 from datetime import date, datetime, timedelta, timezone
+from collections import defaultdict, deque
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS collection_queue (
@@ -27,6 +28,23 @@ CREATE TABLE IF NOT EXISTS collection_queue (
 );
 CREATE INDEX IF NOT EXISTS ix_collection_queue_due ON collection_queue(next_due);
 """
+
+
+def venue_fair(rows):
+    """Round-robin across asset class and exchange, preserving FIFO within each."""
+    groups = defaultdict(deque)
+    for row in rows:
+        key_parts = row[0].split(':', 2)
+        venue = ':'.join(key_parts[:2])
+        groups[venue].append(row)
+    ready = deque(sorted(groups))
+    result = []
+    while ready:
+        venue = ready.popleft()
+        result.append(groups[venue].popleft())
+        if groups[venue]:
+            ready.append(venue)
+    return result
 
 
 class CollectionQueue:
@@ -74,9 +92,9 @@ class CollectionQueue:
                 FROM collection_queue WHERE next_due<=?
                 ORDER BY next_due, first_seen, instrument_key
             """, (today,)).fetchall()
-        refresh = [r for r in due if r[0] in lookup and r[1]]
-        initial = [r for r in due if r[0] in lookup and not r[2]]
-        retry = [r for r in due if r[0] in lookup and r[2] and not r[1]]
+        refresh = venue_fair([r for r in due if r[0] in lookup and r[1]])
+        initial = venue_fair([r for r in due if r[0] in lookup and not r[2]])
+        retry = venue_fair([r for r in due if r[0] in lookup and r[2] and not r[1]])
         # Refresh backlog gets reserved capacity without starving discoveries.
         refreshed = min(len(refresh), int(math.ceil(limit * refresh_fraction)))
         ordered = refresh[:refreshed] + initial[:max(0,limit-refreshed)]
