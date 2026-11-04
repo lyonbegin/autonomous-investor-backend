@@ -86,6 +86,15 @@ def main():
               {"admin_html":200,"original_editor":200,"copied_react":200,
                "catalog":200,"candidates":200,"unverified_publish":422,
                "default_published_count":0},ensure_ascii=False))
+        except Exception as exc:
+            print("VERIFIED_HTTP_SMOKE_ERROR",repr(exc),file=sys.stderr,flush=True)
+            process.terminate()
+            try:
+                output,_=process.communicate(timeout=5)
+                print("VERIFIED_HTTP_SERVER_LOG",output.decode(errors="replace")[-3500:],
+                  file=sys.stderr,flush=True)
+            except subprocess.TimeoutExpired:process.kill()
+            raise
         finally:
             process.terminate()
             try:process.communicate(timeout=6)
