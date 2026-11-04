@@ -208,6 +208,7 @@ def main(argv=None):
     ap.add_argument('--status',action='store_true')
     ap.add_argument('--align',nargs=2)
     ap.add_argument('--pause',type=float,default=1.5)
+    ap.add_argument('--offset',type=int,default=None,help='manual batch offset; default rotating cursor')
     args=ap.parse_args(argv)
     store=Store(args.root)
     if args.status:
@@ -222,11 +223,20 @@ def main(argv=None):
     start,end=ten_year_window(date.fromisoformat(args.asof) if args.asof else None)
     results=[]
     if args.limit<1:raise ValueError('BATCH_LIMIT_POSITIVE_REQUIRED')
-    for inst in universe[:args.limit]:
+    cursor=store.root/'cursor.json'
+    selected=[]
+    if universe:
+        previous=json.loads(cursor.read_text()).get('offset',0) if cursor.exists() else 0
+        offset=previous if args.offset is None else args.offset
+        if offset<0:raise ValueError('OFFSET_MUST_BE_NONNEGATIVE')
+        selected=[universe[(offset+i)%len(universe)] for i in range(min(args.limit,len(universe)))]
+    for inst in selected:
         item=sync(store,inst,start,end)
         results.append(item)
         print(json.dumps(item,ensure_ascii=False),flush=True)
         if args.pause:time.sleep(args.pause)
+    if universe and args.offset is None:
+        cursor.write_text(json.dumps({'offset':(offset+len(selected))%len(universe)}))
     print(json.dumps({'status':'BATCH_FINISHED',
         'window_start':str(start),'window_end_exclusive':str(end),
         'timeframe':'1d','attempted':len(results),
