@@ -28,6 +28,7 @@ const TIME_TOLERANCE=2*3600*1000;
   const identity=(await page.getByTestId('ddds-shared-symbol-timeframe').innerText()).trim();
   if(!identity.includes('NASDAQ:AMZN')||!identity.includes('2시간봉'))throw Error('SYMBOL_OR_TIMEFRAME_NOT_PINNED '+identity);
   async function realRenderedRanges(expectedCount){
+    try{
     await page.waitForFunction(tolerance=>{
       const vela=document.querySelector('.ddds-shared-compare .native-pine-chart');
       const py=document.querySelector('[data-testid="ddds-python-chart"]');
@@ -37,7 +38,24 @@ const TIME_TOLERANCE=2*3600*1000;
       return !!a&&!!b&&!!c&&!!d&&a<b&&c<d&&
         Math.abs(a-c)<=tolerance&&Math.abs(b-d)<=tolerance&&
         sync?.textContent?.includes('양쪽 차트 날짜 동기화 확인');
-    },TIME_TOLERANCE,{timeout:45000});
+    },TIME_TOLERANCE,{timeout:12000});
+    }catch(e){
+      const diag=await page.evaluate(()=>{
+        const v=document.querySelector('.ddds-shared-compare .native-pine-chart');
+        const p=document.querySelector('[data-testid="ddds-python-chart"]');
+        return {selector:document.querySelector('[data-testid="ddds-visible-bars-select"]')?.value,
+          vela:{from:v?.dataset.visibleFrom,to:v?.dataset.visibleTo},
+          python:{from:p?.dataset.visibleFrom,to:p?.dataset.visibleTo},
+          shown:document.querySelector('[data-testid="ddds-visible-interval"]')?.textContent,
+          sync:document.querySelector('[data-testid="ddds-viewport-sync"]')?.textContent,
+          computed:document.querySelector('[data-testid="ddds-visible-plot-stats"]')?.textContent,
+          pageErrors:document.querySelectorAll('.native-pine-error').length};
+      });
+      console.log('DDDS_VISIBLE_RANGE_DIAGNOSTIC '+expectedCount+' '+JSON.stringify(diag));
+      await page.screenshot({path:path.join(OUT,'failed-date-sync-'+expectedCount+'.png'),fullPage:true});
+      fs.writeFileSync(path.join(OUT,'failed-date-sync-'+expectedCount+'.json'),JSON.stringify(diag,null,2));
+      throw e;
+    }
     const actual=await page.evaluate(()=>{
       const l=document.querySelector('.ddds-shared-compare .native-pine-chart');
       const r=document.querySelector('[data-testid="ddds-python-chart"]');
