@@ -17,3 +17,12 @@ python -m market_daily_10y.collector \
 **주의:** 기본 20개/일 배치로는 수천 개의 종목을 신속히 채울 수 없다. 다운로드 처리량·약관·스토리지 여유·요청 제한을 측정하기 전에 전 종목 동시 수집을 켜지 않는다. Nasdaq 자료의 이용조건과 Yahoo 상업 사용 조건을 별도 검토한다.
 
 다음 단계는 한국·일본·홍콩·유럽 등 거래소별 라이선스가 확인된 마스터 목록 공급자 어댑터 추가 및 전역 완료율 관측이다.
+
+기존 수집기에서 한 번에 실행하는 방법:
+
+```bash
+python -m market_daily_10y.collector \
+  --refresh-us-universe --root /data/market_daily_10y --limit 20
+```
+
+이 옵션은 GitHub 코드에 추가되었으나, 현재 Railway Cron의 기본 시작 명령에는 아직 반영되지 않았다. 정기 갱신과 실적은 별도 검증이 필요하다.
