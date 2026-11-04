@@ -16,6 +16,14 @@ class CatalogTests(TestCase):
     self.previous=os.environ.get("STUDIO_DB_PATH")
     os.environ["STUDIO_DB_PATH"]=str(Path(self.temp.name)/"catalog.sqlite3")
     cat.initialize()
+    # A real selected WF-02 source presupposes the original source store.
+    # Keep candidate discovery's production missing-table fail-closed guard.
+    from investment_source_registry import open_registry
+    with open_registry() as db:
+        db.execute("""CREATE TABLE investment_pine_payloads(
+            kind TEXT,source_id TEXT,version_key TEXT,
+            pine_code TEXT,rights_state TEXT)""")
+        db.commit()
     fixture=Path(os.environ.get("DDDS_FIXTURE_PATH") or (Path(__file__).resolve().parents[1]/"editor-adapter"/"fixtures"/"ddds_published_source.gz.b64"))
     self.original=gzip.decompress(base64.b64decode(fixture.read_text().strip())).decode()
     self.assertEqual(hashlib.sha256(self.original.encode()).hexdigest(),cat.DDDS_SHA)
