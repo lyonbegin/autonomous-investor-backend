@@ -36,7 +36,7 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
       page.locator('#integrated-start').click()
    ]);
    const started=await startResp.json();
-   if(startResp.status()!==200||!started.run_id)
+   if(!startResp.ok()||!started.run_id)
      throw Error('WF02_PIPELINE_START_FAILED '+startResp.status()+' '+JSON.stringify(started));
    const runid=started.run_id;
    report.pipeline_run_id=runid;
