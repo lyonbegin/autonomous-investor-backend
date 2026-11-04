@@ -18,6 +18,8 @@ from investment_wf02 import (WF02_PATH,execute_wf02_node01,execute_wf02_node02,
     execute_wf02_node03,execute_wf02_node04,execute_wf02_node05,execute_wf02_node06)
 from datetime import datetime,timezone
 
+WF04_PATH="operations/WF04-one-AI-indicator-to-Google-TPU.json"
+
 WF01_MODES={
     "operations/WF01-latest-strategy-one.json":"strategy",
     "operations/WF01-latest-library-one.json":"library",
@@ -29,11 +31,17 @@ def record_node_execution(workflow,workflow_run_id,node_id,node_name,status,outp
     if not os.environ.get("INVESTMENT_DATABASE_URL"):
         return {"status":"NOT_CONFIGURED"}
     from investment_pg import mirror_node_event
-    stage_key=("WF02_PINE_PYTHON" if workflow==WF02_PATH else
+    stage_key=("WF04_AI_TPU_SCREENING" if workflow==WF04_PATH else
+               "WF02_PINE_PYTHON" if workflow==WF02_PATH else
                "WF01_STRATEGY" if workflow=="operations/WF01-latest-strategy-one.json" else
                "WF01_LIBRARY" if workflow=="operations/WF01-latest-library-one.json" else "UNKNOWN")
     if stage_key=="UNKNOWN":
         raise ValueError("POSTGRES_UNREGISTERED_WORKFLOW")
+    # The giant generated programs live in the persistent WF04 manifest,
+    # not duplicated inside PostgreSQL execution events.
+    if stage_key=="WF04_AI_TPU_SCREENING":
+        output={key:value for key,value in (output or {}).items()
+                if key not in ("tacuda_cuda_code","jax_tpu_code","plan")}
     mirror_node_event(workflow_run_id,stage_key,workflow,node_id,
                       node_name,status,output,error)
     return {"status":"SYNCED","stage_key":stage_key}
@@ -69,6 +77,12 @@ def root_input_limit(workflow_path,node_id):
         and node_id=="wf01-library-01") else 2048
 
 def node_binding(workflow_path,node_id):
+    if workflow_path==WF04_PATH:
+        return ({"python_module":"investment_node_adapter",
+                 "python_function":"execute_wf04_one_ai_node",
+                 "code_version":"wf04-ai-indicators-tacuda-jax-tpu-v1",
+                 "node_character":"generate_exact_approved_strategy_batch_screening_code"}
+                if node_id=="wf04-ai-tpu-01" else None)
     if workflow_path==WF02_PATH:
         commands={
           "wf02-01":("execute_wf02_node01","wf02-n01-canonical-pine-v3","manual_collection_start"),
@@ -500,7 +514,29 @@ def execute_node16(input_json,*,workflow_kind):
         "conversion_validated":False,"tradingview_chart_validated":False,
         "paper_enabled":False,"live_orders_enabled":False}
 
+def execute_wf04_one_ai_node(input_json,*,workflow_kind="strategy"):
+    if not isinstance(input_json,dict):
+        raise ValueError("WF04_ONE_AI_NODE_INPUT_REQUIRED")
+    from investment_wf04_one_ai_tpu import build_for_saved,dispatch_to_tpu
+    source_id=input_json.get("source_id")
+    version_key=input_json.get("version_key")
+    manifest=build_for_saved(source_id,version_key)
+    dataset=input_json.get("dataset_uri")
+    if dataset is not None:
+        manifest["tpu_result"]=dispatch_to_tpu(
+            manifest,dataset,top_k=input_json.get("top_k",100),
+            min_signal_density=input_json.get("min_signal_density",0.02),
+            lookback=input_json.get("lookback",100))
+    else:
+        manifest["tpu_result"]={"status":"TPU_NOT_DISPATCHED_NO_DATASET",
+            "reason":"Connect a Google TPU VM worker and supply a GCS data matrix."}
+    return manifest
+
+
 def execute_node(workflow_path,node_id,input_json):
+    if workflow_path==WF04_PATH:
+        if node_id!="wf04-ai-tpu-01":raise ValueError("UNREGISTERED_WF04_NODE")
+        return execute_wf04_one_ai_node(input_json)
     if workflow_path==WF02_PATH:
         function={"wf02-01":execute_wf02_node01,"wf02-02":execute_wf02_node02,
                   "wf02-03":execute_wf02_node03,"wf02-04":execute_wf02_node04,
@@ -526,6 +562,8 @@ def execute_node(workflow_path,node_id,input_json):
     return func(input_json,workflow_kind=kind)
 
 def default_node_input(workflow_path,node_id):
+    if workflow_path==WF04_PATH:
+        return {"source_id":"","version_key":""} if node_id=="wf04-ai-tpu-01" else None
     if workflow_path==WF02_PATH:
         return {"ui_selection":"strategy","requested_detail_limit":1} if node_id=="wf02-01" else {}
     kind=WF01_MODES.get(workflow_path)
