@@ -88,3 +88,20 @@ def test_migrate_previous_catalog_without_redownloading_immediately(tmp_path):
     queue.seed([inst],d)
     assert queue.choose([inst],d,3)==[]
     assert queue.report(d)['recent_eligible_rows']==1
+
+
+def test_balanced_intake_across_exchanges(tmp_path):
+    store=Store(tmp_path)
+    q=CollectionQueue(store)
+    now=date(2026,11,5)
+    nas=instruments(30)
+    hk=[Instrument('equity','HKEX',f'{i:04}',f'{i:04}.HK','Asia/Hong_Kong')
+        for i in range(15)]
+    q.seed(nas+hk,now)
+    selected=q.choose(nas+hk,now,12)
+    assert sum(x.exchange=='HKEX' for x in selected)==6
+    assert sum(x.exchange=='NASDAQ' for x in selected)==6
+    for inst in selected:q.record(inst,now,{'status':'COLLECTED','eligible':True,'rows':2400})
+    again=q.choose(nas+hk,now,12)
+    assert {i.key for i in selected}.isdisjoint({i.key for i in again})
+
