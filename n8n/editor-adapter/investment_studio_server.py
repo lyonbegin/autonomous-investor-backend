@@ -149,8 +149,6 @@ class InvestmentHandler(studio.Handler):
         return super().do_GET()
 
     def do_POST(self):
-        if urlsplit(self.path)=="":
-            return self.send_error(404)
         if urlsplit(self.path).path == "/api/investment/wf04/one-ai-generate-tpu":
             sid,fresh=self._sid()
             # Only the existing administration host can request paid AI calls
