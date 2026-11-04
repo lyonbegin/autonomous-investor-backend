@@ -31,14 +31,24 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
    if(!option)throw Error('APPROVED_DDDS_NOT_IN_SOURCE_SELECT');
    await page.locator('#integrated-source').selectOption(option);
    report.checks.push('EXPLICIT_PINNED_DDDS_SELECTED_IN_REAL_CONSOLE');
-   const [startResp]=await Promise.all([
-      page.waitForResponse(r=>r.url().endsWith('/api/investment/pipeline')&&r.request().method()==='POST',{timeout:30000}),
-      page.locator('#integrated-start').click()
-   ]);
-   const started=await startResp.json();
-   if(!startResp.ok()||!started.run_id)
+   let runid=null;
+   for(let attempt=0;attempt<45;attempt++){
+     const [startResp]=await Promise.all([
+       page.waitForResponse(r=>r.url().endsWith('/api/investment/pipeline')&&r.request().method()==='POST',{timeout:30000}),
+       page.locator('#integrated-start').click({timeout:30000})
+     ]);
+     const started=await startResp.json();
+     if(startResp.ok()&&started.run_id){runid=started.run_id;break}
+     if(startResp.status()===409&&started.error==='PIPELINE_ALREADY_RUNNING'){
+       // A user's run or another test may be executing. Respect the global
+       // real-Python lock and retry only after it completes: no fake success.
+       report.concurrent_existing_workflow_busy=(report.concurrent_existing_workflow_busy||0)+1;
+       await sleep(5000);
+       continue;
+     }
      throw Error('WF02_PIPELINE_START_FAILED '+startResp.status()+' '+JSON.stringify(started));
-   const runid=started.run_id;
+   }
+   if(!runid)throw Error('REAL_PYNE_WF02_PIPELINE_RESOURCE_BUSY_NOT_TESTED');
    report.pipeline_run_id=runid;
    let result=null;
    for(let i=0;i<140;i++){
