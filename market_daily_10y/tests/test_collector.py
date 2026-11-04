@@ -79,8 +79,25 @@ def test_crypto_24_7_daily_calendar(tmp_path):
     assert len(p.read(C))>len(prices(A))
 
 
-def test_different_collection_periods_never_compare(tmp_path):
+def test_one_day_refresh_offset_rebased_to_same_dates(tmp_path):
     p=Store(tmp_path)
     p.save(A,prices(A),START,END)
     p.save(B,prices(B),START,END+timedelta(days=1))
-    with pytest.raises(ValueError,match='WINDOW_MISMATCH'):p.align(A,B)
+    shared,meta=p.align(A,B)
+    assert meta['start']==str(START)
+    assert meta['end_exclusive']==str(END)
+    assert meta['rebased_to_identical_window']
+    assert len(shared)==len(prices(A))
+
+
+def test_stale_batches_never_compared(tmp_path):
+    p=Store(tmp_path)
+    p.save(A,prices(A),START,END)
+    newend=END+timedelta(days=20)
+    extra=prices(B)
+    tail=pd.date_range(END,newend-timedelta(days=1),freq='B')
+    app=pd.DataFrame({'date':tail,'open':100.,'high':102.,
+                      'low':99.,'close':101.,'volume':1000})
+    p.save(B,pd.concat([extra,app],ignore_index=True),START,newend)
+    with pytest.raises(ValueError,match='STALE_UNALIGNED_TEN_YEAR_SNAPSHOT'):
+        p.align(A,B)
