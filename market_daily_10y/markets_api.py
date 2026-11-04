@@ -244,7 +244,7 @@ def bars(key:str,authorization:str|None=Header(default=None)):
             "sha256":record["sha256"],"bars":data}
 
 class UpdateRequest(BaseModel):
-    scope:str=Field(pattern="^(all|category|instrument)$")
+    scope:str=Field(pattern="^(all|category|instrument|catalog)$")
     category:str|None=None
     key:str|None=None
     max_items:int|None=Field(default=100,ge=1,le=20000)
@@ -281,11 +281,61 @@ def _job_state():
 def update_status():
     return _job_state()
 
-def _manual_worker(job_id,targets,asof):
+def _manual_worker(job_id,payload,asof):
     global _job
     start,end=ten_year_window(asof)
+    if payload.scope in ("all","catalog") or (payload.scope=="category"
+                                   and payload.category in ("equity","etf")):
+        # Only the explicit user request refreshes exchange master lists.
+        # TradingView categories are navigation, never assumed to be a
+        # licensed downloadable source for all listed exchange symbols.
+        try:
+            from .world_bootstrap import prepare_global_universe
+            base=Path(__file__).parent/"universe.csv"
+            jpx=os.getenv("JPX_OFFICIAL_SNAPSHOT")
+            krx=os.getenv("KRX_LICENSED_SNAPSHOT") if os.getenv("KRX_LICENSE_CONFIRMED")=="1" else None
+            _,evidence=prepare_global_universe(
+                ROOT,base,allow_network=True,
+                jpx_file=jpx if jpx and Path(jpx).is_file() else None,
+                krx_file=krx if krx and Path(krx).is_file() else None)
+            with _job_lock:
+                if _job.get("id")!=job_id:return
+                _job["catalog"]="refreshed"
+                _job["catalog_count"]=evidence["world_universe_count"]
+                _job["catalog_source_scope"]=evidence["source_scope"]
+                _write_job(_job)
+        except Exception as exc:
+            with _job_lock:
+                if _job.get("id")!=job_id:return
+                _job["catalog"]="failed_kept_previous_list"
+                _job["catalog_error"]=f"{type(exc).__name__}: {str(exc)[:240]}"
+                _write_job(_job)
+    entries,stored,_=_inventory()
+    if payload.scope=="catalog":
+        with _job_lock:
+            if _job.get("id")==job_id:
+                _job.update({"state":"completed" if _job.get("catalog")=="refreshed"
+                             else "completed_with_errors",
+                             "catalog_count":len(entries),"total":0,"attempted":0,
+                             "finished_at":datetime.now(timezone.utc).isoformat()})
+                _write_job(_job)
+        return
+    if payload.scope=="instrument":
+        targets=[entries[payload.key]] if payload.key in entries else []
+    else:
+        targets=[inst for inst in entries.values() if payload.scope=="all"
+                 or CATEGORY_BY_ASSET.get(inst.asset_class)==payload.category]
+    targets.sort(key=lambda inst:(
+        {"미확보":0,"파일 누락":1,"10년 미충족":2,"갱신 필요":3,"10년 확보":4}
+        .get(_row(inst,stored.get(inst.key),asof)["status"],5),
+        inst.exchange,inst.symbol))
+    if payload.max_items is not None:
+        targets=targets[:payload.max_items]
+    with _job_lock:
+        if _job.get("id")!=job_id:return
+        _job["total"]=len(targets)
+        _write_job(_job)
     for index,inst in enumerate(targets):
-        # STOP if service runs out of free space; retain all previous bars.
         if shutil.disk_usage(ROOT).free<128*1024*1024:
             with _job_lock:
                 _job["state"]="stopped_disk_low"
@@ -313,31 +363,20 @@ def _manual_worker(job_id,targets,asof):
             _job["finished_at"]=datetime.now(timezone.utc).isoformat()
             _write_job(_job)
 
+
 @app.post("/api/markets/update")
 def update_prices(payload:UpdateRequest,authorization:str|None=Header(default=None)):
     global _job
     _authed(authorization or "")
-    entries,stored,_=_inventory()
     if payload.scope=="instrument":
+        entries,_,_=_inventory()
         if payload.key not in entries:
             raise HTTPException(404,"종목 목록에 없습니다")
-        targets=[entries[payload.key]]
-    else:
-        targets=[inst for inst in entries.values()
-                 if payload.scope=="all" or
-                 CATEGORY_BY_ASSET.get(inst.asset_class)==payload.category]
-        if payload.scope=="category" and payload.category not in {x["id"] for x in ASSET_MENU}:
-            raise HTTPException(422,"시장 분류가 올바르지 않습니다")
-    if not targets:
-        raise HTTPException(409,"이 시장에 등록된 종목이 없습니다")
-    # Prioritize genuinely missing/stale before revisiting up-to-date symbols.
+    if payload.scope=="category" and payload.category not in {x["id"] for x in ASSET_MENU}:
+        raise HTTPException(422,"시장 분류가 올바르지 않습니다")
+    if payload.scope=="category" and payload.category=="economy":
+        raise HTTPException(409,"아직 등록된 경제 시계열 수집 대상이 없습니다")
     today=_asof()
-    targets.sort(key=lambda inst:(
-        {"미확보":0,"파일 누락":1,"10년 미충족":2,"갱신 필요":3,"10년 확보":4}
-         .get(_row(inst,stored.get(inst.key),today)["status"],5),
-         inst.exchange,inst.symbol))
-    if payload.max_items is not None:
-        targets=targets[:payload.max_items]
     with _job_lock:
         if _job.get("state")=="running":
             raise HTTPException(409,"이미 수동 수집이 실행 중입니다")
@@ -345,10 +384,10 @@ def update_prices(payload:UpdateRequest,authorization:str|None=Header(default=No
         _job={"id":job_id,"state":"running",
               "started_at":datetime.now(timezone.utc).isoformat(),
               "asof_exclusive":str(today),"scope":payload.scope,
-              "total":len(targets),"attempted":0,"completed":0,"failed":0,
-              "current":None,"last_error":None}
+              "total":0,"attempted":0,"completed":0,"failed":0,
+              "current":None,"last_error":None,"catalog":"not_requested"}
         _write_job(_job)
-    thread=threading.Thread(target=_manual_worker,args=(job_id,targets,today),
+    thread=threading.Thread(target=_manual_worker,args=(job_id,payload,today),
                             daemon=True,name="explicit-user-market-10y-update")
     thread.start()
     return JSONResponse(_job_state(),status_code=202)
