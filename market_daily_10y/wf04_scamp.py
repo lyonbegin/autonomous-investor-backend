@@ -106,7 +106,8 @@ def run_wf04(store, left_key, right_key, asof, *,
              window=60, feature="log_returns", threshold=0.0, top=5,
              threads=2, backend=None):
     """Full 10Y snapshot eligibility and per-file content hash is mandatory."""
-    manifest = eligible_manifest(store, asof, verify_digest=True)
+    manifest = eligible_manifest(store, asof, verify_digest=True,
+                                 only_keys={left_key, right_key})
     lookup = {x["key"]:x for x in manifest["instruments"]}
     if left_key not in lookup or right_key not in lookup:
         raise ValueError("WF04_SOURCE_NOT_VERIFIED_AT_EXACT_ASOF")
