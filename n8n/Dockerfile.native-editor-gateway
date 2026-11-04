@@ -13,6 +13,24 @@ COPY n8n/workflows/ /app/shared/playground/public/stock-workflows/
 ENV VITE_EDITOR_PROJECT=investment
 RUN npm --prefix /app/shared/playground run build
 
+# Migrate ONLY the existing /scripts React UI and all its original child pages
+# into this SAME editor/operations service. Pin precisely the last known-good
+# public frontend with Vela/Pine vs Python 300-bar verified viewport sync.
+# The old standalone public service can be removed after live E2E.
+FROM node:22-alpine AS approved_scripts_build
+RUN apk add --no-cache git
+ARG VERIFIED_SCRIPTS_REACT_COMMIT=1c26e090ee1ffcc8b549f70df843d4e2fa616d4f
+RUN git clone --depth 1 --branch feature/ddds-synchronized-visible-interval-20261104 \
+      https://github.com/lyonbegin/autonomous-investor-backend.git /app/verified-repo \
+ && git -C /app/verified-repo fetch --depth 1 origin "$VERIFIED_SCRIPTS_REACT_COMMIT" \
+ && git -C /app/verified-repo checkout --detach "$VERIFIED_SCRIPTS_REACT_COMMIT" \
+ && test "$(git -C /app/verified-repo rev-parse HEAD)" = "$VERIFIED_SCRIPTS_REACT_COMMIT"
+WORKDIR /app/verified-repo/public_frontend
+COPY n8n/verified-ui/VerifiedScriptsApp.tsx ./src/VerifiedScriptsApp.tsx
+COPY n8n/verified-ui/main.tsx ./src/main.tsx
+COPY n8n/verified-ui/vite.config.ts ./vite.config.ts
+RUN npm install --no-audit --no-fund && npm run build
+
 # Persistent, isolated per-browser SQLite drafts. Public demo write operations
 # cannot trigger n8n, TradingView or broker; N01 Python selection-only is allowlisted.
 FROM python:3.12-slim
@@ -21,6 +39,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends gosu \
 RUN pip install --no-cache-dir "psycopg[binary]>=3.2,<4" "pynesys-pynecore==6.11.1" "beautifulsoup4==4.13.4" "hoox-pyne[compile]==0.6.31"
 WORKDIR /app
 COPY --from=build /app/shared/playground/dist /app/dist
+COPY --from=approved_scripts_build /app/verified-repo/public_frontend/dist /app/dist/verified
 COPY n8n/admin-console/index.html /app/dist/admin/index.html
 RUN python3 -c 'from pathlib import Path; p=Path("/app/dist/index.html"); s=p.read_text(); link="<a href=\"/admin/index.html\" style=\"position:fixed;bottom:18px;right:18px;z-index:9999;background:#165e9b;color:white;text-decoration:none;padding:12px 16px;border-radius:9px;box-shadow:0 6px 22px #0004;font:600 13px sans-serif\" aria-label=\"주식 자동화 종합 관제센터\">종합 관제센터 ↗</a>"; assert "</body>" in s; p.write_text(s.replace("</body>",link+"</body>"))'
 COPY --from=build /app/shared/server/studio_server.py /app/studio_server.py
@@ -33,6 +52,7 @@ COPY n8n/editor-adapter/investment_free_pyne.py /app/investment_free_pyne.py
 COPY n8n/editor-adapter/investment_free_pyne_runner.py /app/investment_free_pyne_runner.py
 COPY n8n/editor-adapter/investment_free_pyne_chart.py /app/investment_free_pyne_chart.py
 COPY n8n/editor-adapter/investment_shared_bars_compare.py /app/investment_shared_bars_compare.py
+COPY n8n/editor-adapter/investment_verified_catalog.py /app/investment_verified_catalog.py
 COPY n8n/investment-db/investment_pg.py /app/investment_pg.py
 COPY n8n/investment-db/schema_v1.sql /app/schema_v1.sql
 COPY n8n/editor-adapter/investment_pipeline.py /app/investment_pipeline.py
@@ -52,7 +72,7 @@ COPY n8n/editor-adapter/verified_pine_archive.py /app/verified_pine_archive.py
 COPY n8n/editor-adapter/verified_pine_archive_index.json /app/verified_pine_archive_index.json
 COPY n8n/editor-adapter/investment_pine_store.py /app/investment_pine_store.py
 COPY --from=build /app/shared/server/node_workspace_store.py /app/node_workspace_store.py
-RUN python3 -m py_compile /app/studio_server.py /app/node_workspace_store.py /app/node_run_store.py /app/project_adapter_runtime.py /app/investment_node_adapter.py /app/investment_wf02.py /app/investment_pynecomp.py /app/investment_free_pyne.py /app/investment_free_pyne_runner.py /app/investment_free_pyne_chart.py /app/investment_shared_bars_compare.py /app/investment_pg.py /app/investment_pipeline.py /app/investment_studio_server.py /app/investment_tv_chart_integration.py /app/investment_tv_publication.py /app/investment_tv_trade_reference.py /app/investment_ddds_parity.py /app/pynecore_samples/bollinger_bands.py /app/pynecore_samples/sma_crossover.py /app/engine.py /app/sequence_reversal.py /app/licensed_strategy_manifest.py /app/investment_source_registry.py /app/verified_pine_archive.py
+RUN python3 -m py_compile /app/studio_server.py /app/node_workspace_store.py /app/node_run_store.py /app/project_adapter_runtime.py /app/investment_node_adapter.py /app/investment_wf02.py /app/investment_pynecomp.py /app/investment_free_pyne.py /app/investment_free_pyne_runner.py /app/investment_free_pyne_chart.py /app/investment_shared_bars_compare.py /app/investment_verified_catalog.py /app/investment_pg.py /app/investment_pipeline.py /app/investment_studio_server.py /app/investment_tv_chart_integration.py /app/investment_tv_publication.py /app/investment_tv_trade_reference.py /app/investment_ddds_parity.py /app/pynecore_samples/bollinger_bands.py /app/pynecore_samples/sma_crossover.py /app/engine.py /app/sequence_reversal.py /app/licensed_strategy_manifest.py /app/investment_source_registry.py /app/verified_pine_archive.py
 RUN mkdir -p /data && groupadd --system studio && useradd --system --gid studio --home /app studio \
     && chown -R studio:studio /data /app
 # The Railway volume is mounted after image build as root-owned /data.
