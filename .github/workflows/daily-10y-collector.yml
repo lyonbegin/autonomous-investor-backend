@@ -20,7 +20,7 @@ jobs:
       - name: Install real Parquet and Yahoo dependencies
         run: pip install -r market_daily_10y/requirements.txt
       - name: Verify exact date alignment, 10Y eligibility and incremental saves
-        run: python -m pytest -q market_daily_10y/tests/test_collector.py market_daily_10y/tests/test_universe_discovery.py
+        run: python -m pytest -q market_daily_10y/tests/test_collector.py market_daily_10y/tests/test_universe_discovery.py market_daily_10y/tests/test_global_universe.py
       - name: Display empty persistent-store schema (never fake populated data)
         run: python -m market_daily_10y.collector --root /tmp/market_10yr_unit --status
   yahoo-real-ten-year-smoke:
