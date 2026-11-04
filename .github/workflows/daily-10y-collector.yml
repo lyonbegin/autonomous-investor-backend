@@ -47,6 +47,18 @@ jobs:
           assert x['rows']>2000 and x['coverage']>=0.8
           print('LIVE_YAHOO_10Y_1D_VERIFIED',x['key'],x['rows'],x['first_date'],x['last_date'])
           PY
+      - name: Check actual non-equity ten-year collection (FX and crypto spot)
+        run: |
+          python -m market_daily_10y.collector --root /tmp/market_10yr_real --asset fx --limit 1 --pause 1 --asof 2026-11-04 2>&1 | tee /tmp/fx-10yr.log
+          python -m market_daily_10y.collector --root /tmp/market_10yr_real --asset crypto_spot --limit 1 --pause 1 --asof 2026-11-04 2>&1 | tee /tmp/crypto-10yr.log
+          python -m market_daily_10y.collector --root /tmp/market_10yr_real --status > /tmp/multiasset-10yr-status.json
+          python - <<'PY'
+          import json
+          data=json.load(open('/tmp/multiasset-10yr-status.json'))
+          kinds={x['asset_class'] for x in data['instruments'] if x['eligible']}
+          assert {'equity','fx','crypto_spot'}.issubset(kinds), ('NON_EQUITY_TEN_YEAR_YAHOO_DATA_NOT_VERIFIED',kinds)
+          print('LIVE_YAHOO_MULTI_ASSET_10Y_VERIFIED', data['stored'], data['eligible'])
+          PY
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -54,4 +66,7 @@ jobs:
           path: |
             /tmp/yahoo-10yr.log
             /tmp/market-10yr-status.json
+            /tmp/fx-10yr.log
+            /tmp/crypto-10yr.log
+            /tmp/multiasset-10yr-status.json
           if-no-files-found: warn
