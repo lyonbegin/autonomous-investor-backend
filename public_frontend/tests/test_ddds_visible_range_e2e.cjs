@@ -45,7 +45,7 @@ const TIME_TOLERANCE=2*3600*1000;
         const p=document.querySelector('[data-testid="ddds-python-chart"]');
         return {selector:document.querySelector('[data-testid="ddds-visible-bars-select"]')?.value,
           vela:{from:v?.dataset.visibleFrom,to:v?.dataset.visibleTo},
-          python:{from:p?.dataset.visibleFrom,to:p?.dataset.visibleTo},
+          python:{from:p?.dataset.visibleFrom,to:p?.dataset.visibleTo,requestedFrom:p?.dataset.requestedFrom,requestedTo:p?.dataset.requestedTo},
           shown:document.querySelector('[data-testid="ddds-visible-interval"]')?.textContent,
           sync:document.querySelector('[data-testid="ddds-viewport-sync"]')?.textContent,
           computed:document.querySelector('[data-testid="ddds-visible-plot-stats"]')?.textContent,
