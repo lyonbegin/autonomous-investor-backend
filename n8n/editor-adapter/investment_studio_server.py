@@ -325,5 +325,19 @@ if __name__ == "__main__":
     studio.archive_verified_old_sqlite_backup()
     studio.init_db()
     verified_catalog.initialize()
+    # Diagnostic only: does not automatically publish or copy any strategy.
+    try:
+        from investment_pipeline import saved_sources
+        entries=saved_sources(limit=120)["sources"]
+        matches=[x for x in entries if x["source_id"]==verified_catalog.DDDS_ID]
+        detail=(verified_catalog.candidate_check(matches[0]) if matches else {})
+        print("VERIFIED_CATALOG_DDDS_ELIGIBILITY",json.dumps({
+            "saved_ddds_versions":len(matches),
+            "ddds_pine_rights":detail.get("rights_state"),
+            "ddds_converted":detail.get("free_pyne_generated_stored"),
+            "publish_ready":detail.get("publish_ready",False),
+            "reason":detail.get("reason","NOT_IN_SOURCE_STORE")},ensure_ascii=False),flush=True)
+    except Exception as exc:
+        print("VERIFIED_CATALOG_BOOT_DIAGNOSTIC_ONLY_FAILED",type(exc).__name__,flush=True)
     print("Investment studio with original workflow canvas and official chart-to-PyneCore WF02 verification", flush=True)
     ThreadingHTTPServer(("0.0.0.0", studio.PORT), InvestmentHandler).serve_forever()
