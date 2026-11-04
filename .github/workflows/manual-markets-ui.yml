@@ -1,0 +1,56 @@
+name: Manual Markets & 10Y Daily UI
+on:
+  push:
+    paths:
+      - "market_daily_10y/**"
+      - ".github/workflows/manual-markets-ui.yml"
+  pull_request:
+    paths:
+      - "market_daily_10y/**"
+      - ".github/workflows/manual-markets-ui.yml"
+  workflow_dispatch:
+jobs:
+  markets-full-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install market API, Parquet and test dependencies
+        run: pip install -r market_daily_10y/requirements.txt
+      - name: API real Parquet, manual-only update and auth tests
+        run: python -m pytest -q market_daily_10y/tests/test_markets_api.py
+      - name: Check frontend JavaScript syntax
+        run: node --check market_daily_10y/web/app.js
+      - name: Install Playwright Chromium for actual user scenario
+        run: |
+          cd /tmp
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Start actual market API for browser test
+        run: |
+          mkdir -p /tmp/market-ui-browser-data
+          DAILY_POOL_ROOT=/tmp/market-ui-browser-data MARKET_UPDATE_TOKEN=test-internal-key \
+            uvicorn market_daily_10y.markets_api:app --host 127.0.0.1 --port 8765 > /tmp/market-ui-server.log 2>&1 &
+          for i in $(seq 1 45); do
+            if curl -fsS http://127.0.0.1:8765/health; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/market-ui-server.log
+          exit 1
+      - name: Real browser test: markets, missing data, manual gate, mobile layout
+        run: |
+          cd /tmp
+          node "$GITHUB_WORKSPACE/market_daily_10y/tests/markets_browser.mjs"
+      - name: Upload actual browser screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: market-ui-manual-ten-year-desktop-mobile
+          path: /tmp/market-ui-evidence/
+          if-no-files-found: warn
