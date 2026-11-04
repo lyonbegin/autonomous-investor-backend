@@ -91,3 +91,56 @@ def test_missing_selection_and_snapshot_not_trusted(tmp_path):
         bridge.hydrate(ASOF+timedelta(days=1),[A.key],tmp_path/'bad')
     with pytest.raises(ValueError,match='S3_UNVERIFIED_INSTRUMENT'):
         bridge.hydrate(ASOF,[B.key],tmp_path/'not-sent')
+
+
+def test_collector_cli_opt_in_s3_mirror_writes_remote_manifest(tmp_path,monkeypatch,capsys):
+    import json
+    import market_daily_10y.collector as collector
+    import market_daily_10y.s3_bridge as transport
+    fake=FakePrivateS3()
+    monkeypatch.setattr(transport,'s3_client_from_env',
+                        lambda:(fake,'private-research'))
+    def local_fetch(store,inst,start,end):
+        q=store.save(inst,bars(),start,end)
+        return {'status':'COLLECTED',**q}
+    monkeypatch.setattr(collector,'sync',local_fetch)
+    csv_path=tmp_path/'one.csv'
+    csv_path.write_text('asset_class,exchange,symbol,vendor_symbol,timezone,calendar,contract_type\n'
+                        'equity,NASDAQ,AAPL,AAPL,America/New_York,weekday,spot\n')
+    collector.main(['--root',str(tmp_path/'actual'),'--universe',str(csv_path),
+                    '--asof','2026-11-04','--queue','--mirror-s3',
+                    '--limit','1','--pause','0'])
+    summary=json.loads(capsys.readouterr().out.splitlines()[-1])
+    assert summary['attempted']==1
+    assert summary['s3_mirror_failed']==0
+    assert summary['s3_manifest']['status']=='PUBLISHED_PRIVATE_MANIFEST'
+    assert summary['s3_manifest']['ready']==1
+    assert len(fake.objects)==3
+
+
+def test_remote_outage_recorded_but_local_parquet_is_preserved(tmp_path,monkeypatch,capsys):
+    import json
+    import market_daily_10y.collector as collector
+    import market_daily_10y.s3_bridge as transport
+    class BrokenS3(FakePrivateS3):
+        def put_object(self,**kwargs):
+            raise ConnectionError('S3_NOT_REACHABLE')
+    fake=BrokenS3()
+    monkeypatch.setattr(transport,'s3_client_from_env',
+                        lambda:(fake,'private-research'))
+    def local_fetch(store,inst,start,end):
+        q=store.save(inst,bars(),start,end)
+        return {'status':'COLLECTED',**q}
+    monkeypatch.setattr(collector,'sync',local_fetch)
+    csv_path=tmp_path/'one.csv'
+    csv_path.write_text('asset_class,exchange,symbol,vendor_symbol,timezone,calendar,contract_type\n'
+                        'equity,NASDAQ,AAPL,AAPL,America/New_York,weekday,spot\n')
+    root=tmp_path/'actual'
+    collector.main(['--root',str(root),'--universe',str(csv_path),
+                    '--asof','2026-11-04','--mirror-s3',
+                    '--limit','1','--pause','0'])
+    output=capsys.readouterr().out.splitlines()
+    summary=json.loads(output[-1])
+    assert summary['s3_mirror_failed']==1
+    assert summary['s3_manifest']['status']=='NOT_PUBLISHED'
+    assert Store(root).status()['eligible']==1
