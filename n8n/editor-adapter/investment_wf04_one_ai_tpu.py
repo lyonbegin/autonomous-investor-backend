@@ -253,6 +253,20 @@ def build_for_saved(source_id,version_key,*,ai=None):
     if not all(isinstance(v,str) and 1<=len(v)<=240 for v in (source_id,version_key)):
         raise ValueError("WF04_EXACT_SOURCE_ID_AND_VERSION_REQUIRED")
     meta,python,py_sha=load_saved_exact(source_id,version_key)
+    from investment_source_registry import open_registry
+    with closing(open_registry()) as db:
+        existing=db.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='investment_wf04_tpu_programs'").fetchone()
+        cached=(db.execute("""SELECT manifest_json FROM investment_wf04_tpu_programs
+          WHERE source_id=? AND version_key=? AND pine_sha256=? AND python_sha256=?
+          ORDER BY generated_at DESC LIMIT 1""",
+          (source_id,version_key,meta["source_sha256"],py_sha)).fetchone() if existing else None)
+    if cached:
+        previous=json.loads(cached["manifest_json"])
+        if (sha(previous["plan"])==previous["plan_sha256"] and
+            sha(previous["jax_tpu_code"])==previous["jax_tpu_code_sha256"] and
+            sha(previous["tacuda_cuda_code"])==previous["tacuda_code_sha256"]):
+            return {**previous,"cache_reused":True}
+        raise ValueError("WF04_CACHED_AI_CODE_HASH_DAMAGED")
     detail=(meta.get("tradingview_publication") or {})
     description=detail.get("description") or meta.get("tradingview_original_title") or ""
     if ai is None:raw=ask_openai(meta["source"],python,description)
