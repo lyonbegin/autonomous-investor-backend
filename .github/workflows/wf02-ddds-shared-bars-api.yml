@@ -46,27 +46,10 @@ jobs:
           path: /tmp/ddds-real-site-same-bars.json
           retention-days: 14
           if-no-files-found: warn
-      - name: Install real Chromium to capture exact DDDS Vela on SAME 300 site bars
+      - name: Enforce migrated admin chart browser contract
         run: |
-          npm install --no-save playwright@1.56.1
-          npx playwright install --with-deps chromium
-      - name: Run existing public website NativePineChartControl on real latest 300 bars
-        env:
-          DDDS_SITE_COMPARE_DIR: /tmp/ddds-site-vela-pyne-300
-        run: node n8n/tests/capture_ddds_exact_300_from_site_vela.cjs
-      - name: Compare exact DDDS Vela and DDDS Python per-indicator numerical values
-        env:
-          DDDS_SITE_COMPARE_DIR: /tmp/ddds-site-vela-pyne-300
-        run: python n8n/tests/compare_actual_ddds_same_300_vela_python.py
-      - name: Preserve both real chart runs, input prices, numeric diffs and screenshot
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: ddss-real-300-site-bars-vela-vs-python-indicator-numeric-diff
-          path: /tmp/ddds-site-vela-pyne-300/
-          retention-days: 14
-          if-no-files-found: warn
-
+          node --check n8n/tests/e2e_verified_admin_live.cjs
+          echo 'Legacy autonomous-investor-public frontend Vela capture has moved to the verified-admin live-browser job.'
   verified-admin-migration:
     runs-on: ubuntu-latest
     timeout-minutes: 22
