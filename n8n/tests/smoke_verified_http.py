@@ -59,6 +59,12 @@ def main():
             assert code==200 and "검증 완료 전략" in html,(code,"ADMIN_MENU_NOT_PRESENT")
             code,html=call(base+"/verified/index.html?view=list")
             assert code==200 and "/verified/assets/" in html,(code,"MIGRATED_REACT_NOT_SERVED")
+            # Do not disable clickjacking defense across the service. Only
+            # same-origin migrated React is allowed inside the admin iframe.
+            with urlopen(base+"/verified/index.html",timeout=5) as response:
+                assert response.headers.get("X-Frame-Options")=="SAMEORIGIN",("VERIFIED_IFRAME_BLOCKED",dict(response.headers))
+            with urlopen(base+"/admin/index.html",timeout=5) as response:
+                assert response.headers.get("X-Frame-Options")=="DENY","ADMIN_CLICKJACKING_DEFENSE_LOST"
             code,data=call(base+"/api/investment/verified-scripts/catalog?limit=50&offset=0")
             assert code==200,(code,data[:250])
             body=json.loads(data)
