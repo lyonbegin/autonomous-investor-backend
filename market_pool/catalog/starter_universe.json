@@ -438,5 +438,16 @@
     "timezone": "America/New_York",
     "contract_type": "expired_contracts",
     "notes": "Expired option chains need historical vendor"
+  },
+  {
+    "asset_class": "crypto_spot",
+    "exchange": "BITSTAMP",
+    "symbol": "BTCUSD",
+    "vendor": "public_csv",
+    "vendor_symbol": "BTCUSD",
+    "currency": "USD",
+    "timezone": "UTC",
+    "contract_type": "spot",
+    "notes": "existing 2012-2026 OHLCV CSV at alessiostomeo/btc-cycle-data; inspect data license before redistribution"
   }
 ]
