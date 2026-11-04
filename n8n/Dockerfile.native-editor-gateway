@@ -61,6 +61,7 @@ COPY n8n/editor-adapter/investment_verified_catalog.py /app/investment_verified_
 COPY n8n/investment-db/investment_pg.py /app/investment_pg.py
 COPY n8n/investment-db/schema_v1.sql /app/schema_v1.sql
 COPY n8n/editor-adapter/investment_pipeline.py /app/investment_pipeline.py
+COPY n8n/editor-adapter/investment_pipeline_ddds_bridge.py /app/investment_pipeline_ddds_bridge.py
 COPY n8n/editor-adapter/investment_studio_server.py /app/investment_studio_server.py
 COPY n8n/editor-adapter/investment_tv_chart_integration.py /app/investment_tv_chart_integration.py
 COPY n8n/editor-adapter/investment_tv_publication.py /app/investment_tv_publication.py
@@ -77,13 +78,15 @@ COPY n8n/editor-adapter/verified_pine_archive.py /app/verified_pine_archive.py
 COPY n8n/editor-adapter/verified_pine_archive_index.json /app/verified_pine_archive_index.json
 COPY n8n/editor-adapter/investment_pine_store.py /app/investment_pine_store.py
 COPY --from=build /app/shared/server/node_workspace_store.py /app/node_workspace_store.py
-RUN python3 -m py_compile /app/studio_server.py /app/node_workspace_store.py /app/node_run_store.py /app/project_adapter_runtime.py /app/investment_node_adapter.py /app/investment_wf02.py /app/investment_pynecomp.py /app/investment_free_pyne.py /app/investment_free_pyne_runner.py /app/investment_free_pyne_chart.py /app/investment_shared_bars_compare.py /app/investment_verified_catalog.py /app/investment_pg.py /app/investment_pipeline.py /app/investment_studio_server.py /app/investment_tv_chart_integration.py /app/investment_tv_publication.py /app/investment_tv_trade_reference.py /app/investment_ddds_parity.py /app/pynecore_samples/bollinger_bands.py /app/pynecore_samples/sma_crossover.py /app/engine.py /app/sequence_reversal.py /app/licensed_strategy_manifest.py /app/investment_source_registry.py /app/verified_pine_archive.py
+RUN python3 -m py_compile /app/studio_server.py /app/node_workspace_store.py /app/node_run_store.py /app/project_adapter_runtime.py /app/investment_node_adapter.py /app/investment_wf02.py /app/investment_pynecomp.py /app/investment_free_pyne.py /app/investment_free_pyne_runner.py /app/investment_free_pyne_chart.py /app/investment_shared_bars_compare.py /app/investment_verified_catalog.py /app/investment_pg.py /app/investment_pipeline.py /app/investment_pipeline_ddds_bridge.py /app/investment_studio_server.py /app/investment_tv_chart_integration.py /app/investment_tv_publication.py /app/investment_tv_trade_reference.py /app/investment_ddds_parity.py /app/pynecore_samples/bollinger_bands.py /app/pynecore_samples/sma_crossover.py /app/engine.py /app/sequence_reversal.py /app/licensed_strategy_manifest.py /app/investment_source_registry.py /app/verified_pine_archive.py
 
 # Fail deployment before it starts if a promotion could leak an unverified
 # strategy or break the existing persistent ledger/idempotency guarantees.
 COPY n8n/tests/test_verified_strategy_catalog.py /app/verified_tests/test_verified_strategy_catalog.py
 RUN DDDS_FIXTURE_PATH=/app/fixtures/ddds_published_source.gz.b64 \
     PYTHONPATH=/app python3 /app/verified_tests/test_verified_strategy_catalog.py -v
+COPY n8n/tests/test_ddds_integrated_bridge.py /app/verified_tests/test_ddds_integrated_bridge.py
+RUN PYTHONPATH=/app python3 /app/verified_tests/test_ddds_integrated_bridge.py -v
 RUN mkdir -p /data && groupadd --system studio && useradd --system --gid studio --home /app studio \
     && chown -R studio:studio /data /app
 # The Railway volume is mounted after image build as root-owned /data.

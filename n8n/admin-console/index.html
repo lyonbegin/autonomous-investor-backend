@@ -142,7 +142,7 @@ const INTEGRATED=[
  {id:'strategy',name:'① 전략 원본 수집·DB 재사용',workflow:W.strategy},
  {id:'library',name:'② 선택한 전략의 Library 의존성',workflow:W.library},
  {id:'python',name:'③ 동일 Pine → Python 변환',workflow:W.pine},
- {id:'chart',name:'④ TradingView 원본 ↔ Python 차트 비교',workflow:W.parity}
+ {id:'chart',name:'④ 동일 OHLCV 사이트 Pine ↔ Python 차트 검증',workflow:W.parity}
 ];
 function integratedHtml(){
  return '<section class="panel" id="integrated-section"><h3>전체 자동화 4단계 연속 실행</h3>'+
@@ -163,12 +163,12 @@ function integratedHtml(){
  '<div class="actions" id="integrated-charts"></div></div></div>'+
  '<div class="panel" id="integrated-native-compare"><h3>좌우 차트 · TradingView 원본 ↔ Python 실행 결과</h3>'+
  '<p class="muted minor" id="integrated-source-identity">실행 결과의 정확한 source_id, version_key, SHA-256을 확인합니다.</p>'+
- '<p class="helper">무료 PYNE가 동일 Pine 원본으로 생성한 Python과 검증 가능한 실제 실행 결과만 DDDS 차트로 사용할 수 있습니다. 예전 Quant 제한형 Python 그래프는 기존 연구 기록일 뿐이며 새 PyneCore 변환의 검증 근거로 사용하지 않습니다. 왼쪽은 확인된 TradingView 게시 이미지입니다.</p>'+
+ '<p class="helper">기존 사이트에서 실제 실행하는 Vela Pine 차트와 PYNE 생성 Python 차트를 **동일 NASDAQ:AMZN 120분 봉**으로 비교합니다. 원저자 TradingView 게시 BATS 차트 이미지는 현재 수치 비교에 사용하지 않습니다. 게시 당시 299건 거래 동등성은 별개입니다.</p>'+
  '<div id="native-compare-target">선택된 PostgreSQL 원본 버전과 확인된 TradingView 원본 게시물의 연결을 조회합니다.</div></div>'+
- '<div class="panel" id="integrated-final-review"><h3>추가 검증 · TradingView 플롯·CSV와 Python 수치 동등성</h3>'+
- '<div class="grid2"><div class="area"><b>TradingView 실제 플롯·CSV 기준자료</b><div id="integrated-left-chart" class="empty">게시 차트 이미지는 위에서 표시합니다. 거래·지표별 정량 CSV는 아직 확보되지 않음</div></div>'+
- '<div class="area"><b>일치 오차 및 승인 판정</b><div id="integrated-right-chart" class="empty">원본 플롯·거래 목록과 비교해 계산한 정밀 동등성 기록 없음</div></div></div>'+
- '<p class="muted minor" id="integrated-comparison-note">게시 스냅샷 확인과 수치적 동등성은 별개의 검증입니다. 정식 동등성은 아직 미완료입니다.</p></div>'+
+ '<div class="panel" id="integrated-final-review"><h3>WF-02 실제 동일 데이터 결과와 과거 비교 증거</h3>'+
+ '<div class="grid2"><div class="area"><b>DDDS Pine Vela 기준·정확한 SHA</b><div id="integrated-left-chart" class="empty">현재 Vela 실행 또는 이전 비교 증거 확인 전</div></div>'+
+ '<div class="area"><b>PYNE Python 300봉 실제 실행</b><div id="integrated-right-chart" class="empty">같은 종목·시간축으로 Python 실행 확인 전</div></div></div>'+
+ '<p class="muted minor" id="integrated-comparison-note">기존 브라우저에서 통과한 Vela↔Python 비교와 이번 백엔드 Python 실행은 별도 기록입니다. 원저자 게시 TradingView 거래 동등성은 별도입니다.</p></div>'+
  '<div class="notice warn">Library가 필요 없으면 NOT_REQUIRED, 실제 참조가 없으면 WAITING_DEPENDENCY로 기록합니다. TradingView 실제 이미지·CSV가 없으면 차트는 BLOCKED로 기록하고 성공으로 표시하지 않습니다. 변환 불가 전략을 다른 전략으로 몰래 바꾸지 않습니다.</div></section>';
 }
 async function loadSavedSources(){
@@ -219,8 +219,9 @@ async function refreshIntegrated(runId){
   if(summary){
     const completed=INTEGRATED.filter(s=>['SOURCE_SAVED','REUSED_EXACT_DB_SOURCE',
       'REUSED_SAVED_SUPPORTED_SOURCE','NO_NEW_SOURCE','NOT_REQUIRED','RESOLVE_WITH_PYNECOMP',
-      'PYNECOMP_GENERATED_UNVALIDATED','REFERENCE_FOUND_REVIEW_REQUIRED',
-      'CHART_PREVIEW_READY_TV_PARITY_PENDING'].includes(states[s.id])).length;
+      'PYNECOMP_GENERATED_UNVALIDATED','PYNE_FREE_CURRENT_SITE_300_BARS_EXECUTED',
+      'REFERENCE_FOUND_REVIEW_REQUIRED','CHART_PREVIEW_READY_TV_PARITY_PENDING',
+      'REUSED_VERIFIED_SITE_PINE_PYTHON_300_BARS'].includes(states[s.id])).length;
     const blocked=INTEGRATED.filter(s=>String(states[s.id]||'').startsWith('BLOCKED_')||
       String(states[s.id]||'').includes('UNSUPPORTED')||states[s.id]==='FAILED');
     const key=blocked.map(s=>s.name+': '+states[s.id]).join(' / ');
@@ -230,7 +231,9 @@ async function refreshIntegrated(runId){
       ?'아직 전체 실행 기록이 없습니다.'
       :'4개 중 정상/재사용 단계 '+completed+'개, 차단/미지원 '+blocked.length+'개'+
        (key?' · 차단 원인 '+key:'')+
-       (d.status==='TV_PARITY_PENDING'?' · 원본 Pine/Python 차트 준비 완료, TradingView 사이트 공식 동등성 검증은 별도 대기':
+       (d.status==='SITE_CHART_VERIFIED_EVIDENCE_REUSED'?
+         ' · DDDS 생성 Python을 현재 300봉으로 실행. 과거 사이트 Pine↔Python 864/864 검증 근거 재사용. 현재 차트는 아래에서 다시 확인 · 공식 TradingView 게시 거래 미검증':
+       d.status==='TV_PARITY_PENDING'?' · TradingView 원저자 사이트 공식 동등성은 별도 대기':
        d.status==='PARTIAL_BLOCKED'?' · 전체 검증 미완료':'');
     summary.classList.toggle('warn',blocked.length>0||d.status==='PARTIAL_BLOCKED'||d.status==='TV_PARITY_PENDING');
   }
@@ -273,29 +276,35 @@ async function refreshIntegrated(runId){
     'source_id: '+chosen.source_id+' · version_key: '+chosen.version_key+
     ' · script_version_id (PostgreSQL UUID): '+(canonical.script_version_id||
       (d.status==='RUNNING'?'확인 중':'확인 필요'))+
-    (states.python?.startsWith('BLOCKED_FREE_PYNE')?' · 무료 PYNE 컴파일 차단됨':states.python==='PYNE_FREE_GENERATED_UNVALIDATED'?' · 무료 PYNE Python 생성 완료·TradingView 일치 미검증':''):
+    (states.python?.startsWith('BLOCKED_FREE_PYNE')?' · 무료 PYNE 컴파일 차단됨':states.python==='PYNE_FREE_GENERATED_UNVALIDATED'?' · 무료 PYNE Python 생성 완료·런타임 미검증':
+    states.python==='PYNE_FREE_CURRENT_SITE_300_BARS_EXECUTED'?
+      ' · 정확한 SHA Python 300봉 재실행 완료(공식 게시 거래 미검증)':''):
     (d.status==='RUNNING'?'실행 중 · 선택된 전략 및 버전을 확인하고 있습니다.':
      '선택된 저장 원본 없음 · 실제 수집 및 DB 확보 필요');
   const comparison=d.result?.chart||null;
-  const ddDsRealReady=comparison?.status==='DDDS_FREE_PYNE_REAL_300BAR_CHART_READY_PARITY_UNVERIFIED'&&
+  const ddDsRealReady=comparison?.status==='DDDS_CURRENT_PYTHON_EXECUTED_PRIOR_SITE_PARITY_REUSED'&&
     comparison?.source_sha256==='5a245e99447f13012dd026528235fc2c299cad5cb7b228653c684886dcba6507'&&
+    comparison?.python_sha256==='ef27e69cbb71bc101431a2f9f71783c37f1f8094a7a77e080032ca3bbd7994a1'&&
     comparison?.symbol==='NASDAQ:AMZN'&&comparison?.timeframe==='120'&&
-    comparison?.bar_count>=40&&comparison?.tradingview_parity_verified===false;
+    comparison?.bar_count===300&&comparison?.current_python_runtime_executed===true&&
+    comparison?.previous_site_parity_verified===true&&
+    comparison?.official_tradingview_publication_parity_verified===false;
   const chartRunId=String(comparison?.parity_run_id||'');
   const chartPresent=/^[0-9a-f]{24}$/.test(chartRunId)&&comparison?.comparison_id;
   const left=document.getElementById('integrated-left-chart');
   const right=document.getElementById('integrated-right-chart');
   const note=document.getElementById('integrated-comparison-note');
-  if(left)left.innerHTML=chartPresent?
-    '<img src="'+PARITY_ORIGIN+'/artifacts/'+chartRunId+'/reference" alt="제공된 실제 TradingView 전략 적용 차트" style="width:100%;height:auto;max-height:300px;object-fit:contain">':
-    'TradingView 원본 차트·CSV가 확인되지 않음 · 검증 대기';
-  if(right)right.innerHTML=chartPresent?
-    '<img src="'+PARITY_ORIGIN+'/artifacts/'+chartRunId+'/python.svg" alt="동일 입력의 Python 전략 계산 차트" style="width:100%;height:auto;max-height:300px;object-fit:contain">':
-    '동일 시장 데이터의 Python 차트가 준비되지 않음 · 허위 결과 미표시';
+  if(left)left.innerHTML=ddDsRealReady?
+    '원본 DDDS Pine: 저장된 SHA-256 확인. 우리 사이트의 Vela/Pine 실제 차트는 바로 아래 동일 날짜 좌우 실행 화면에서 표시합니다. 원저자 게시 BATS 이미지는 계산 비교에 사용하지 않습니다.':
+    chartPresent?'별도 TradingView 게시 기준 이미지 기록 있음 · 현 차트 비교 통과 의미 아님':
+    '현재 동일 데이터 Pine 실행 결과 미확인';
+  if(right)right.innerHTML=ddDsRealReady?
+    '현재 공개 API의 NASDAQ:AMZN 120분 300봉을 실제 생성 Python에 넣어 실행 완료 · '+esc(comparison.input_ohlcv_sha256)+
+    ' · 이전 Vela/Python 864/864 지표 검증 근거를 별도 재사용':
+    chartPresent?'별도 Python 분석 기록 있음 · 현 차트 비교와 다름':
+    '같은 데이터에서 Python 실행 미확인';
   if(note)note.textContent=ddDsRealReady?
-    '정확한 DDDS Pine → 무료 PYNE 생성 Python으로 NASDAQ:AMZN 2시간봉 '+
-     comparison.bar_count+'개 실제 실행 확인 · 생성 주문 이벤트 '+comparison.trade_event_count+
-     '건. TradingView 원본 게시 299건 전략 동등성은 미검증. 아래 WF-02 버튼으로 실제 차트 열기.':
+    '원본·생성 Python SHA 검증 → 현재 사이트 300봉 Python 실행 완료. Vela 지표 864/864 일치는 이전 실제 브라우저 검증 기록이며 이번 Python 백엔드 실행에서 Vela를 다시 실행했다는 뜻이 아닙니다. 아래 양쪽 실제 차트가 현재 입력 봉으로 자동 재검사합니다. 원저자 게시 299건 체결 비교는 범위 밖입니다.':
     comparison?
     '비교 ID '+(comparison.comparison_id||'없음')+' · 수치 판정 '+comparison.status+
       ' · 시각 검토 '+(comparison.visual_verdict||'PENDING')+
@@ -310,11 +319,13 @@ async function refreshIntegrated(runId){
     const metadata=chosen&&availableSources.find(s=>
       s.source_id===chosen.source_id&&s.version_key===chosen.version_key);
     if(ddDsRealReady){
-      preview.dataset.loaded='real-ddds-free-pyne';
-      preview.innerHTML='<a class="btn" href="/admin/index.html?section=convert">'+
-       '동일 원본 DDDS Python 실행 차트 '+comparison.bar_count+
-       '봉 확인 → 기존 WF-02 화면 열기</a>'+
-       '<p class="muted minor">실제 공개 NASDAQ:AMZN 2시간봉 300개 · 원본 299건과의 동등성 미검증</p>';
+      const src='/verified/index.html?view=compare&id='+encodeURIComponent(comparison.source_id);
+      if(preview.dataset.loaded!==src){
+        preview.dataset.loaded=src;
+        preview.innerHTML='<p><a href="'+esc(src)+'" target="_blank" rel="noopener">▶ DDDS 실제 Pine ↔ Python 300봉 동일 차트 크게 열기</a> · 이전 검증 기록과 현재 실시간 계산은 구분합니다.</p>'+
+         '<iframe title="기존 사이트 Vela Pine 원본 실행과 PYNE 생성 Python 동일 시장 데이터 재검사" src="'+esc(src)+
+         '" style="width:100%;height:1180px;border:1px solid #345;border-radius:10px;background:#fff" loading="eager"></iframe>';
+      }
     }else if(chosen&&metadata?.source_sha256&&/^[0-9a-f]{64}$/.test(metadata.source_sha256)
        &&d.status!=='RUNNING'&&states.python==='PYNECORE_RUNTIME_EXECUTED'){
       const src='/verified/index.html?view=compare&id='+
@@ -338,8 +349,9 @@ async function refreshIntegrated(runId){
     const tvUrl=d.result?.chart?.comparison_url;
     const chartUrl=d.result?.chart?.preview_url;
     if(ddDsRealReady){
-      links.innerHTML='<a class="btn" href="/admin/index.html?section=convert">▶ 기존 WF-02 실제 DDDS Python 차트 열기</a>'+
-        '<span class="muted minor">동일 Pine 전체 변환·실행 300봉 확인 · TradingView 299건 거래/체결 일치 미검증</span>';
+      const siteCompare='/verified/index.html?view=compare&id='+encodeURIComponent(comparison.source_id);
+      links.innerHTML='<a class="btn" href="'+esc(siteCompare)+'" target="_blank" rel="noopener">▶ 사이트 Pine ↔ Python 현재 동일 300봉 차트 열기</a>'+
+        '<p class="muted minor">현재 Python 실행 완료 · 이전 브라우저 864/864 동등성 증거 재사용 · 공식 TradingView 원저자 299건 거래 미검증</p>';
     }else if(tvUrl&&tvUrl.startsWith('https://investment-pine-parity-review-production.up.railway.app/?run=')){
       links.innerHTML='<a class="btn" href="'+esc(tvUrl)+'" target="_blank" rel="noopener">TradingView 캡처·CSV 수치 결과 보기</a>';
     }else if(chartUrl&&chartUrl.startsWith('https://autonomous-investor-public-production.up.railway.app/compare/')){

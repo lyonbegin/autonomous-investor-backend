@@ -428,6 +428,7 @@ def process(run_id,sid,requested_source=None):
     selected=None
     converted=None
     chart=None
+    generated_code=None
     try:
         stage(run_id,"strategy",STRATEGY,"RUNNING")
         if requested_source:
@@ -497,10 +498,23 @@ def process(run_id,sid,requested_source=None):
                 result=run_graph(run_id,"python",PYTHON,
                     {"ui_selection":"strategy","requested_detail_limit":1,**selected})
                 if result.get("status")=="PYNE_FREE_GENERATED_UNVALIDATED" and result.get("python_code"):
-                    converted=selected
+                    # WF02 graph returns the actual Python but the chosen
+                    # source identity used to contain ONLY id + version.
+                    # The old ④ gate incorrectly treated this same DDDS as
+                    # an unsupported source because its SHA was missing.
+                    pinned=exact_stored_pine(selected["source_id"],selected["version_key"])
+                    emitted_sha=hashlib.sha256(result["python_code"].encode("utf-8")).hexdigest()
+                    if (result.get("source_id")!=selected["source_id"] or
+                        result.get("version_key")!=selected["version_key"] or
+                        result.get("source_sha256")!=pinned["source_sha256"] or
+                        result.get("python_sha256")!=emitted_sha):
+                        raise ValueError("WF02_GENERATED_CODE_SOURCE_VERSION_OR_EMITTED_SHA_MISMATCH")
+                    converted={**selected,"source_sha256":pinned["source_sha256"],
+                        "python_sha256":emitted_sha}
+                    generated_code=result["python_code"]
                     statuses["python"]="PYNE_FREE_GENERATED_UNVALIDATED"
                     stage(run_id,"python",PYTHON,statuses["python"],
-                        {**selected,"conversion_id":result.get("conversion_id"),
+                        {**converted,"conversion_id":result.get("conversion_id"),
                          "converter_scope":"PYNE_FREE_FULL_PINE",
                          "library_import_linkage_verified":
                              result.get("library_import_linkage_verified",False),
@@ -518,39 +532,37 @@ def process(run_id,sid,requested_source=None):
                 stage(run_id,"python",PYTHON,"FAILED",selected,
                       type(exc).__name__+": "+str(exc)[:260])
         stage(run_id,"chart",PARITY,"RUNNING")
-        # Existing free-PYNE DDDS child-runner executes the real converted
-        # Python only for the single pinned DDDS source; all other Pine inputs
-        # remain explicitly blocked until a supported source-specific runner
-        # is available. Never label 300 current bars equal to TV's 299 trades.
+        # Same-site DDDS comparison is a distinct, narrower criterion than
+        # the author's TradingView posted snapshot or 299 strategy trades.
+        # Never attribute historical Vela parity to candles from a fresh run.
         if converted:
-            from investment_ddds_parity import DDDS_SOURCE_ID,DDDS_SOURCE_SHA
+            from investment_ddds_parity import DDDS_SOURCE_ID,DDDS_SOURCE_SHA,DDDS_VERSION
             selected_is_ddds=(converted.get("source_id")==DDDS_SOURCE_ID and
+                 converted.get("version_key")==DDDS_VERSION and
                  converted.get("source_sha256")==DDDS_SOURCE_SHA)
             if selected_is_ddds:
                 try:
-                    from investment_free_pyne_chart import execute as execute_free_ddds
-                    run=execute_free_ddds(sid)
-                    if run.get("status")!="EXACT_DDDS_FREE_PYNE_EXECUTED_ON_REAL_AMZN_120_BARS":
-                        raise ValueError("REAL_DDDS_PYTHON_EXECUTION_NOT_CONFIRMED")
-                    statuses["chart"]="PYNE_FREE_DDDS_300_BARS_EXECUTED_PARITY_BLOCKED"
-                    chart={"status":"DDDS_FREE_PYNE_REAL_300BAR_CHART_READY_PARITY_UNVERIFIED",
-                           "source_id":DDDS_SOURCE_ID,
-                           "source_sha256":DDDS_SOURCE_SHA,
-                           "python_sha256":run["python_sha256"],
-                           "symbol":run["symbol"],"timeframe":run["timeframe"],
-                           "bar_count":run["bar_count"],
-                           "trade_event_count":run["strategy_event_count"],
-                           "chart_open_url":"/admin/index.html?section=convert",
-                           "tradingview_parity_verified":False,
-                           "full_history_2016_2026_verified":False,
-                           "paper_enabled":False,"live_orders_enabled":False}
+                    from investment_pipeline_ddds_bridge import run_ddds_after_conversion
+                    chart=run_ddds_after_conversion(converted,generated_code)
+                    statuses["python"]="PYNE_FREE_CURRENT_SITE_300_BARS_EXECUTED"
+                    stage(run_id,"python",PYTHON,statuses["python"],{
+                        "source_id":DDDS_SOURCE_ID,"version_key":DDDS_VERSION,
+                        "source_sha256":DDDS_SOURCE_SHA,
+                        "python_sha256":chart["python_sha256"],
+                        "runtime_execution_verified":True,
+                        "bar_count":chart["bar_count"],
+                        "market_data_same_as_python_input":True,
+                        "tradingview_official_parity_verified":False})
+                    statuses["chart"]="REUSED_VERIFIED_SITE_PINE_PYTHON_300_BARS"
                     stage(run_id,"chart",PARITY,statuses["chart"],chart)
                 except Exception as exc:
-                    statuses["chart"]="BLOCKED_DDDS_FREE_PYNE_REAL_CHART_FAILED"
+                    statuses["chart"]="BLOCKED_DDDS_CHART_OR_PROVENANCE_NOT_VERIFIED"
                     stage(run_id,"chart",PARITY,statuses["chart"],
-                          {"source_id":DDDS_SOURCE_ID,
-                           "reason":type(exc).__name__+":"+str(exc)[:140],
-                           "strategy_parity_verified":False})
+                          {"source_id":DDDS_SOURCE_ID,"version_key":DDDS_VERSION,
+                           "source_sha256":DDDS_SOURCE_SHA,
+                           "reason":type(exc).__name__+":"+str(exc)[:180],
+                           "current_run_site_parity_verified":False,
+                           "official_tradingview_parity_verified":False})
             else:
                 statuses["chart"]="BLOCKED_FREE_PYNE_RUNTIME_NOT_SUPPORTED_FOR_SOURCE"
                 stage(run_id,"chart",PARITY,statuses["chart"],
@@ -560,7 +572,9 @@ def process(run_id,sid,requested_source=None):
             statuses["chart"]="BLOCKED_FREE_PYNE_CONVERSION_NOT_READY"
             stage(run_id,"chart",PARITY,statuses["chart"],
                   {"reason":statuses.get("python")})
-        final="PARTIAL_BLOCKED"
+        final=("SITE_CHART_VERIFIED_EVIDENCE_REUSED"
+            if statuses.get("chart")=="REUSED_VERIFIED_SITE_PINE_PYTHON_300_BARS"
+            else "PARTIAL_BLOCKED")
         with closing(open_registry()) as db:
             trace_failures=db.execute("""SELECT count(*) FROM investment_pipeline_events
                 WHERE run_id=? AND status='POSTGRES_TRACE_FAILED'""",(run_id,)).fetchone()[0]
@@ -581,7 +595,7 @@ def process(run_id,sid,requested_source=None):
                 "converted_source":converted,"chart":chart,
                 "postgres_sync":postgres_finish,
                 "postgres_trace_failures":trace_failures,
-                "note":"Free PYNE-generated source alone never proves official TradingView orders, fill prices, or plot parity. Legacy Quant examples are not DDDS evidence."}
+                "note":"Exact DDDS Python was re-executed on current site OHLCV; historical Vela↔Python plot comparison was checked by immutable source/Python SHA and reused, not re-run inside this backend pipeline. Open the integrated live charts for a fresh Pine↔Python parity computation. Official TradingView author-published BATS chart/299 trades remain unverified."}
         with closing(open_registry()) as db:
             db.execute("""UPDATE investment_pipeline_runs SET status=?,finished_at=?,
                 selected_source_id=?,selected_version=?,result_json=? WHERE run_id=?""",
