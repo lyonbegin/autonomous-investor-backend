@@ -151,16 +151,30 @@ class Store:
         aa,bb=lookup.get(a.key),lookup.get(b.key)
         if not aa or not bb or not aa['eligible'] or not bb['eligible']:
             raise ValueError('NOT_10Y_ELIGIBLE')
-        if (aa['start'],aa['end_exclusive'])!=(bb['start'],bb['end_exclusive']):
-            raise ValueError('WINDOW_MISMATCH')
-        x=self.read(a)[['date','close']].rename(columns={'close':'left_close'})
-        y=self.read(b)[['date','close']].rename(columns={'close':'right_close'})
+        # Different batches may have been fetched one or two UTC days apart.
+        # Rebase both to the SAME older as-of, do not compare shifted days.
+        oldest_end=min(date.fromisoformat(aa['end_exclusive']),
+                       date.fromisoformat(bb['end_exclusive']))
+        newest_end=max(date.fromisoformat(aa['end_exclusive']),
+                       date.fromisoformat(bb['end_exclusive']))
+        if (newest_end-oldest_end).days>7:
+            raise ValueError('STALE_UNALIGNED_TEN_YEAR_SNAPSHOT')
+        start,_=ten_year_window(oldest_end)
+        x=self.read(a)
+        y=self.read(b)
+        x=x[(x['date']>=str(start)) & (x['date']<str(oldest_end))]
+        y=y[(y['date']>=str(start)) & (y['date']<str(oldest_end))]
+        if not quality(a,x,start,oldest_end)['eligible'] or not quality(b,y,start,oldest_end)['eligible']:
+            raise ValueError('NOT_ELIGIBLE_IN_SHARED_TEN_YEAR_WINDOW')
+        x=x[['date','close']].rename(columns={'close':'left_close'})
+        y=y[['date','close']].rename(columns={'close':'right_close'})
         common=x.merge(y,on='date',validate='one_to_one',how='inner')
         ratio=len(common)/min(len(x),len(y))
         if ratio<min_overlap:raise ValueError('INSUFFICIENT_SHARED_TRADING_DATES')
         return common,{'common_dates':len(common),'overlap_ratio':round(ratio,4),
-                       'filled_gaps':False,'start':aa['start'],
-                       'end_exclusive':aa['end_exclusive']}
+                       'filled_gaps':False,'start':str(start),
+                       'end_exclusive':str(oldest_end),
+                       'rebased_to_identical_window':True}
 
 
 def yahoo_fetch(inst,start,end):
