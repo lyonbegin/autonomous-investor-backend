@@ -222,6 +222,8 @@ def main(argv=None):
     ap.add_argument('--limit',type=int,default=int(os.getenv('DAILY_BATCH_LIMIT','20')))
     ap.add_argument('--asset')
     ap.add_argument('--status',action='store_true')
+    ap.add_argument('--progress',action='store_true',help='compact persistent queue and actual price coverage report')
+    ap.add_argument('--queue',action='store_true',help='stable SQLite pending/refresh/retry scheduling; no offset cursor')
     ap.add_argument('--align',nargs=2)
     ap.add_argument('--pause',type=float,default=1.5)
     ap.add_argument('--offset',type=int,default=None,help='manual batch offset; default rotating cursor')
@@ -229,6 +231,13 @@ def main(argv=None):
     store=Store(args.root)
     if args.status:
         print(json.dumps(store.status(),ensure_ascii=False,indent=2));return
+    if args.progress:
+        from .scheduler import CollectionQueue
+        asof = date.fromisoformat(args.asof) if args.asof else datetime.now(timezone.utc).date()
+        q = CollectionQueue(store)
+        print(json.dumps(q.report(asof,args.limit),ensure_ascii=False,indent=2));return
+    if args.queue and args.offset is not None:
+        raise ValueError('QUEUE_MODE_DOES_NOT_ACCEPT_OFFSET')
     if args.refresh_global_universe and args.refresh_us_universe:
         raise ValueError('SELECT_ONE_UNIVERSE_REFRESH_MODE')
     if args.refresh_global_universe:
@@ -279,25 +288,43 @@ def main(argv=None):
     if args.limit<1:raise ValueError('BATCH_LIMIT_POSITIVE_REQUIRED')
     cursor=store.root/'cursor.json'
     selected=[]
-    if universe:
+    queue=None
+    if args.queue:
+        from .scheduler import CollectionQueue
+        queue=CollectionQueue(store)
+        queue.seed(universe,end)
+        selected=queue.choose(universe,end,args.limit)
+    elif universe:
         previous=json.loads(cursor.read_text()).get('offset',0) if cursor.exists() else 0
         offset=previous if args.offset is None else args.offset
         if offset<0:raise ValueError('OFFSET_MUST_BE_NONNEGATIVE')
         selected=[universe[(offset+i)%len(universe)] for i in range(min(args.limit,len(universe)))]
     for inst in selected:
         item=sync(store,inst,start,end)
+        if queue is not None:
+            item['next_due']=queue.record(inst,end,item)
         results.append(item)
         print(json.dumps(item,ensure_ascii=False),flush=True)
         if args.pause:time.sleep(args.pause)
-    if universe and args.offset is None:
+    if universe and args.offset is None and queue is None:
         cursor.write_text(json.dumps({'offset':(offset+len(selected))%len(universe)}))
-    print(json.dumps({'status':'BATCH_FINISHED',
+    summary={'status':'BATCH_FINISHED',
         'window_start':str(start),'window_end_exclusive':str(end),
         'timeframe':'1d','attempted':len(results),
         'eligible':sum(x.get('eligible',False) for x in results),
         'failed':sum(x['status']=='FAILED' for x in results),
-        'worldwide_coverage_verified':False},
-        ensure_ascii=False),flush=True)
+        'worldwide_coverage_verified':False}
+    if queue is not None:
+        summary['queue_progress']=queue.report(end,args.limit)
+        report_path=store.root/'latest-run-summary.json'
+        fd,tmp=tempfile.mkstemp(prefix='.run-',suffix='.json',dir=store.root)
+        try:
+            with os.fdopen(fd,'w') as output:
+                json.dump(summary,output,ensure_ascii=False,indent=2)
+            os.replace(tmp,report_path)
+        finally:
+            Path(tmp).unlink(missing_ok=True)
+    print(json.dumps(summary,ensure_ascii=False),flush=True)
 
 
 if __name__=='__main__':main()
