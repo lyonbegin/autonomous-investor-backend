@@ -1,0 +1,13 @@
+name: wf04-scamp
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - pyscamp-cpu
+  - pandas>=2.1,<3
+  - numpy
+  - pyarrow
+  - yfinance
+  - pytest
+  - openpyxl
+  - boto3

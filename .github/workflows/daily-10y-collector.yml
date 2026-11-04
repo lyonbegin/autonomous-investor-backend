@@ -1,0 +1,209 @@
+name: Independent synchronized 10-year 1D collection verification
+on:
+  push:
+    paths:
+      - 'market_daily_10y/**'
+      - '.github/workflows/daily-10y-collector.yml'
+  pull_request:
+    paths:
+      - 'market_daily_10y/**'
+      - '.github/workflows/daily-10y-collector.yml'
+  workflow_dispatch:
+jobs:
+  alignment-and-storage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install real Parquet and Yahoo dependencies
+        run: pip install -r market_daily_10y/requirements.txt
+      - name: Verify exact date alignment, 10Y eligibility and incremental saves
+        run: python -m pytest -q market_daily_10y/tests/test_collector.py market_daily_10y/tests/test_universe_discovery.py market_daily_10y/tests/test_global_universe.py market_daily_10y/tests/test_world_bootstrap.py market_daily_10y/tests/test_scheduler.py market_daily_10y/tests/test_pool_reader.py market_daily_10y/tests/test_s3_bridge.py
+      - name: Display empty persistent-store schema (never fake populated data)
+        run: python -m market_daily_10y.collector --root /tmp/market_10yr_unit --status
+      - name: Verify durable queue progress with one real Yahoo historical symbol
+        run: |
+          python -m market_daily_10y.collector --root /tmp/market_10yr_unit --queue --limit 1 --pause 0 --asof 2026-11-04
+          python -m market_daily_10y.collector --root /tmp/market_10yr_unit --progress --asof 2026-11-04 --limit 100 > /tmp/daily-10y-progress.json
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/daily-10y-progress.json'))
+          assert d['listing_candidates']>=1
+          assert d['never_attempted']<d['listing_candidates']
+          assert 'capacity_below_7d_full_refresh' in d
+          print('DURABLE_QUEUE_PROGRESS_TEST',d)
+          PY
+  yahoo-real-ten-year-smoke:
+    runs-on: ubuntu-latest
+    needs: alignment-and-storage
+    continue-on-error: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install collector dependencies
+        run: pip install -r market_daily_10y/requirements.txt
+      - name: Fetch ACTUAL 10 years of one Yahoo symbol, no old fixture
+        run: |
+          python -m market_daily_10y.collector --root /tmp/market_10yr_real --limit 1 --pause 0 --asof 2026-11-04 2>&1 | tee /tmp/yahoo-10yr.log
+          python -m market_daily_10y.collector --root /tmp/market_10yr_real --status > /tmp/market-10yr-status.json
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/market-10yr-status.json'))
+          assert d['eligible']==1, 'Yahoo live ten-year daily data not confirmed; see fetch log'
+          x=d['instruments'][0]
+          assert x['start']=='2016-11-04' and x['end_exclusive']=='2026-11-04'
+          assert x['rows']>2000 and x['coverage']>=0.8
+          print('LIVE_YAHOO_10Y_1D_VERIFIED',x['key'],x['rows'],x['first_date'],x['last_date'])
+          PY
+      - name: Produce verified exactly aligned WF04 manifest from real Yahoo AAPL
+        run: |
+          python -m market_daily_10y.pool_reader --root /tmp/market_10yr_real --asof 2026-11-04 --manifest --output /tmp/wf04-real-manifest.json
+          python - <<'PY'
+          import json
+          x=json.load(open('/tmp/wf04-real-manifest.json'))
+          assert x['ready'] == 1
+          assert x['instruments'][0]['vendor_symbol']=='AAPL'
+          assert x['window_start']=='2016-11-04'
+          assert x['window_end_exclusive']=='2026-11-04'
+          print('REAL_LOCAL_WF04_SNAPSHOT_MANIFEST_VERIFIED',x['ready'])
+          PY
+      - name: Check actual non-equity ten-year collection (FX and crypto spot)
+        run: |
+          python -m market_daily_10y.collector --root /tmp/market_10yr_real --asset fx --limit 1 --pause 1 --asof 2026-11-04 2>&1 | tee /tmp/fx-10yr.log
+          python -m market_daily_10y.collector --root /tmp/market_10yr_real --asset crypto_spot --limit 1 --pause 1 --asof 2026-11-04 2>&1 | tee /tmp/crypto-10yr.log
+          python -m market_daily_10y.collector --root /tmp/market_10yr_real --status > /tmp/multiasset-10yr-status.json
+          python - <<'PY'
+          import json
+          data=json.load(open('/tmp/multiasset-10yr-status.json'))
+          kinds={x['asset_class'] for x in data['instruments'] if x['eligible']}
+          assert {'equity','fx','crypto_spot'}.issubset(kinds), ('NON_EQUITY_TEN_YEAR_YAHOO_DATA_NOT_VERIFIED',kinds)
+          print('LIVE_YAHOO_MULTI_ASSET_10Y_VERIFIED', data['stored'], data['eligible'])
+          from market_daily_10y.collector import Store,load_universe
+          items={x.key:x for x in load_universe('market_daily_10y/universe.csv')}
+          store=Store('/tmp/market_10yr_real')
+          eq=next(x for x in data['instruments'] if x['eligible'] and x['asset_class']=='equity')
+          for asset in ('fx','crypto_spot'):
+              candidate=next(x for x in data['instruments'] if x['eligible'] and x['asset_class']==asset)
+              joined,quality=store.align(items[eq['key']],items[candidate['key']],asof=__import__('datetime').date(2026,11,4))
+              assert quality['common_dates']>1800 and not quality['filled_gaps']
+              assert joined['date'].is_unique
+              print('REAL_IDENTICAL_DATE_ALIGNMENT',eq['key'],candidate['key'],
+                    quality['common_dates'],quality['start'],quality['end_exclusive'])
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: yahoo-real-ten-year-smoke-evidence
+          path: |
+            /tmp/yahoo-10yr.log
+            /tmp/market-10yr-status.json
+            /tmp/fx-10yr.log
+            /tmp/crypto-10yr.log
+            /tmp/multiasset-10yr-status.json
+          if-no-files-found: warn
+
+  hkex-official-listing-probe:
+    runs-on: ubuntu-latest
+    continue-on-error: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install workbook reader
+        run: pip install -r market_daily_10y/requirements.txt
+      - name: Fetch current official HKEX listing and select Tencent stock
+        run: |
+          python -m market_daily_10y.official_listing_smoke --allow-network --one-ticker 0700.HK --universe-output /tmp/hkex-live-one.csv
+      - name: Download actual HKEX 0700.HK 10-year Yahoo 1D OHLC
+        run: |
+          python -m market_daily_10y.collector --root /tmp/hkex-10y --universe /tmp/hkex-live-one.csv --asof 2026-11-04 --limit 1 --pause 0
+          python -m market_daily_10y.collector --root /tmp/hkex-10y --status > /tmp/hkex-price-status.json
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/hkex-price-status.json'))
+          assert d['stored']==1 and d['eligible']==1, ('HKEX_10Y_NOT_ELIGIBLE',d)
+          x=d['instruments'][0]
+          assert x['vendor_symbol']=='0700.HK'
+          assert x['rows']>1800 and x['coverage']>=0.8
+          print('REAL_HKEX_10Y_1D_VERIFIED', x['vendor_symbol'], x['rows'], x['first_date'], x['last_date'])
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hkex-official-listing-and-price-evidence
+          path: /tmp/hkex-price-status.json
+          if-no-files-found: warn
+
+  global-official-universe-probe:
+    runs-on: ubuntu-latest
+    continue-on-error: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install collector and workbook requirements
+        run: pip install -r market_daily_10y/requirements.txt
+      - name: Combine actual Nasdaq Trader directories and actual HKEX official workbook
+        run: |
+          python - <<'PY'
+          from market_daily_10y.world_bootstrap import prepare_global_universe
+          p,d=prepare_global_universe(
+              '/tmp/official-world-pool','market_daily_10y/universe.csv',
+              allow_network=True)
+          print('ACTUAL_WORLD_LISTING_SNAPSHOT', d, 'csv=',p)
+          assert d['hkex_accepted']>2000
+          assert d['us_universe_count']>3000
+          assert d['world_universe_count']>5000
+          assert not d['full_worldwide_universe']
+          PY
+      - name: Run same global refresh path as Railway and persist one actual 10Y instrument
+        run: |
+          python -m market_daily_10y.collector --refresh-global-universe --root /tmp/official-world-pool --limit 1 --pause 0 --asof 2026-11-04
+          python -m market_daily_10y.collector --root /tmp/official-world-pool --status > /tmp/world-bootstrap-one-price.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          v=json.loads(Path('/tmp/world-bootstrap-one-price.json').read_text())
+          assert v['stored']==1, ('GLOBAL_REFRESH_DID_NOT_STORE_PRICES',v)
+          assert Path('/tmp/official-world-pool/universe/world.csv').exists()
+          print('ACTUAL_RAILWAY_COMMAND_EQUIVALENT_10Y_STORED',v['instruments'][0]['key'],v['total_rows'])
+          PY
+
+
+  korea-japan-real-yahoo-ten-year:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install collectors
+        run: pip install -r market_daily_10y/requirements.txt
+      - name: Verify real Samsung KRX and Toyota JPX rolling 10-year daily bars
+        run: |
+          python - <<'PY'
+          from datetime import date
+          from market_daily_10y.collector import Store, load_universe, sync, ten_year_window
+          store=Store('/tmp/asia-10yr-price')
+          all_instruments=load_universe('market_daily_10y/universe.csv')
+          start,end=ten_year_window(date(2026,11,4))
+          matched=[]
+          for symbol in ('005930.KS','7203.T'):
+              inst=next(i for i in all_instruments if i.vendor_symbol==symbol)
+              result=sync(store,inst,start,end,retries=1)
+              assert result['status']=='COLLECTED' and result['eligible'], (symbol,result)
+              assert result['rows']>=2000
+              assert result['first_date']<='2016-12-06'
+              assert result['last_date']>='2026-10-25'
+              matched.append(inst)
+              print('REAL_ASIA_10Y_1D_VERIFIED',symbol,result['rows'],result['first_date'],result['last_date'])
+          both,alignment=store.align(matched[0],matched[1],asof=end)
+          assert alignment['common_dates']>1900
+          print('REAL_KRX_JPX_IDENTICAL_DATE_OVERLAP',alignment)
+          PY

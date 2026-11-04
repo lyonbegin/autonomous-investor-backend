@@ -1,0 +1,360 @@
+"""Independent rolling 10-year 1D global multi-asset market collector.
+
+Every symbol uses the SAME absolute [start, end) calendar window, 1d bars.
+No stale 2015–2017 fixtures. New strategies never trigger downloads.
+Yahoo/yfinance only as a research starting point; check data usage rights.
+"""
+from __future__ import annotations
+import argparse, hashlib, json, os, sqlite3, tempfile, time
+from dataclasses import dataclass
+from datetime import date,datetime,timedelta,timezone
+from pathlib import Path
+import numpy as np
+import pandas as pd
+
+ASSETS={'equity','etf','index','future','option','fx','crypto_spot',
+        'crypto_future','commodity','bond','rate'}
+COLS=['date','open','high','low','close','volume']
+
+
+def ten_year_window(asof=None):
+    end=asof or datetime.now(timezone.utc).date()
+    try:start=end.replace(year=end.year-10)
+    except ValueError:start=end.replace(year=end.year-10,day=28)
+    return start,end
+
+
+@dataclass(frozen=True)
+class Instrument:
+    asset_class:str
+    exchange:str
+    symbol:str
+    vendor_symbol:str
+    timezone:str
+    calendar:str='weekday'
+    contract_type:str='spot'
+
+    def __post_init__(self):
+        if self.asset_class not in ASSETS or self.calendar not in ('weekday','seven_day'):
+            raise ValueError('INVALID_ASSET_OR_CALENDAR')
+        for s in (self.exchange,self.symbol,self.vendor_symbol,self.timezone,self.contract_type):
+            if not isinstance(s,str) or not s or len(s)>120 or '\x00' in s:
+                raise ValueError('INVALID_INSTRUMENT_FIELD')
+    @property
+    def key(self):
+        return ':'.join((self.asset_class,self.exchange,self.symbol,self.contract_type))
+    @property
+    def file_id(self):
+        return hashlib.sha256(self.key.encode()).hexdigest()[:24]
+
+
+def normalize(raw,start,end):
+    if raw is None or raw.empty:raise ValueError('NO_DAILY_BARS')
+    x=raw.copy()
+    if 'date' not in [str(c).lower() for c in x.columns] and isinstance(x.index,pd.DatetimeIndex):
+        x=x.reset_index()
+    x.columns=[str(c).lower().replace(' ','_') for c in x.columns]
+    if 'date' not in x and 'datetime' in x:x=x.rename(columns={'datetime':'date'})
+    if not {'date','open','high','low','close'}.issubset(x):
+        raise ValueError('DAILY_OHLC_REQUIRED')
+    # Local exchange session date. Never shift a midnight daily bar to UTC.
+    x['date']=pd.to_datetime(x['date'],errors='coerce').dt.date
+    if 'volume' not in x:x['volume']=np.nan
+    for name in COLS[1:]:x[name]=pd.to_numeric(x[name],errors='coerce')
+    x=x.dropna(subset=['date','open','high','low','close'])
+    valid=(np.isfinite(x[['open','high','low','close']]).all(axis=1)
+           & (x['high']>=x[['open','low','close']].max(axis=1))
+           & (x['low']<=x[['open','high','close']].min(axis=1))
+           & (x[['open','high','low','close']].abs().max(axis=1)>0)
+           & ~(x['volume'].notna() & (x['volume']<0)))
+    x=x.loc[valid & (x['date']>=start) & (x['date']<end),COLS]
+    x=x.sort_values('date').drop_duplicates('date',keep='last')
+    if x.empty:raise ValueError('NO_VALID_DAILY_BARS_IN_WINDOW')
+    x['date']=x['date'].map(str)
+    return x.reset_index(drop=True)
+
+
+def quality(inst,df,start,end):
+    expected=((end-start).days if inst.calendar=='seven_day' else
+              int(np.busday_count(start.isoformat(),end.isoformat())))
+    first=date.fromisoformat(df.iloc[0].date)
+    last=date.fromisoformat(df.iloc[-1].date)
+    ratio=len(df)/expected
+    reasons=[]
+    if first>start+timedelta(days=32):reasons.append('NOT_FULL_TEN_YEAR_HISTORY')
+    if last<end-timedelta(days=10):reasons.append('LAST_BAR_STALE')
+    if ratio<0.80:reasons.append('TOO_MANY_DAILY_GAPS')
+    return {'eligible':not reasons,'reasons':reasons,'rows':len(df),
+            'first_date':str(first),'last_date':str(last),
+            'coverage_ratio':round(ratio,4),'window_start':str(start),
+            'window_end_exclusive':str(end),'timeframe':'1d'}
+
+
+class Store:
+    def __init__(self,root):
+        self.root=Path(root).resolve()
+        self.root.mkdir(parents=True,exist_ok=True)
+        self.db=self.root/'catalog.sqlite3'
+        with sqlite3.connect(self.db) as con:
+            con.execute('''CREATE TABLE IF NOT EXISTS instruments(
+              key TEXT PRIMARY KEY,asset_class TEXT,exchange TEXT,symbol TEXT,
+              vendor_symbol TEXT,timezone TEXT,calendar TEXT,contract_type TEXT,
+              start TEXT,end_exclusive TEXT,first_date TEXT,last_date TEXT,
+              rows INTEGER,coverage REAL,eligible INTEGER,reasons TEXT,
+              sha256 TEXT,updated_at TEXT)''')
+
+    def file(self,inst):
+        return self.root/'daily'/inst.asset_class/(inst.file_id+'.parquet')
+
+    def read(self,inst):
+        p=self.file(inst)
+        return pd.read_parquet(p) if p.exists() else pd.DataFrame(columns=COLS)
+
+    def save(self,inst,new,start,end):
+        current=self.read(inst)
+        data=(normalize(pd.concat([current,new],ignore_index=True),start,end)
+              if not current.empty else normalize(new,start,end))
+        q=quality(inst,data,start,end)
+        p=self.file(inst);p.parent.mkdir(parents=True,exist_ok=True)
+        fd,tmp=tempfile.mkstemp(prefix='.sync-',suffix='.parquet',dir=p.parent)
+        os.close(fd)
+        try:
+            data.to_parquet(tmp,index=False,compression='zstd')
+            digest=hashlib.sha256(Path(tmp).read_bytes()).hexdigest()
+            os.replace(tmp,p)
+        finally:
+            Path(tmp).unlink(missing_ok=True)
+        with sqlite3.connect(self.db) as con:
+            con.execute('''INSERT INTO instruments VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+               ON CONFLICT(key) DO UPDATE SET
+               start=excluded.start,end_exclusive=excluded.end_exclusive,
+               first_date=excluded.first_date,last_date=excluded.last_date,
+               rows=excluded.rows,coverage=excluded.coverage,eligible=excluded.eligible,
+               reasons=excluded.reasons,sha256=excluded.sha256,updated_at=excluded.updated_at''',
+               (inst.key,inst.asset_class,inst.exchange,inst.symbol,inst.vendor_symbol,
+                inst.timezone,inst.calendar,inst.contract_type,str(start),str(end),
+                q['first_date'],q['last_date'],q['rows'],q['coverage_ratio'],
+                int(q['eligible']),json.dumps(q['reasons']),digest,
+                datetime.now(timezone.utc).isoformat()))
+        return {'instrument':inst.key,**q,'sha256':digest}
+
+    def status(self):
+        with sqlite3.connect(self.db) as con:
+            con.row_factory=sqlite3.Row
+            rows=[dict(x) for x in con.execute(
+                'SELECT * FROM instruments ORDER BY asset_class,exchange,symbol')]
+        return {'stored':len(rows),'eligible':sum(x['eligible'] for x in rows),
+                'total_rows':sum(x['rows'] for x in rows),'instruments':rows}
+
+    def align(self,a,b,min_overlap=0.8,asof=None,max_snapshot_age_days=7):
+        lookup={x['key']:x for x in self.status()['instruments']}
+        aa,bb=lookup.get(a.key),lookup.get(b.key)
+        if not aa or not bb or not aa['eligible'] or not bb['eligible']:
+            raise ValueError('NOT_10Y_ELIGIBLE')
+        # Different batches may have been fetched one or two UTC days apart.
+        # Rebase both to the SAME older as-of, do not compare shifted days.
+        oldest_end=min(date.fromisoformat(aa['end_exclusive']),
+                       date.fromisoformat(bb['end_exclusive']))
+        newest_end=max(date.fromisoformat(aa['end_exclusive']),
+                       date.fromisoformat(bb['end_exclusive']))
+        if (newest_end-oldest_end).days>7:
+            raise ValueError('STALE_UNALIGNED_TEN_YEAR_SNAPSHOT')
+        evaluation_date=asof or datetime.now(timezone.utc).date()
+        if oldest_end>evaluation_date:
+            raise ValueError('FUTURE_MARKET_SNAPSHOT')
+        if (evaluation_date-oldest_end).days>max_snapshot_age_days:
+            raise ValueError('STALE_MARKET_SNAPSHOT')
+        start,_=ten_year_window(oldest_end)
+        x=self.read(a)
+        y=self.read(b)
+        x=x[(x['date']>=str(start)) & (x['date']<str(oldest_end))]
+        y=y[(y['date']>=str(start)) & (y['date']<str(oldest_end))]
+        if not quality(a,x,start,oldest_end)['eligible'] or not quality(b,y,start,oldest_end)['eligible']:
+            raise ValueError('NOT_ELIGIBLE_IN_SHARED_TEN_YEAR_WINDOW')
+        x=x[['date','close']].rename(columns={'close':'left_close'})
+        y=y[['date','close']].rename(columns={'close':'right_close'})
+        common=x.merge(y,on='date',validate='one_to_one',how='inner')
+        ratio=len(common)/min(len(x),len(y))
+        if ratio<min_overlap:raise ValueError('INSUFFICIENT_SHARED_TRADING_DATES')
+        return common,{'common_dates':len(common),'overlap_ratio':round(ratio,4),
+                       'filled_gaps':False,'start':str(start),
+                       'end_exclusive':str(oldest_end),
+                       'rebased_to_identical_window':True}
+
+
+def yahoo_fetch(inst,start,end):
+    import yfinance as yf
+    frame=yf.Ticker(inst.vendor_symbol).history(
+        start=str(start),end=str(end),interval='1d',auto_adjust=True,
+        actions=False,prepost=False,timeout=20)
+    return normalize(frame,start,end)
+
+
+def sync(store,inst,start,end,fetcher=yahoo_fetch,retries=2):
+    old=store.read(inst)
+    since=start if old.empty else max(
+        start,date.fromisoformat(old.iloc[-1].date)-timedelta(days=10))
+    for attempt in range(retries+1):
+        try:
+            fresh=fetcher(inst,since,end)
+            return {'status':'COLLECTED',**store.save(inst,fresh,start,end)}
+        except Exception as exc:
+            reason=f'{type(exc).__name__}: {str(exc)[:180]}'
+            if attempt<retries:time.sleep(2*(attempt+1))
+    return {'status':'FAILED','instrument':inst.key,'reason':reason}
+
+
+def load_universe(path):
+    data=pd.read_csv(path,dtype=str,keep_default_na=False)
+    if not {'asset_class','exchange','symbol','vendor_symbol','timezone'}.issubset(data):
+        raise ValueError('UNIVERSE_COLUMNS_MISSING')
+    result={}
+    for row in data.to_dict('records'):
+        inst=Instrument(row['asset_class'],row['exchange'],row['symbol'],
+                        row['vendor_symbol'],row['timezone'],
+                        row.get('calendar') or 'weekday',row.get('contract_type') or 'spot')
+        result[inst.key]=inst
+    return list(result.values())
+
+
+def main(argv=None):
+    ap=argparse.ArgumentParser()
+    ap.add_argument('--root',default=os.getenv('DAILY_POOL_ROOT','/data/market_daily_10y'))
+    ap.add_argument('--universe',default=os.getenv('DAILY_UNIVERSE_FILE',str(Path(__file__).parent/'universe.csv')))
+    ap.add_argument('--refresh-us-universe',action='store_true',help='fetch official US directory first, then use its expanded CSV')
+    ap.add_argument('--refresh-global-universe',action='store_true',help='refresh official US and HKEX; optional licensed JPX/KRX snapshots')
+    ap.add_argument('--asof',help='UTC exclusive end, e.g. 2026-11-04')
+    ap.add_argument('--limit',type=int,default=int(os.getenv('DAILY_BATCH_LIMIT','20')))
+    ap.add_argument('--asset')
+    ap.add_argument('--status',action='store_true')
+    ap.add_argument('--progress',action='store_true',help='compact persistent queue and actual price coverage report')
+    ap.add_argument('--queue',action='store_true',help='stable SQLite pending/refresh/retry scheduling; no offset cursor')
+    ap.add_argument('--mirror-s3',action='store_true',help='explicit private S3 transport; never enabled by default')
+    ap.add_argument('--align',nargs=2)
+    ap.add_argument('--pause',type=float,default=1.5)
+    ap.add_argument('--offset',type=int,default=None,help='manual batch offset; default rotating cursor')
+    args=ap.parse_args(argv)
+    store=Store(args.root)
+    if args.status:
+        print(json.dumps(store.status(),ensure_ascii=False,indent=2));return
+    if args.progress:
+        from .scheduler import CollectionQueue
+        asof = date.fromisoformat(args.asof) if args.asof else datetime.now(timezone.utc).date()
+        q = CollectionQueue(store)
+        print(json.dumps(q.report(asof,args.limit),ensure_ascii=False,indent=2));return
+    if args.queue and args.offset is not None:
+        raise ValueError('QUEUE_MODE_DOES_NOT_ACCEPT_OFFSET')
+    if args.refresh_global_universe and args.refresh_us_universe:
+        raise ValueError('SELECT_ONE_UNIVERSE_REFRESH_MODE')
+    if args.refresh_global_universe:
+        from .world_bootstrap import prepare_global_universe
+        world=store.root/'universe'/'world.csv'
+        jpx=os.getenv('JPX_OFFICIAL_SNAPSHOT')
+        krx=os.getenv('KRX_LICENSED_SNAPSHOT') if os.getenv('KRX_LICENSE_CONFIRMED')=='1' else None
+        try:
+            output,summary=prepare_global_universe(
+                store.root,args.universe,allow_network=True,
+                jpx_file=jpx if jpx and Path(jpx).exists() else None,
+                krx_file=krx if krx and Path(krx).exists() else None)
+            args.universe=str(output)
+            print(json.dumps({'status':'GLOBAL_LISTING_UNIVERSE_PREPARED',**summary},
+                             ensure_ascii=False),flush=True)
+        except Exception as exc:
+            args.universe=str(world) if world.exists() else args.universe
+            print(json.dumps({
+                'status':'GLOBAL_LISTING_REFRESH_FAILED_REUSING_PREVIOUS_OR_BASE',
+                'universe_path':args.universe,
+                'error':str(exc)[:180],
+                'full_worldwide_universe':False
+            },ensure_ascii=False),flush=True)
+    if args.refresh_us_universe:
+        from .universe_discovery import SOURCES, build_universe, fetch_text
+        snapshot_dir=store.root/'universe'
+        snapshot_dir.mkdir(parents=True,exist_ok=True)
+        expanded=snapshot_dir/'expanded.csv'
+        try:
+            snapshots={k:fetch_text(url) for k,url in SOURCES.items()}
+            report=build_universe(args.universe,snapshots,expanded,snapshot_dir/'report.json')
+            print(json.dumps({'status':'UNIVERSE_REFRESHED',**report},ensure_ascii=False),flush=True)
+        except Exception as exc:
+            if not expanded.exists():
+                raise RuntimeError('UNIVERSE_REFRESH_FAILED_NO_SNAPSHOT') from exc
+            print(json.dumps({'status':'UNIVERSE_REFRESH_FAILED_USING_PREVIOUS_SNAPSHOT',
+                              'error':str(exc)[:180]},ensure_ascii=False),flush=True)
+        args.universe=str(expanded)
+    universe=load_universe(args.universe)
+    if args.align:
+        by_key={x.key:x for x in universe}
+        joined,info=store.align(by_key[args.align[0]],by_key[args.align[1]],
+                                 asof=date.fromisoformat(args.asof) if args.asof else None)
+        print(json.dumps({'info':info,'first_rows':joined.head(3).to_dict('records')},
+                         ensure_ascii=False));return
+    if args.asset:universe=[x for x in universe if x.asset_class==args.asset]
+    bridge=None
+    if args.mirror_s3:
+        from .s3_bridge import PrivatePoolBridge, s3_client_from_env
+        client,bucket=s3_client_from_env()
+        bridge=PrivatePoolBridge(store,client,bucket)
+    start,end=ten_year_window(date.fromisoformat(args.asof) if args.asof else None)
+    results=[]
+    if args.limit<1:raise ValueError('BATCH_LIMIT_POSITIVE_REQUIRED')
+    cursor=store.root/'cursor.json'
+    selected=[]
+    queue=None
+    if args.queue:
+        from .scheduler import CollectionQueue
+        queue=CollectionQueue(store)
+        queue.seed(universe,end)
+        selected=queue.choose(universe,end,args.limit)
+    elif universe:
+        previous=json.loads(cursor.read_text()).get('offset',0) if cursor.exists() else 0
+        offset=previous if args.offset is None else args.offset
+        if offset<0:raise ValueError('OFFSET_MUST_BE_NONNEGATIVE')
+        selected=[universe[(offset+i)%len(universe)] for i in range(min(args.limit,len(universe)))]
+    for inst in selected:
+        item=sync(store,inst,start,end)
+        if queue is not None:
+            item['next_due']=queue.record(inst,end,item)
+        if bridge is not None and item['status']=='COLLECTED':
+            try:
+                mirror=bridge.mirror_instrument(inst)
+                item['s3_mirror_status']=mirror['status']
+                item['s3_object_sha256']=mirror['sha256']
+            except Exception as exc:
+                item['s3_mirror_status']='FAILED'
+                item['s3_error']=f'{type(exc).__name__}: {str(exc)[:180]}'
+                if queue is not None:
+                    queue.mirror_retry(inst,end,item['s3_error'])
+                    item['next_due']=str(end+timedelta(days=1))
+        results.append(item)
+        print(json.dumps(item,ensure_ascii=False),flush=True)
+        if args.pause:time.sleep(args.pause)
+    if universe and args.offset is None and queue is None:
+        cursor.write_text(json.dumps({'offset':(offset+len(selected))%len(universe)}))
+    summary={'status':'BATCH_FINISHED',
+        'window_start':str(start),'window_end_exclusive':str(end),
+        'timeframe':'1d','attempted':len(results),
+        'eligible':sum(x.get('eligible',False) for x in results),
+        'failed':sum(x['status']=='FAILED' for x in results),
+        'worldwide_coverage_verified':False}
+    if bridge is not None:
+        summary['s3_mirror_failed']=sum(x.get('s3_mirror_status')=='FAILED' for x in results)
+        try:
+            summary['s3_manifest']=bridge.publish(end)
+        except Exception as exc:
+            summary['s3_manifest']={'status':'NOT_PUBLISHED',
+                                    'error':f'{type(exc).__name__}: {str(exc)[:180]}'}
+    if queue is not None:
+        summary['queue_progress']=queue.report(end,args.limit)
+        report_path=store.root/'latest-run-summary.json'
+        fd,tmp=tempfile.mkstemp(prefix='.run-',suffix='.json',dir=store.root)
+        try:
+            with os.fdopen(fd,'w') as output:
+                json.dump(summary,output,ensure_ascii=False,indent=2)
+            os.replace(tmp,report_path)
+        finally:
+            Path(tmp).unlink(missing_ok=True)
+    print(json.dumps(summary,ensure_ascii=False),flush=True)
+
+
+if __name__=='__main__':main()

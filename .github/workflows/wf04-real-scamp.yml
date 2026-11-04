@@ -1,0 +1,106 @@
+name: WF04 actual SCAMP CPU AB-join on verified 10Y local pool
+on:
+  push:
+    paths:
+      - "market_daily_10y/**"
+      - ".github/workflows/wf04-real-scamp.yml"
+  pull_request:
+    paths:
+      - "market_daily_10y/**"
+      - ".github/workflows/wf04-real-scamp.yml"
+  workflow_dispatch:
+jobs:
+  scamp-real-cpu:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install real CPU SCAMP library in isolated WF04 environment
+        uses: mamba-org/setup-micromamba@v2
+        with:
+          environment-file: market_daily_10y/wf04-environment.yml
+          cache-environment: true
+      - name: Verify actual pyscamp import and real 10Y algorithm unit tests
+        shell: bash -l {0}
+        run: |
+          python - <<'PY'
+          import pyscamp
+          print('REAL_PYSCAMP_CPU_IMPORTED',pyscamp)
+          assert callable(pyscamp.abjoin)
+          PY
+          python -m pytest -q market_daily_10y/tests/test_wf04_scamp.py market_daily_10y/tests/test_wf04_scamp_scan.py market_daily_10y/tests/test_s3_bridge.py
+      - name: Fetch actual synchronized AAPL and USDJPY Yahoo 10Y to temporary local Parquet
+        shell: bash -l {0}
+        run: |
+          python - <<'PY'
+          from datetime import date
+          from market_daily_10y.collector import Store,load_universe,sync,ten_year_window
+          store=Store('/tmp/wf04-scamp-real')
+          items=load_universe('market_daily_10y/universe.csv')
+          start,end=ten_year_window(date(2026,11,4))
+          for ticker in ('AAPL','JPY=X','BTC-USD'):
+              inst=next(x for x in items if x.vendor_symbol==ticker)
+              result=sync(store,inst,start,end,retries=2)
+              print('REAL_WF04_MARKET_DATA',ticker,result)
+              assert result['status']=='COLLECTED' and result['eligible'],result
+              assert result['rows']>2000
+          PY
+      - name: Run actual SCAMP AB-join across full common-trading-date 10Y history
+        shell: bash -l {0}
+        run: |
+          python -m market_daily_10y.wf04_scamp \
+            --root /tmp/wf04-scamp-real \
+            --asof 2026-11-04 \
+            --left equity:NASDAQ:AAPL:spot \
+            --right fx:FX:USDJPY:spot \
+            --window 60 --feature log_returns \
+            --threshold 0.0 --top 5 --threads 2 \
+            --output /tmp/wf04-real-scamp-results.json
+          python - <<'PY'
+          import json
+          obj=json.load(open('/tmp/wf04-real-scamp-results.json'))
+          assert obj['engine']=='pyscamp.abjoin'
+          assert obj['feature']=='log_returns'
+          assert obj['aligned_common_trading_days']>1800
+          assert obj['feature_points']>1700
+          assert obj['left_parquet_sha256'] and obj['right_parquet_sha256']
+          assert obj['window_start']=='2016-11-04'
+          assert obj['asof_end_exclusive']=='2026-11-04'
+          assert not obj['downloaded_bars_in_wf04']
+          assert len(obj['results'])>0, ('NO_SCAMP_MATCHES',obj)
+          assert all(-1<=hit['correlation']<=1 for hit in obj['results'])
+          print('REAL_SCAMP_FULL_DECADE_MATCHES_VERIFIED',
+                obj['engine_version'],obj['aligned_common_trading_days'],
+                len(obj['results']),obj['results'][0])
+          PY
+      - name: Execute actual WF04 one-to-many SCAMP ranking without any market fetch
+        shell: bash -l {0}
+        run: |
+          python -m market_daily_10y.wf04_scamp_scan \
+            --root /tmp/wf04-scamp-real \
+            --asof 2026-11-04 \
+            --anchor equity:NASDAQ:AAPL:spot \
+            --candidate fx:FX:USDJPY:spot \
+            --candidate crypto_spot:GLOBAL:BTCUSD:spot \
+            --window 60 --threshold 0.0 --top 2 \
+            --output /tmp/wf04-real-batch-ranking.json
+          python - <<'PY'
+          import json
+          result=json.load(open('/tmp/wf04-real-batch-ranking.json'))
+          assert result['attempted']==2
+          assert result['scored']==2
+          assert result['blocked']==0
+          assert len(result['ranked'])==2
+          assert all(r['best_correlation'] is not None for r in result['ranked'])
+          print('REAL_WF04_MULTI_ASSET_RANKING_VERIFIED',
+                [(r['candidate_key'],r['best_correlation']) for r in result['ranked']])
+          PY
+      - name: Retain analysis evidence JSON, not redistributable raw market prices
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wf04-real-scamp-cpu-match-evidence
+          path: |
+            /tmp/wf04-real-scamp-results.json
+            /tmp/wf04-real-batch-ranking.json
+          if-no-files-found: warn
