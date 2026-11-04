@@ -137,10 +137,14 @@ def test_remote_outage_recorded_but_local_parquet_is_preserved(tmp_path,monkeypa
                         'equity,NASDAQ,AAPL,AAPL,America/New_York,weekday,spot\n')
     root=tmp_path/'actual'
     collector.main(['--root',str(root),'--universe',str(csv_path),
-                    '--asof','2026-11-04','--mirror-s3',
+                    '--asof','2026-11-04','--queue','--mirror-s3',
                     '--limit','1','--pause','0'])
     output=capsys.readouterr().out.splitlines()
     summary=json.loads(output[-1])
     assert summary['s3_mirror_failed']==1
     assert summary['s3_manifest']['status']=='NOT_PUBLISHED'
     assert Store(root).status()['eligible']==1
+    from market_daily_10y.scheduler import CollectionQueue
+    progress=CollectionQueue(Store(root)).report(ASOF)
+    assert progress['result_counts']['MIRROR_PENDING']==1
+    assert progress['historical_eligible_rows']==1
