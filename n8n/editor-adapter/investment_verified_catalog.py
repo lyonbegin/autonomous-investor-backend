@@ -217,6 +217,11 @@ def catalog(limit=50,offset=0,query="",script_type="all"):
     with closing(open_registry()) as db:
         rows=db.execute("SELECT record_json,selected_at FROM investment_verified_strategy_catalog ORDER BY selected_at DESC").fetchall()
     records=[{**json.loads(x["record_json"]),"verified_at":x["selected_at"]} for x in rows]
+    # Published items are immutable exact source proofs; refresh only display
+    # metadata for the previously registered DDDS without re-approval.
+    for item in records:
+        if item.get("script_id_part")==DDDS_ID and item.get("source_hash")==DDDS_SHA:
+            item["image_url"]="https://s3.tradingview.com/l/LkgKT3TG_mid.webp?v=1793614735"
     if script_type in ("indicators","libraries"):
         records=[]
     if query.strip():
