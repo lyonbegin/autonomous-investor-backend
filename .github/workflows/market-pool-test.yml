@@ -1,0 +1,28 @@
+name: Global multi-asset market pool unit verification
+on:
+  pull_request:
+    paths:
+      - 'market_pool/**'
+      - '.github/workflows/market-pool-test.yml'
+  push:
+    paths:
+      - 'market_pool/**'
+      - '.github/workflows/market-pool-test.yml'
+  workflow_dispatch:
+jobs:
+  pool-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install data pool dependencies
+        run: pip install -r market_pool/requirements.txt
+      - name: Run deterministic multi-asset data verification
+        run: python -m pytest -q market_pool/tests
+      - name: Report real fixture coverage only
+        run: |
+          python -m market_pool.cli --root /tmp/sample_pool --format parquet register
+          python -m market_pool.cli --root /tmp/sample_pool --format parquet import-symbol 'equity:NASDAQ:AAPL:spot' market_pool/fixtures/REAL_plotly_AAPL_2015_2017.csv --source plotly-MIT-2015-2017
+          python -m market_pool.cli --root /tmp/sample_pool --format parquet status
