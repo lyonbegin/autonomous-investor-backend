@@ -78,6 +78,7 @@ async function json(response){let body;try{body=await response.json()}catch{body
      return {
        sameBar:sel('[data-testid="ddds-same-bar-status"]')?.textContent?.trim(),
        plot:sel('[data-testid="ddds-visible-plot-stats"]')?.textContent?.trim(),
+       totalPlot:sel('[data-testid="ddds-total-plot-stats"]')?.textContent?.trim(),
        interval:sel('[data-testid="ddds-visible-interval"]')?.textContent?.trim(),
        symbol:sel('[data-testid="ddds-shared-symbol-timeframe"]')?.textContent?.trim(),
        vela:{from:vala?.dataset.visibleFrom,to:vala?.dataset.visibleTo},
@@ -85,6 +86,9 @@ async function json(response){let body;try{body=await response.json()}catch{body
      };
    });
    state.compare=summary;
+   if(!summary.totalPlot?.includes('864개')||!summary.totalPlot.includes('일치 864개')||
+       !summary.totalPlot.includes('불일치 0개'))
+     throw Error('TOTAL_300_BAR_864_INDICATOR_PARITY_NOT_VERIFIED '+JSON.stringify(summary));
    if(!summary.sameBar.includes('300/300')||!summary.symbol.includes('NASDAQ:AMZN')||
        !summary.symbol.includes('2시간봉')||
        Math.abs(Number(summary.vela.from)-Number(summary.python.from))>7200000||
