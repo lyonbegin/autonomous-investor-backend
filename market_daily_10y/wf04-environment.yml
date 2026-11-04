@@ -10,3 +10,4 @@ dependencies:
   - yfinance
   - pytest
   - openpyxl
+  - boto3
