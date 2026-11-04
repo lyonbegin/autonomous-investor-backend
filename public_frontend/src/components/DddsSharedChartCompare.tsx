@@ -124,6 +124,16 @@ export function DddsSharedChartCompare({id,source,sourceSha,chart}:{id:string;so
  const formatWindow=validWindow(viewport)?formatUtc(viewport.from)+' ~ '+formatUtc(viewport.to):'구간 확인 전';
  const ready=id===DDDS_ID&&sourceSha===DDDS_SHA&&sameData.source_hash===DDDS_SHA&&sameData.symbol==='NASDAQ:AMZN'&&sameData.horizon==='2h'&&sameData.market_data.fallback_used!==true&&bars.length>=40&&bars.every(b=>[b.timestamp,b.open,b.high,b.low,b.close,b.volume].every(Number.isFinite));
  const aligned=result!==null&&result.status==='EXACT_SITE_CHART_INPUT_PYTHON_EXECUTED'&&result.source_id===DDDS_ID&&result.pine_source_sha256===DDDS_SHA&&result.python_sha256===PY_SHA&&result.symbol==='NASDAQ:AMZN'&&result.timeframe==='120'&&result.bar_count===bars.length&&result.market_data_same_as_python_input===true&&result.official_tradingview_publication_parity_verified===false&&result.live_orders_enabled===false&&result.time_ms.length===bars.length&&result.close.length===bars.length&&result.time_ms.every((v,i)=>v===bars[i].timestamp)&&result.close.every((v,i)=>v===bars[i].close);
+ const nativeOhlcvMatches=!!capture&&capture.script_id===DDDS_ID&&
+    capture.source_hash===DDDS_SHA&&capture.symbol==='NASDAQ:AMZN'&&
+    capture.timeframe==='2h'&&capture.bars.length===bars.length&&
+    capture.bars.every((item,i)=>{
+      const price=bars[i];
+      return item.time_ms===price.timestamp&&item.open===price.open&&
+       item.high===price.high&&item.low===price.low&&
+       item.close===price.close&&item.volume===price.volume;
+    });
+ const visualVerified=aligned&&nativeOhlcvMatches&&rangeStatus;
  const stats=comparePlotValues(capture,aligned?result:null);
  const visibleStats=comparePlotValues(capture,aligned?result:null,viewport);
  function handleNativeViewport(v:ChartWindow){
@@ -196,7 +206,9 @@ export function DddsSharedChartCompare({id,source,sourceSha,chart}:{id:string;so
        <button type="button" disabled={!ready||running} onClick={()=>setRetryCount(v=>v+1)}>↻ 다시 계산</button>
      </div>
      {error&&<div className="empty-state" role="alert">DDDS Python 자동 실행 실패: {error} · 다시 계산 버튼으로 재실행할 수 있습니다.</div>}
-     <div className="runtime-note" data-testid="ddds-same-bar-status">{aligned?'두 엔진 입력 데이터 '+bars.length+'/'+bars.length+'봉 동일':'동일 시장 데이터 Python 실행 확인 전'}</div>
+     <div className="runtime-note" data-testid="ddds-same-bar-status">{aligned&&nativeOhlcvMatches?
+       'Pine·Python 종목/시간봉/시각/OHLCV '+bars.length+'/'+bars.length+'봉 동일 확인':
+       '두 엔진 실제 OHLCV 전체 일치 검증 대기 또는 실패'}</div>
    </section>
    <div className="pine-compare-grid">
     <section className="panel"><h2>왼쪽 · 기존 NativePineChartControl</h2>
@@ -215,10 +227,13 @@ export function DddsSharedChartCompare({id,source,sourceSha,chart}:{id:string;so
    </div>
    <section className="panel" data-testid="ddds-plot-comparison">
     <h3>시각별 DDDS 지표값 간단 비교</h3>
-    <p data-testid="ddds-visible-plot-stats"><b>현재 표시 구간 {windowBars}봉:</b> {visibleStats.status}
+    <p data-testid="ddds-visible-plot-stats">
+     {visualVerified?<><b>현재 표시 구간 {windowBars}봉:</b> {visibleStats.status}
        · 공통 수치 {visibleStats.compared}개 · 일치 {visibleStats.matched}개
        · 불일치 {visibleStats.mismatched}개
-       · 최대 차이 {visibleStats.maxDifference.toExponential(3)}</p>
+       · 최대 차이 {visibleStats.maxDifference.toExponential(3)}</>:
+       <b>표시 날짜·종목·시간봉·OHLCV 전체 검증 전이므로 시각적 일치 판정 보류</b>}
+    </p>
     <p data-testid="ddds-total-plot-stats"><b>전체 입력 {bars.length}봉:</b> {stats.status}
        · 공통 수치 {stats.compared}개 · 일치 {stats.matched}개
        · 불일치 {stats.mismatched}개 (NULL 위치는 일치 계산에서 제외)</p>
