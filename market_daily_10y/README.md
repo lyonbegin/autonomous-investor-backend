@@ -45,7 +45,7 @@ python -m market_daily_10y.collector --universe ./full-global-universe.csv --lim
 
 ## 검증 기록 및 주의
 
-- [실제 GitHub Actions 실행](https://github.com/lyonbegin/autonomous-investor-backend/actions/runs/41820807656)에서 Yahoo **AAPL 10년 일봉 2,512개**, 2016-11-04~2026-11-03, **96.32% 평일 대비 커버리지**, 9개 단위 테스트 통과를 직접 확인.
+- [실제 GitHub Actions 실행](https://github.com/lyonbegin/autonomous-investor-backend/actions/runs/41820807656)에서 Yahoo **AAPL 10년 일봉 2,512개**, 2016-11-04~2026-11-03, **96.32% 평일 대비 커버리지**, 10개 단위 테스트 통과를 직접 확인.
 - 이것은 AAPL 1개 종목의 10년 실수집 성공이지 세계 모든 상장사의 수집 완료가 **아님**. 현재 기본 `universe.csv`는 실제 동작을 확인하기 위한 **28개 종목·상품 티커**다. 거래량 상위 전 세계 전체 거래소 종목 목록은 다음 확보 대상.
 - Yahoo Finance/yfinance는 공식적 상업 데이터 배포 라이선스가 아닌 **개인·연구 용도의 접근 경로**이므로, 서비스 상용화에 앞서 적절한 데이터 라이선스가 필요하다.
 - SCAMP/Matrix Profile/TA-CUDA는 **후속 별도 WF-04**로 연결해야 함. 이 수집기는 데이터 구축만 담당하고 GPU 계산을 실행하지 않는다.
