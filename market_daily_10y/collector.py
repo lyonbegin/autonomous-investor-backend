@@ -217,6 +217,7 @@ def main(argv=None):
     ap.add_argument('--root',default=os.getenv('DAILY_POOL_ROOT','/data/market_daily_10y'))
     ap.add_argument('--universe',default=os.getenv('DAILY_UNIVERSE_FILE',str(Path(__file__).parent/'universe.csv')))
     ap.add_argument('--refresh-us-universe',action='store_true',help='fetch official US directory first, then use its expanded CSV')
+    ap.add_argument('--refresh-global-universe',action='store_true',help='refresh official US and HKEX; optional licensed JPX/KRX snapshots')
     ap.add_argument('--asof',help='UTC exclusive end, e.g. 2026-11-04')
     ap.add_argument('--limit',type=int,default=int(os.getenv('DAILY_BATCH_LIMIT','20')))
     ap.add_argument('--asset')
@@ -228,6 +229,29 @@ def main(argv=None):
     store=Store(args.root)
     if args.status:
         print(json.dumps(store.status(),ensure_ascii=False,indent=2));return
+    if args.refresh_global_universe and args.refresh_us_universe:
+        raise ValueError('SELECT_ONE_UNIVERSE_REFRESH_MODE')
+    if args.refresh_global_universe:
+        from .world_bootstrap import prepare_global_universe
+        world=store.root/'universe'/'world.csv'
+        jpx=os.getenv('JPX_OFFICIAL_SNAPSHOT')
+        krx=os.getenv('KRX_LICENSED_SNAPSHOT') if os.getenv('KRX_LICENSE_CONFIRMED')=='1' else None
+        try:
+            output,summary=prepare_global_universe(
+                store.root,args.universe,allow_network=True,
+                jpx_file=jpx if jpx and Path(jpx).exists() else None,
+                krx_file=krx if krx and Path(krx).exists() else None)
+            args.universe=str(output)
+            print(json.dumps({'status':'GLOBAL_LISTING_UNIVERSE_PREPARED',**summary},
+                             ensure_ascii=False),flush=True)
+        except Exception as exc:
+            args.universe=str(world) if world.exists() else args.universe
+            print(json.dumps({
+                'status':'GLOBAL_LISTING_REFRESH_FAILED_REUSING_PREVIOUS_OR_BASE',
+                'universe_path':args.universe,
+                'error':str(exc)[:180],
+                'full_worldwide_universe':False
+            },ensure_ascii=False),flush=True)
     if args.refresh_us_universe:
         from .universe_discovery import SOURCES, build_universe, fetch_text
         snapshot_dir=store.root/'universe'
