@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pandas as pd
 from .pool import Instrument,MarketPool
+from .public_sources import import_existing_public_csv
 from .sources import (
     yahoo_backfill,import_global_eod,import_intraday_csv,
     import_qlib_snapshot,binance_monthly_backfill)
@@ -30,6 +31,11 @@ def main(argv=None):
     p=sub.add_parser("import-symbol",help="Import an existing real OHLCV CSV for a registered instrument")
     p.add_argument("instrument_id");p.add_argument("file")
     p.add_argument("--source",default="existing-csv")
+    p=sub.add_parser("import-public-csv",help="Import already-built 2012-2026 GitHub/HF CSV into pool")
+    p.add_argument("instrument_id")
+    p.add_argument("url")
+    p.add_argument("--timestamp-col",default=None)
+    p.add_argument("--rollover-hour",type=int,default=0)
     p=sub.add_parser("import-qlib",help="Import an existing unpacked Microsoft Qlib US/CN archive")
     p.add_argument("directory");p.add_argument("--region",choices=["us","cn"],default="us")
     p.add_argument("--start",default="2016-11-04");p.add_argument("--limit",type=int,default=0)
@@ -80,6 +86,10 @@ def main(argv=None):
             if opts.command=="import-symbol":
                 result=pool.ingest(inst,pd.read_csv(opts.file),source=opts.source,
                                    detail=str(opts.file))
+            elif opts.command=="import-public-csv":
+                result=import_existing_public_csv(pool,inst,opts.url,
+                   timestamp_column=opts.timestamp_col,
+                   rollover_hour=opts.rollover_hour)
             elif opts.command=="import-intraday":
                 result=import_intraday_csv(pool,inst,opts.file,
                    timestamp_col=opts.timestamp_col,rollover_hour=opts.rollover_hour)
