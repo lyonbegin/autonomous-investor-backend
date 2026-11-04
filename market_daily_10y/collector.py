@@ -323,6 +323,9 @@ def main(argv=None):
             except Exception as exc:
                 item['s3_mirror_status']='FAILED'
                 item['s3_error']=f'{type(exc).__name__}: {str(exc)[:180]}'
+                if queue is not None:
+                    queue.mirror_retry(inst,end,item['s3_error'])
+                    item['next_due']=str(end+timedelta(days=1))
         results.append(item)
         print(json.dumps(item,ensure_ascii=False),flush=True)
         if args.pause:time.sleep(args.pause)
