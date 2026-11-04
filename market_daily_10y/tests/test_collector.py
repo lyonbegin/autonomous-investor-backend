@@ -45,7 +45,7 @@ def test_exact_overlap_and_no_holiday_fill(tmp_path):
     p=Store(tmp_path)
     p.save(A,prices(A),START,END)
     p.save(B,prices(B,missing=['2026-01-05']),START,END)
-    aligned,info=p.align(A,B)
+    aligned,info=p.align(A,B,asof=END)
     assert len(aligned)==len(prices(A))-1
     assert not info['filled_gaps']
     assert '2026-01-05' not in set(aligned.date)
@@ -69,7 +69,7 @@ def test_insufficient_history_blocks_alignment(tmp_path):
     p=Store(tmp_path)
     p.save(A,prices(A),START,END)
     p.save(B,prices(B).tail(400),START,END)
-    with pytest.raises(ValueError,match='NOT_10Y_ELIGIBLE'):p.align(A,B)
+    with pytest.raises(ValueError,match='NOT_10Y_ELIGIBLE'):p.align(A,B,asof=END)
 
 
 def test_crypto_24_7_daily_calendar(tmp_path):
@@ -83,7 +83,7 @@ def test_one_day_refresh_offset_rebased_to_same_dates(tmp_path):
     p=Store(tmp_path)
     p.save(A,prices(A),START,END)
     p.save(B,prices(B),START,END+timedelta(days=1))
-    shared,meta=p.align(A,B)
+    shared,meta=p.align(A,B,asof=END)
     assert meta['start']==str(START)
     assert meta['end_exclusive']==str(END)
     assert meta['rebased_to_identical_window']
@@ -100,4 +100,19 @@ def test_stale_batches_never_compared(tmp_path):
                       'low':99.,'close':101.,'volume':1000})
     p.save(B,pd.concat([extra,app],ignore_index=True),START,newend)
     with pytest.raises(ValueError,match='STALE_UNALIGNED_TEN_YEAR_SNAPSHOT'):
-        p.align(A,B)
+        p.align(A,B,asof=END)
+
+def test_two_identically_old_snapshots_do_not_pass_today(tmp_path):
+    p=Store(tmp_path)
+    p.save(A,prices(A),START,END)
+    p.save(B,prices(B),START,END)
+    with pytest.raises(ValueError,match='STALE_MARKET_SNAPSHOT'):
+        p.align(A,B,asof=END+timedelta(days=8))
+
+
+def test_future_snapshot_cannot_be_compared_as_if_current(tmp_path):
+    p=Store(tmp_path)
+    p.save(A,prices(A),START,END)
+    p.save(B,prices(B),START,END)
+    with pytest.raises(ValueError,match='FUTURE_MARKET_SNAPSHOT'):
+        p.align(A,B,asof=END-timedelta(days=1))
