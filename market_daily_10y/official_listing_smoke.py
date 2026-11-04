@@ -28,7 +28,7 @@ def probe_hkex(download, one_ticker=None, universe_output=None):
     if one_ticker or universe_output:
         if not (one_ticker and universe_output):
             raise ValueError('BOTH_TICKER_AND_OUTPUT_REQUIRED')
-        matches = [r for r in accepted if r['symbol'] == one_ticker and r['exchange'] == 'HKEX']
+        matches = [r for r in accepted if r['vendor_symbol'] == one_ticker and r['exchange'] == 'HKEX']
         if len(matches) != 1:
             raise ValueError('SELECTED_HKEX_STOCK_NOT_UNIQUE_OR_MISSING')
         dest = Path(universe_output)
@@ -58,7 +58,7 @@ def download_url(url):
 def main(argv=None):
     parser=argparse.ArgumentParser()
     parser.add_argument('--allow-network', action='store_true')
-    parser.add_argument('--one-ticker', help='exact HKEX source stock code, e.g. 0700')
+    parser.add_argument('--one-ticker', help='exact Yahoo HKEX code, e.g. 0700.HK')
     parser.add_argument('--universe-output')
     args=parser.parse_args(argv)
     if not args.allow_network:
