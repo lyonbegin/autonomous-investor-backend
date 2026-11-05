@@ -42,7 +42,16 @@ def main():
         page.goto(BASE,wait_until="domcontentloaded")
         page.locator("#marketContent .stocks-table tbody tr").first.wait_for()
         assert page.locator("#desktopDomains .domain-link").count()==26
-        page.locator("#worldAssetTabs .world-asset").first.wait_for(timeout=12000)
+        try:
+            page.locator("#worldAssetTabs .world-asset").first.wait_for(timeout=10000)
+        except Exception:
+            print("WORLD_MARKET_UI_DEBUG",{
+                "panel": page.locator("#fullGlobalMarketCatalog").inner_text()[:1600],
+                "catalog_response": page.request.get(BASE+"/api/taxonomy").status,
+                "js_function": page.evaluate("typeof window.loadGlobalMarketsPanel"),
+                "page_errors": bad,
+            },flush=True)
+            raise
         assert page.locator("#worldAssetTabs .world-asset").count()==9
         assert page.locator("#worldCountryList .world-country").count()>=249
         assert page.locator("[data-world-asset=options]").count()==1
