@@ -376,7 +376,7 @@ def world_market_overview():
             {"id":key,"name":name,"subcategories":list(sub)}
             for key,name,sub in FACETS
         ],
-        "country_total":len(__import__("pycountry").countries),
+        "country_total":len(list(__import__("pycountry").countries)),
         "source_row_count":snap.get("raw_row_count",0),
         "source_snapshot_at":snap.get("snapshot_at"),
         "source_latest_visible_rows":snap.get("latest_source_row_count",0),
