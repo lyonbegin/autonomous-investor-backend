@@ -249,7 +249,14 @@ function renderChart(){
  '<select id="chartRange" class="field" aria-label="기간"><option value="60M">최근 5년</option></select>'+
  '<button class="btn primary" id="chartLoad">차트 열기</button><button class="btn" id="chartWatch">☆ 관심</button></div>'+
  '<div class="chart-frame"><div id="tvWidget" class="tv-chart-widget"><div class="chart-fallback">차트 연결 중…</div></div></div>'+
- '<div class="toolbar-note">다른 시간봉과 5년 기간을 혼동하지 않습니다. 이 웹 임베드는 독립 데이터 저장 기능이 없으며, 저장 여부는 별도 실측 검증이 필요합니다.</div>'+
+ '<div class="toolbar-note">위 차트는 TradingView 공식 웹 차트입니다. 아래 별도의 5년 일봉 수집은 기존 TradingView 차트 WebSocket 경로의 실제 OHLCV를 관찰하여 자체 연구 저장소에 보관합니다.</div>'+
+ '<section class="surface box-pad" id="storedDaily"><div class="section-line"><h2 class="section-title" style="margin:0">5년 일봉 · 자체 저장 데이터</h2><span class="pill" id="dailyState">조회 중</span></div>'+
+ '<p class="toolbar-note">기존 TradingView 차트 링크 /chart/ 및 프로젝트의 기존 WF-02 WebSocket 파서를 재사용합니다. Yahoo/임의 시세를 섞지 않습니다.</p>'+
+ '<div class="screen-actions" style="flex-wrap:wrap;margin:17px 0"><button class="btn primary" id="collectDaily">현재 종목 5년 일봉 수집·저장</button>'+
+ '<button class="btn" id="readDaily">저장 데이터 새로고침</button></div>'+
+ '<div id="dailySummary" class="notice-block">저장된 실제 봉의 개수와 거래일 범위를 조회합니다.</div>'+
+ '<div class="chart-frame" style="min-height:255px"><canvas id="dailyCanvas" width="1000" height="260" style="width:100%;height:260px;display:block" aria-label="저장된 5년 일봉 종가 그래프"></canvas></div>'+
+ '<div id="dailyLast" class="toolbar-note">저장되지 않은 봉을 임의로 표시하지 않습니다.</div></section>'+
  '<div class="section-title">차트 관련 기능</div>'+
  '<div class="list-stack">'+[
   ["지표·분석","indicators","지표 검색과 템플릿의 모바일 웹 동등성 조사"],
@@ -266,7 +273,99 @@ function renderChart(){
  else if(navigator.clipboard)navigator.clipboard.writeText(url).then(()=>toast("원본 차트 링크를 복사했습니다."));
  else toast(url);
  };
- wirePageLinks();addWidget(state.chartSymbol);
+ wirePageLinks();addWidget(state.chartSymbol);wireStoredDaily(state.chartSymbol);
+}
+function drawStoredDaily(bars){
+ const canvas=$("dailyCanvas");if(!canvas)return;
+ const g=canvas.getContext("2d"),w=canvas.width,h=canvas.height;
+ g.clearRect(0,0,w,h);
+ if(!Array.isArray(bars)||!bars.length){
+  g.fillStyle="#8391a4";g.font="15px Arial";
+  g.fillText("저장된 실제 5년 일봉 데이터가 없습니다.",24,70);return;
+ }
+ const obs=bars.filter(b=>typeof b.close==="number"&&Number.isFinite(b.close));
+ if(obs.length<2){g.fillStyle="#8391a4";g.fillText("표시 가능한 일봉이 부족합니다.",24,60);return;}
+ const min=Math.min(...obs.map(b=>b.close)),max=Math.max(...obs.map(b=>b.close)),span=max-min||1;
+ const left=75,right=15,top=23,bottom=35,W=w-left-right,H=h-top-bottom;
+ g.font="12px Arial";g.strokeStyle="#e4eaf1";g.fillStyle="#7b8899";g.lineWidth=1;
+ for(let i=0;i<=4;i++){
+  const y=top+i*H/4;g.beginPath();g.moveTo(left,y);g.lineTo(w-right,y);g.stroke();
+  const val=max-i*span/4;g.fillText(val.toLocaleString("ko-KR",{maximumFractionDigits:2}),5,y+4);
+ }
+ g.beginPath();obs.forEach((b,i)=>{
+  const x=left+i*W/(obs.length-1);
+  const y=top+H-(b.close-min)/span*H;
+  if(i===0)g.moveTo(x,y);else g.lineTo(x,y);
+ });
+ g.strokeStyle="#2464e7";g.lineWidth=2;g.stroke();
+ g.fillStyle="#788698";g.fillText(new Date(obs[0].time_ms).toISOString().slice(0,10),left,h-10);
+ g.fillText(new Date(obs[obs.length-1].time_ms).toISOString().slice(0,10),w-110,h-10);
+}
+async function loadStoredDaily(symbol){
+ const host=$("dailySummary");if(!host||symbol!==state.chartSymbol)return;
+ try{
+  const res=await request("/api/chart/status?symbol="+encodeURIComponent(symbol));
+  if(symbol!==state.chartSymbol||state.page!=="chart")return;
+  const stateEl=$("dailyState");
+  if(!stateEl)return;
+  stateEl.className="pill "+(res.saved?(res.five_year_extent_covered?"green":"warn"):"red");
+  stateEl.textContent=res.saved?(res.five_year_extent_covered?"5년 시작/끝 도달":"일부만 저장"):"미확보";
+  if(!res.saved){
+   host.textContent="해당 종목에 저장된 TradingView 5년 일봉이 없습니다. 사용자가 수집 버튼을 눌러야 실제 요청을 시작합니다.";
+   drawStoredDaily([]);return;
+  }
+  const payload=await request("/api/chart/history?symbol="+encodeURIComponent(symbol));
+  if(symbol!==state.chartSymbol||state.page!=="chart")return;
+  const b=payload.bars||[],meta=payload.metadata;
+  host.textContent="실제 저장 "+Number(meta.bar_count).toLocaleString("ko-KR")+
+    "봉 · 최초 "+(b.length?new Date(b[0].time_ms).toISOString().slice(0,10):"—")+
+    " · 최종 "+(b.length?new Date(b[b.length-1].time_ms).toISOString().slice(0,10):"—")+
+    " · 요청 시작 "+meta.requested_start+
+    " · "+(meta.five_year_extent_covered?"5년 날짜 범위 도달 (거래소 결측 미감사)":"5년 날짜 범위 미달");
+  $("dailyLast").textContent="출처: TradingView 기존 차트 WebSocket · 파일 SHA-256 검증 · 마지막 저장 "+meta.stored_at;
+  drawStoredDaily(b);
+ }catch(err){
+  if($("dailySummary"))host.textContent="저장 데이터 조회 실패: "+err.message;
+ }
+}
+async function collectStoredDaily(symbol){
+ const button=$("collectDaily");if(!button)return;
+ button.disabled=true;
+ const box=$("dailySummary");box.textContent="TradingView 공식 차트 링크를 열어 5년 1D를 요청하고, 실제 WebSocket 수신 봉을 검사 중입니다.";
+ try{
+  const resp=await fetch("/api/chart/collect",{method:"POST",
+   headers:{"Content-Type":"application/json"},
+   body:JSON.stringify({symbol,years:5,interval:"1D"})});
+  const job=await resp.json();
+  if(!resp.ok)throw Error(typeof job.detail==="string"?job.detail:job.detail?.code||"수집 요청 실패");
+  if(job.state!=="running")throw Error("수집이 시작되지 않았습니다.");
+  const id=job.id;
+  for(let k=0;k<120;k++){
+   if(state.page!=="chart"||state.chartSymbol!==symbol)return;
+   await new Promise(done=>setTimeout(done,2500));
+   const status=await request("/api/chart/jobs/current");
+   if(status.id!==id)throw Error("다른 수집 작업이 현재 작업을 대체했습니다.");
+   if(status.state==="running"){
+    box.textContent="실제 TradingView 차트 수신 대기 중 · "+symbol+
+     " · 이력 부족 시 화면을 과거로 이동해 추가 수신을 요청합니다.";continue;
+   }
+   if(status.state==="completed"||status.state==="saved_partial"){
+    toast(status.state==="completed"?"5년 일봉 저장 완료 (거래소 결측 별도 검증)":"일부 일봉만 저장됨 · 5년 날짜 범위 미달");
+    await loadStoredDaily(symbol);return;
+   }
+   throw Error(status.reason||"실제 차트 OHLCV 수집 실패");
+  }
+  throw Error("작업 조회 제한 시간 초과. 나중에 저장 상태를 다시 확인하세요.");
+ }catch(err){
+  if($("dailySummary"))box.textContent="5년 일봉 수집·저장 실패: "+err.message;
+  toast("수집 실패. 완료로 표시하지 않습니다.");
+ }finally{if($("collectDaily"))button.disabled=false;}
+}
+function wireStoredDaily(symbol){
+ $("readDaily").onclick=()=>loadStoredDaily(symbol);
+ $("collectDaily").onclick=()=>collectStoredDaily(symbol);
+ drawStoredDaily([]);
+ loadStoredDaily(symbol);
 }
 function renderIdeas(){
  setContent(screenHeader("IDEAS · LIVE FEED","아이디어","기존 TradingView 아이디어 서버 조회를 연결합니다.",
