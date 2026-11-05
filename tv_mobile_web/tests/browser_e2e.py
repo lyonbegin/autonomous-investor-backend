@@ -45,8 +45,8 @@ def main():
         page.locator("#worldAssetTabs .world-asset").first.wait_for(timeout=12000)
         assert page.locator("#worldAssetTabs .world-asset").count()==9
         assert page.locator("#worldCountryList .world-country").count()>=249
-        assert page.get_by_role("button",name="옵션 Options 연결 대기").count()>=1
-        assert page.get_by_role("button",name="경제 데이터 Economy 연결 대기").count()>=1
+        assert page.locator("[data-world-asset=options]").count()==1
+        assert page.locator("[data-world-asset=economy]").count()==1
         assert page.locator("#fullGlobalMarketCatalog #worldFeedList").count()==1
         assert page.locator("#mobileNav .bottom-tab").count()==5
         assert "KRX:005930" in page.locator("#marketContent").inner_text()
