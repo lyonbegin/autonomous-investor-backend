@@ -66,10 +66,10 @@ def test_resumable_market_graph_persists_all_nodes_and_backlog(tmp_path):
 
 def test_failed_pages_are_visible_and_require_manual_retry(tmp_path):
     graph=WorldMarketPageGraph(tmp_path)
-    graph.store_result("/markets/options/",403,[],error="ACCESS_BLOCKED")
+    graph.store_result("/markets/etfs/",403,[],error="ACCESS_BLOCKED")
     status=graph.status()
     assert status["failed_pages"]==1
-    data=graph.get(query="options")
+    data=graph.get(query="etfs")
     assert data["items"][0]["error_code"]=="ACCESS_BLOCKED"
     assert graph.requeue_failed()==1
     assert graph.status()["failed_pages"]==0
@@ -108,3 +108,43 @@ def test_graph_update_has_explicit_manual_limit_and_no_secret(tmp_path,monkeypat
     assert response.json()["summary"]["fetched_pages"]==1
     assert response.json()["summary"]["source_edges"]==8
     assert client.post("/api/taxonomy/pages/refresh?pages=1").status_code==429
+
+
+
+def test_canonical_roots_are_live_verified_not_broken_guessed_paths(tmp_path):
+    from tv_mobile_web.market_page_graph import ROOTS, OBSOLETE_GUESSED_ROOTS
+    from tv_mobile_web.market_taxonomy import PUBLIC_MARKET_TYPE_PATHS
+    expected={
+        "/markets/world-stocks/","/markets/stocks-korea/","/markets/etfs/",
+        "/markets/futures/","/markets/currencies/","/markets/cryptocurrencies/",
+        "/markets/indices/","/markets/bonds/","/markets/world-economy/",
+    }
+    assert set(ROOTS)=={"/markets/",*expected}
+    assert not set(ROOTS)&set(OBSOLETE_GUESSED_ROOTS)
+    assert PUBLIC_MARKET_TYPE_PATHS["options"]==()
+    assert set(PUBLIC_MARKET_TYPE_PATHS)=={
+        "stocks","funds","futures","forex","crypto",
+        "indices","bonds","options","economy"}
+    assert set(x["path"] for x in WorldMarketPageGraph(tmp_path).get(limit=5000)["items"])==set(ROOTS)
+
+
+def test_guessed_404_and_301_legacy_roots_keep_evidence_not_active(tmp_path):
+    import sqlite3
+    from tv_mobile_web.market_page_graph import OBSOLETE_GUESSED_ROOTS
+    graph=WorldMarketPageGraph(tmp_path)
+    with graph.connect() as conn:
+        for path in OBSOLETE_GUESSED_ROOTS:
+            conn.execute("""INSERT INTO market_pages
+                (path,label,parent_path,status,source_status_code,
+                 discovered_at,error_code)
+                VALUES (?,?,NULL,'failed',?,'2026-11-05','HTTP_NOT_OK')""",
+                (path,path,301 if path.endswith("/stocks/") else 404))
+    new=WorldMarketPageGraph(tmp_path)
+    statuses=new.status()
+    assert statuses["noncanonical_historical_seeds"]==5
+    assert statuses["failed_pages"]==0
+    assert statuses["pending_pages"]==len(new.get()["items"])-5
+    rows=new.get(query="/markets/options/")["items"]
+    assert len(rows)==1 and rows[0]["status"]=="noncanonical_seed"
+    assert rows[0]["source_status_code"]==404
+    assert new.reserve_one()==ROOT
