@@ -102,3 +102,46 @@ def test_private_store_saves_only_verified_daily_bars(tmp_path):
             "source": "YAHOO_FAKE_OR_WIDGET",
             "bars": bars,
         }, ASOF)
+
+
+def test_partial_refresh_keeps_previously_observed_five_year_data(tmp_path):
+    store=ChartHistoryStore(tmp_path)
+    bars=simulated_trading_dates()
+    full={
+        "symbol":"NASDAQ:AAPL",
+        "interval":"1D",
+        "source":"TRADINGVIEW_PUBLIC_CHART_NORMAL_UI_PASSIVE_WEBSOCKET",
+        "bars":bars,
+    }
+    first=store.save_observation(full,ASOF)
+    assert first["five_year_extent_covered"]
+    # Some public TradingView chart loads only deliver latest 300 bars.
+    # A subsequent manually initiated partial response must not erase 5Y.
+    second=store.save_observation({**full,"bars":bars[-300:]},ASOF)
+    assert second["bar_count"]==len(bars)
+    assert second["five_year_extent_covered"]
+    assert len(store.read("NASDAQ:AAPL")["bars"])==len(bars)
+
+
+def test_corrupted_previous_chart_file_blocks_destructive_refresh(tmp_path):
+    store=ChartHistoryStore(tmp_path)
+    bars=simulated_trading_dates()
+    payload={"symbol":"NASDAQ:AAPL","interval":"1D",
+             "source":"TRADINGVIEW_PUBLIC_CHART_NORMAL_UI_PASSIVE_WEBSOCKET",
+             "bars":bars}
+    store.save_observation(payload,ASOF)
+    file=store.file("NASDAQ:AAPL")
+    file.write_bytes(file.read_bytes()+b"tampered")
+    with pytest.raises(ValueError,match="CHART_STORED_SHA256_MISMATCH"):
+        store.save_observation({**payload,"bars":bars[-300:]},ASOF)
+    assert file.read_bytes().endswith(b"tampered")
+
+
+def test_app_does_not_trigger_capture_on_chart_status_read(tmp_path,monkeypatch):
+    from tv_mobile_web import server
+    monkeypatch.setattr(server,"_history_store",lambda:ChartHistoryStore(tmp_path))
+    client=TestClient(server.app)
+    assert client.get("/api/chart/status?symbol=NASDAQ%3AAAPL").json()["state"]=="NOT_COLLECTED"
+    assert client.get("/api/chart/totals").json()["stored_symbols"]==0
+    assert client.get("/api/chart/history?symbol=NASDAQ%3AAAPL").status_code==404
+    assert client.get("/api/chart/options").json()["never_auto_collect"] is True
