@@ -94,6 +94,14 @@ def discover(html:str,from_path:str):
     return result
 
 
+def canonical_market_redirect(path: str, location: str | None) -> str | None:
+    """Accept only public same-platform /markets/ redirects, never offsite."""
+    if not location:
+        return None
+    to=safe_path(location,BASE+path)
+    return to if to and to!=path else None
+
+
 class WorldMarketPageGraph:
     def __init__(self,root:str|Path):
         self.root=Path(root)
@@ -119,6 +127,13 @@ class WorldMarketPageGraph:
                      AND source_status_code IN (301,404)""",
                 [(path,) for path in OBSOLETE_GUESSED_ROOTS],
             )
+            # Older crawler wrongly marked safe 301/302 as failures without
+            # recording Location. Requeue only once for explicit manual fetch.
+            con.execute("""UPDATE market_pages SET status='pending',
+                               error_code='LEGACY_REDIRECT_RECHECK'
+                           WHERE status='failed'
+                             AND source_status_code BETWEEN 300 AND 399
+                             AND parent_path IS NOT NULL""")
 
     def connect(self):
         return sqlite3.connect(self.db,timeout=20)
@@ -135,6 +150,8 @@ class WorldMarketPageGraph:
             "pending_pages":counts.get("pending",0),
             "fetched_pages":counts.get("fetched",0),
             "failed_pages":counts.get("failed",0),
+            "redirected_pages":counts.get("redirected",0),
+            "redirects_outside_markets":counts.get("redirect_outside_markets",0),
             "noncanonical_historical_seeds":counts.get("noncanonical_seed",0),
             "market_navigation_seed_source":"observed_public_200_not_guessed_slug",
             "source_edges":links,
@@ -199,8 +216,12 @@ class WorldMarketPageGraph:
                     (path,dest,label))
             con.execute("""UPDATE market_pages SET status=?,source_status_code=?,
                 fetched_at=?,link_count=?,error_code=? WHERE path=?""",
-                ("fetched" if 200<=code<300 else "failed",code,stamp(),
-                 len(links),error,path))
+                (
+                   "fetched" if 200<=code<300 else
+                   ("redirected" if 300<=code<400 and links else
+                    ("redirect_outside_markets" if 300<=code<400 else "failed")),
+                   code,stamp(),len(links),error,path,
+                ))
 
     def requeue_failed(self):
         with self.connect() as con:
@@ -226,6 +247,24 @@ class WorldMarketPageGraph:
                         links=discover(response.text,path)
                         self.store_result(path,status,links)
                         results.append({"path":path,"code":status,"links":len(links)})
+                    elif status in (301,302,303,307,308):
+                        location=response.headers.get("location")
+                        redirect=canonical_market_redirect(path,location)
+                        if redirect:
+                            # Record original URL + canonical /markets/ target;
+                            # next manual batch follows target as a fresh node.
+                            self.store_result(
+                                path,status,[(redirect,"HTTP_REDIRECT_TO_CANONICAL")],
+                                error="PUBLIC_MARKETS_REDIRECT")
+                            results.append({"path":path,"code":status,
+                                            "redirect_to":redirect,"links":1})
+                        else:
+                            # Out of /markets/ or self/query redirect:
+                            # preserve as out-of-scope, never follow login etc.
+                            self.store_result(path,status,[],
+                                              error="REDIRECT_OUTSIDE_PUBLIC_MARKETS")
+                            results.append({"path":path,"code":status,"links":0,
+                                            "error":"REDIRECT_OUTSIDE_PUBLIC_MARKETS"})
                     else:
                         self.store_result(path,status,[],error="NON_HTML_OR_HTTP_ERROR")
                         results.append({"path":path,"code":status,"links":0,
