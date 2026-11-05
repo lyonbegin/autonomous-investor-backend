@@ -322,3 +322,9 @@ async def collect_chart_5y_daily(payload:CollectDaily):
     _chart_task=asyncio.create_task(
         _capture_5y_daily(_chart_job["id"],symbol,now.date()))
     return JSONResponse(_chart_job,status_code=202,headers={"Cache-Control":"no-store"})
+
+
+# Independent multi-asset discovery. All price rows come from the existing
+# TradingView scanner/stored-universe integration, never generated in browser.
+from .market_explorer import router as market_explorer_router
+app.include_router(market_explorer_router)
