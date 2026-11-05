@@ -39,6 +39,30 @@ jobs:
           exit 1
       - name: Chromium responsive UI browser scenarios with explicit market fixtures
         run: python tv_mobile_web/tests/browser_e2e.py
+      - name: Verify independently deployed Railway preview from outside the container
+        run: |
+          python - <<'PY'
+          import json
+          import urllib.request
+          base="https://tradingview-full-mobile-web-lab-production.up.railway.app"
+          def read(url):
+              with urllib.request.urlopen(url,timeout=20) as response:
+                  assert response.status==200
+                  return response.read()
+          health=json.loads(read(base+"/health"))
+          catalog=json.loads(read(base+"/api/app/catalog"))
+          assert health["cron_enabled"] is False
+          assert health["admin_token_required"] is False
+          assert catalog["function_candidate_count"]==339
+          assert len(catalog["function_groups"])==26
+          html=read(base+"/").decode()
+          assert "app.js" in html and "feature_registry.js" in html
+          assets=read(base+"/assets/feature_registry.js")
+          assert len(assets)>4000
+          print("EXTERNAL_RAILWAY_PREVIEW_HTTP_VALIDATED",
+                "health_ok",health["status"],
+                "source_function_count",catalog["function_candidate_count"])
+          PY
       - name: Upload generated screenshots, not Android source or price data
         if: always()
         uses: actions/upload-artifact@v4
