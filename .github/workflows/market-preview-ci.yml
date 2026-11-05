@@ -1,0 +1,42 @@
+name: Markets Preview - real Chromium checks
+on:
+  push:
+    branches: [feature/markets-original-layout-20261106]
+    paths:
+      - 'n8n/admin-console/markets.html'
+      - 'n8n/admin-console/markets-chart.js'
+      - 'n8n/markets-preview/**'
+      - 'n8n/tests/e2e_markets_preview.py'
+      - 'n8n/tests/test_market_ohlcv_api.py'
+      - 'n8n/tests/test_market_original_home.py'
+      - '.github/workflows/market-preview-ci.yml'
+  workflow_dispatch:
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Python market provider and static contracts
+        run: |
+          python n8n/tests/test_market_ohlcv_api.py -v
+          python n8n/tests/test_market_original_home.py -v
+          python - <<'PY'
+          from pathlib import Path
+          s=Path("n8n/admin-console/markets.html").read_text()
+          Path("/tmp/market_inline.js").write_text(s.split("<script>")[1].split("</script>")[0])
+          PY
+          node --check /tmp/market_inline.js
+          node --check n8n/admin-console/markets-chart.js
+      - name: Install browser
+        run: |
+          pip install playwright==1.57.0
+          python -m playwright install --with-deps chromium
+      - name: Real headless Chromium interaction smoke test
+        run: python n8n/tests/e2e_markets_preview.py
