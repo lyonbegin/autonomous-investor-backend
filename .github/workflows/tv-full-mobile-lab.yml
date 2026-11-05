@@ -26,7 +26,8 @@ jobs:
       - name: Source inspection and basic API tests
         run: |
           node --check tv_mobile_web/web/app.js
-          python -m pytest -q tv_mobile_web/tests/test_server.py tv_mobile_web/tests/test_chart_daily_contract.py
+          node --check tv_mobile_web/web/world_catalog.js
+          python -m pytest -q tv_mobile_web/tests/test_server.py tv_mobile_web/tests/test_chart_daily_contract.py tv_mobile_web/tests/test_market_explorer.py tv_mobile_web/tests/test_market_taxonomy.py
       - name: Start standalone mobile app (no cron, no n8n changes)
         run: |
           uvicorn tv_mobile_web.server:app --host 127.0.0.1 --port 8855 \
