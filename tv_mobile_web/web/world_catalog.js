@@ -78,7 +78,10 @@
     '<span class="pill">'+feedRows.length+'/'+(data.source_row_count||0)+'개</span></div>'+
     '<div class="source-capability"><a href="https://www.tradingview.com/data-coverage/" target="_blank" rel="noopener">'+
     'TradingView 공개 Data Coverage</a> · 수동 조회 시각: '+escapeHTML(data.source_snapshot_at||'미조회')+
-    ' · 데이터 완전성: 미검증</div>'+
+    ' · 이번 원본 표시 행: '+Number(data.source_latest_visible_rows||0)+
+    ' · 전체 보기 클릭: '+(data.source_ui_expansion?.show_all_clicked?'수행':'확인 안 됨')+
+    ' · 이전 자료 보존 행: '+Number(data.historical_rows_preserved||0)+
+    ' · 거래소 완전성: 미검증</div>'+
     '<div class="input-wrap"><input id="worldFeedSearch" class="field" placeholder="거래소·공급원·국가명 검색" value="'+escapeHTML(state.feedSearch)+'">'+
     '<button class="btn primary" data-world-action="refresh"'+(state.busy?' disabled':'')+'>'+
     (state.busy?'확인 중':'원본 공급원 목록 수동 갱신')+'</button></div>'+
