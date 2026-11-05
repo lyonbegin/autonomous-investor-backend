@@ -357,6 +357,71 @@ def full_market_taxonomy():
     return hierarchy(_taxonomy_store().read())
 
 
+
+
+@app.get("/api/taxonomy/sources")
+def world_market_sources(
+    asset: str | None = Query(default=None, max_length=32),
+    q: str = Query("", max_length=100),
+    include_historical: bool = True,
+    limit: int = Query(100, ge=1, le=1000),
+    offset: int = Query(0, ge=0),
+):
+    """Read all persisted original provider rows, with explicit pagination.
+
+    Asset matching is a TEXT-INFERRED facet, not proof the provider currently
+    supplies licensed quotes, instruments, 5Y OHLCV, or country coverage.
+    Unclassified and historical entries are never silently discarded.
+    """
+    if asset is not None and asset not in ASSET_IDS and asset != "unclassified":
+        raise HTTPException(422, "UNKNOWN_ASSET_FILTER")
+    snapshot = _taxonomy_store().read()
+    originals = snapshot.get("records", [])
+    retained = []
+    needle = q.strip().casefold()
+    for row in originals:
+        inferred = row.get("asset_type_candidate_ids", [])
+        if asset == "unclassified":
+            if inferred:
+                continue
+        elif asset is not None and asset not in inferred:
+            continue
+        if not include_historical and row.get("historical_snapshot_only", False):
+            continue
+        haystack = " ".join(str(x) for x in row.get("all_cells", [])).casefold()
+        if needle and needle not in haystack:
+            continue
+        retained.append(row)
+    counts = {key: 0 for key in ASSET_IDS}
+    unclassified = 0
+    historical = 0
+    for row in originals:
+        types = row.get("asset_type_candidate_ids", [])
+        if not types:
+            unclassified += 1
+        for key in types:
+            if key in counts:
+                counts[key] += 1
+        if row.get("historical_snapshot_only", False):
+            historical += 1
+    return {
+        "items": retained[offset:offset+limit],
+        "total_matches": len(retained),
+        "total_source_rows": len(originals),
+        "limit": limit, "offset": offset,
+        "has_more": offset + limit < len(retained),
+        "asset_type_inferred_row_counts": counts,
+        "unclassified_row_count": unclassified,
+        "historical_only_row_count": historical,
+        "all_source_rows_retained": len(originals) == snapshot.get("raw_row_count", 0),
+        "classification_verified": False,
+        "total_world_exchange_support_verified": False,
+        "all_listed_instruments_collected": False,
+        "five_year_daily_collected_for_all": False,
+        "source": snapshot.get("source"),
+        "source_snapshot_at": snapshot.get("snapshot_at"),
+    }
+
 @app.get("/api/taxonomy/source-status")
 def full_market_source_status():
     data=_taxonomy_store().read()
