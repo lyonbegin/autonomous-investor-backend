@@ -1,0 +1,65 @@
+name: Explicit one-time world market sources and hierarchy collection
+on:
+  push:
+    paths:
+      - ".github/workflows/tv-source-inventory-one-off-20261105.yml"
+jobs:
+  user-requested-one-time-source-inventory:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Call existing manual update buttons once, no cron and no auth
+        run: |
+          python - <<'PY'
+          import json,urllib.request,urllib.error
+          from pathlib import Path
+          base="https://tradingview-full-mobile-web-lab-production.up.railway.app"
+          out={}
+          def call(path,method="GET"):
+              r=urllib.request.Request(base+path,method=method,
+                  headers={"Accept":"application/json"})
+              try:
+                  with urllib.request.urlopen(r,timeout=210) as h:
+                      return h.status,json.loads(h.read())
+              except urllib.error.HTTPError as e:
+                  try:body=json.loads(e.read())
+                  except Exception:body={"detail":str(e)}
+                  return e.code,body
+          for name,path in (
+              ("data_coverage","/api/taxonomy/refresh"),
+              ("source_page_hierarchy","/api/taxonomy/pages/refresh?pages=12")
+          ):
+              try:
+                  code,result=call(path,"POST")
+                  out[name]={"http_status":code,"result":result}
+                  print("SOURCE_MANUAL_SYNC",name,code,json.dumps(result,ensure_ascii=False)[:10000],flush=True)
+              except Exception as exc:
+                  out[name]={"error":type(exc).__name__+":"+str(exc)[:220]}
+                  print("SOURCE_MANUAL_SYNC_EXCEPTION",name,str(exc)[:220],flush=True)
+          try:
+              code,status=call("/api/taxonomy/source-status")
+              out["source_status"]=status
+              code,graph=call("/api/taxonomy/pages/status")
+              out["page_status"]=graph
+              print("AFTER_MANUAL_GLOBAL_INVENTORY",json.dumps({
+                  "sources_saved":status.get("records_preserved"),
+                  "navigation_pages":graph.get("discovered_pages"),
+                  "navigation_fetched":graph.get("fetched_pages"),
+                  "navigation_pending":graph.get("pending_pages"),
+                  "navigation_failed":graph.get("failed_pages"),
+                  "all_instruments_collected":False,
+              },ensure_ascii=False),flush=True)
+          except Exception as exc:
+              out["status_read_error"]=type(exc).__name__+":"+str(exc)[:200]
+          Path("/tmp/tv-source-inventory-evidence.json").write_text(
+              json.dumps(out,ensure_ascii=False,indent=2))
+          if not out.get("source_status",{}).get("records_preserved",0) and not out.get("page_status",{}).get("fetched_pages",0):
+              raise RuntimeError("Both public source extractions failed; see retained evidence, do not claim coverage")
+          PY
+      - name: Preserve source counts, failures and backlog for independent audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: actual-global-market-source-once-20261105
+          path: /tmp/tv-source-inventory-evidence.json
+          if-no-files-found: warn
