@@ -147,9 +147,20 @@ class WorldMarketPageGraph:
     def reserve_one(self):
         with self.connect() as con:
             # Retry failed pages only if deliberately requeued by user.
-            row=con.execute(
-                "SELECT path FROM market_pages WHERE status='pending' ORDER BY CASE WHEN path=? THEN 0 ELSE 1 END,path LIMIT 1",(ROOT,)
-            ).fetchone()
+            # Prioritize every canonical major asset root before secondary
+            # news/ideas pagination. Never discard later pages: keep them in DB.
+            priority_placeholders=",".join("?" for _ in ROOTS[1:])
+            sql=f"""SELECT path FROM market_pages WHERE status='pending'
+                ORDER BY CASE
+                    WHEN path=? THEN 0
+                    WHEN path IN ({priority_placeholders}) THEN 1
+                    ELSE 2 END,
+                (LENGTH(path)-LENGTH(REPLACE(path,'/',''))) ASC,
+                CASE WHEN path LIKE '%/ideas/%' OR path LIKE '%/news/%'
+                     THEN 1 ELSE 0 END ASC,
+                path
+                LIMIT 1"""
+            row=con.execute(sql,[ROOT,*ROOTS[1:]]).fetchone()
             return row[0] if row else None
 
     def store_result(self,path,code:int,links:list[tuple[str,str]],error=None):
