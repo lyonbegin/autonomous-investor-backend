@@ -106,7 +106,7 @@ def get_chart(tv_symbol: str, period: str):
             "market_state": meta.get("marketState", "UNVERIFIED"),
             "asof_utc": bars[-1]["t"],
             "bar_count": len(bars),
-            "bars": bars[-450:],
+            "bars": bars[-1800:],
             "latest_close": bars[-1]["c"],
             "previous_close": bars[-2]["c"] if len(bars)>1 else None,
             "quote_realtime_verified": False, "cache": "MISS",
@@ -162,4 +162,9 @@ class Handler(SimpleHTTPRequestHandler):
 if __name__ == "__main__":
     port = int(os.getenv("PORT", "8080"))
     print("markets preview listening on",port,flush=True)
+    if os.getenv("MARKETS_PROBE_ON_START") == "1":
+        def probe():
+            code, result = get_chart("NASDAQ:MSFT","1M")
+            print("PROVIDER_STARTUP_PROBE", code, result.get("status"), result.get("reason",""), "bars=", result.get("bar_count",0), flush=True)
+        threading.Thread(target=probe, daemon=True).start()
     ThreadingHTTPServer(("0.0.0.0",port), Handler).serve_forever()
