@@ -1,0 +1,28 @@
+name: Live Railway 5Y daily chart UI E2E (one-off, no collection)
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - ".github/workflows/tv-5y-live-ui-verify.yml"
+jobs:
+  verify-live-saved-5y:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install browser-only dependencies
+        run: |
+          pip install playwright==1.56.0
+          python -m playwright install --with-deps chromium
+      - name: Verify actual TradingView chart daily bars are persisted with valid SHA256 and shown on mobile
+        run: python tv_mobile_web/tests/live_saved_daily_browser.py
+      - name: Save full-page screenshots and verification metadata
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: actual-tradingview-aapl-5y-daily-mobile-and-desktop
+          path: /tmp/tv-5y-stored-ui-evidence/
+          if-no-files-found: warn
