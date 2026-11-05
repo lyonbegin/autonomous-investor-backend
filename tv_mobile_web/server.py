@@ -359,13 +359,64 @@ def full_market_taxonomy():
 
 
 
+@app.get("/api/taxonomy/overview")
+def world_market_overview():
+    """Fast menu metadata only: never send 249 countries or 417 providers."""
+    from .market_taxonomy import TYPES, FACETS, SCANNER_ROUTES
+    snap=_taxonomy_store().read()
+    return {
+        "categories": [
+            {"id":code,"name":ko,"source_symbol_type":eng,
+             "subcategories":list(sub),"scanner_routes":list(SCANNER_ROUTES[code]),
+             "scanner_route_status":"LINKED" if SCANNER_ROUTES[code] else "NOT_YET_CONNECTED",
+             "verified_markets_navigation_paths":[]}
+            for code,ko,eng,sub in TYPES
+        ],
+        "additional_cross_asset_facets":[
+            {"id":key,"name":name,"subcategories":list(sub)}
+            for key,name,sub in FACETS
+        ],
+        "country_total":len(__import__("pycountry").countries),
+        "source_row_count":snap.get("raw_row_count",0),
+        "source_snapshot_at":snap.get("snapshot_at"),
+        "source_latest_visible_rows":snap.get("latest_source_row_count",0),
+        "historical_rows_preserved":snap.get("earlier_source_rows_preserved",0),
+        "source_ui_expansion":snap.get("ui_expansion",{}),
+        "listing_page_size":10,
+        "all_tradingview_symbols_collected":False,
+        "all_5y_daily_collected":False,
+    }
+
+
+@app.get("/api/taxonomy/countries")
+def paged_world_countries(
+    q:str=Query("",max_length=90),
+    page:int=Query(1,ge=1,le=1000000),
+):
+    """Ten ISO countries per request, server-side filtering + direct page jump."""
+    from .market_taxonomy import countries
+    needle=q.strip().casefold()
+    all_rows=countries()
+    filtered=[v for v in all_rows if
+              not needle or needle in (v["name"]+" "+v["iso2"]+" "+v["iso3"]).casefold()]
+    offset=(page-1)*10
+    return {
+        "items":filtered[offset:offset+10],
+        "page":page,"page_size":10,"total_count":len(filtered),
+        "total_pages":max(1,(len(filtered)+9)//10),
+        "all_iso_country_count":len(all_rows),
+        "all_exchanges_supported":False,
+    }
+
+
 @app.get("/api/taxonomy/sources")
 def world_market_sources(
     asset: str | None = Query(default=None, max_length=32),
     q: str = Query("", max_length=100),
     include_historical: bool = True,
-    limit: int = Query(100, ge=1, le=1000),
+    limit: int = Query(10, ge=1, le=1000),
     offset: int = Query(0, ge=0),
+    page: int | None = Query(default=None, ge=1, le=1000000),
 ):
     """Read all persisted original provider rows, with explicit pagination.
 
@@ -404,11 +455,15 @@ def world_market_sources(
                 counts[key] += 1
         if row.get("historical_snapshot_only", False):
             historical += 1
+    if page is not None:
+        offset=(page-1)*limit
     return {
         "items": retained[offset:offset+limit],
         "total_matches": len(retained),
         "total_source_rows": len(originals),
         "limit": limit, "offset": offset,
+        "page": offset//limit+1, "page_size":limit,
+        "total_pages":max(1,(len(retained)+limit-1)//limit),
         "has_more": offset + limit < len(retained),
         "asset_type_inferred_row_counts": counts,
         "unclassified_row_count": unclassified,
