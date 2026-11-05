@@ -166,3 +166,57 @@ def test_playwright_expanded_html_preferred_when_more_rows(tmp_path,monkeypatch)
     assert r["ui_expansion"]["show_all_clicked"] is True
     assert r["ui_expansion"]["success"] is True
     assert any(x["display"].startswith("Source B") for x in r["records"])
+
+
+def test_actual_tradingview_th_provider_td_fees_never_collapses_rows(tmp_path):
+    """A data source TH + three fee TDs per row is the actual site structure.
+
+    The former TD-only parser silently collapsed all providers that shared
+    identical fees into one 'exchange'; this must never recur.
+    """
+    providers=417
+    html="<table><thead><tr><th>Data source</th><th>Delayed data</th><th>Real-time</th></tr></thead><tbody>"
+    html+="".join(
+        f"<tr><th><a href='/symbols/PROV{i}/'>Source {i} Stocks</a></th>"
+        "<td>Free</td><td>Real time</td><td>$0</td></tr>"
+        for i in range(providers)
+    )
+    html+="</tbody></table>"
+    data=build_catalog(html)
+    assert data["raw_row_count"]==providers
+    assert len(data["records"])==providers
+    assert data["records"][0]["provider_cell_type"]=="th"
+    assert data["records"][0]["display"]=="Source 0 Stocks"
+    assert data["records"][416]["display"]=="Source 416 Stocks"
+    assert data["records"][416]["all_cells"]==[
+        "Source 416 Stocks","Free","Real time","$0"]
+    assert len({r["display"] for r in data["records"]})==providers
+    stored=MarketTaxonomyStore(tmp_path).save(html)
+    assert stored["raw_row_count"]==providers
+    assert len(stored["records"])==providers
+
+
+def test_legacy_fee_only_snapshot_is_quarantined_before_correct_recollect(tmp_path):
+    store=MarketTaxonomyStore(tmp_path)
+    # Historical broken client only saved TD fee values as display/provider.
+    broken={
+       "schema_version":1,"raw_row_count":2,
+       "records":[
+         {"source_row":1,"display":"Free","all_cells":["Free","$0"]},
+         {"source_row":2,"display":"20 min","all_cells":["20 min","$1"]},
+       ],
+    }
+    import json
+    store.snapshot_path.write_text(json.dumps(broken),encoding="utf-8")
+    current=store.read()
+    assert current["legacy_fee_only_rows_quarantined"]==2
+    assert current["records"]==[]
+    correct="""<table><tr><th>Data source</th><th>Price</th></tr>
+      <tr><th>NASDAQ Stock Market Stocks</th><td>Free</td></tr>
+      <tr><th>Korea Stock Exchange Stocks</th><td>20 min</td></tr>
+      </table>"""
+    new=store.save(correct)
+    assert new["raw_row_count"]==2
+    assert {x["display"] for x in new["records"]}=={
+        "NASDAQ Stock Market Stocks","Korea Stock Exchange Stocks"}
+    assert not any(x["display"]=="Free" for x in new["records"])
