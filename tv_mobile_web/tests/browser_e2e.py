@@ -90,6 +90,15 @@ def main():
         page.route("https://s3.tradingview.com/**",
                    lambda route:route.fulfill(status=200,content_type="text/javascript",body=""))
         page.goto(BASE,wait_until="domcontentloaded")
+        # The actual Markets UI is now the first screen. Registry is elsewhere.
+        page.locator(".tv-copy-hero h1").wait_for(timeout=12000)
+        assert page.locator(".tv-copy-section").count()==10
+        assert page.locator(".tv-copy-widget").count()==47
+        assert page.locator(".tv-copy-tabs button").count()==10
+        assert page.evaluate("window.TVMarketHome.widgets().length")==47
+        assert page.locator("#fullGlobalMarketCatalog").count()==0
+        page.screenshot(path=str(SHOTS/"00-original-markets-style-mobile.png"))
+        page.locator("[data-copy-source]").click()
         page.locator("#marketContent .stocks-table tbody tr").first.wait_for()
         assert page.locator("#desktopDomains .domain-link").count()==26
         try:
@@ -187,9 +196,19 @@ def main():
         page.screenshot(path=str(SHOTS/"05-mobile-dark-settings.png"),full_page=True)
         page.set_viewport_size({"width":1440,"height":900})
         page.locator('[data-nav="markets"]').first.click()
-        page.locator("#marketContent .stocks-table tbody tr").first.wait_for()
-        assert page.locator(".desktop-nav").is_visible()
-        page.screenshot(path=str(SHOTS/"06-desktop-market.png"),full_page=True)
+        page.locator(".tv-copy-hero h1").wait_for()
+        assert page.locator(".tv-copy-section").count()==10
+        assert page.locator(".tv-copy-widget").count()==47
+        assert not page.locator(".desktop-nav").is_visible()
+        page.locator('[data-widget="stocks-gainers"] [data-copy-widget="stocks-gainers"]').scroll_into_view_if_needed()
+        page.locator('[data-widget="stocks-gainers"] [data-copy-widget="stocks-gainers"]').click()
+        page.locator("#tvCopyData .tv-copy-detail-table>button").first.wait_for(timeout=15000)
+        assert page.locator(".tv-copy-detail-tabs button").count()==8
+        assert page.locator("#tvCopyData .tv-copy-detail-table>button").count()==10
+        page.screenshot(path=str(SHOTS/"07-desktop-market-detail.png"))
+        page.locator("[data-d-back]").click()
+        assert page.locator(".tv-copy-hero h1").count()==1
+        page.screenshot(path=str(SHOTS/"06-desktop-market.png"))
         assert bad==[],bad
         print("MOBILE_APP_PARITY_LAB_BROWSER_TESTS_PASSED")
         print("Explicit CI market fixtures used; not actual upstream data.")
