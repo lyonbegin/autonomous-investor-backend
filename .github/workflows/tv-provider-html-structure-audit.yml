@@ -1,0 +1,46 @@
+name: One-time inspect full TradingView coverage public HTML structure
+on:
+  push:
+    paths:
+      - ".github/workflows/tv-provider-html-structure-audit.yml"
+jobs:
+  inspect-untruncated-public-coverage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install HTML parser
+        run: pip install beautifulsoup4 pycountry httpx
+      - name: Inspect all actual table and alternative row patterns without extracting market prices
+        run: |
+          python - <<'PY'
+          import httpx,re,json
+          from bs4 import BeautifulSoup
+          from tv_mobile_web.market_taxonomy import coverage_rows
+          u="https://www.tradingview.com/data-coverage/"
+          response=httpx.get(u,timeout=30,follow_redirects=False,
+              headers={"User-Agent":"Mozilla/5.0"})
+          response.raise_for_status()
+          soup=BeautifulSoup(response.text,"html.parser")
+          tables=soup.find_all("table")
+          print("SOURCE_HTML_TOTAL_BYTES",len(response.text))
+          print("TABLE_COUNT",len(tables))
+          for i,t in enumerate(tables):
+              print("TABLE_DIAG",i,
+                    "tr",len(t.select("tr")),
+                    "td",len(t.select("td")),
+                    "headers",[h.get_text(" ",strip=True)[:80] for h in t.select("th")][:8],
+                    "source_rows",len(coverage_rows(str(t))))
+          print("ALL_TR_COUNT",len(soup.select("tr")))
+          print("DIV_ROLE_ROW",len(soup.select("[role=row]")))
+          print("DIV_ROLE_CELL",len(soup.select("[role=cell]")))
+          print("CUSTOM_DATA_ROW",len(soup.select("[data-row-index]")))
+          print("HTML_ANCHOR_COUNT",len(soup.select("a[href]")))
+          print("CLICK_LABEL_SHOW_ALL",len(soup.find_all(string=re.compile("Show all",re.I))))
+          for target in ["NASDAQ Stock Market","Abaxx Exchange","Zagreb Stock Exchange","Zhengzhou Commodity Exchange","World Steel Association","Show all"]:
+              print("RAW_HTML_CONTAINS",repr(target),target in response.text)
+          print("PARSED_SOURCE_ROWS",len(coverage_rows(response.text)))
+          PY
