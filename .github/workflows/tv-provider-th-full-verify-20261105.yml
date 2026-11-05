@@ -1,0 +1,109 @@
+name: One-off verify corrected TradingView all provider rows (TH and TD)
+on:
+  push:
+    paths:
+      - ".github/workflows/tv-provider-th-full-verify-20261105.yml"
+jobs:
+  verify-all-provider-rows-actually-saved:
+    runs-on: ubuntu-latest
+    timeout-minutes: 13
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install only source/parser dependencies
+        run: pip install -r tv_mobile_web/requirements.txt
+      - name: Independently parse actual source then update separate Railway snapshot
+        run: |
+          python - <<'PY'
+          import json,time,urllib.request,urllib.error,sys
+          from pathlib import Path
+          import httpx
+          from tv_mobile_web.market_taxonomy import coverage_rows,DATA_COVERAGE_URL
+          output=Path("/tmp/tv-provider-th-rows-verified.json")
+          report={"source":DATA_COVERAGE_URL,"no_cron":True,
+                  "existing_main_or_n8n_modified":False}
+          def read(path,method="GET",timeout=210):
+              req=urllib.request.Request(
+                "https://tradingview-full-mobile-web-lab-production.up.railway.app"+path,
+                method=method,headers={"Accept":"application/json"})
+              try:
+                  with urllib.request.urlopen(req,timeout=timeout) as r:
+                      return r.status,json.loads(r.read())
+              except urllib.error.HTTPError as exc:
+                  raw=exc.read()
+                  try: return exc.code,json.loads(raw)
+                  except ValueError: return exc.code,{"error":raw.decode()[:220]}
+          try:
+              response=httpx.get(DATA_COVERAGE_URL,timeout=40,follow_redirects=False,
+                      headers={"User-Agent":"Mozilla/5.0"})
+              response.raise_for_status()
+              from bs4 import BeautifulSoup
+              soup=BeautifulSoup(response.text,"html.parser")
+              tables=soup.select("table")
+              report["raw_table_count"]=len(tables)
+              report["raw_tr_count"]=len(soup.select("table tr"))
+              rows=coverage_rows(response.text)
+              report["locally_parsed_provider_rows"]=len(rows)
+              report["local_provider_cell_types"]=sorted(set(
+                  x.get("provider_cell_type") for x in rows))
+              report["first_provider"]=rows[0]["display"] if rows else None
+              report["last_provider"]=rows[-1]["display"] if rows else None
+              report["all_provider_names_unique"]=len(
+                  {x["display"] for x in rows})==len(rows)
+              print("LIVE_TRADINGVIEW_PROVIDER_HTML_PARSER",json.dumps(report,ensure_ascii=False),flush=True)
+              assert len(rows)>=400,"Actual full table was unexpectedly truncated; do not overwrite good source"
+              assert all(x["provider_cell_type"]=="th" for x in rows),"Provider identity not from TH"
+              assert report["all_provider_names_unique"]
+              # Wait until the Railway service has the new parser deployed.
+              for attempt in range(50):
+                  try:
+                      code,status=read("/api/taxonomy")
+                      if code==200 and status.get("source_refresh_state") in (
+                          "LEGACY_SOURCE_ROWS_QUARANTINED_NEEDS_REFRESH",
+                          "SOURCE_SNAPSHOT_STORED",
+                      ):
+                          if not status.get("tradingview_source_records"):
+                              break
+                          if status["tradingview_source_records"][0].get("provider_cell_type")=="th":
+                              break
+                  except Exception:
+                      pass
+                  print("WAIT_CORRECTED_TAXONOMY_SERVER",attempt,flush=True)
+                  time.sleep(5)
+              else:
+                  raise RuntimeError("Corrected parser not deployed; refuse to claim source migration")
+              code,result=read("/api/taxonomy/refresh",method="POST")
+              report["update_http_status"]=code
+              report["update_return"]=result
+              code2,saved=read("/api/taxonomy")
+              code3,summary=read("/api/taxonomy/source-status")
+              report["stored_http_status"]=code2
+              report["stored_source_rows"]=saved.get("source_row_count")
+              report["stored_latest_visible_rows"]=saved.get("source_latest_visible_rows")
+              report["stored_historical_rows"]=saved.get("historical_rows_preserved")
+              report["stored_provider_first"]=(
+                  saved.get("tradingview_source_records") or [{}])[0].get("display")
+              report["saved_provider_cell_types"]=sorted(set(
+                  r.get("provider_cell_type") for r in saved.get("tradingview_source_records",[])))
+              report["source_state"]=saved.get("source_refresh_state")
+              report["all_world_instruments_complete"]=saved.get("all_tradingview_symbols_collected")
+              report["source_source_status"]=summary.get("refresh_status")
+              print("LIVE_RAILWAY_PROVIDER_PERSISTENCE",json.dumps(report,ensure_ascii=False),flush=True)
+              assert code==200,"Manual corrected provider refresh failed"
+              assert code2==200
+              assert report["stored_source_rows"]>=len(rows),"Provider row count regressed"
+              assert report["stored_latest_visible_rows"]>=400,"Railway saved only the 78 fee rows"
+              assert report["saved_provider_cell_types"]==["th"]
+              assert report["all_world_instruments_complete"] is False
+          finally:
+              output.write_text(json.dumps(report,ensure_ascii=False,indent=2))
+          PY
+      - name: Upload actual TradingView source row audit (metadata only)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: real-tradingview-coverage-th-rows-audit-20261105
+          path: /tmp/tv-provider-th-rows-verified.json
+          if-no-files-found: warn
