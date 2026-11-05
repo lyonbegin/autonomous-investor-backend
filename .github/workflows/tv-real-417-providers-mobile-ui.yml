@@ -1,0 +1,75 @@
+name: One-off actual 417 world provider rows in mobile browser
+on:
+  push:
+    paths:
+      - ".github/workflows/tv-real-417-providers-mobile-ui.yml"
+jobs:
+  screenshot-world-coverage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install Chromium test-only dependencies
+        run: |
+          pip install playwright==1.56.0
+          python -m playwright install --with-deps chromium
+      - name: Test real deployed global market UI without fixture
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from playwright.sync_api import sync_playwright
+          import json
+          URL="https://tradingview-full-mobile-web-lab-production.up.railway.app/"
+          out=Path("/tmp/real-world-markets-mobile-evidence")
+          out.mkdir(parents=True,exist_ok=True)
+          with sync_playwright() as p:
+              browser=p.chromium.launch(headless=True)
+              page=browser.new_page(viewport={"width":390,"height":844},device_scale_factor=1)
+              errors=[]
+              page.on("pageerror",lambda e:errors.append(str(e)))
+              page.route("https://s3.tradingview.com/**",lambda r:r.abort())
+              page.goto(URL,wait_until="domcontentloaded",timeout=40000)
+              page.locator("#worldAssetTabs .world-asset").first.wait_for(timeout=25000)
+              assert page.locator("#worldAssetTabs .world-asset").count()==9
+              assert page.locator("#worldCountryList .world-country").count()==249
+              page.locator("#worldFeedList .world-feed").first.wait_for(timeout=25000)
+              count=page.locator("#worldFeedList .world-feed").count()
+              assert count>=400,"Full feed rows not visible in actual website"
+              body=page.locator("#worldFeedList").inner_text()
+              assert "NASDAQ Stock Market" in body or "US Stock Markets" in body
+              assert "Zoomex" in body
+              page.locator('[data-world-asset="options"]').click()
+              assert page.locator('[data-world-asset="options"].active').count()==1
+              page.locator('[data-world-asset="economy"]').click()
+              assert page.locator('[data-world-asset="economy"].active').count()==1
+              page.locator("#worldFeedSearch").fill("NASDAQ")
+              assert 0<page.locator("#worldFeedList .world-feed").count()<count
+              page.locator("#worldFeedSearch").fill("")
+              assert page.locator("#worldFeedList .world-feed").count()==count
+              page.locator("#worldCountrySearch").fill("Korea")
+              assert 0<page.locator("#worldCountryList .world-country").count()<249
+              page.locator("#worldCountrySearch").fill("")
+              assert page.locator("#worldCountryList .world-country").count()==249
+              page.screenshot(path=str(out/"mobile-full-world-417.png"),full_page=True)
+              page.set_viewport_size({"width":1440,"height":900})
+              page.screenshot(path=str(out/"desktop-full-world-417.png"),full_page=True)
+              assert errors==[],errors
+              result={"source":"REAL_RAILWAY_NOT_FIXTURE",
+                      "assets":9,"countries":249,"provider_rows":count,
+                      "options_and_economy_tabs_work":True,
+                      "provider_search_works":True,"country_search_works":True,
+                      "all_instruments_collected":False}
+              print("REAL_ALL_ASSETS_COUNTRIES_FEEDS_UI_PASS",json.dumps(result,ensure_ascii=False),flush=True)
+              (out/"audit.json").write_text(json.dumps(result,indent=2,ensure_ascii=False))
+              browser.close()
+          PY
+      - name: Retain actual mobile and desktop screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: actual-full-417-tradingview-providers-ui
+          path: /tmp/real-world-markets-mobile-evidence/
+          if-no-files-found: warn
