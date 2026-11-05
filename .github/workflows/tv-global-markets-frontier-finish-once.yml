@@ -1,0 +1,91 @@
+name: One-off exhaust actual TradingView Markets public menu frontier
+on:
+  push:
+    paths:
+      - ".github/workflows/tv-global-markets-frontier-finish-once.yml"
+jobs:
+  exhaust-all_current_source_menu_links:
+    runs-on: ubuntu-latest
+    timeout-minutes: 19
+    steps:
+      - name: Continue public source hierarchy in user-directed bounded batches (not Cron)
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from urllib.error import HTTPError
+          from urllib.request import Request, urlopen
+          import json,time
+          base="https://tradingview-full-mobile-web-lab-production.up.railway.app"
+          dst=Path("/tmp/tv-full-markets-source-frontier-audit.json")
+          audit={"manual_user_directed_one_off":True,
+                 "uses_existing_railway_persistent_volume":True,
+                 "login_or_token_required":False,"cron":False,
+                 "claim_all_world_symbols":False,
+                 "run_started_utc":__import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat(),
+                 "batches":[]}
+          def call(path,method="GET"):
+              request=Request(base+path,method=method,
+                headers={"Accept":"application/json"})
+              try:
+                  with urlopen(request,timeout=210) as response:
+                      return response.status,json.loads(response.read())
+              except HTTPError as exc:
+                  content=exc.read()
+                  try:return exc.code,json.loads(content)
+                  except ValueError:return exc.code,{"error":content.decode()[:200]}
+          try:
+              # This workflow file push may trigger Railway rebuild.
+              # Wait for a stable public API, never invent success during rollout.
+              for attempt in range(28):
+                  try:
+                      code,previous=call("/api/taxonomy/pages/status")
+                      if code==200 and previous.get("discovered_pages",0)>=200:
+                          break
+                  except Exception as exc:
+                      print("WAIT_GRAPH_SERVER",attempt,type(exc).__name__,flush=True)
+                  time.sleep(5)
+              else:raise RuntimeError("Existing Railway graph status unavailable")
+              audit["before"]=previous
+              # One batch can safely visit at most 50 public HTML pages.
+              # This is one explicit user-directed audit, not a background cron.
+              for ix in range(6):
+                  if ix:time.sleep(42)
+                  code,data=call("/api/taxonomy/pages/refresh?pages=50","POST")
+                  states=data.get("summary",{})
+                  entry={"batch":ix+1,"http_status":code,
+                      "processed_count":len(data.get("processed",[])),
+                      "error_pages":[x for x in data.get("processed",[])
+                                     if x.get("error")],
+                      "status":states}
+                  audit["batches"].append(entry)
+                  print("ACTUAL_MARKETS_ALL_PAGES_BATCH",
+                        json.dumps(entry,ensure_ascii=False),flush=True)
+                  dst.write_text(json.dumps(audit,ensure_ascii=False,indent=2))
+                  if code!=200:
+                      raise RuntimeError("Original public menu audit stopped on HTTP "+str(code))
+                  if states.get("pending_pages",1)==0:
+                      break
+              code,final=call("/api/taxonomy/pages/status")
+              audit["after"]=final
+              audit["source_graph_exhausted"]=final.get("public_link_graph_exhausted",False)
+              audit["all_world_5y_daily_collected"]=False
+              audit["all_markets_nav_discovered_claim"]=False
+              dst.write_text(json.dumps(audit,ensure_ascii=False,indent=2))
+              print("ACTUAL_MARKETS_FRONTIER_FINAL",
+                    json.dumps(final,ensure_ascii=False),flush=True)
+              assert final["fetched_pages"]>=previous["fetched_pages"]
+              assert final["discovered_pages"]>=previous["discovered_pages"]
+              # Report an unfinished frontier as unfinished, never fake success.
+              if final["pending_pages"]>0:
+                  print("IMPORTANT_MARKET_SOURCE_FRONTIER_INCOMPLETE",
+                        final["pending_pages"],flush=True)
+          finally:
+              dst.write_text(json.dumps(audit,ensure_ascii=False,indent=2))
+          PY
+      - name: Preserve full actual market-page discovery and completion backlog evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tradingview-source-menu-frontier-all-pages-audit
+          path: /tmp/tv-full-markets-source-frontier-audit.json
+          if-no-files-found: warn
