@@ -328,3 +328,71 @@ async def collect_chart_5y_daily(payload:CollectDaily):
 # TradingView scanner/stored-universe integration, never generated in browser.
 from .market_explorer import router as market_explorer_router
 app.include_router(market_explorer_router)
+
+
+# Full global taxonomy is a separate data contract from the 14 scanner routes.
+# Loading this catalog does NOT download candles or trigger a schedule.
+from .market_taxonomy import MarketTaxonomyStore, hierarchy, ASSET_IDS
+
+_taxonomy_refresh_lock = asyncio.Lock()
+_last_manual_taxonomy_attempt = None
+
+
+def _taxonomy_store():
+    return MarketTaxonomyStore(os.getenv("TV_MARKET_TAXONOMY_ROOT", "/data/tv-market-taxonomy"))
+
+
+@app.get("/api/taxonomy")
+def full_market_taxonomy():
+    return hierarchy(_taxonomy_store().read())
+
+
+@app.get("/api/taxonomy/source-status")
+def full_market_source_status():
+    data=_taxonomy_store().read()
+    return {
+        "source": data["source"],
+        "snapshot_at": data.get("snapshot_at"),
+        "records_preserved": data.get("raw_row_count",0),
+        "refresh_status": data.get("source_refresh_state","NOT_REQUESTED"),
+        "all_exchanges_covered": False,
+        "all_countries_with_live_quotes": False,
+        "all_instruments_stored": False,
+        "manual_only": True,
+        "no_token_input": True,
+    }
+
+
+@app.post("/api/taxonomy/refresh")
+async def manual_refresh_source_taxonomy():
+    """Refresh source metadata on explicit click only, NEVER on GET or cron.
+
+    Prevent multiple users from pounding a public source without reintroducing
+    any login, API key, admin token or other test-only gate.
+    """
+    global _last_manual_taxonomy_attempt
+    from time import monotonic
+    if _taxonomy_refresh_lock.locked():
+        raise HTTPException(409, "MARKET_SOURCE_REFRESH_ALREADY_RUNNING")
+    if (_last_manual_taxonomy_attempt is not None and
+            monotonic()-_last_manual_taxonomy_attempt<120):
+        raise HTTPException(429, "MARKET_SOURCE_REFRESH_COOLDOWN_120_SECONDS")
+    async with _taxonomy_refresh_lock:
+        _last_manual_taxonomy_attempt=monotonic()
+        try:
+            snapshot=await _taxonomy_store().refresh()
+        except (httpx.HTTPError, ValueError, OSError) as exc:
+            raise HTTPException(502, {
+                "code": "PUBLIC_DATA_COVERAGE_SNAPSHOT_FAILED",
+                "reason": type(exc).__name__,
+                "unchanged_old_snapshot": True,
+            }) from exc
+        return {
+            "source": snapshot["source"],
+            "snapshot_at": snapshot["snapshot_at"],
+            "records_preserved": snapshot["raw_row_count"],
+            "source_row_count_confirmed_complete": False,
+            "all_market_symbols_collected": False,
+            "all_5y_daily_downloaded": False,
+            "no_cron": True,
+        }
