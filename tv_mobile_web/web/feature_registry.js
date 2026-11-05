@@ -1,0 +1,62 @@
+/* Exact feature names and original 26 areas from the user-supplied 339-row
+   TradingView_Android_전체기능_명세.csv, compacted into a deflate payload.
+   This is analysis metadata, not TradingView program code or image assets. */
+const featureData = [
+"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",
+"5cV9YQrf/h+rsVGv"
+].join("");
+window.loadFeatureRegistry = async function loadFeatureRegistry(){
+  if(window.__featureRegistry) return window.__featureRegistry;
+  if(typeof DecompressionStream!=="function")throw new Error("BROWSER_DEFLATE_UNSUPPORTED");
+  const binary=Uint8Array.from(atob(featureData),c=>c.charCodeAt(0));
+  const stream=new Blob([binary]).stream().pipeThrough(new DecompressionStream("deflate"));
+  const data=JSON.parse(await new Response(stream).text());
+  if(!Array.isArray(data)||data.length!==339)throw new Error("FEATURE_SOURCE_COUNT_MISMATCH");
+  window.__featureRegistry=data.map(([group,name],i)=>({
+    id:"TV-"+String(i+1).padStart(3,"0"),group,name,
+    implementation:"NOT_VERIFIED",
+  }));
+  return window.__featureRegistry;
+};
