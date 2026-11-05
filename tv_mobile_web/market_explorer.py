@@ -15,15 +15,11 @@ from fastapi import APIRouter, HTTPException, Query
 router = APIRouter(prefix="/api/explore", tags=["multi-asset"])
 # These market IDs are implemented in app/core/tradingview.py
 # MARKET_SCANNER_PROFILES on the existing tradingview-service branch.
-CATEGORIES = (
-    ("주식", "equity", ("korea", "america", "india", "japan", "vietnam", "global-stocks")),
-    ("ETF", "etf", ("etf",)),
-    ("암호화폐", "crypto", ("crypto", "crypto-coins")),
-    ("외환", "fx", ("forex",)),
-    ("선물·원자재", "futures", ("futures",)),
-    ("채권", "bonds", ("bonds", "corporate-bonds")),
-    ("지수", "indices", ("indices",)),
-)
+from .market_taxonomy import TYPES, SCANNER_ROUTES, all_types
+
+# All 9 official TradingView symbol types. Scanner routes are a subset only.
+CATEGORIES = tuple((ko, code, SCANNER_ROUTES[code]) for code,ko,_,_ in TYPES)
+
 SUPPORTED_MARKETS = frozenset(k for _, _, names in CATEGORIES for k in names)
 # Product team only verified scanner fields, not live ranking parity with TV.
 RANKINGS = {
@@ -75,9 +71,11 @@ async def stored_page(market: str, limit: int = 1000, offset: int = 0) -> dict:
 def catalog():
     return {
         "categories": [
-            {"name": name, "asset_class": group, "markets": list(markets)}
+            {"name": name, "asset_class": group, "markets": list(markets),
+             "scanner_status": "LINKED" if markets else "NOT_YET_CONNECTED"}
             for name, group, markets in CATEGORIES
         ],
+        "canonical_symbol_types": all_types(),
         "scanner_market_count": len(SUPPORTED_MARKETS),
         "rankings": [{"id": k, "name": v[2]} for k, v in RANKINGS.items()],
         "unlisted_venues_automatically_supported": False,
