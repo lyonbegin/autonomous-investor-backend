@@ -1,190 +1,279 @@
-/* Untruncated world market taxonomy UI: asset classes, ISO countries and
-   every public TradingView data-coverage row. No automatic source updates. */
+/* Incremental, server-side paginated world markets UI.
+ * Never download entire country/provider/navigation inventories into browser.
+ * Each table loads exactly 10 records per page with numbered page jump.
+ */
 "use strict";
 (() => {
- const escapeHTML=v=>String(v??"").replace(/[&<>"']/g,c=>({
-  "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
- }[c]));
- const rows=v=>Array.isArray(v)?v:[];
- const state={data:null,asset:"stocks",countrySearch:"",feedSearch:"",busy:false,error:"",graph:null,graphOffset:0,graphQuery:"",graphBusy:false};
- function html(target){
-  const data=state.data;
-  if(!data){
-   target.innerHTML='<div class="notice-block">전체 세계 시장 목록을 조회할 수 없습니다. '+
-      escapeHTML(state.error||"")+' <button class="btn" data-world-action="retry">다시 시도</button></div>';
-   return;
+  const esc = v => String(v ?? "").replace(/[&<>"']/g,c => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  }[c]));
+  const fmt = n => Number(n||0).toLocaleString("ko-KR");
+  const listIds = ["countries","sources","pages"];
+  const rows = v => Array.isArray(v) ? v : [];
+  const pageSize = 10;
+  const stores = {};
+  let token = 0;
+  let data = null;
+  let asset = "stocks";
+  let busy = false;
+  let msg = "";
+  let root = null;
+  let filterTimer = null;
+
+  const makeState = () => ({page:1,q:"",result:null,loading:false,error:"",generation:0});
+  for(const key of listIds)stores[key] = makeState();
+
+  function totalFor(key){
+    const r=stores[key].result;
+    return key==="sources" ? Number(r?.total_matches||0) : Number(r?.total_count||0);
   }
-  const classes=rows(data.categories),active=classes.find(x=>x.id===state.asset)||classes[0];
-  const cs=state.countrySearch.trim().toLowerCase();
-  const fs=state.feedSearch.trim().toLowerCase();
-  const countryRows=rows(data.countries).filter(x=>
-    !cs||(x.name+" "+x.iso2+" "+x.iso3).toLowerCase().includes(cs));
-  const feedRows=rows(data.tradingview_source_records).filter(x=>
-    !fs||(x.display+" "+rows(x.all_cells).join(" ")).toLowerCase().includes(fs));
-  target.innerHTML=
-    '<div class="section-line"><h2 class="section-title">전세계 전체 시장·자산 카테고리</h2>'+
-    '<span class="pill">'+classes.length+'개 자산 유형</span></div>'+
-    '<p class="toolbar-note">기존 14개 시장 스캐너는 연결된 일부 데이터 엔진일 뿐입니다. 아래 분류는 원본의 전체 심볼 유형과 국가·공급원 목록을 별도로 표시합니다.</p>'+
-    '<div id="worldAssetTabs" class="world-asset-tabs">'+classes.map(x=>
-     '<button class="world-asset'+(x.id===active?.id?' active':'')+
-     '" data-world-asset="'+escapeHTML(x.id)+'"><strong>'+escapeHTML(x.name)+
-     '</strong><small>'+escapeHTML(x.source_symbol_type)+'</small>'+
-     '<span class="pill '+(rows(x.scanner_routes).length?'green':'warn')+'">'+
-     (rows(x.scanner_routes).length?'연결됨':'미연결')+'</span></button>').join("")+'</div>'+
-    (active?'<h3 class="mini-title">'+escapeHTML(active.name)+' 전체 하위 상품</h3>'+
-    '<div class="world-tags">'+rows(active.subcategories).map(s=>
-    '<span class="world-tag">'+escapeHTML(s)+'</span>').join("")+'</div>'+
-    '<div class="source-capability">기존 연결 스캐너: '+(rows(active.scanner_routes).length?
-    rows(active.scanner_routes).map(escapeHTML).join(" · "):
-    '연결 대기. 데이터 미연결이라는 이유로 자산군을 삭제하지 않습니다.')+'</div>'+
-    '<div class="source-capability">TradingView 원본 Markets 화면 경로: '+
-    (rows(active.verified_markets_navigation_paths).length?
-      rows(active.verified_markets_navigation_paths)
-        .filter(p=>typeof p==='string' && p.startsWith('/markets/'))
-        .map(p=>'<a href="https://kr.tradingview.com'+escapeHTML(p)+
-          '" target="_blank" rel="noopener">'+escapeHTML(p)+'</a>').join(' · '):
-      'Markets 자체 루트 미확인 · 별도 심볼 검색/옵션 체인에서 다루는 상품')+
-    '</div>':'')+
-    '<h3 class="mini-title">여러 자산군에 걸치는 추가 카테고리</h3>'+
-    rows(data.additional_cross_asset_facets).map(f=>
-    '<details class="world-facet"><summary>'+escapeHTML(f.name)+'</summary><div class="world-tags">'+
-    rows(f.subcategories).map(s=>'<span class="world-tag">'+escapeHTML(s)+'</span>').join("")+
-    '</div></details>').join("")+
-    '<div class="section-line"><h3 class="section-title">전 세계 전체 국가 · ISO 원장</h3>'+
-    '<span class="pill">'+countryRows.length+'/'+rows(data.countries).length+'개</span></div>'+
-    '<input id="worldCountrySearch" class="field" placeholder="국가명·ISO 코드 필터" value="'+escapeHTML(state.countrySearch)+'">'+
-    '<p class="toolbar-note">전체 ISO 국가 목록이며 해당 국가에 TradingView 거래소가 있다는 뜻이 아닙니다. 미확인 국가도 전부 보존됩니다.</p>'+
-    '<div id="worldCountryList" class="world-country-list">'+countryRows.map(c=>
-    '<button class="world-country" data-world-country="'+escapeHTML(c.name)+'">'+
-    '<b>'+escapeHTML(c.iso2)+'</b><span>'+escapeHTML(c.name)+'</span>'+
-    '<small>지원 미확인</small></button>').join("")+'</div>'+
-    '<div class="section-line"><h3 class="section-title">TradingView 실제 시장 하위 메뉴 · 전체 원본 링크 탐색</h3>'+
-    '<span class="pill">'+(state.graph?.summary?.discovered_pages||0)+'개 발견 · '+(state.graph?.summary?.pending_pages||0)+'개 미처리</span></div>'+
-    '<p class="toolbar-note">원본 /markets/ 하위 링크를 방문 순서로 발견해 누적 보존합니다. 작업량을 줄이기 위해 국가나 하위 카테고리를 삭제하지 않습니다. 사용자 클릭 시에만 다음 페이지들을 탐색합니다.</p>'+
-    '<div class="input-wrap"><input class="field" id="worldGraphQuery" placeholder="원본 시장 메뉴 경로·이름 검색" value="'+escapeHTML(state.graphQuery)+'">'+
-    '<button class="btn primary" data-world-action="discover"'+(state.graphBusy?' disabled':'')+'>'+(state.graphBusy?'원본 페이지 확인 중':'다음 원본 메뉴 12페이지 분석')+'</button></div>'+
-    '<div class="source-capability">실제 접근 완료: '+(state.graph?.summary?.fetched_pages||0)+
-    ' · 접근 실패: '+(state.graph?.summary?.failed_pages||0)+
-    ' · 원본 링크 연결: '+(state.graph?.summary?.source_edges||0)+
-    ' · 발견 완료 여부: '+(state.graph?.summary?.public_link_graph_exhausted?'현재 대기 페이지 없음':'아직 하위 페이지 남음')+
-    ' · 전체 시장·거래소 확정: 미검증</div>'+
-    '<div class="world-feed-list" id="worldGraphList">'+
-    (state.graph?rows(state.graph.items).map(x=>
-      '<div class="world-graph-node"><a href="https://kr.tradingview.com'+escapeHTML(x.path)+
-      '" target="_blank" rel="noopener">'+escapeHTML(x.label||x.path)+'</a>'+
-      '<span class="pill '+(x.status==='fetched'?'green':x.status==='failed'?'red':'warn')+'">'+escapeHTML(x.status)+'</span>'+
-      '<small>'+escapeHTML(x.path)+'</small></div>').join(""):
-      '<p class="notice-block">원본 메뉴 탐색 데이터가 로드되지 않았습니다.</p>')+'</div>'+
-    '<div class="split-actions" style="margin:8px 0 20px"><button class="btn small" data-world-action="graph-prev"'+
-    (state.graphOffset<=0?' disabled':'')+'>이전 메뉴 페이지</button>'+
-    '<span class="pill">'+(state.graphOffset+1)+' ~ '+(state.graphOffset+rows(state.graph?.items).length)+
-    ' / '+(state.graph?.total_count||0)+'</span>'+
-    '<button class="btn small" data-world-action="graph-next"'+
-    (!(state.graph?.has_more)?' disabled':'')+'>다음 메뉴 페이지</button>'+
-    '<button class="btn small" data-world-action="graph-retry">실패 페이지 재등록</button></div>'+
-    '<div class="section-line"><h3 class="section-title">전체 거래소·데이터 공급원 원본 행</h3>'+
-    '<span class="pill">'+feedRows.length+'/'+(data.source_row_count||0)+'개</span></div>'+
-    '<div class="source-capability"><a href="https://www.tradingview.com/data-coverage/" target="_blank" rel="noopener">'+
-    'TradingView 공개 Data Coverage</a> · 수동 조회 시각: '+escapeHTML(data.source_snapshot_at||'미조회')+
-    ' · 이번 원본 표시 행: '+Number(data.source_latest_visible_rows||0)+
-    ' · 전체 보기 클릭: '+(data.source_ui_expansion?.show_all_clicked?'수행':'확인 안 됨')+
-    ' · 이전 자료 보존 행: '+Number(data.historical_rows_preserved||0)+
-    ' · 거래소 완전성: 미검증</div>'+
-    '<div class="input-wrap"><input id="worldFeedSearch" class="field" placeholder="거래소·공급원·국가명 검색" value="'+escapeHTML(state.feedSearch)+'">'+
-    '<button class="btn primary" data-world-action="refresh"'+(state.busy?' disabled':'')+'>'+
-    (state.busy?'확인 중':'원본 공급원 목록 수동 갱신')+'</button></div>'+
-    '<div class="world-feed-list" id="worldFeedList">'+(feedRows.length?feedRows.map(f=>
-    '<details class="world-feed"><summary><b>#'+escapeHTML(f.source_row)+'</b> '+escapeHTML(f.display)+'</summary>'+
-    '<div class="world-feed-detail">'+rows(f.all_cells).map((s,i)=>
-    '<p><b>원본 필드 '+(i+1)+'</b> '+escapeHTML(s)+'</p>').join("")+
-    '<small>추정 자산 유형: '+rows(f.asset_type_candidate_ids).map(escapeHTML).join(', ')+
-    ' · 정확한 지원 범위/5년 일봉 보유: 미검증</small></div></details>').join(""):
-    '<p class="notice-block">'+(data.source_row_count===0?
-      '수동 갱신을 누르면 거래소·공급원 원본 목록을 가져옵니다. 현재 실제 수집 기록 없음.':
-      '검색 결과 없음. 필터를 해제하면 보존된 모든 행을 확인할 수 있습니다.')+'</p>')+'</div>'+
-    '<p class="toolbar-note">원본 표의 행을 잘라내지 않습니다. 메뉴 원장, 실제 수집 종목 목록, 5년 일봉 저장 상태는 각각 독립적으로 검증합니다.</p>';
- }
- async function load(el){
-  try{
-   const r=await fetch('/api/taxonomy',{cache:'no-store'});
-   if(!r.ok)throw Error('HTTP '+r.status);
-   state.data=await r.json();
-   state.error='';
-  }catch(err){state.error=String(err.message||err);}
-  if(el.isConnected)html(el);
- }
- async function loadGraph(root){
-  try{
-    const url='/api/taxonomy/pages?limit=200&offset='+state.graphOffset+'&q='+encodeURIComponent(state.graphQuery);
-    const response=await fetch(url,{cache:'no-store'});
-    if(!response.ok)throw Error('GRAPH_HTTP_'+response.status);
-    state.graph=await response.json();
-  }catch(error){state.graph=null;state.error=String(error.message||error);}
-  if(root.isConnected)html(root);
- }
- window.loadGlobalMarketsPanel=async function(){
-  const root=document.getElementById('fullGlobalMarketCatalog');
-  if(!root)return;
-  root.addEventListener('click',async event=>{
-   const button=event.target.closest('[data-world-asset],[data-world-country],[data-world-action]');
-   if(!button)return;
-   if(button.dataset.worldAsset){
-    state.asset=button.dataset.worldAsset;html(root);
-   }else if(button.dataset.worldCountry){
-    state.feedSearch=button.dataset.worldCountry;html(root);
-    root.querySelector('#worldFeedSearch')?.focus();
-   }else if(button.dataset.worldAction==='discover'){
-    if(state.graphBusy)return;
-    state.graphBusy=true;html(root);
+  function pagination(key){
+    const st=stores[key], total=totalFor(key);
+    const max=Math.max(1,Math.ceil(total/pageSize)),p=st.page;
+    const start=Math.max(1,Math.min(p-2,max-4));
+    const end=Math.min(max,start+4);
+    const parts=[];
+    if(start>1){
+      parts.push(pageButton(key,1,p));
+      if(start>2)parts.push('<span class="world-ellipsis">…</span>');
+    }
+    for(let i=start;i<=end;i++)parts.push(pageButton(key,i,p));
+    if(end<max){
+      if(end<max-1)parts.push('<span class="world-ellipsis">…</span>');
+      parts.push(pageButton(key,max,p));
+    }
+    return '<nav class="world-pager" aria-label="'+key+' 페이지 이동">'+
+      '<button type="button" data-world-list="'+key+'" data-world-page="'+(p-1)+
+      '" class="btn small"'+(p<=1?' disabled':'')+'>이전</button>'+
+      parts.join("")+
+      '<button type="button" data-world-list="'+key+'" data-world-page="'+(p+1)+
+      '" class="btn small"'+(p>=max?' disabled':'')+'>다음</button>'+
+      '<form data-world-jump="'+key+'" class="world-jump-form">'+
+      '<label>페이지 직접 이동 <input aria-label="'+key+' 이동 페이지" type="number" min="1" max="'+max+
+      '" class="field world-page-number" name="page" value="'+p+'"></label>'+
+      '<button class="btn small" type="submit">이동</button></form>'+
+      '<span class="world-page-status">'+fmt(p)+' / '+fmt(max)+'페이지 · 전체 '+fmt(total)+'개</span></nav>';
+  }
+  function pageButton(key,n,current){
+    return '<button type="button" class="btn small world-page-btn'+(n===current?' active':'')+
+      '" data-world-list="'+key+'" data-world-page="'+n+'" aria-label="'+key+' '+n+'페이지"'+
+      (n===current?' aria-current="page"':'')+'>'+n+'</button>';
+  }
+  function banner(){
+    const all=data||{};
+    return '<div class="section-line"><h2 class="section-title">전 세계 자산군 및 시장 메뉴</h2>'+
+      '<span class="pill">공식 유형 '+rows(all.categories).length+'개</span></div>'+
+      '<p class="toolbar-note">이 페이지는 전체 목록을 내려받지 않습니다. 국가·거래소·시장 메뉴는 각각 10개씩 서버에서 조회합니다. 각 목록에서 2·3·4페이지 또는 원하는 번호로 이동하세요.</p>'+
+      '<div id="worldAssetTabs" class="world-asset-tabs">'+rows(all.categories).map(x=>
+      '<button class="world-asset'+(x.id===asset?' active':'')+
+      '" data-world-asset="'+esc(x.id)+'"><strong>'+esc(x.name)+
+      '</strong><small>'+esc(x.source_symbol_type)+'</small><span class="pill '+
+      (rows(x.scanner_routes).length?'green':'warn')+'">'+
+      (rows(x.scanner_routes).length?'연결됨':'미연결')+'</span></button>').join("")+'</div>'+
+      '<div id="worldAssetDetail"></div>'+
+      '<h3 class="mini-title">자산군 간 공통 분류</h3>'+
+      rows(all.additional_cross_asset_facets).map(f=>
+      '<details class="world-facet"><summary>'+esc(f.name)+'</summary><div class="world-tags">'+
+      rows(f.subcategories).map(x=>'<span class="world-tag">'+esc(x)+'</span>').join("")+
+      '</div></details>').join("")+
+      '<section class="world-list-section"><div class="section-line"><h3 class="section-title">국가 · ISO 전 세계 목록</h3>'+
+      '<span class="pill">'+fmt(all.country_total)+'개</span></div>'+
+      '<input class="field" id="worldCountrySearch" placeholder="국가명 또는 ISO 코드" autocomplete="off" value="'+esc(stores.countries.q)+'">'+
+      '<p class="toolbar-note">국가 전체는 서버에 보관합니다. TradingView 실시간 지원 여부는 미확인입니다.</p>'+
+      '<div id="worldCountriesPanel"></div></section>'+
+      '<section class="world-list-section"><div class="section-line"><h3 class="section-title">TradingView 시장 하위 메뉴</h3>'+
+      '<span class="pill">원본 링크 · 미탐색 항목 보존</span></div>'+
+      '<div class="input-wrap"><input class="field" id="worldGraphQuery" placeholder="시장 메뉴 경로·이름" autocomplete="off" value="'+esc(stores.pages.q)+'">'+
+      '<button class="btn primary" data-world-action="discover">원본 메뉴 12개 추가 탐색</button></div>'+
+      '<div id="worldPagesPanel"></div></section>'+
+      '<section class="world-list-section"><div class="section-line"><h3 class="section-title">거래소·데이터 공급원</h3>'+
+      '<span class="pill">'+fmt(all.source_row_count)+'개 보존</span></div>'+
+      '<div class="source-capability"><a href="https://www.tradingview.com/data-coverage/" target="_blank" rel="noopener">'+
+      'TradingView 원본 공급원 표</a> · 갱신: '+esc(all.source_snapshot_at||'미실행')+
+      ' · 모든 거래소 종목 확보 여부: 미검증</div>'+
+      '<div class="input-wrap"><input class="field" id="worldFeedSearch" placeholder="거래소·공급원 이름" autocomplete="off" value="'+esc(stores.sources.q)+'">'+
+      '<button class="btn primary" data-world-action="refresh">원본 공급원 목록 수동 갱신</button></div>'+
+      '<div id="worldSourcesPanel"></div></section>'+
+      '<p class="toolbar-note">각 목록은 독립 페이지입니다. 다음 페이지를 누르기 전에는 해당 10개 항목만 내려받으며, 가격·5년 일봉 다운로드는 실행하지 않습니다.</p>';
+  }
+  function showAsset(){
+    const x=rows(data?.categories).find(v=>v.id===asset);
+    const out=root?.querySelector("#worldAssetDetail");
+    if(!out||!x)return;
+    out.innerHTML='<h3 class="mini-title">'+esc(x.name)+' 세부 상품 분류</h3>'+
+    '<div class="world-tags">'+rows(x.subcategories).map(v=>
+      '<span class="world-tag">'+esc(v)+'</span>').join("")+'</div>'+
+    '<div class="source-capability">현재 연결 스캐너: '+
+      (rows(x.scanner_routes).length?rows(x.scanner_routes).map(esc).join(' · '):
+       '미연결. 메뉴에서 제외하지 않았습니다.')+'</div>';
+    root.querySelectorAll("[data-world-asset]").forEach(button=>
+      button.classList.toggle("active",button.dataset.worldAsset===asset));
+  }
+  function renderRows(key){
+    const host=root?.querySelector("#world"+(key==="countries"?"Countries":key==="pages"?"Pages":"Sources")+"Panel");
+    if(!host)return;
+    const st=stores[key],result=st.result;
+    if(st.loading && !result){
+      host.innerHTML='<p class="notice-block">현재 페이지 10개 조회 중…</p>';
+      return;
+    }
+    if(st.error && !result){
+      host.innerHTML='<div class="notice-block">조회 실패: '+esc(st.error)+
+        ' <button class="btn small" data-world-retry="'+key+'">재시도</button></div>';
+      return;
+    }
+    const items=rows(result?.items);
+    if(key==="countries"){
+      host.innerHTML='<div class="world-country-list" id="worldCountryList">'+items.map(c=>
+       '<button class="world-country" data-world-country="'+esc(c.name)+'">'+
+       '<b>'+esc(c.iso2)+'</b><span>'+esc(c.name)+'</span>'+
+       '<small>지원 미확인</small></button>').join("")+
+       (items.length?'':'<p class="notice-block">해당 국가 없음</p>')+'</div>'+pagination(key);
+    }else if(key==="pages"){
+      host.innerHTML='<div class="source-capability">방문 완료 '+fmt(result?.summary?.fetched_pages)+
+       ' · 대기 '+fmt(result?.summary?.pending_pages)+
+       ' · 실패 '+fmt(result?.summary?.failed_pages)+
+       ' · 시장 링크 연결 '+fmt(result?.summary?.source_edges)+'</div>'+
+       '<div class="world-feed-list" id="worldGraphList">'+items.map(x=>
+       '<div class="world-graph-node"><a href="https://kr.tradingview.com'+esc(x.path)+
+       '" target="_blank" rel="noopener">'+esc(x.label||x.path)+'</a>'+
+       '<span class="pill '+(x.status==='fetched'?'green':x.status==='failed'?'red':'warn')+'">'+
+       esc(x.status)+'</span><small>'+esc(x.path)+'</small></div>').join("")+
+       (items.length?'':'<p class="notice-block">원본 메뉴 없음</p>')+'</div>'+pagination(key)+
+       '<button class="btn small" data-world-action="retry-graph">실패 페이지 재등록</button>';
+    }else{
+      host.innerHTML='<div class="source-capability">검색 일치 '+fmt(result?.total_matches)+
+        ' · 원본 보존 '+fmt(result?.total_source_rows)+
+        ' · 미분류 '+fmt(result?.unclassified_row_count)+
+        ' · 전체 분류 지원 검증 미완료</div>'+
+        '<div class="world-feed-list" id="worldFeedList">'+items.map(f=>
+        '<details class="world-feed"><summary><b>#'+esc(f.source_row)+
+        '</b> '+esc(f.display)+'</summary><div class="world-feed-detail">'+
+        rows(f.all_cells).map((v,i)=>'<p><b>원본 필드 '+(i+1)+'</b> '+esc(v)+'</p>').join("")+
+        '<small>분류 추정: '+rows(f.asset_type_candidate_ids).map(esc).join(", ")+
+        ' · 실제 공급/가격 저장 여부 미확인</small></div></details>').join("")+
+        (items.length?'':'<p class="notice-block">공급원 목록이 없거나 검색 결과가 없습니다.</p>')+
+        '</div>'+pagination(key);
+    }
+    if(st.loading)host.setAttribute("aria-busy","true");
+    else host.removeAttribute("aria-busy");
+  }
+  async function fetchList(key){
+    const st=stores[key], generation=++st.generation;
+    st.loading=true;st.error="";
+    renderRows(key);
+    let url;
+    const q=encodeURIComponent(st.q.trim());
+    if(key==="countries")url="/api/taxonomy/countries?page="+st.page+"&q="+q;
+    if(key==="sources")url="/api/taxonomy/sources?limit=10&page="+st.page+"&q="+q;
+    if(key==="pages")url="/api/taxonomy/pages?limit=10&page="+st.page+"&q="+q;
     try{
-      const response=await fetch('/api/taxonomy/pages/refresh?pages=12',{method:'POST'});
+      const response=await fetch(url,{cache:"no-store",headers:{"Accept":"application/json"}});
+      if(!response.ok)throw Error("HTTP "+response.status);
       const result=await response.json();
-      if(!response.ok)throw Error(typeof result.detail==='string'?result.detail:
-          result.detail?.code||'MARKET_NAV_REFRESH_FAILED');
-      state.graphOffset=0;
-      await loadGraph(root);
-    }catch(error){alert('원본 메뉴 확인 실패: '+String(error.message||error));}
-    finally{state.graphBusy=false;if(root.isConnected)html(root);}
-   }else if(button.dataset.worldAction==='graph-retry'){
-    await fetch('/api/taxonomy/pages/retry-failed',{method:'POST'});
-    await loadGraph(root);
-   }else if(button.dataset.worldAction==='graph-next'){
-    state.graphOffset+=200;
-    await loadGraph(root);
-   }else if(button.dataset.worldAction==='graph-prev'){
-    state.graphOffset=Math.max(0,state.graphOffset-200);
-    await loadGraph(root);
-   }else if(button.dataset.worldAction==='retry'){
-    await load(root);
-   }else if(button.dataset.worldAction==='refresh'){
-    if(state.busy)return;
-    state.busy=true;html(root);
+      if(generation!==st.generation||!root?.isConnected)return;
+      if(!Array.isArray(result.items)||result.items.length>pageSize)
+        throw Error("서버가 요청한 10개보다 많은 항목을 반환했습니다.");
+      st.result=result;
+      st.error="";
+    }catch(error){
+      if(generation!==st.generation)return;
+      st.error=String(error.message||error);
+      st.result=null;
+    }finally{
+      if(generation===st.generation){st.loading=false;renderRows(key);}
+    }
+  }
+  function changePage(key,num){
+    const st=stores[key],max=Math.max(1,Math.ceil(totalFor(key)/pageSize));
+    if(!Number.isSafeInteger(num)||num<1){return;}
+    if(num>max){
+      alert('이 목록은 '+max+'페이지까지 있습니다.');
+      return;
+    }
+    if(num===st.page)return;
+    st.page=num;
+    fetchList(key);
+  }
+  async function refreshOverview(){
+    const response=await fetch("/api/taxonomy/overview",{cache:"no-store"});
+    if(!response.ok)throw Error("전체 시장 분류 응답 실패 (HTTP "+response.status+")");
+    data=await response.json();
+    if(rows(data.categories).length!==9)throw Error("9개 자산 분류 응답 누락");
+    if(root?.isConnected){root.innerHTML=banner();showAsset();}
+  }
+  async function manualRefresh(action){
+    if(busy)return;
+    busy=true;
     try{
-     const r=await fetch('/api/taxonomy/refresh',{method:'POST'});
-     const result=await r.json();
-     if(!r.ok)throw Error(typeof result.detail==='string'?result.detail:
-        result.detail?.code||'SOURCE_REFRESH_FAILED');
-     await load(root);
-    }catch(err){state.error=String(err.message||err);alert('목록 갱신 실패: '+state.error);}
-    finally{state.busy=false;if(root.isConnected)html(root);}
-   }
-  });
-  root.addEventListener('input',event=>{
-   const id=event.target.id;
-   if(id==='worldCountrySearch')state.countrySearch=event.target.value;
-   else if(id==='worldFeedSearch')state.feedSearch=event.target.value;
-   else if(id==='worldGraphQuery'){
-     state.graphQuery=event.target.value;state.graphOffset=0;
-     clearTimeout(state.graphTimer);
-     state.graphTimer=setTimeout(()=>loadGraph(root),350);
-     return;
-   }else return;
-   const selection=event.target.selectionStart;
-   html(root);
-   const node=root.querySelector('#'+id);
-   if(node){node.focus();node.setSelectionRange(selection,selection);}
-  });
-  await load(root);
-  await loadGraph(root);
- };
+      const url=action==="discover"?"/api/taxonomy/pages/refresh?pages=12":
+          action==="retry-graph"?"/api/taxonomy/pages/retry-failed":
+          "/api/taxonomy/refresh";
+      const response=await fetch(url,{method:"POST"});
+      const result=await response.json();
+      if(!response.ok)throw Error(typeof result.detail==="string"?result.detail:
+        result.detail?.code||"HTTP "+response.status);
+      if(action==="refresh"){
+        await refreshOverview();
+        stores.sources.page=1;
+        await fetchList("sources");
+      }else{
+        stores.pages.page=1;
+        await fetchList("pages");
+      }
+    }catch(error){
+      alert("수동 갱신 실패: "+String(error.message||error));
+    }finally{busy=false;}
+  }
+  window.loadGlobalMarketsPanel=async function(){
+    const current=++token;
+    root=document.getElementById("fullGlobalMarketCatalog");
+    if(!root)return;
+    for(const id of listIds){stores[id]=makeState();}
+    data=null;
+    root.innerHTML='<p class="notice-block">전 세계 자산 분류를 불러오는 중입니다…</p>';
+    root.addEventListener("click",event=>{
+      const assetBtn=event.target.closest("[data-world-asset]");
+      if(assetBtn){asset=assetBtn.dataset.worldAsset;showAsset();return;}
+      const countryBtn=event.target.closest("[data-world-country]");
+      if(countryBtn){stores.sources.q=countryBtn.dataset.worldCountry;stores.sources.page=1;
+        const field=root.querySelector("#worldFeedSearch");
+        if(field)field.value=stores.sources.q;
+        fetchList("sources");
+        return;
+      }
+      const pageBtn=event.target.closest("[data-world-list][data-world-page]");
+      if(pageBtn){changePage(pageBtn.dataset.worldList,Number(pageBtn.dataset.worldPage));return;}
+      const retry=event.target.closest("[data-world-retry]");
+      if(retry){fetchList(retry.dataset.worldRetry);return;}
+      const manual=event.target.closest("[data-world-action]");
+      if(manual)manualRefresh(manual.dataset.worldAction);
+    });
+    root.addEventListener("submit",event=>{
+      const form=event.target.closest("[data-world-jump]");
+      if(!form)return;
+      event.preventDefault();
+      const wanted=Number(form.querySelector('input[name="page"]')?.value);
+      changePage(form.dataset.worldJump,wanted);
+    });
+    root.addEventListener("input",event=>{
+      const mapping={worldCountrySearch:"countries",
+                     worldGraphQuery:"pages",worldFeedSearch:"sources"};
+      const key=mapping[event.target.id];
+      if(!key)return;
+      const value=event.target.value;
+      stores[key].q=value;stores[key].page=1;
+      clearTimeout(filterTimer);
+      filterTimer=setTimeout(()=>fetchList(key),230);
+    });
+    try{
+      await refreshOverview();
+    }catch(error){
+      if(current===token && root?.isConnected)
+        root.innerHTML='<p class="notice-block">전체 분류 연결 실패: '+esc(error.message)+
+          '</p><button class="btn" data-world-action="retry-overview">재시도</button>';
+      return;
+    }
+    await Promise.all(listIds.map(fetchList));
+  };
 })();
