@@ -396,3 +396,47 @@ async def manual_refresh_source_taxonomy():
             "all_5y_daily_downloaded": False,
             "no_cron": True,
         }
+
+
+# Additional market menus/categories are dynamically discovered from public
+# /markets/ page links, never limited to a hardcoded depth or 14 scanner pages.
+from .market_page_graph import WorldMarketPageGraph
+
+_market_graph_refresh_lock=asyncio.Lock()
+_market_graph_last_attempt=None
+
+
+def _market_graph():
+    return WorldMarketPageGraph(os.getenv("TV_MARKET_TAXONOMY_ROOT","/data/tv-market-taxonomy"))
+
+
+@app.get("/api/taxonomy/pages")
+def market_navigation_pages(limit:int=Query(500,ge=1,le=5000),
+                            offset:int=Query(0,ge=0),
+                            q:str=Query("",max_length=90)):
+    return _market_graph().get(limit=limit,offset=offset,query=q)
+
+
+@app.get("/api/taxonomy/pages/status")
+def market_navigation_state():
+    return _market_graph().status()
+
+
+@app.post("/api/taxonomy/pages/refresh")
+async def manual_market_navigation_refresh(pages:int=Query(12,ge=1,le=50)):
+    global _market_graph_last_attempt
+    from time import monotonic
+    if _market_graph_refresh_lock.locked():
+        raise HTTPException(409,"MARKET_HIERARCHY_REFRESH_ALREADY_RUNNING")
+    if (_market_graph_last_attempt is not None and
+            monotonic()-_market_graph_last_attempt<40):
+        raise HTTPException(429,"MARKET_HIERARCHY_COOLDOWN_40_SECONDS")
+    async with _market_graph_refresh_lock:
+        _market_graph_last_attempt=monotonic()
+        return await _market_graph().manual_step(pages=pages)
+
+
+@app.post("/api/taxonomy/pages/retry-failed")
+def manual_market_navigation_retry_failed():
+    return {"rescheduled_failed_pages":_market_graph().requeue_failed(),
+            "automatically_run":False}
