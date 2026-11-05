@@ -522,7 +522,7 @@ function renderFeatures(){
   for(let i=from;i<=to;i++)if(!pages.includes(i))pages.push(i);
   if(to<max)pages.push(max);
   host.innerHTML='<div class="split-actions"><strong style="font-size:13px">'+
-   esc(activeGroup||"전체")+" · 총 "+selected.length+"개 · 10개씩 표시</strong>'+
+   esc(activeGroup||"전체")+" · 총 "+selected.length+"개 · 10개씩 표시</strong>"+
    '<span class="pill warn">전 항목 동등성 미검증</span></div>'+
    (pageItems.length?pageItems.map(item=>
    '<div class="choice-row"><div><strong>'+esc(item.id)+' · '+esc(item.name)+'</strong>'+
