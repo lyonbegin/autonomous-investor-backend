@@ -71,6 +71,10 @@ def main():
         page.locator('[data-page="features"]').first.click()
         assert page.locator(".audit-group").count()==26
         assert "339" in page.locator(".audit-header").inner_text()
+        page.locator("#auditDetail .choice-row").first.wait_for()
+        assert page.locator("#auditDetail .choice-row").count()==339
+        assert "TV-001" in page.locator("#auditDetail").inner_text()
+        assert "TV-339" in page.locator("#auditDetail").inner_text()
         page.screenshot(path=str(SHOTS/"04-mobile-feature-audit.png"),full_page=True)
         page.locator("#globalSearchButton").click()
         page.locator("#searchTerm").fill("NASDAQ:AAPL")
