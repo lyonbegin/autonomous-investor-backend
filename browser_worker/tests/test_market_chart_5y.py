@@ -109,7 +109,7 @@ def test_ui_chart_options_does_not_start_collection():
     res=client.get("/v1/research/chart/options")
     assert res.status_code==200
     names={x["value"]:x["label"] for x in res.json()["timeframes"]}
-    assert names["1"]=="1분"
+    assert set(names)=={"1D"}
     assert names["1D"]=="일봉"
     assert res.json()["periods"]==[{"value":"5Y","label":"최근 5년"}]
 
@@ -120,7 +120,7 @@ def test_invalid_chart_inputs_do_not_launch_browser():
                     json={"symbol":"http://localhost","interval":"1D"})
     assert bad.status_code==422
     bad_interval=client.post("/v1/research/chart/observe",
-                    json={"symbol":"NASDAQ:AAPL","interval":"25"})
+                    json={"symbol":"NASDAQ:AAPL","interval":"1"})
     assert bad_interval.status_code==422
     wrong_period=client.post("/v1/research/chart/observe",
                     json={"symbol":"NASDAQ:AAPL","interval":"1D","years":10})
