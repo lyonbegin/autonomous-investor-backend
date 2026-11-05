@@ -29,3 +29,5 @@
 - `python tv_mobile_web/tests/browser_e2e.py` (Playwright/Chromium 설치 필요)
 
 전체 기능 원장은 TV-001~TV-339와 26개 영역을 유지하며, 미확인 신규 화면 후보 44개도 추가 조사 대상입니다. 기존 운영 관리자 화면과의 병합은 전수 검증 이후로 보류합니다.
+
+개발 미리보기 Railway 서비스: `tradingview-full-mobile-web-lab` (별도 서비스). Dockerfile 이미지로 실행하며 자동 수집 스케줄을 사용하지 않습니다.
