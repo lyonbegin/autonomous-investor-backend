@@ -33,6 +33,7 @@ function hydrate(node){
   body.innerHTML='<div class="tv-copy-rank">'+w.symbols.map((code,i)=>
   '<div class="tv-copy-rank-item"><em>'+(i+1)+'</em>'+card(code)+'</div>').join("")+'</div>';
  }
+ window.TVMarketLive?.paint(node);
 }
 function render(){
  const d=S(),root=document.getElementById("view");
@@ -78,11 +79,12 @@ function render(){
   }
  };
  const all=[...root.querySelectorAll("[data-widget]")];
- if(!window.IntersectionObserver){all.forEach(hydrate);return;}
+ if(!window.IntersectionObserver){all.forEach(hydrate);window.TVMarketLive?.attach(root);return;}
  observer=new IntersectionObserver(entries=>{
   for(const entry of entries)if(entry.isIntersecting){hydrate(entry.target);observer.unobserve(entry.target);}
  },{rootMargin:"400px"});
  all.forEach(node=>observer.observe(node));
+ window.TVMarketLive?.attach(root);
 }
 window.TVMarketHome={render,widgets:()=>S()?.groups.flatMap(g=>g.widgets)||[]};
 })();
