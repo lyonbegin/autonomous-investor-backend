@@ -113,3 +113,56 @@ def test_manual_source_refresh_requires_click_not_admin_token(tmp_path,monkeypat
     assert client.get("/api/taxonomy").json()["source_row_count"]==3
     # Public testing UI uses no login, but has a short upstream cooldown.
     assert client.post("/api/taxonomy/refresh").status_code==429
+
+
+
+def test_shorter_source_snapshot_preserves_previous_provider_rows(tmp_path):
+    store=MarketTaxonomyStore(tmp_path)
+    previous=store.save(SAMPLE_HTML)
+    shorter="""<table><tr><th>Data source</th></tr>
+        <tr><td>Korea Stock Exchange Stocks Funds KRX South Korea</td></tr>
+        </table>"""
+    result=store.save(shorter,expansion={
+        "attempted":True,"success":False,"reason":"SHOW_ALL_NOT_AVAILABLE",
+    })
+    assert result["latest_source_row_count"]==1
+    assert result["earlier_source_rows_preserved"]==2
+    assert result["raw_row_count"]==3
+    old=[x for x in result["records"] if not x["seen_in_latest_source"]]
+    assert len(old)==2
+    assert all(x["historical_snapshot_only"] for x in old)
+    assert store.read()["raw_row_count"]==3
+
+
+def test_playwright_expanded_html_preferred_when_more_rows(tmp_path,monkeypatch):
+    """Real site UI access is not used in tests; expansion metadata explicit."""
+    import httpx
+    store=MarketTaxonomyStore(tmp_path)
+    first="""<table><tr><th>Data source</th></tr>
+        <tr><td>Source A Stocks USA</td></tr></table>"""
+    expanded="""<table><tr><th>Data source</th></tr>
+        <tr><td>Source A Stocks USA</td></tr>
+        <tr><td>Source B Options USA</td></tr>
+        <tr><td>Source C Crypto Global</td></tr></table>"""
+    class Resp:
+        status_code=200
+        text=first
+        headers={"content-type":"text/html"}
+        def raise_for_status(self):pass
+    async def fake_get(self,url,*args,**kwargs):
+        assert url=="https://www.tradingview.com/data-coverage/"
+        return Resp()
+    async def fake_expand(baseline):
+        assert baseline==first
+        return expanded,{"attempted":True,"success":True,
+                         "initial_html_rows":1,"expanded_html_rows":3,
+                         "show_all_clicked":True}
+    monkeypatch.setattr(httpx.AsyncClient,"get",fake_get)
+    monkeypatch.setattr(store,"_expand_page_via_ui",fake_expand)
+    import asyncio
+    r=asyncio.run(store.refresh())
+    assert r["raw_row_count"]==3
+    assert r["latest_source_row_count"]==3
+    assert r["ui_expansion"]["show_all_clicked"] is True
+    assert r["ui_expansion"]["success"] is True
+    assert any(x["display"].startswith("Source B") for x in r["records"])
