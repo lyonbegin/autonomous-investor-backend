@@ -95,7 +95,8 @@ async def market_stored(market: str,
 
 @router.get("/ranking/{market}/{ranking}")
 async def market_ranking(market: str, ranking: str,
-                         limit: int = Query(50, ge=1, le=100)):
+                         limit: int = Query(10, ge=1, le=100),
+                         offset: int = Query(0, ge=0)):
     if market not in SUPPORTED_MARKETS:
         raise HTTPException(404, "UNKNOWN_MARKET")
     if ranking not in RANKINGS:
@@ -103,7 +104,7 @@ async def market_ranking(market: str, ranking: str,
     field, direction, label = RANKINGS[ranking]
     # May raise 502 if scanner does not support sort for a particular market.
     data = await _existing(f"/api/v1/tradingview/markets/{market}", {
-        "limit": limit, "offset": 0, "sort_by": field, "sort_order": direction,
+        "limit": limit, "offset": offset, "sort_by": field, "sort_order": direction,
     })
     items = data.get("items")
     if not isinstance(items, list):
@@ -113,6 +114,8 @@ async def market_ranking(market: str, ranking: str,
         "items": items, "sort_field": field, "sort_direction": direction,
         "source": data.get("source") or "existing_tradingview_live_scanner",
         "all_markets_exhaustive": False, "total_count": data.get("total_count"),
+        "offset":offset, "limit":limit,
+        "page":offset//limit+1,
     }
 
 
