@@ -9,17 +9,17 @@
 </head>
 <body><div class="wrap">
 <div class="eyebrow">MARKET CHART LAB · SEPARATE BRANCH</div>
-<h1>최근 5년 · 분봉 / 일봉 차트 확인</h1>
+<h1>최근 5년 · 일봉 차트 확인</h1>
 <p>기존 TradingView 차트 관찰 코드의 연구용 확장입니다. 요청한 기간과 실제 확보한 기간을 분리해서 보여줍니다. 자동 수집·Cron·관리 키는 없습니다.</p>
 <div class="shell">
 <div class="controls">
 <div><label for="symbol">거래소:종목</label><input id="symbol" value="NASDAQ:AAPL" placeholder="NASDAQ:AAPL"></div>
 <div><label for="period">요청 기간</label><select id="period"><option value="5">최근 5년</option></select></div>
-<div><label for="interval">시간봉</label><select id="interval"><option value="1">1분</option><option value="3">3분</option><option value="5">5분</option><option value="15">15분</option><option value="30">30분</option><option value="60">1시간</option><option value="120">2시간</option><option value="240">4시간</option><option value="1D" selected>일봉</option><option value="1W">주봉</option></select></div>
+<div><label for="interval">시간봉</label><select id="interval"><option value="1D" selected>일봉 (1D)</option></select></div>
 <div><label for="pans">화면 탐색 횟수</label><select id="pans"><option value="0">0회</option><option value="8">8회</option><option value="16" selected>16회</option><option value="32">32회</option></select></div>
 <button id="run">차트 관찰 시작</button>
 </div>
-<div class="notice">TradingView 화면 접근과 데이터 이용에는 요금제·자산별 이력·이용약관 제한이 있습니다. 5년을 선택해도 5년 전체 봉이 확인되지 않으면 <b>부분 수집</b>으로 표시됩니다. 이 화면은 공개 시장 데이터 재배포용이 아닙니다.</div>
+<div class="notice">TradingView 화면 접근과 데이터 이용에는 요금제·자산별 이력·이용약관 제한이 있습니다. 최근 5년 일봉을 요청하더라도 5년 전체 봉이 확인되지 않으면 <b>부분 수집</b>으로 표시됩니다. 이 화면은 공개 시장 데이터 재배포용이 아닙니다.</div>
 <p id="status">실행하지 않음 · 버튼을 누를 때만 수집</p>
 <div class="metrics">
  <div class="metric"><small>요청 기간</small><strong id="range">—</strong></div>
