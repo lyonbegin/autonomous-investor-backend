@@ -506,25 +506,56 @@ function renderFeatures(){
  '<div class="section-title">339개 개별 기능</div><div class="input-wrap"><input class="field" id="auditSearch" placeholder="기능 ID · 기능명 검색" aria-label="원본 기능 검색"></div>'+
  '<div class="surface box-pad" id="auditDetail">'+empty("기능 원장을 읽는 중","기능명을 복원하고 있습니다.","⌛")+'</div>');
  const host=$("auditDetail");let featureList=[];
- const show=(group="",query="")=>{
+ let activeGroup="",currentPage=1;
+ const show=()=>{
   if(state.page!=="features")return;
-  const lower=query.trim().toLowerCase();
-  const selected=featureList.filter(x=>(!group||x.group===group)&&
-    (!lower||(x.id+" "+x.name+" "+x.group).toLowerCase().includes(lower)));
+  const query=$("auditSearch")?.value.toLowerCase().trim()||"";
+  const selected=featureList.filter(x=>(!activeGroup||x.group===activeGroup)&&
+   (!query||(x.id+" "+x.name+" "+x.group).toLowerCase().includes(query)));
+  const max=Math.max(1,Math.ceil(selected.length/10));
+  currentPage=Math.min(currentPage,max);
+  const pageItems=selected.slice((currentPage-1)*10,currentPage*10);
+  const from=Math.max(1,Math.min(currentPage-2,Math.max(1,max-4)));
+  const to=Math.min(max,from+4);
+  const pages=[];
+  if(from>1)pages.push(1);
+  for(let i=from;i<=to;i++)if(!pages.includes(i))pages.push(i);
+  if(to<max)pages.push(max);
   host.innerHTML='<div class="split-actions"><strong style="font-size:13px">'+
-  esc(group||"전체")+" · "+selected.length+"개</strong>"+
-  '<span class="pill warn">전 항목 동등성 미검증</span></div>'+
-  (selected.length?selected.map(item=>
-  '<div class="choice-row"><div><strong>'+esc(item.id)+' · '+esc(item.name)+'</strong>'+
-  '<p>'+esc(item.group)+' · 원본 APK 정적 근거 / 앱 실행 검증 필요</p></div><span class="pill warn">미검증</span></div>').join(""):
-  empty("검색 결과 없음","기능 ID 또는 기능명을 확인해 주세요."));
+   esc(activeGroup||"전체")+" · 총 "+selected.length+"개 · 10개씩 표시</strong>'+
+   '<span class="pill warn">전 항목 동등성 미검증</span></div>'+
+   (pageItems.length?pageItems.map(item=>
+   '<div class="choice-row"><div><strong>'+esc(item.id)+' · '+esc(item.name)+'</strong>'+
+   '<p>'+esc(item.group)+' · 원본 APK 정적 근거 / 앱 실행 검증 필요</p></div>'+
+   '<span class="pill warn">미검증</span></div>').join(""):
+   empty("검색 결과 없음","기능 ID 또는 기능명을 확인해 주세요."))+
+   '<nav class="world-pager" aria-label="기능 검수 페이지 이동">'+
+   '<button class="btn small" data-audit-page="'+(currentPage-1)+'"'+
+   (currentPage===1?' disabled':'')+'>이전</button>'+
+   pages.map(n=>'<button class="btn small world-page-btn'+(n===currentPage?' active':'')+
+   '" data-audit-page="'+n+'"'+(n===currentPage?' aria-current="page"':'')+'>'+n+'</button>').join("")+
+   '<button class="btn small" data-audit-page="'+(currentPage+1)+'"'+
+   (currentPage===max?' disabled':'')+'>다음</button>'+
+   '<form id="auditJump" class="world-jump-form"><label>페이지 이동 '+
+   '<input type="number" name="page" min="1" max="'+max+'" class="field world-page-number" value="'+
+   currentPage+'" aria-label="검수 기능 이동 페이지"></label>'+
+   '<button class="btn small" type="submit">이동</button></form>'+
+   '<span class="world-page-status">'+currentPage+'/'+max+'페이지</span></nav>';
+  host.querySelectorAll("[data-audit-page]").forEach(b=>b.onclick=()=>{
+   const n=Number(b.dataset.auditPage);
+   if(n>=1&&n<=max){currentPage=n;show();}
+  });
+  $("auditJump").onsubmit=e=>{
+   e.preventDefault();
+   const n=Number($("auditJump").querySelector('input[name="page"]').value);
+   if(Number.isSafeInteger(n)&&n>=1&&n<=max){currentPage=n;show();}
+  };
  };
- let activeGroup="";
  $("view").querySelectorAll("[data-audit-group]").forEach(b=>b.onclick=()=>{
-  activeGroup=b.dataset.auditGroup;show(activeGroup,$("auditSearch").value);
+  activeGroup=b.dataset.auditGroup;currentPage=1;show();
   host.scrollIntoView({behavior:"smooth",block:"start"});
  });
- $("auditSearch").oninput=()=>show(activeGroup,$("auditSearch").value);
+ $("auditSearch").oninput=()=>{currentPage=1;show();};
  if(typeof window.loadFeatureRegistry!=="function"){
   host.innerHTML=empty("원본 기능 목록 로드 실패","기능 레지스트리 스크립트가 없습니다.");
   return;
