@@ -208,10 +208,31 @@ class MarketTaxonomyStore:
         value["source_refresh_state"]="SOURCE_SNAPSHOT_STORED"
         return value
 
-    def save(self, html: str):
+    def save(self, html: str, *, expansion: dict | None = None):
         snapshot=build_catalog(html)
         if not snapshot["records"]:
             raise ValueError("COVERAGE_SITE_NO_PARSEABLE_RECORDS")
+        snapshot["latest_source_row_count"]=len(snapshot["records"])
+        snapshot["ui_expansion"]=expansion or {
+            "attempted":False,"success":False,"reason":"NOT_REQUESTED"
+        }
+        # Never erase a previously observed provider just because a subsequent
+        # snapshot was shorter/blocked. Keep disappeared records as historical,
+        # explicitly NOT current/confirmed, until provenance is reconciled.
+        previous=self.read()
+        known={r.get("display") for r in snapshot["records"]}
+        for record in snapshot["records"]:
+            record["seen_in_latest_source"]=True
+        for record in previous.get("records",[]):
+            if record.get("display") not in known:
+                old=dict(record)
+                old["source_row"]=len(snapshot["records"])+1
+                old["seen_in_latest_source"]=False
+                old["historical_snapshot_only"]=True
+                snapshot["records"].append(old)
+                known.add(old.get("display"))
+        snapshot["raw_row_count"]=len(snapshot["records"])
+        snapshot["earlier_source_rows_preserved"]=len(snapshot["records"])-snapshot["latest_source_row_count"]
         fd,temp=tempfile.mkstemp(prefix=".tv-taxonomy-",dir=self.root)
         try:
             with os.fdopen(fd,"w",encoding="utf-8") as f:
@@ -223,6 +244,49 @@ class MarketTaxonomyStore:
             Path(temp).unlink(missing_ok=True)
         return snapshot
 
+    async def _expand_page_via_ui(self, baseline: str):
+        # The public data coverage page initially displays a shortened table
+        # with a literal "Show all" control. Use the *normal UI click* to
+        # reveal more rows; no undocumented data endpoint or account bypass.
+        metadata={"attempted":True,"success":False,
+                  "initial_html_rows":len(coverage_rows(baseline)),
+                  "expanded_html_rows":0,"reason":None}
+        try:
+            from playwright.async_api import async_playwright
+            async with async_playwright() as driver:
+                browser=await driver.chromium.launch(
+                    headless=True,args=["--no-sandbox","--disable-dev-shm-usage"])
+                try:
+                    page=await browser.new_page(viewport={"width":1500,"height":990},
+                                                locale="en-US")
+                    await page.goto(DATA_COVERAGE_URL,
+                                    wait_until="domcontentloaded",timeout=45000)
+                    await page.wait_for_timeout(1400)
+                    before=await page.content()
+                    metadata["browser_preclick_rows"]=len(coverage_rows(before))
+                    import re as _re
+                    control=page.get_by_text(_re.compile(r"^Show all$",_re.I)).first
+                    if await control.count()==0:
+                        metadata["reason"]="SHOW_ALL_CONTROL_NOT_FOUND"
+                        expanded=before
+                    else:
+                        await control.scroll_into_view_if_needed(timeout=4000)
+                        await control.click(timeout=6000)
+                        await page.wait_for_timeout(1300)
+                        expanded=await page.content()
+                        metadata["show_all_clicked"]=True
+                    metadata["expanded_html_rows"]=len(coverage_rows(expanded))
+                    metadata["success"]=metadata["expanded_html_rows"]>metadata["initial_html_rows"]
+                    if not metadata["success"]:
+                        metadata["reason"]=metadata["reason"] or "ROW_COUNT_DID_NOT_INCREASE"
+                    return expanded,metadata
+                finally:
+                    await browser.close()
+        except Exception as exc:
+            metadata["reason"]="PLAYWRIGHT_"+type(exc).__name__
+            # Site failures do not falsely imply the shortened list is full.
+            return baseline,metadata
+
     async def refresh(self):
         async with httpx.AsyncClient(follow_redirects=False,timeout=28.0,
                                      headers={"User-Agent":"Mozilla/5.0 (compatible; research source snapshot)"}) as client:
@@ -230,7 +294,14 @@ class MarketTaxonomyStore:
             response.raise_for_status()
             if "html" not in response.headers.get("content-type","html"):
                 raise ValueError("COVERAGE_EXPECTED_HTML")
-            return self.save(response.text)
+            first_html=response.text
+        expanded_html,evidence=await self._expand_page_via_ui(first_html)
+        # Preserve whichever visible public HTML contains more source rows.
+        first_count=len(coverage_rows(first_html))
+        expanded_count=len(coverage_rows(expanded_html))
+        chosen=expanded_html if expanded_count>first_count else first_html
+        evidence["chosen_source_rows"]=max(first_count,expanded_count)
+        return self.save(chosen,expansion=evidence)
 
 
 def hierarchy(snapshot:dict) -> dict:
@@ -246,6 +317,9 @@ def hierarchy(snapshot:dict) -> dict:
         "countries_in_iso_scope":len(list(pycountry.countries)),
         "tradingview_source_records":snapshot.get("records",[]),
         "source_row_count":snapshot.get("raw_row_count",0),
+        "source_latest_visible_rows":snapshot.get("latest_source_row_count",0),
+        "historical_rows_preserved":snapshot.get("earlier_source_rows_preserved",0),
+        "source_ui_expansion":snapshot.get("ui_expansion",{}),
         "source_snapshot_at":snapshot.get("snapshot_at"),
         "source_refresh_state":snapshot.get("source_refresh_state","NOT_REQUESTED"),
         "all_exchanges_verified":False,
