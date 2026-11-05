@@ -10,7 +10,7 @@ const mainTabs=[
  {id:"ideas",label:"아이디어",icon:"☷"},
  {id:"menu",label:"메뉴",icon:"☰"},
 ];
-const mainPages={markets:"마켓",watchlist:"관심목록",chart:"차트",ideas:"아이디어",
+const mainPages={"market-detail":"마켓 상세","market-sources":"시장 데이터 원장",markets:"마켓",watchlist:"관심목록",chart:"차트",ideas:"아이디어",
  menu:"전체 메뉴",alerts:"알림",news:"뉴스",calendar:"경제 캘린더",
  brokers:"브로커",settings:"설정",profile:"프로필",features:"전체 기능 검수",
  search:"종목 검색",symbols:"종목 상세",indicators:"지표",drawings:"그리기 도구",
@@ -21,6 +21,7 @@ function getSaved(){try{const parsed=JSON.parse(localStorage.getItem(localKey)||
 let saved=getSaved();
 let state={
  page:"markets",market:"korea",marketGroup:"주식",marketRows:[],
+ marketSection:"stocks",marketWidget:null,
  marketTotal:null,marketOffset:0,marketSort:"volume",
  chartSymbol:"NASDAQ:AAPL",chartRange:"60M",theme:saved.theme==="dark"?"dark":"light",
  watchlists:Array.isArray(saved.watchlists)?saved.watchlists:[{id:"default",name:"기본 관심목록",symbols:[]}],
@@ -36,11 +37,18 @@ function navigate(page, params={}){
  state.page=page;
  if(params.market)state.market=params.market;
  if(params.symbol)state.chartSymbol=params.symbol;
- window.location.hash="#/"+page+(page==="chart"?"/"+encodeURIComponent(state.chartSymbol):"");
+ if(params.section)state.marketSection=params.section;
+ if(Object.prototype.hasOwnProperty.call(params,"widget"))state.marketWidget=params.widget;
+ window.location.hash="#/"+page+(page==="chart"?"/"+encodeURIComponent(state.chartSymbol):
+  page==="market-detail"?"/"+encodeURIComponent(state.marketSection)+
+  (state.marketWidget?"/"+encodeURIComponent(state.marketWidget):""):"");
  render();
  window.scrollTo(0,0);
 }
-function activeRoot(){return mainTabs.some(x=>x.id===state.page)?state.page:"menu";}
+function activeRoot(){
+ if(state.page==="market-detail"||state.page==="market-sources")return "markets";
+ return mainTabs.some(x=>x.id===state.page)?state.page:"menu";
+}
 function updateNavigation(){
  const html=mainTabs.map(tab=>{
  const active=activeRoot()===tab.id;
@@ -126,7 +134,7 @@ function addToWatchlist(symbol){
  if(!list.symbols.includes(symbol))list.symbols.push(symbol);
  persist();toast("브라우저 관심목록에 저장했습니다. 서버 동기화는 미연결입니다.");
 }
-function renderMarkets(){
+function renderMarketSources(){
  const categories=state.sourceCatalog?.markets||[];
  const byGroup={};
  categories.forEach(x=>(byGroup[x.group]??=[]).push(x));
@@ -151,7 +159,7 @@ function renderMarkets(){
  $("marketGroups").querySelectorAll("[data-group]").forEach(b=>b.onclick=()=>{
   state.marketGroup=b.dataset.group;
   const selected=byGroup[state.marketGroup]?.[0];if(selected)state.market=selected.id;
-  state.marketOffset=0;renderMarkets();
+  state.marketOffset=0;renderMarketSources();
  });
  $("marketTiles").querySelectorAll("[data-market]").forEach(b=>b.onclick=()=>{
   state.market=b.dataset.market;state.marketOffset=0;loadMarket();
@@ -162,6 +170,19 @@ function renderMarkets(){
  loadMarket();
  if(typeof window.loadGlobalMarketsPanel==="function")window.loadGlobalMarketsPanel();
 }
+function renderMarkets(){
+ setContent("");
+ if(window.TVMarketHome)window.TVMarketHome.render();
+ else $("view").innerHTML=empty("마켓 홈 코드 연결 실패","원본형 화면을 불러올 수 없습니다.");
+}
+function renderMarketDetail(){
+ setContent("");
+ if(window.TVMarketDetail)window.TVMarketDetail.render(state.marketSection,state.marketWidget);
+ else $("view").innerHTML=empty("시장 상세 코드 연결 실패","상세 화면을 불러올 수 없습니다.");
+}
+window.tvMarketNavigate=(page,params={})=>navigate(page,params);
+window.tvMarketOpenDetail=(section,widget)=>navigate("market-detail",{section,widget});
+window.tvMarketNotLinked=code=>toast("원본 심볼 "+code+"의 정확한 거래소 접두사를 아직 검증하지 않았습니다.");
 async function loadMarket(){
  const current=state.sourceCatalog?.markets?.find(m=>m.id===state.market);
  const title=$("marketCurrentName");if(!title)return;
@@ -172,7 +193,7 @@ async function loadMarket(){
  try{
   const x=await request("/api/markets/"+encodeURIComponent(state.market)+
    "?limit=10&offset="+state.marketOffset+"&order="+encodeURIComponent(state.marketSort));
-  if(seq!==state.marketRequest||state.page!=="markets")return;
+  if(seq!==state.marketRequest||state.page!=="market-sources")return;
   state.marketRows=x.items;
   state.marketTotal=x.total_count;
   $("marketCount").textContent=x.total_count==null?
@@ -181,7 +202,7 @@ async function loadMarket(){
   renderMarketPagination(x);
   wireMarketRows();
  }catch(err){
-  if(seq!==state.marketRequest||state.page!=="markets")return;
+  if(seq!==state.marketRequest||state.page!=="market-sources")return;
   $("marketCount").textContent="조회 실패";
   $("marketContent").innerHTML='<div class="empty-state error-state"><b>실제 데이터 연결 실패</b><br>'+
    esc(err.message)+'<br>원본 데이터를 만들거나 이전 성공 응답을 현재 시세로 표시하지 않습니다.</div>';
@@ -618,13 +639,18 @@ function wirePageLinks(){
  $("view").querySelectorAll("[data-page]").forEach(node=>node.onclick=()=>navigate(node.dataset.page));
 }
 function render(){
+ document.body.classList.toggle("tv-markets-mode",
+  state.page==="markets"||state.page==="market-detail");
  document.documentElement.dataset.theme=state.theme;
  $("desktopDomains").innerHTML=(state.sourceCatalog?.function_groups||[]).map(g=>
  '<button class="domain-link" data-domain="'+esc(groupPageMapping[g.name]||"features")+
  '">'+esc(g.name)+'</button>').join("");
  $("desktopDomains").querySelectorAll("[data-domain]").forEach(b=>b.onclick=()=>navigate(b.dataset.domain));
  switch(state.page){
-  case"markets":renderMarkets();break;case"watchlist":renderWatchlist();break;
+  case"markets":renderMarkets();break;
+  case"market-sources":renderMarketSources();break;
+  case"market-detail":renderMarketDetail();break;
+  case"watchlist":renderWatchlist();break;
   case"chart":renderChart();break;case"ideas":renderIdeas();break;
   case"alerts":renderAlerts();break;case"settings":renderSettings();break;
   case"menu":renderMenu();break;case"features":renderFeatures();break;
@@ -665,7 +691,13 @@ function bindGlobal(){
  document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeSearch();closeModal();}});
  window.addEventListener("hashchange",()=>{
   const path=decodeURIComponent(location.hash||"#/markets").replace(/^#\//,"").split("/");
-  if(path[0]&&path[0]!==state.page){state.page=mainPages[path[0]]?path[0]:"markets";render();}
+  if(path[0]&&path[0]!==state.page){
+   state.page=mainPages[path[0]]?path[0]:"markets";
+   if(state.page==="market-detail"){
+    state.marketSection=path[1]||"stocks";state.marketWidget=path[2]||null;
+   }
+   render();
+  }
  });
 }
 async function initialize(){
@@ -673,6 +705,10 @@ async function initialize(){
  const raw=decodeURIComponent(location.hash||"#/markets").replace(/^#\//,"").split("/");
  state.page=mainPages[raw[0]]?raw[0]:"markets";
  if(raw[0]==="chart"&&raw[1])state.chartSymbol=raw.slice(1).join("/");
+ if(raw[0]==="market-detail"){
+  state.marketSection=raw[1]||"stocks";
+  state.marketWidget=raw[2]||null;
+ }
  try{
   state.sourceCatalog=await request("/api/app/catalog");
   const m=state.sourceCatalog.markets?.find(x=>x.id===state.market);
