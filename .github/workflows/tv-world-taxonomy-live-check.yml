@@ -1,0 +1,56 @@
+name: Standalone world taxonomy live Railway verification
+on:
+  push:
+    paths:
+      - ".github/workflows/tv-world-taxonomy-live-check.yml"
+  workflow_dispatch:
+jobs:
+  read-actual-public-railway-taxonomy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Check all asset/country/market-menu APIs on the deployed separate service
+        run: |
+          python - <<'PY'
+          import json,time,urllib.request
+          base="https://tradingview-full-mobile-web-lab-production.up.railway.app"
+          def get(path):
+              with urllib.request.urlopen(base+path,timeout=30) as r:
+                  assert r.status==200
+                  return json.loads(r.read())
+          for attempt in range(48):
+              try:
+                  data=get("/api/taxonomy")
+                  graph=get("/api/taxonomy/pages")
+                  explore=get("/api/explore/catalog")
+                  if len(data.get("categories",[]))==9:
+                      break
+              except Exception as exc:
+                  print("WORLD_TAXONOMY_DEPLOY_NOT_READY",attempt,type(exc).__name__,flush=True)
+              time.sleep(5)
+          else:
+              raise AssertionError("Production preview never exposed nine category taxonomy")
+          categories={x["id"] for x in data["categories"]}
+          assert categories=={"stocks","funds","futures","forex","crypto",
+                              "indices","bonds","options","economy"}
+          assert len(data["countries"])>=249
+          assert len(data["additional_cross_asset_facets"])>=3
+          assert graph["summary"]["discovered_pages"]>=10
+          assert graph["summary"]["manual_click_only"] is True
+          assert explore["scanner_market_count"]==14
+          assert len(explore["categories"])==9
+          assert data["all_tradingview_symbols_collected"] is False
+          assert data["all_5y_daily_collected"] is False
+          assert data["automation_cron_enabled"] is False
+          print("RAILWAY_REAL_GLOBAL_TAXONOMY_READY",json.dumps({
+              "asset_types":sorted(categories),
+              "iso_countries":len(data["countries"]),
+              "source_feed_rows":data["source_row_count"],
+              "source_snapshot_at":data["source_snapshot_at"],
+              "source_linked_pages":graph["summary"]["discovered_pages"],
+              "pending_source_pages":graph["summary"]["pending_pages"],
+              "existing_live_scanner_routes":explore["scanner_market_count"],
+              "full_market_instruments_collected":False,
+              "automatic_cron":False
+          },ensure_ascii=False),flush=True)
+          PY
