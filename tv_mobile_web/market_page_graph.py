@@ -25,11 +25,20 @@ import httpx
 
 BASE="https://kr.tradingview.com"
 ROOT="/markets/"
-# Seeds remain visible as planned until fetched; 404 is not called supported.
-ROOTS=(ROOT,
-       "/markets/stocks/","/markets/funds/","/markets/futures/",
-       "/markets/forex/","/markets/cryptocurrencies/","/markets/indices/",
-       "/markets/bonds/","/markets/options/","/markets/economy/")
+from .market_taxonomy import PUBLIC_MARKET_TYPE_PATHS
+
+# Existing source pages were inspected via actual public HTML and return 200.
+# OPTIONS is preserved separately in Symbol Search/option chains, never added
+# here as the nonexistent /markets/options/ page.
+ROOTS=(ROOT,)+tuple(dict.fromkeys(
+    path for paths in PUBLIC_MARKET_TYPE_PATHS.values() for path in paths
+))
+# Historical guessed paths are retained as evidence, not as active root links.
+OBSOLETE_GUESSED_ROOTS=(
+    "/markets/stocks/","/markets/funds/","/markets/forex/",
+    "/markets/options/","/markets/economy/",
+)
+
 SCHEMA="""CREATE TABLE IF NOT EXISTS market_pages(
  path TEXT PRIMARY KEY, label TEXT NOT NULL, parent_path TEXT,
  status TEXT NOT NULL DEFAULT 'pending', source_status_code INTEGER,
@@ -98,6 +107,18 @@ class WorldMarketPageGraph:
                 VALUES(?,?,NULL,'pending',?)""",
                 [(x,x.split("/")[-2] if x!=ROOT else "TradingView Markets",stamp())
                  for x in ROOTS])
+            # Upgrade existing volume in place: old 404/301 entries came from
+            # guessed slugs, not from original TradingView menu discovery.
+            # Do NOT delete them, retry them forever or mark option products
+            # unsupported just because /markets/options/ returns 404.
+            con.executemany(
+                """UPDATE market_pages SET status='noncanonical_seed',
+                       error_code='INCORRECT_GUESSED_ROOT'
+                   WHERE path=? AND parent_path IS NULL
+                     AND status='failed'
+                     AND source_status_code IN (301,404)""",
+                [(path,) for path in OBSOLETE_GUESSED_ROOTS],
+            )
 
     def connect(self):
         return sqlite3.connect(self.db,timeout=20)
@@ -114,6 +135,8 @@ class WorldMarketPageGraph:
             "pending_pages":counts.get("pending",0),
             "fetched_pages":counts.get("fetched",0),
             "failed_pages":counts.get("failed",0),
+            "noncanonical_historical_seeds":counts.get("noncanonical_seed",0),
+            "market_navigation_seed_source":"observed_public_200_not_guessed_slug",
             "source_edges":links,
             "public_link_graph_exhausted":counts.get("pending",0)==0,
             "all_tradingview_asset_categories_complete":False,
