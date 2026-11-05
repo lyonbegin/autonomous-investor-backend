@@ -15,10 +15,12 @@ def test_catalog_covers_all_existing_scanner_asset_classes():
     response = client.get("/api/explore/catalog")
     assert response.status_code == 200
     data = response.json()
-    assert len(data["categories"]) == 7
+    assert len(data["categories"]) == 9
     classes = {r["asset_class"] for r in data["categories"]}
-    assert classes == {"equity", "etf", "crypto", "fx", "futures", "bonds", "indices"}
+    assert classes == {"stocks", "funds", "futures", "forex", "crypto", "indices", "bonds", "options", "economy"}
     assert data["scanner_market_count"] == len(SUPPORTED_MARKETS) == 14
+    assert any(x["asset_class"]=="options" and x["scanner_status"]=="NOT_YET_CONNECTED" for x in data["categories"])
+    assert any(x["asset_class"]=="economy" and x["scanner_status"]=="NOT_YET_CONNECTED" for x in data["categories"])
     assert data["verified_global_full_listings"] is False
     assert data["scheduled_collection_enabled"] is False
     assert all(set(m["markets"]) <= SUPPORTED_MARKETS for m in data["categories"])
