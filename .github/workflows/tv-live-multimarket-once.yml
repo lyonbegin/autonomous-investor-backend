@@ -1,0 +1,31 @@
+name: One-off live Korean equity and crypto 5Y daily TradingView checks
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - ".github/workflows/tv-live-multimarket-once.yml"
+jobs:
+  real-two-market-daily-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Ensure standalone Railway preview is ready
+        run: |
+          for i in $(seq 1 30); do
+            if curl -fsS https://tradingview-full-mobile-web-lab-production.up.railway.app/api/chart/options >/dev/null; then break; fi
+            sleep 3
+          done
+          sleep 45
+      - name: Collect and inspect two actual markets, serial manual 5-year daily only
+        run: python tv_mobile_web/tests/live_multimarket_daily_smoke.py
+      - name: Preserve outcomes per exchange with honest partial/error status
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: real-tv-krx-and-crypto-5y-daily-evidence
+          path: /tmp/tv-multimarket-5y-evidence/per-market-results.json
+          if-no-files-found: warn
