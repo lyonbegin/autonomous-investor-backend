@@ -16,7 +16,7 @@ SAMPLE_HTML = """<html><body><table>
 <tbody>
 <tr><td>Korea Stock Exchange Stocks Funds KRX South Korea</td><td>20 min</td><td>optional</td></tr>
 <tr><td>CME Group Futures Options CME USA</td><td>10 min</td><td>optional</td></tr>
-<tr><td>Unknown future venue and asset</td><td>N/A</td><td>N/A</td></tr>
+<tr><td>Unclassified venue XYZ</td><td>N/A</td><td>N/A</td></tr>
 </tbody></table></body></html>"""
 
 
@@ -46,7 +46,7 @@ def test_all_coverage_source_rows_preserved_including_unclassified():
     assert snapshot["raw_row_count"] == 3
     assert snapshot["source_row_count_confirmed_complete"] is False
     assert len(snapshot["records"]) == 3
-    assert "Unknown future venue" in snapshot["records"][2]["display"]
+    assert "Unclassified venue" in snapshot["records"][2]["display"]
     assert snapshot["records"][2]["asset_type_candidate_ids"] == []
     assert "options" in snapshot["records"][1]["asset_type_candidate_ids"]
     assert "stocks" in snapshot["records"][0]["asset_type_candidate_ids"]
