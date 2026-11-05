@@ -76,6 +76,22 @@ ASSET_ENGLISH = {
     "options": ("options", "option"),
     "economy": ("economy", "economic"),
 }
+# Observed public Markets pages (HTTP 200 in actual 2026-11-05 source walk),
+# NOT guessed URL slugs. Options is a separate TradingView Symbol Search/chain
+# feature; /markets/options/ is 404. Keep options type visible with no false
+# Markets-section link.
+PUBLIC_MARKET_TYPE_PATHS = {
+    "stocks": ("/markets/world-stocks/", "/markets/stocks-korea/"),
+    "funds": ("/markets/etfs/",),
+    "futures": ("/markets/futures/",),
+    "forex": ("/markets/currencies/",),
+    "crypto": ("/markets/cryptocurrencies/",),
+    "indices": ("/markets/indices/",),
+    "bonds": ("/markets/bonds/",),
+    "options": (),
+    "economy": ("/markets/world-economy/",),
+}
+assert set(PUBLIC_MARKET_TYPE_PATHS) == ASSET_IDS
 SOURCE_SCHEMA = 1
 
 
@@ -101,6 +117,10 @@ def all_types() -> list[dict]:
         "id": code, "name": ko, "source_symbol_type": english,
         "subcategories": list(subtypes),
         "scanner_routes": list(SCANNER_ROUTES[code]),
+        "verified_markets_navigation_paths": list(PUBLIC_MARKET_TYPE_PATHS[code]),
+        "market_navigation_status": (
+            "VERIFIED_200" if PUBLIC_MARKET_TYPE_PATHS[code]
+            else "SEPARATE_SYMBOL_SEARCH_NO_MARKETS_ROOT"),
         "scanner_route_status": "LINKED" if SCANNER_ROUTES[code] else "NOT_YET_CONNECTED",
         "all_world_symbols_loaded": False,
         "five_year_daily_all_instruments_loaded": False,
