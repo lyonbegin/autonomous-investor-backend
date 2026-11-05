@@ -1,0 +1,29 @@
+name: TV chart 5Y 1D — actual Railway live data audit (manual trigger only)
+on:
+  workflow_dispatch:
+    inputs:
+      symbol:
+        description: "Fixed single verification symbol (currently NASDAQ:AAPL)"
+        required: false
+        default: "NASDAQ:AAPL"
+  push:
+    paths:
+      - ".github/workflows/tv-chart-real-daily-smoke.yml"
+jobs:
+  check-one-real-chart:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Trigger exactly one manually requested 5Y daily chart capture on independent Railway preview
+        run: python tv_mobile_web/tests/live_daily_railway_smoke.py
+      - name: Keep evidence including failed or partial capture, without copying TradingView OHLCV
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: live-chart-5y-1d-capture-audit
+          path: /tmp/actual-tv-5y-daily-evidence.json
+          if-no-files-found: warn
