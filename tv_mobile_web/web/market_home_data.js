@@ -92,10 +92,26 @@
   "ECONOMICS-KRGDP":"한국 GDP","ECONOMICS-KRINTR":"한국 금리",
   "ECONOMICS-KRIRYY":"한국 물가상승률","ECONOMICS-KRUR":"한국 실업률"
  };
+ // Exchange suffixes are taken from actual ?exchange= query parameters
+ // of the user's original TradingView HTML links; NOT guessed providers.
+ const rawExchanges={
+  SP:["SPX"],
+  CRYPTO:["BTCUSD","ETHUSD","USDTUSD","BNBUSD","USDCUSD","XRPUSD",
+   "AAVEUSD","LDOUSD","ENAUSD","UNIUSD","BABYLUSD","MONADUSD",
+   "CAP7USD","FLUID3USD","PIEVERSEUSD","INJUSD","BEAM2USD","XAUTUSD",
+   "TRUMPOFUSD","GRASS2USD","CASHCATUSD","PONS2USD","ETHFIUSD","VVVUSD"],
+  BINANCE:["ELSAUSDT.P","JCTUSDT.P","INJUSDT","TRUMPUSDT","BCHUSDT",
+   "AKEUSDT.P","CLANKERUSDT.P","DOTUSDT","XAUUSDT.P"],
+  CRYPTOCAP:["BTC.D"],
+  FX_IDC:["USDKRW","EURKRW","JPYKRW","GBPKRW","CHFKRW","AUDKRW",
+   "EURUSD","USDJPY","GBPUSD","AUDUSD","USDCAD","USDCHF"]
+ };
+ const actualExchange=new Map(Object.entries(rawExchanges).flatMap(([ex,list])=>
+  list.map(symbol=>[symbol,ex])));
  window.TVMarketSource={groups,symbolNames,referenceDate:"2026-11-05",
   counts:{markets:groups.length,widgets:groups.reduce((a,g)=>a+g.widgets.length,0)},
-  symbol(code){return code.includes("-")?code.replace("-",
-   ":"):code==="SPX"?"SP:SPX":null;},
+  symbol(code){return code.includes("-")?code.replace("-",":"):
+   actualExchange.has(code)?actualExchange.get(code)+":"+code:null;},
   name(code){return window.TVSourceNames?.[code]||symbolNames[code]||code.split("-").slice(1).join("-")||code;}
  };
 })();
