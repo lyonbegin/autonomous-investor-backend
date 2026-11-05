@@ -133,16 +133,18 @@ def coverage_rows(html: str) -> list[dict]:
         # as partial / unverified instead of silently claiming complete coverage.
         candidates = [row for row in soup.select("table tr") if row.select("td")]
     values = []
-    seen = set()
     for row in candidates:
-        cells = row.find_all("td", recursive=False)
-        if len(cells) < 1:
+        # Actual TradingView data-coverage page uses TH for each provider's
+        # identity and TD for the three fee columns. Reading TD only silently
+        # collapsed 417 different provider rows into 78 repeated fee strings.
+        # Preserve BOTH TH and TD cells, and never deduplicate actual rows.
+        cells = row.find_all(["th","td"], recursive=False)
+        # Header row has only TH; a provider data row contains at least one TD.
+        if not row.find("td", recursive=False) or not cells:
             continue
         texts = [_normalized_whitespace(x.get_text(" ", strip=True)) for x in cells]
-        text = " | ".join(texts)
-        if not text or text in seen:
+        if not texts[0]:
             continue
-        seen.add(text)
         primary = cells[0]
         names = [ _normalized_whitespace(x.get("alt",""))
                  for x in primary.select("img[alt]") ]
