@@ -96,6 +96,6 @@
   counts:{markets:groups.length,widgets:groups.reduce((a,g)=>a+g.widgets.length,0)},
   symbol(code){return code.includes("-")?code.replace("-",
    ":"):code==="SPX"?"SP:SPX":null;},
-  name(code){return symbolNames[code]||code.split("-").slice(1).join("-")||code;}
+  name(code){return window.TVSourceNames?.[code]||symbolNames[code]||code.split("-").slice(1).join("-")||code;}
  };
 })();
