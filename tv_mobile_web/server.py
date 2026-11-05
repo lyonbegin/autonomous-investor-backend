@@ -279,6 +279,13 @@ async def _capture_5y_daily(job_id,symbol,asof):
             "storage":saved,"observed_count":count,
             "websocket_connections":capture.get("ws_connections",0),
             "history_request_observed":capture.get("history_request_observed",False),
+            "ui_pan_attempts":capture.get("ui_pan_attempts",0),
+            "initial_bar_count":capture.get("initial_bar_count",0),
+            "range_5y_ui_clicked":capture.get("range_5y_ui_clicked",False),
+            "native_range_bridge_available":capture.get("native_range_bridge_available",False),
+            "native_range_api_called":capture.get("native_range_api_called",False),
+            "range_control_candidates":capture.get("range_control_candidates",[]),
+            "range_interaction_errors":capture.get("range_interaction_errors",[]),
             "outbound_chart_method_counts":capture.get("outbound_chart_method_counts",{}),
             "finished_at":datetime.now(timezone.utc).isoformat(),
         })
