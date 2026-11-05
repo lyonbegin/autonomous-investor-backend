@@ -18,16 +18,18 @@ class MarketPageContract(unittest.TestCase):
             self.assertIn('id:"'+key+'"', self.html)
 
     def test_real_controls_and_missing_data_label(self):
-        for item in ("data-select=", "data-period=", "data-item=", "mountChart(", "openDetail(", "시세 미연결", "시세 데이터"):
+        for item in ("data-select=", "data-period=", "data-item=", "mountChart(", "openDetail(", "조회 전", "markets-chart.js"):
             self.assertIn(item, self.html)
 
     def test_no_fake_quotes(self):
         self.assertNotIn("Math.random", self.html)
         self.assertNotIn("mockPrice", self.html)
         self.assertIn("실시간·지연 정보는 아직 연결되지 않았습니다", self.html)
+        self.assertIn("api/markets/ohlcv", (ROOT / "admin-console" / "markets-chart.js").read_text())
 
     def test_packaged_into_existing_service(self):
         self.assertIn("COPY n8n/admin-console/markets.html /app/dist/admin/markets.html", self.docker)
+        self.assertIn("COPY n8n/admin-console/markets-chart.js /app/dist/admin/markets-chart.js", self.docker)
         self.assertIn('href=\\\"/admin/markets.html\\\"', self.docker)
         self.assertNotIn("RUN rm -rf /data", self.docker)
 
