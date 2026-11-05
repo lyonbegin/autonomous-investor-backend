@@ -135,6 +135,9 @@ function renderMarkets(){
  screenHeader("MARKETS · LIVE SCANNER","마켓","기존 TradingView 연동 서비스가 반환하는 실제 종목 목록입니다.",
  '<button id="marketReload" class="btn">↻ 다시 조회</button>')+
  disclosure("상장 목록과 5년 일봉 확보는 별개입니다. 이 페이지는 기존 스캐너의 조회 응답만 표시하며 전 종목 수집 완료를 뜻하지 않습니다.")+
+ '<section class="surface box-pad" id="fullGlobalMarketCatalog">'+
+ empty("전체 세계 시장 원장 조회 중","자산 9개 유형, ISO 전체 국가 및 모든 공개 데이터 공급원 행을 불러옵니다.","⌛")+'</section>'+
+ '<div class="section-line"><h2 class="section-title">현재 연결된 시장 스캐너 · 부분 데이터 엔진</h2></div>'+
  '<div class="filter-tabs" id="marketGroups">'+groupNames.map(g=>'<button class="filter-tab'+
  (g===state.marketGroup?" active":"")+'" data-group="'+esc(g)+'">'+esc(g)+'</button>').join("")+'</div>'+
  '<div class="card-grid" id="marketTiles">'+(byGroup[state.marketGroup]||[]).map(m=>
@@ -158,6 +161,7 @@ function renderMarkets(){
  $("marketNext").onclick=()=>{state.marketOffset+=40;loadMarket()};
  $("marketReload").onclick=loadMarket;
  loadMarket();
+ if(typeof window.loadGlobalMarketsPanel==="function")window.loadGlobalMarketsPanel();
 }
 async function loadMarket(){
  const current=state.sourceCatalog?.markets?.find(m=>m.id===state.market);
