@@ -7,6 +7,7 @@ on:
       - 'n8n/admin-console/markets-chart.js'
       - 'n8n/markets-preview/**'
       - 'n8n/tests/e2e_markets_preview.py'
+      - 'n8n/tests/e2e_markets_live.py'
       - 'n8n/tests/test_market_ohlcv_api.py'
       - 'n8n/tests/test_market_original_home.py'
       - '.github/workflows/market-preview-ci.yml'
@@ -40,3 +41,7 @@ jobs:
           python -m playwright install --with-deps chromium
       - name: Real headless Chromium interaction smoke test
         run: python n8n/tests/e2e_markets_preview.py
+      - name: Railway production preview unmocked browser check
+        env:
+          MARKETS_LIVE_URL: https://investment-markets-preview-production.up.railway.app/
+        run: python n8n/tests/e2e_markets_live.py
