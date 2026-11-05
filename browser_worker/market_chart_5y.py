@@ -139,6 +139,7 @@ async def observe_five_year_chart(context, *, symbol: str,
     page=await context.new_page()
     observed={}
     methods=Counter()
+    outbound_methods=Counter()
     ws_count=0
     js_errors=[]
     def ws_created(ws):
@@ -153,6 +154,16 @@ async def observe_five_year_chart(context, *, symbol: str,
                 if method in ALLOWED_MESSAGES and len(observed)<MAX_BARS_OBSERVED:
                     collect_bars(message.get("p"),observed)
         ws.on("framereceived",got_frame)
+        def sent_frame(frame):
+            # Record method names only; never retain full frames, session IDs,
+            # account information or other network payloads.
+            for message in decode_chart_messages(frame):
+                name=message.get("m")
+                if name in {"create_series","request_more_data","resolve_symbol",
+                            "set_visible_range","switch_timezone",
+                            "modify_series","remove_series"}:
+                    outbound_methods[name]+=1
+        ws.on("framesent",sent_frame)
     page.on("websocket",ws_created)
     page.on("pageerror",lambda exc:js_errors.append(type(exc).__name__))
     http_status=None
@@ -197,7 +208,10 @@ async def observe_five_year_chart(context, *, symbol: str,
             "interval":interval,"timeframe_name":TIMEFRAMES[interval][0],
             "url":target,"http_status":http_status,
             "ui_pan_attempts":pan_attempts,"ws_connections":ws_count,
-            "message_counts":dict(methods),"page_errors":js_errors[:6],
+            "message_counts":dict(methods),
+            "outbound_chart_method_counts":dict(outbound_methods),
+            "history_request_observed":outbound_methods["request_more_data"]>0,
+            "page_errors":js_errors[:6],
             **quality,
         }
     finally:
