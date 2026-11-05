@@ -162,6 +162,7 @@ def coverage_rows(html: str) -> list[dict]:
                     break
         values.append({
             "source_row": len(values)+1,
+            "provider_cell_type":primary.name,
             "display": texts[0],
             "all_cells": texts,
             "image_alts": names,
@@ -207,7 +208,19 @@ class MarketTaxonomyStore:
             raise ValueError("SAVED_SOURCE_CATALOG_CORRUPTED") from exc
         if value.get("schema_version")!=SOURCE_SCHEMA:
             raise ValueError("SAVED_SOURCE_CATALOG_SCHEMA_MISMATCH")
-        value["source_refresh_state"]="SOURCE_SNAPSHOT_STORED"
+        # Legacy scraper extracted only TD fee cells while actual feed identity
+        # lives in TH. Quarantine those rows rather than mislabeling them as
+        # exchanges or merging 78 false "providers" into a correct 417 list.
+        historical=value.get("records",[])
+        valid=[x for x in historical if x.get("provider_cell_type") in ("th","td")]
+        quarantined=len(historical)-len(valid)
+        value["legacy_fee_only_rows_quarantined"]=quarantined
+        if quarantined:
+            value["records"]=valid
+            value["raw_row_count"]=len(valid)
+        value["source_refresh_state"]=(
+            "LEGACY_SOURCE_ROWS_QUARANTINED_NEEDS_REFRESH" if quarantined
+            else "SOURCE_SNAPSHOT_STORED")
         return value
 
     def save(self, html: str, *, expansion: dict | None = None):
