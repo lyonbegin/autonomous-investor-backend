@@ -316,12 +316,16 @@ async function loadStoredDaily(symbol){
   }
   const payload=await request("/api/chart/history?symbol="+encodeURIComponent(symbol));
   if(symbol!==state.chartSymbol||state.page!=="chart")return;
-  const b=payload.bars||[],meta=payload.metadata;
+  const b=payload.bars||[],meta=payload.metadata,q=payload.quality||{};
+  const ratio=typeof q.daily_date_coverage_ratio==="number"?
+    (q.daily_date_coverage_ratio*100).toFixed(2)+"%":"미검증";
   host.textContent="실제 저장 "+Number(meta.bar_count).toLocaleString("ko-KR")+
     "봉 · 최초 "+(b.length?new Date(b[0].time_ms).toISOString().slice(0,10):"—")+
     " · 최종 "+(b.length?new Date(b[b.length-1].time_ms).toISOString().slice(0,10):"—")+
     " · 요청 시작 "+meta.requested_start+
-    " · "+(meta.five_year_extent_covered?"5년 날짜 범위 도달 (거래소 결측 미감사)":"5년 날짜 범위 미달");
+    " · 확보율 "+ratio+" ("+(q.calendar_assumption==="24x7"?"매일":"평일")+" 기준)"+
+    " · "+(meta.five_year_extent_covered?"5년 일봉 기본 품질검사 통과":"5년 일봉 확보 미완료")+
+    " · 거래소별 공식 휴장일 대조 미실시";
   $("dailyLast").textContent="출처: TradingView 기존 차트 WebSocket · 파일 SHA-256 검증 · 마지막 저장 "+meta.stored_at;
   drawStoredDaily(b);
  }catch(err){
