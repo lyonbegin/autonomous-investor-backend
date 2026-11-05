@@ -144,8 +144,9 @@ function renderMarkets(){
  '<button class="market-card" data-market="'+esc(m.id)+'"><span class="market-icon">'+
  esc(m.icon)+'</span><strong>'+esc(m.name)+'</strong><small>실시간 조회 · 시장별</small></button>').join("")+'</div>'+
  '<div class="section-line"><h2 class="section-title" id="marketCurrentName">시장 종목</h2><span class="pill" id="marketCount">조회 대기</span></div>'+
- '<div class="input-wrap"><label class="sr-only" for="marketSort">정렬</label><select class="field" id="marketSort" style="max-width:180px"><option value="volume">거래량</option><option value="change">변동률</option><option value="close">가격</option><option value="name">이름</option><option value="market_cap_basic">시가총액</option></select><button id="marketPrev" class="btn small">이전</button><button id="marketNext" class="btn small">다음</button></div>'+
- '<div class="surface" id="marketContent">'+empty("시장 데이터를 조회 중","실제 스캐너 응답을 불러오는 중입니다.","⌛")+'</div>'
+ '<div class="input-wrap"><label class="sr-only" for="marketSort">정렬</label><select class="field" id="marketSort" style="max-width:180px"><option value="volume">거래량</option><option value="change">변동률</option><option value="close">가격</option><option value="name">이름</option><option value="market_cap_basic">시가총액</option></select></div>'+
+ '<div class="surface" id="marketContent">'+empty("시장 데이터를 조회 중","실제 스캐너 응답을 불러오는 중입니다.","⌛")+'</div>'+
+ '<div id="marketPager" class="world-pager" aria-label="시장 종목 페이지 이동"></div>'
  );
  $("marketGroups").querySelectorAll("[data-group]").forEach(b=>b.onclick=()=>{
   state.marketGroup=b.dataset.group;
@@ -157,8 +158,6 @@ function renderMarkets(){
  });
  $("marketSort").value=state.marketSort;
  $("marketSort").onchange=()=>{state.marketSort=$("marketSort").value;state.marketOffset=0;loadMarket()};
- $("marketPrev").onclick=()=>{state.marketOffset=Math.max(0,state.marketOffset-40);loadMarket()};
- $("marketNext").onclick=()=>{state.marketOffset+=40;loadMarket()};
  $("marketReload").onclick=loadMarket;
  loadMarket();
  if(typeof window.loadGlobalMarketsPanel==="function")window.loadGlobalMarketsPanel();
@@ -172,22 +171,58 @@ async function loadMarket(){
  const seq=++state.marketRequest;
  try{
   const x=await request("/api/markets/"+encodeURIComponent(state.market)+
-   "?limit=40&offset="+state.marketOffset+"&order="+encodeURIComponent(state.marketSort));
+   "?limit=10&offset="+state.marketOffset+"&order="+encodeURIComponent(state.marketSort));
   if(seq!==state.marketRequest||state.page!=="markets")return;
   state.marketRows=x.items;
   state.marketTotal=x.total_count;
   $("marketCount").textContent=x.total_count==null?
     "이번 응답 "+x.items.length+"개":money(x.total_count)+"개 · 서버 표시 수";
   $("marketContent").innerHTML=makeMarketTable(x.items);
-  $("marketPrev").disabled=state.marketOffset===0;
-  $("marketNext").disabled=x.items.length<40 || (x.total_count!=null&&state.marketOffset+40>=x.total_count);
+  renderMarketPagination(x);
   wireMarketRows();
  }catch(err){
   if(seq!==state.marketRequest||state.page!=="markets")return;
   $("marketCount").textContent="조회 실패";
   $("marketContent").innerHTML='<div class="empty-state error-state"><b>실제 데이터 연결 실패</b><br>'+
    esc(err.message)+'<br>원본 데이터를 만들거나 이전 성공 응답을 현재 시세로 표시하지 않습니다.</div>';
+   if($("marketPager"))$("marketPager").innerHTML="";
  }
+}
+function renderMarketPagination(response){
+ const host=$("marketPager");if(!host)return;
+ const page=Math.floor(state.marketOffset/10)+1;
+ const total=Number(response.total_count);
+ const hasTotal=response.total_count!==null&&response.total_count!==undefined&&
+   Number.isFinite(total)&&total>=0;
+ const max=hasTotal?Math.max(1,Math.ceil(total/10)):null;
+ const last=hasTotal?max:page+(response.items.length===10?1:0);
+ const start=Math.max(1,Math.min(page-2,Math.max(1,last-4)));
+ const end=Math.min(last,start+4);
+ const buttons=[];
+ if(start>1)buttons.push(1);
+ for(let n=start;n<=end;n++)if(!buttons.includes(n))buttons.push(n);
+ if(end<last&&!buttons.includes(last))buttons.push(last);
+ host.innerHTML='<button type="button" class="btn small" data-scanner-page="'+(page-1)+'"'+
+ (page<=1?' disabled':'')+'>이전</button>'+
+ buttons.map(n=>'<button type="button" class="btn small world-page-btn'+
+ (n===page?' active':'')+'" data-scanner-page="'+n+'"'+
+ (n===page?' aria-current="page"':'')+'>'+n+'</button>').join("")+
+ '<button type="button" class="btn small" data-scanner-page="'+(page+1)+'"'+
+ ((hasTotal?page>=max:response.items.length<10)?' disabled':'')+'>다음</button>'+
+ '<form id="marketJumpForm" class="world-jump-form"><label>페이지 이동 <input type="number" min="1"'+
+ (max?' max="'+max+'"':'')+' name="page" class="field world-page-number" value="'+page+
+ '" aria-label="시장 종목 이동 페이지"></label><button type="submit" class="btn small">이동</button></form>'+
+ '<span class="world-page-status">'+page+'/'+(max||"미확인")+'페이지 · 10개씩 조회</span>';
+ const go=n=>{
+  if(!Number.isSafeInteger(n)||n<1||hasTotal&&n>max)return;
+  state.marketOffset=(n-1)*10;
+  loadMarket();
+ };
+ host.querySelectorAll("[data-scanner-page]").forEach(b=>b.onclick=()=>go(Number(b.dataset.scannerPage)));
+ $("marketJumpForm").onsubmit=event=>{
+  event.preventDefault();
+  go(Number($("marketJumpForm").querySelector('input[name="page"]').value));
+ };
 }
 function renderWatchlist(){
  const list=currentWatchlist();
