@@ -3,6 +3,7 @@ from __future__ import annotations
 from unittest.mock import AsyncMock
 
 from fastapi.testclient import TestClient
+import httpx
 import pytest
 
 from tv_mobile_web import server
