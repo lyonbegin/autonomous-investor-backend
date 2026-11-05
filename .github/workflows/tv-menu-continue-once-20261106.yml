@@ -1,0 +1,55 @@
+name: One-off continue actual world Markets menu source discovery 2026-11-06
+on:
+  push:
+    paths:
+      - ".github/workflows/tv-menu-continue-once-20261106.yml"
+jobs:
+  complete-more-public-market-pages:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Call independent Railway manual discovery once, preserving every discovered page
+        run: |
+          python - <<'PY'
+          import json,urllib.request,urllib.error
+          from datetime import datetime,timezone
+          from pathlib import Path
+          base="https://tradingview-full-mobile-web-lab-production.up.railway.app"
+          result={"explicit_single_user_request":True,"automatic_cron":False,
+                  "market_instruments_not_claimed_complete":True,
+                  "started_at":datetime.now(timezone.utc).isoformat()}
+          def call(url,method="GET"):
+              request=urllib.request.Request(base+url,method=method,
+                  headers={"Accept":"application/json"})
+              try:
+                  with urllib.request.urlopen(request,timeout=200) as r:
+                      return r.status,json.loads(r.read())
+              except urllib.error.HTTPError as e:
+                  return e.code,json.loads(e.read())
+          code,before=call("/api/taxonomy/pages/status")
+          assert code==200
+          result["before"]=before
+          code,response=call("/api/taxonomy/pages/refresh?pages=50","POST")
+          result["http_status"]=code
+          result["processed_count"]=len(response.get("processed",[]))
+          result["failed_attempts"]=[x for x in response.get("processed",[]) if x.get("error")]
+          result["response_summary"]=response.get("summary",{})
+          code,after=call("/api/taxonomy/pages/status")
+          result["after"]=after
+          Path("/tmp/tv-world-menu-discovery-20261106.json").write_text(
+              json.dumps(result,ensure_ascii=False,indent=2))
+          print("WORLD_MARKETS_INCREMENTAL_REAL_DISCOVERY",
+                json.dumps({"before":before,"after":after,
+                    "processed_count":result["processed_count"],
+                    "http_status":result["http_status"]},ensure_ascii=False),flush=True)
+          if result["http_status"]!=200:
+              raise RuntimeError("Manual source fetch failed, evidence retained")
+          assert after["fetched_pages"]>=before["fetched_pages"]
+          assert after["discovered_pages"]>=before["discovered_pages"]
+          PY
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: real-world-market-discovery-20261106
+          path: /tmp/tv-world-menu-discovery-20261106.json
+          if-no-files-found: warn
