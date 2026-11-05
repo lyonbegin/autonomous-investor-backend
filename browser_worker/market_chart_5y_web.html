@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>5년 차트 · 시간봉 수집 검증</title>
+<style>
+:root{font-family:system-ui,-apple-system,"Noto Sans KR",sans-serif;background:#f7f9fc;color:#182339}*{box-sizing:border-box}body{margin:0}.wrap{max-width:1220px;margin:40px auto;padding:0 20px}h1{font-size:30px;letter-spacing:-1.4px;margin:7px 0 10px}.eyebrow{color:#476ab3;letter-spacing:2px;font-weight:800;font-size:11px}p{color:#657187;font-size:13px;line-height:1.7}.shell{background:white;border:1px solid #e2e8f1;border-radius:16px;padding:24px;box-shadow:0 12px 45px #18325a0d}.controls{display:grid;grid-template-columns:2.5fr 1fr 1fr 1fr auto;gap:10px;align-items:end}label{display:block;font-size:11px;color:#637184;font-weight:700;margin-bottom:6px}input,select{width:100%;border:1px solid #cdd6e5;padding:12px;border-radius:8px;background:white;font-size:13px}button{border:0;padding:13px 19px;border-radius:8px;color:white;background:#205ee8;font-size:12px;font-weight:800;cursor:pointer}button:disabled{opacity:.5;cursor:not-allowed}.notice{margin:20px 0;padding:13px 16px;border:1px solid #f0dea7;background:#fffbef;border-radius:10px;color:#80611c;font-size:12px;line-height:1.8}.metrics{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin:20px 0}.metric{border:1px solid #e9edf5;border-radius:10px;padding:15px}.metric small{display:block;font-size:10px;color:#758195}.metric strong{display:block;font-size:15px;overflow-wrap:anywhere;margin:7px 0 0}.chart{border:1px solid #edf0f5;border-radius:12px;background:#fff;margin:18px 0;min-height:350px;padding:15px}canvas{width:100%;height:330px}.table{overflow-x:auto;max-height:320px}table{border-collapse:collapse;width:100%;font-size:11px}th,td{padding:10px 15px;text-align:right;border-bottom:1px solid #edf1f6}th:first-child,td:first-child{text-align:left}th{color:#637085;background:#f9fafc}#status{font-weight:700;color:#b36c00}#status.ok{color:#00835c}#status.error{color:#bf3b3b}@media(max-width:760px){.wrap{margin:15px auto}.shell{padding:16px}.controls{grid-template-columns:1fr 1fr}.controls>div:first-child{grid-column:1/-1}.controls>button{grid-column:1/-1}.metrics{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body><div class="wrap">
+<div class="eyebrow">MARKET CHART LAB · SEPARATE BRANCH</div>
+<h1>최근 5년 · 분봉 / 일봉 차트 확인</h1>
+<p>기존 TradingView 차트 관찰 코드의 연구용 확장입니다. 요청한 기간과 실제 확보한 기간을 분리해서 보여줍니다. 자동 수집·Cron·관리 키는 없습니다.</p>
+<div class="shell">
+<div class="controls">
+<div><label for="symbol">거래소:종목</label><input id="symbol" value="NASDAQ:AAPL" placeholder="NASDAQ:AAPL"></div>
+<div><label for="period">요청 기간</label><select id="period"><option value="5">최근 5년</option></select></div>
+<div><label for="interval">시간봉</label><select id="interval"><option value="1">1분</option><option value="3">3분</option><option value="5">5분</option><option value="15">15분</option><option value="30">30분</option><option value="60">1시간</option><option value="120">2시간</option><option value="240">4시간</option><option value="1D" selected>일봉</option><option value="1W">주봉</option></select></div>
+<div><label for="pans">화면 탐색 횟수</label><select id="pans"><option value="0">0회</option><option value="8">8회</option><option value="16" selected>16회</option><option value="32">32회</option></select></div>
+<button id="run">차트 관찰 시작</button>
+</div>
+<div class="notice">TradingView 화면 접근과 데이터 이용에는 요금제·자산별 이력·이용약관 제한이 있습니다. 5년을 선택해도 5년 전체 봉이 확인되지 않으면 <b>부분 수집</b>으로 표시됩니다. 이 화면은 공개 시장 데이터 재배포용이 아닙니다.</div>
+<p id="status">실행하지 않음 · 버튼을 누를 때만 수집</p>
+<div class="metrics">
+ <div class="metric"><small>요청 기간</small><strong id="range">—</strong></div>
+ <div class="metric"><small>실제 확보 봉</small><strong id="count">0</strong></div>
+ <div class="metric"><small>최초 거래일(UTC)</small><strong id="first">—</strong></div>
+ <div class="metric"><small>최종 거래일(UTC)</small><strong id="last">—</strong></div>
+ <div class="metric"><small>시간봉 / 이력 검증</small><strong id="verified">—</strong></div>
+</div>
+<div class="chart"><canvas id="chart" width="1000" height="330"></canvas></div>
+<div class="table"><table><thead><tr><th>거래 시각(UTC)</th><th>시가</th><th>고가</th><th>저가</th><th>종가</th><th>거래량</th></tr></thead><tbody id="rows"><tr><td colspan="6">관찰된 데이터가 없습니다.</td></tr></tbody></table></div>
+</div></div>
+<script>
+const $=id=>document.getElementById(id),fmt=n=>typeof n==="number"?n.toLocaleString("ko-KR",{maximumFractionDigits:6}):"—";
+function draw(bars) {
+  const canvas=$("chart"),c=canvas.getContext("2d"),w=canvas.width,h=canvas.height;
+  c.clearRect(0,0,w,h);c.fillStyle="#7c8799";c.font="14px sans-serif";
+  if(!bars.length){c.fillText("실제 관찰 데이터가 없습니다.",35,60);return;}
+  const prices=bars.map(x=>x.close),low=Math.min(...prices),high=Math.max(...prices),delta=high-low||1;
+  const pl=55,pr=20,pt=30,pb=40,dx=(w-pl-pr)/Math.max(1,bars.length-1);
+  c.strokeStyle="#e9edf4";c.lineWidth=1;
+  for(let i=0;i<=4;i++){const y=pt+(h-pt-pb)*i/4;c.beginPath();c.moveTo(pl,y);c.lineTo(w-pr,y);c.stroke();c.fillStyle="#7c8799";c.fillText(fmt(high-delta*i/4),6,y+4);}
+  c.strokeStyle="#2761df";c.lineWidth=1.5;c.beginPath();
+  bars.forEach((b,i)=>{const x=pl+dx*i,y=pt+(high-b.close)/delta*(h-pt-pb);i?c.lineTo(x,y):c.moveTo(x,y);});c.stroke();
+  c.fillStyle="#7c8799";c.fillText(new Date(bars[0].time_ms).toISOString().slice(0,10),pl,h-12);
+  c.fillText(new Date(bars[bars.length-1].time_ms).toISOString().slice(0,10),w-125,h-12);
+}
+draw([]);
+$("run").onclick=async()=>{
+  const button=$("run");button.disabled=true;$("status").className="";$("status").textContent="실제 차트에 접속하여 시간봉과 과거 봉을 관찰하는 중…";
+  try{
+    const res=await fetch("/v1/research/chart/observe",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({symbol:$("symbol").value.trim().toUpperCase(),interval:$("interval").value,years:5,
+       max_pans:Number($("pans").value),max_return_bars:5000})});
+    const obj=await res.json();
+    if(!res.ok)throw Error(typeof obj.detail==="string"?obj.detail:JSON.stringify(obj.detail));
+    $("range").textContent=obj.requested_start+" ~ "+obj.requested_end_exclusive;
+    $("count").textContent=fmt(obj.observed_count);
+    $("first").textContent=obj.first_observed_utc?.slice(0,10)||"—";
+    $("last").textContent=obj.last_observed_utc?.slice(0,10)||"—";
+    $("verified").textContent=(obj.interval_verified?"시간봉 확인":"시간봉 불일치")+" / "+(obj.five_year_window_covered?"5년 범위 도달":"5년 미도달");
+    $("status").className=obj.five_year_window_covered?"ok":"error";
+    $("status").textContent=obj.status+" · "+obj.ui_pan_attempts+"회 탐색 · "
+      +(obj.bars_truncated_in_response?"화면 표시 봉 수 제한":"실제 관측 봉")+" · 임의 보간 없음";
+    draw(obj.bars);
+    $("rows").innerHTML=obj.bars.slice(-30).reverse().map(b=>"<tr><td>"+new Date(b.time_ms).toISOString().slice(0,16)+"</td>"+
+     ["open","high","low","close","volume"].map(k=>"<td>"+fmt(b[k])+"</td>").join("")+"</tr>").join("")||'<tr><td colspan="6">실제 봉이 수신되지 않았습니다.</td></tr>';
+  }catch(e){$("status").className="error";$("status").textContent="실패: "+e.message;}
+  finally{button.disabled=false;}
+};
+</script>
+</body>
+</html>
