@@ -125,7 +125,7 @@ async def _tv_get(path: str, params: dict) -> dict:
 @app.get("/api/markets/{market}")
 async def market_rows(
     market: str,
-    limit: int=Query(40,ge=1,le=100),
+    limit: int=Query(10,ge=1,le=100),
     offset: int=Query(0,ge=0),
     order: str=Query("volume",pattern="^(volume|change|close|name|market_cap_basic)$"),
     direction: str=Query("desc",pattern="^(asc|desc)$"),
@@ -544,10 +544,17 @@ def _market_graph():
 
 
 @app.get("/api/taxonomy/pages")
-def market_navigation_pages(limit:int=Query(500,ge=1,le=5000),
+def market_navigation_pages(limit:int=Query(10,ge=1,le=5000),
                             offset:int=Query(0,ge=0),
-                            q:str=Query("",max_length=90)):
-    return _market_graph().get(limit=limit,offset=offset,query=q)
+                            q:str=Query("",max_length=90),
+                            page:int|None=Query(default=None,ge=1,le=1000000)):
+    if page is not None:
+        offset=(page-1)*limit
+    rows=_market_graph().get(limit=limit,offset=offset,query=q)
+    rows["page"]=offset//limit+1
+    rows["page_size"]=limit
+    rows["total_pages"]=max(1,(rows["total_count"]+limit-1)//limit)
+    return rows
 
 
 @app.get("/api/taxonomy/pages/status")
