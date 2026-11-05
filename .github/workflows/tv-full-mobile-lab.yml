@@ -27,6 +27,15 @@ jobs:
         run: |
           node --check tv_mobile_web/web/app.js
           node --check tv_mobile_web/web/world_catalog.js
+          node --check tv_mobile_web/web/market_home_data.js
+          node --check tv_mobile_web/web/market_home.js
+          node --check tv_mobile_web/web/market_chart.js
+          node --check tv_mobile_web/web/market_detail.js
+          node --check tv_mobile_web/web/market_live.js
+          node --check tv_mobile_web/web/market_names_stocks.js
+          node --check tv_mobile_web/web/market_names_assets.js
+          node --check tv_mobile_web/web/market_names_bonds_etfs.js
+          node tv_mobile_web/tests/check_market_reference.cjs
           python -m pytest -q tv_mobile_web/tests/test_server.py tv_mobile_web/tests/test_chart_daily_contract.py tv_mobile_web/tests/test_market_explorer.py tv_mobile_web/tests/test_market_taxonomy.py tv_mobile_web/tests/test_market_page_graph.py tv_mobile_web/tests/test_ten_item_pagination.py
       - name: Start standalone mobile app (no cron, no n8n changes)
         run: |
