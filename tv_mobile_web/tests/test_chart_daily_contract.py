@@ -145,3 +145,29 @@ def test_app_does_not_trigger_capture_on_chart_status_read(tmp_path,monkeypatch)
     assert client.get("/api/chart/totals").json()["stored_symbols"]==0
     assert client.get("/api/chart/history?symbol=NASDAQ%3AAAPL").status_code==404
     assert client.get("/api/chart/options").json()["never_auto_collect"] is True
+
+
+def test_extreme_gaps_cannot_masquerade_as_five_year_data():
+    bars=simulated_trading_dates()
+    # Real first and last five-year dates, but all the middle years missing.
+    sparse=bars[:25]+bars[-300:]
+    assessed=evaluate_history(sparse,interval="1D",asof=ASOF,symbol="NASDAQ:AAPL")
+    assert assessed["reaches_requested_start"] is True
+    assert assessed["reaches_requested_end"] is True
+    assert assessed["daily_date_coverage_ratio"]<.30
+    assert assessed["five_year_window_covered"] is False
+    assert assessed["coverage_status"]=="PARTIAL_HISTORY"
+
+
+def test_crypto_five_year_calendar_uses_every_day():
+    day=five_year_start(ASOF)
+    bars=[]
+    while day<ASOF:
+        t=int(datetime.combine(day,datetime.min.time(),timezone.utc).timestamp()*1000)
+        bars.append({"time_ms":t,"open":100.,"high":101.,"low":99.,
+                     "close":100.,"volume":100.})
+        day+=timedelta(days=1)
+    x=evaluate_history(bars,interval="1D",asof=ASOF,symbol="BINANCE:BTCUSDT")
+    assert x["calendar_assumption"]=="24x7"
+    assert x["daily_date_coverage_ratio"]==1
+    assert x["five_year_window_covered"] is True
