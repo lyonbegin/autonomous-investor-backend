@@ -350,27 +350,51 @@ function renderMenu(){
 }
 function renderFeatures(){
  const groups=state.sourceCatalog?.function_groups||[];
- setContent(screenHeader("ANDROID APK · AUDIT REGISTER","전체 기능 검수","원본 339개 후보의 ID와 26개 영역을 유지합니다.")+
+ setContent(screenHeader("ANDROID APK · AUDIT REGISTER","전체 기능 검수","원본 339개 후보의 개별 기능명을 그대로 보존합니다.")+
  '<div class="audit-header"><div class="screen-kicker" style="color:#b8d1ff">REFERENCE APK · STATIC INVENTORY</div>'+
- '<h2>기능 구현·동등성 검사 원장</h2><p>원본 정적 분석 기준 339개 후보. 이 웹 앱의 실제 동작을 원본과 직접 대조하지 않은 기능은 미검증입니다.</p>'+
- '<div class="audit-counter"><div><strong>339</strong><small>기능 후보</small></div>'+
- '<div><strong>26</strong><small>기능 영역</small></div>'+
+ '<h2>전체 기능 검수 원장</h2><p>사용자가 제공한 원본 CSV의 기능명 339개입니다. 기능 구현과 실제 Android 앱 동등성 검증을 혼동하지 않습니다.</p>'+
+ '<div class="audit-counter"><div><strong>339</strong><small>원본 기능 후보</small></div>'+
+ '<div><strong>26</strong><small>전체 기능 영역</small></div>'+
  '<div><strong>0</strong><small>Android 실기기 동등성 통과</small></div></div></div>'+
- disclosure("화면에 접근할 수 있다는 사실은 기능 완성·원본 UI 일치·서버 데이터 동등성으로 계산하지 않습니다. 누락 화면 44개도 별도 검증 대상입니다.")+
+ disclosure("개별 항목 339개를 축소·삭제하지 않았습니다. 이번 웹 앱에서 메뉴를 열 수 있어도 기능이 완성됐다는 의미가 아닙니다.")+
  '<div class="audit-groups">'+groups.map(g=>
  '<button class="audit-group" data-audit-group="'+esc(g.name)+'"><strong>'+esc(g.name)+'</strong>'+
  '<small>TV-'+String(g.start).padStart(3,"0")+" ~ TV-"+String(g.end).padStart(3,"0")+
  ' · '+g.count+'개 · 원본 APK 정적 확인</small></button>').join("")+'</div>'+
- '<div class="section-title">영역 상세</div><div class="surface box-pad" id="auditDetail">'+
- empty("영역을 선택하세요","339개 항목의 원본 기능명·상세 근거는 별도 분석 원장 CSV에서 확인할 수 있습니다.")+'</div>');
+ '<div class="section-title">339개 개별 기능</div><div class="input-wrap"><input class="field" id="auditSearch" placeholder="기능 ID · 기능명 검색" aria-label="원본 기능 검색"></div>'+
+ '<div class="surface box-pad" id="auditDetail">'+empty("기능 원장을 읽는 중","기능명을 복원하고 있습니다.","⌛")+'</div>');
+ const host=$("auditDetail");let featureList=[];
+ const show=(group="",query="")=>{
+  if(state.page!=="features")return;
+  const lower=query.trim().toLowerCase();
+  const selected=featureList.filter(x=>(!group||x.group===group)&&
+    (!lower||(x.id+" "+x.name+" "+x.group).toLowerCase().includes(lower)));
+  host.innerHTML='<div class="split-actions"><strong style="font-size:13px">'+
+  esc(group||"전체")+" · "+selected.length+"개</strong>"+
+  '<span class="pill warn">전 항목 동등성 미검증</span></div>'+
+  (selected.length?selected.map(item=>
+  '<div class="choice-row"><div><strong>'+esc(item.id)+' · '+esc(item.name)+'</strong>'+
+  '<p>'+esc(item.group)+' · 원본 APK 정적 근거 / 앱 실행 검증 필요</p></div><span class="pill warn">미검증</span></div>').join(""):
+  empty("검색 결과 없음","기능 ID 또는 기능명을 확인해 주세요."));
+ };
+ let activeGroup="";
  $("view").querySelectorAll("[data-audit-group]").forEach(b=>b.onclick=()=>{
-  const g=groups.find(x=>x.name===b.dataset.auditGroup);
-  if(!g)return;
-  $("auditDetail").innerHTML='<h3>'+esc(g.name)+'</h3>'+
-  '<p style="color:var(--secondary);font-size:12px">원본 ID: TV-'+String(g.start).padStart(3,"0")+
-  ' ~ TV-'+String(g.end).padStart(3,"0")+' · 총 '+g.count+'개</p>'+
-  '<div class="notice-block"><b>정적 APK 기능 근거는 존재하지만 모바일 웹 1:1 동등성 검증은 미완료입니다.</b>'+
-  '<br>정확한 기능명과 XML/브리지 근거는 339항목 원본 명세서에 있습니다.</div>';
+  activeGroup=b.dataset.auditGroup;show(activeGroup,$("auditSearch").value);
+  host.scrollIntoView({behavior:"smooth",block:"start"});
+ });
+ $("auditSearch").oninput=()=>show(activeGroup,$("auditSearch").value);
+ if(typeof window.loadFeatureRegistry!=="function"){
+  host.innerHTML=empty("원본 기능 목록 로드 실패","기능 레지스트리 스크립트가 없습니다.");
+  return;
+ }
+ window.loadFeatureRegistry().then(rows=>{
+  if(state.page!=="features")return;
+  featureList=rows;
+  if(rows.length!==339)throw new Error("원본 기능 수 불일치");
+  show();
+ }).catch(err=>{
+  if(state.page==="features")host.innerHTML=
+   empty("기능 명세 로드 실패",err.message||"압축된 원장 읽기 실패");
  });
 }
 const groupPageMapping={
