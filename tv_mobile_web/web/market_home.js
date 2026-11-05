@@ -28,7 +28,10 @@ function hydrate(node){
   '<small>행사일 확인 전</small></div>').join("")+'</div>';
  }else if(w.kind==="summary"){
   body.innerHTML='<div class="tv-copy-carousel" tabindex="0">'+w.symbols.map(card).join("")+
-  '</div><div class="tv-copy-chart-space">종목을 선택하면 실제 5년 일봉 차트를 이곳에 표시합니다.</div>';
+  '</div><div class="tv-copy-chart-space">실제 저장 일봉을 확인하고 있습니다.</div>';
+  const originalSymbol=S().symbol(w.symbols[0]||"");
+  if(originalSymbol&&window.TVMarketChart)window.TVMarketChart.show(
+   body.querySelector(".tv-copy-chart-space"),originalSymbol);
  }else{
   body.innerHTML='<div class="tv-copy-rank">'+w.symbols.map((code,i)=>
   '<div class="tv-copy-rank-item"><em>'+(i+1)+'</em>'+card(code)+'</div>').join("")+'</div>';
@@ -51,7 +54,7 @@ function render(){
  '<p>'+esc(g.subtitle)+'</p></div>'+
  '<button data-copy-region="'+esc(g.id)+'">모두 보기 ›</button></header>'+
  '<div class="tv-copy-grid">'+g.widgets.map(w=>
- '<article class="tv-copy-widget'+(w.kind==="summary"?" featured":"")+
+ '<article class="tv-copy-widget'+(["summary","curve","heatmap","map"].includes(w.kind)?" featured":"")+
  '" data-widget="'+esc(w.id)+'"><header><h3>'+esc(w.title)+'</h3>'+
  '<button data-copy-widget="'+esc(w.id)+'">전체 보기 ›</button></header>'+
  '<div class="tv-copy-widget-body"><div class="tv-copy-skeleton">조회 준비 중…</div></div>'+
