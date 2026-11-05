@@ -187,8 +187,18 @@ _chart_job = {"state":"idle"}
 _chart_task = None
 
 
+def _storage_path(envname: str, volume_directory: str) -> str:
+    # Railway has persistent /data. Local browser CI hosts may not.
+    explicit=os.getenv(envname)
+    if explicit:
+        return explicit
+    if Path("/data").is_dir() and os.access("/data",os.W_OK):
+        return "/data/"+volume_directory
+    return str(Path.home()/".local"/"share"/"tv-independent-lab"/volume_directory)
+
+
 def _history_store():
-    return ChartHistoryStore(os.getenv("TV_CHART_DATA_ROOT","/data/tv-chart-5y"))
+    return ChartHistoryStore(_storage_path("TV_CHART_DATA_ROOT","tv-chart-5y"))
 
 
 class CollectDaily(BaseModel):
@@ -339,7 +349,7 @@ _last_manual_taxonomy_attempt = None
 
 
 def _taxonomy_store():
-    return MarketTaxonomyStore(os.getenv("TV_MARKET_TAXONOMY_ROOT", "/data/tv-market-taxonomy"))
+    return MarketTaxonomyStore(_storage_path("TV_MARKET_TAXONOMY_ROOT","tv-market-taxonomy"))
 
 
 @app.get("/api/taxonomy")
@@ -407,7 +417,7 @@ _market_graph_last_attempt=None
 
 
 def _market_graph():
-    return WorldMarketPageGraph(os.getenv("TV_MARKET_TAXONOMY_ROOT","/data/tv-market-taxonomy"))
+    return WorldMarketPageGraph(_storage_path("TV_MARKET_TAXONOMY_ROOT","tv-market-taxonomy"))
 
 
 @app.get("/api/taxonomy/pages")
