@@ -61,9 +61,10 @@
    return;
   }
   const current=++seq;rows.textContent="실제 시장 종목 10개 조회 중…";
-  const specific=rankings[w.id]&&page===1&&sort==="volume";
+  const specific=!!rankings[w.id]&&sort==="volume";
   const url=specific?
-   "/api/explore/ranking/"+encodeURIComponent(g.scanner)+"/"+rankings[w.id]+"?limit=10":
+   "/api/explore/ranking/"+encodeURIComponent(g.scanner)+"/"+rankings[w.id]+
+    "?limit=10&offset="+((page-1)*10):
    "/api/markets/"+encodeURIComponent(g.scanner)+"?limit=10&offset="+
     ((page-1)*10)+"&order="+sort;
   try{
@@ -71,7 +72,6 @@
    if(!response.ok)throw Error("HTTP "+response.status);
    const result=await response.json();if(current!==seq||!rows.isConnected)return;
    const items=Array.isArray(result.items)?result.items:[];
-   const exact=specific&&rankings[w.id]!=="volatility"?false:false;
    rows.innerHTML='<p class="tv-copy-data-warning">'+
     (specific?"실제 스캐너의 해당 정렬값을 사용했습니다. 원본 위젯과 완전한 필터 동등성은 미검증입니다.":
     "실제 시장 전체 종목을 조회했습니다. 이 위젯만의 전용 조건과 일치한다는 뜻은 아닙니다.")+
@@ -87,7 +87,6 @@
    rows.querySelectorAll("[data-d-chart]").forEach(b=>b.onclick=()=>window.tvMarketNavigate?.("chart",{symbol:b.dataset.dChart}));
    let total=result.total_count==null?Math.max(1,page+(items.length===10?1:0)):
     Math.max(1,Math.ceil(Number(result.total_count)/10));
-   if(specific)total=1;
    pager.innerHTML='<nav class="tv-copy-detail-pager"><button data-d-prev'+(page===1?' disabled':'')+
     '>이전</button><span>'+page+' / '+total+'페이지</span>'+
     '<button data-d-next'+(page>=total?' disabled':'')+'>다음</button>'+
