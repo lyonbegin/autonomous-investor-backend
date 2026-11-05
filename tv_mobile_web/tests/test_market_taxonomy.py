@@ -220,3 +220,56 @@ def test_legacy_fee_only_snapshot_is_quarantined_before_correct_recollect(tmp_pa
     assert {x["display"] for x in new["records"]}=={
         "NASDAQ Stock Market Stocks","Korea Stock Exchange Stocks"}
     assert not any(x["display"]=="Free" for x in new["records"])
+
+
+
+def test_full_source_directory_preserves_every_provider_and_reports_inferred_asset(tmp_path,monkeypatch):
+    """API exposes 417 distinct actual-shaped source records, no 14-market cap."""
+    store=MarketTaxonomyStore(tmp_path)
+    html="<table><tr><th>Data source</th><th>Price</th></tr>"
+    html+="".join(
+        f"<tr><th>Provider {i} "+("Stocks" if i%3==0 else "Options" if i%3==1 else "Unknown")+
+        "</th><td>Free</td></tr>" for i in range(417))
+    html+="</table>"
+    store.save(html)
+    monkeypatch.setattr(server,"_taxonomy_store",lambda:store)
+    client=TestClient(server.app)
+    first=client.get("/api/taxonomy/sources?limit=100&offset=0").json()
+    assert first["total_source_rows"]==417
+    assert first["total_matches"]==417
+    assert len(first["items"])==100
+    assert first["has_more"] is True
+    assert first["all_source_rows_retained"] is True
+    assert first["classification_verified"] is False
+    assert first["five_year_daily_collected_for_all"] is False
+    final=client.get("/api/taxonomy/sources?limit=100&offset=400").json()
+    assert len(final["items"])==17
+    assert final["has_more"] is False
+    assert final["items"][-1]["display"]=="Provider 416 Unknown"
+    options=client.get("/api/taxonomy/sources?asset=options&limit=200").json()
+    assert options["total_matches"]==139
+    assert all("options" in x["asset_type_candidate_ids"] for x in options["items"])
+    misc=client.get("/api/taxonomy/sources?asset=unclassified&limit=200").json()
+    assert misc["total_matches"]==139
+    assert len(misc["items"])==139
+    assert client.get("/api/taxonomy/sources?asset=commodities").status_code==422
+    assert client.get("/api/taxonomy/sources?limit=1001").status_code==422
+
+
+def test_historical_provider_rows_cannot_be_mistaken_for_current_support(tmp_path,monkeypatch):
+    store=MarketTaxonomyStore(tmp_path)
+    store.save("""<table><tr><th>Data source</th><th>Price</th></tr>
+        <tr><th>Exchange One Stocks</th><td>Free</td></tr>
+        <tr><th>Exchange Two Options</th><td>Free</td></tr>
+        </table>""")
+    store.save("""<table><tr><th>Data source</th><th>Price</th></tr>
+        <tr><th>Exchange One Stocks</th><td>Free</td></tr>
+        </table>""")
+    monkeypatch.setattr(server,"_taxonomy_store",lambda:store)
+    client=TestClient(server.app)
+    allrows=client.get("/api/taxonomy/sources").json()
+    current=client.get("/api/taxonomy/sources?include_historical=false").json()
+    assert allrows["total_source_rows"]==2
+    assert allrows["historical_only_row_count"]==1
+    assert current["total_matches"]==1
+    assert current["items"][0]["display"]=="Exchange One Stocks"
