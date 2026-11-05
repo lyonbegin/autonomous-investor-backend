@@ -105,6 +105,8 @@ def main():
         assert page.locator("#worldAssetTabs .world-asset").count()==9
         page.locator("#worldCountryList .world-country").first.wait_for()
         assert page.locator("#worldCountryList .world-country").count()==10
+        page.locator("#worldFeedList .world-feed").first.wait_for(timeout=10000)
+        page.locator("#worldGraphList .world-graph-node").first.wait_for(timeout=10000)
         assert page.locator("#worldFeedList .world-feed").count()==10
         assert page.locator("#worldGraphList .world-graph-node").count()==10
         # Country, provider and menu lists MUST NOT download all entries on load.
