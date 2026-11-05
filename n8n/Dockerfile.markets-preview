@@ -3,7 +3,7 @@ WORKDIR /app
 COPY n8n/admin-console/markets.html /app/index.html
 COPY n8n/admin-console/markets-chart.js /app/markets-chart.js
 COPY n8n/markets-preview/server.py /app/server.py
-ENV PORT=8080 PYTHONUNBUFFERED=1
+ENV PORT=8080 PYTHONUNBUFFERED=1 MARKETS_PROBE_ON_START=1
 RUN python -m py_compile /app/server.py
 EXPOSE 8080
 CMD ["python", "/app/server.py"]
