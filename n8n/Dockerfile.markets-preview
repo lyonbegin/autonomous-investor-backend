@@ -1,6 +1,9 @@
 FROM python:3.12-alpine
 WORKDIR /app
 COPY n8n/admin-console/markets.html /app/index.html
-ENV PORT=8080
+COPY n8n/admin-console/markets-chart.js /app/markets-chart.js
+COPY n8n/markets-preview/server.py /app/server.py
+ENV PORT=8080 PYTHONUNBUFFERED=1
+RUN python -m py_compile /app/server.py
 EXPOSE 8080
-CMD ["sh", "-c", "exec python -m http.server \"${PORT:-8080}\" --bind 0.0.0.0 --directory /app"]
+CMD ["python", "/app/server.py"]
