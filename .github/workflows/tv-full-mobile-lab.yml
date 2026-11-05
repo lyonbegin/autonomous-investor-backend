@@ -1,0 +1,48 @@
+name: TradingView Android full-app mobile-web isolated lab
+on:
+  push:
+    paths:
+      - "tv_mobile_web/**"
+      - ".github/workflows/tv-full-mobile-lab.yml"
+  pull_request:
+    paths:
+      - "tv_mobile_web/**"
+      - ".github/workflows/tv-full-mobile-lab.yml"
+  workflow_dispatch:
+jobs:
+  mobile-browser-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install isolated server and browser tests
+        run: |
+          pip install -r tv_mobile_web/requirements.txt
+          pip install playwright==1.56.0
+          python -m playwright install --with-deps chromium
+      - name: Source inspection and basic API tests
+        run: |
+          node --check tv_mobile_web/web/app.js
+          python -m pytest -q tv_mobile_web/tests/test_server.py
+      - name: Start standalone mobile app (no cron, no n8n changes)
+        run: |
+          uvicorn tv_mobile_web.server:app --host 127.0.0.1 --port 8855 \
+            > /tmp/tv-mobile-lab-server.log 2>&1 &
+          for attempt in $(seq 1 45); do
+            if curl -fsS http://127.0.0.1:8855/health; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/tv-mobile-lab-server.log
+          exit 1
+      - name: Chromium responsive UI browser scenarios with explicit market fixtures
+        run: python tv_mobile_web/tests/browser_e2e.py
+      - name: Upload generated screenshots, not Android source or price data
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tv-android-full-mobile-lab-screenshots
+          path: /tmp/mobile-app-lab-evidence/
+          if-no-files-found: warn
