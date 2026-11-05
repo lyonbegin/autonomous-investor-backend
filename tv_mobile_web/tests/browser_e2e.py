@@ -77,7 +77,7 @@ def main():
         page.locator("#searchDirectChart").click()
         assert page.locator("#chartSymbolInput").input_value()=="NASDAQ:AAPL"
         page.locator("#accountButton").click()
-        assert "로그인" in page.locator("#view").inner_text()
+        assert "계정" in page.locator("#view").inner_text()
         page.locator('[data-nav="menu"]').last.click()
         page.locator('[data-page="settings"]').first.click()
         page.locator("#themeSelect").select_option("dark")
