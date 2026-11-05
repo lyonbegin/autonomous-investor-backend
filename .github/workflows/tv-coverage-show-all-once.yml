@@ -1,0 +1,65 @@
+name: Explicit one-off TradingView Show all provider refresh
+on:
+  push:
+    paths:
+      - ".github/workflows/tv-coverage-show-all-once.yml"
+jobs:
+  expand-public-source-list-once:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Trigger exactly one manual source update after new preview deployment
+        run: |
+          python - <<'PY'
+          import json,time,urllib.request,urllib.error
+          from pathlib import Path
+          base="https://tradingview-full-mobile-web-lab-production.up.railway.app"
+          def req(path,method="GET"):
+              request=urllib.request.Request(base+path,method=method,
+                  headers={"Accept":"application/json"})
+              try:
+                  with urllib.request.urlopen(request,timeout=210) as result:
+                      return result.status,json.loads(result.read())
+              except urllib.error.HTTPError as exc:
+                  return exc.code,json.loads(exc.read())
+          for attempt in range(50):
+              try:
+                  status,catalog=req("/api/taxonomy")
+                  if status==200 and "source_ui_expansion" in catalog:
+                      break
+              except Exception as exc:
+                  print("WAIT_SHOW_ALL_DEPLOY",type(exc).__name__,attempt,flush=True)
+              time.sleep(5)
+          else:
+              raise RuntimeError("new Show all collector was not deployed")
+          before=catalog["source_row_count"]
+          response,body=req("/api/taxonomy/refresh","POST")
+          after_status,after=req("/api/taxonomy")
+          audit={
+              "before_provider_rows":before,
+              "after_provider_rows":after.get("source_row_count"),
+              "after_latest_html_rows":after.get("source_latest_visible_rows"),
+              "historical_rows_preserved":after.get("historical_rows_preserved"),
+              "show_all":after.get("source_ui_expansion"),
+              "manual_update_http_status":response,
+              "manual_update_result":body,
+              "source_catalog_http_status":after_status,
+              "all_world_symbols_downloaded":False,
+              "run_by_schedule":False,
+          }
+          Path("/tmp/tradingview-full-providers-after-click.json").write_text(
+              json.dumps(audit,ensure_ascii=False,indent=2))
+          print("TRADINGVIEW_PUBLIC_SHOW_ALL_AUDIT",
+                json.dumps(audit,ensure_ascii=False),flush=True)
+          if response!=200:
+              raise RuntimeError("Manual Show all source refresh failed; see evidence")
+          if (after.get("source_row_count",0) or 0)<before:
+              raise RuntimeError("Provider list shrunk unexpectedly")
+          PY
+      - name: Save exact Show all status and preserved provider counts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tradingview-real-show-all-manual-20261105
+          path: /tmp/tradingview-full-providers-after-click.json
+          if-no-files-found: warn
