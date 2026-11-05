@@ -47,3 +47,22 @@
 .world-graph-node small{width:100%;color:var(--secondary);font-size:10px;overflow-wrap:anywhere}
 #worldGraphList{max-height:360px}
 #fullGlobalMarketCatalog .mini-title{font-size:13px;letter-spacing:-.15px}
+
+/* Ten-at-a-time pagers: numeric 1/2/3/4, direct page jump, responsive layout. */
+.world-list-section{margin-top:20px;padding-top:12px;border-top:1px solid var(--border)}
+.world-pager{display:flex;align-items:center;gap:5px;flex-wrap:wrap;padding:13px 0;margin:8px 0}
+.world-page-btn.active{background:var(--blue);color:white;border-color:var(--blue)}
+.world-jump-form{display:flex;align-items:center;gap:6px;margin-left:6px}
+.world-jump-form label{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--secondary)}
+.world-page-number{width:74px!important;padding:7px 9px!important;text-align:center}
+.world-page-status{font-size:10px;color:var(--secondary);margin-left:6px;white-space:nowrap}
+.world-ellipsis{padding:0 4px;color:var(--secondary)}
+#worldSourcesPanel,#worldCountriesPanel,#worldPagesPanel{min-height:65px}
+#worldCountryList{max-height:none;grid-template-columns:repeat(2,minmax(0,1fr));overflow:visible}
+#worldFeedList,#worldGraphList{max-height:none;overflow:visible}
+@media(max-width:760px){
+ .world-pager{gap:4px}
+ .world-pager .btn.small{padding:7px 9px}
+ .world-jump-form{margin-left:0}
+ .world-page-status{width:100%;margin-left:0}
+}
