@@ -72,15 +72,28 @@ class ChartHistoryStore:
         # Original WebSocket bars are required, not widget data or Yahoo.
         if result.get("source")!="TRADINGVIEW_PUBLIC_CHART_NORMAL_UI_PASSIVE_WEBSOCKET":
             raise ValueError("UNVERIFIED_CHART_PROVENANCE")
-        q=evaluate_history(result.get("bars") or [],interval="1D",asof=asof)
-        if q["observed_count"]<20 or not q["interval_verified"]:
+        latest=evaluate_history(result.get("bars") or [],interval="1D",asof=asof)
+        if latest["observed_count"]<20 or not latest["interval_verified"]:
             raise ValueError("NO_VERIFIED_DAILY_CHART_BARS")
+        # Preserve previously received real daily candles on manual refresh.
+        # A partial WebSocket response must not destroy an older full snapshot.
+        previous=[]
+        saved=self.status(symbol)
+        if saved["saved"]:
+            previous=self.read(symbol)["bars"]   # SHA256 verified, or fail closed
+        combined={b["time_ms"]:b for b in previous}
+        combined.update({b["time_ms"]:b for b in latest["bars"]})
+        q=evaluate_history(list(combined.values()),interval="1D",asof=asof)
+        if q["observed_count"]<20 or not q["interval_verified"]:
+            raise ValueError("MERGED_CHART_DATA_FAILED_DAILY_VALIDATION")
         payload={
             "schema_version":1,"symbol":symbol,"timeframe":"1D","years":5,
             "asof_exclusive":str(asof),
             "source":"TRADINGVIEW_PUBLIC_CHART_NORMAL_UI_PASSIVE_WEBSOCKET",
             "license_for_public_redistribution":False,
             "quality":{k:v for k,v in q.items() if k!="bars"},
+            "merged_previous_valid_bars":len(previous),
+            "new_observed_valid_bars":latest["observed_count"],
             "bars":q["bars"],
         }
         raw=_encoded(payload)
