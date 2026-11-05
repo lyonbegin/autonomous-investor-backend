@@ -114,16 +114,16 @@ def main():
         # Pages 2, 3, 4 and direct page 234 are backed by independent HTTP calls.
         for number in (2,3,4):
             page.locator('#worldSourcesPanel [data-world-page="'+str(number)+'"]').first.click()
-            page.wait_for_function("(n) => document.querySelector('#worldSourcesPanel .world-page-status')?.textContent?.startsWith(n+'/')",arg=str(number))
+            page.wait_for_function("(n) => document.querySelector('#worldSourcesPanel .world-page-status')?.textContent?.startsWith(n+' /')",arg=str(number))
             assert page.locator("#worldFeedList .world-feed").count()==10
         assert ("sources",4,10) in api_calls
         page.locator('#worldPagesPanel .world-page-number').fill("234")
         page.locator('#worldPagesPanel button[type=submit]').click()
-        page.wait_for_function("() => document.querySelector('#worldPagesPanel .world-page-status')?.textContent?.startsWith('234/')")
+        page.wait_for_function("() => document.querySelector('#worldPagesPanel .world-page-status')?.textContent?.startsWith('234 /')")
         assert ("pages",234,10) in api_calls
         assert page.locator("#worldGraphList .world-graph-node").count()==10
         page.locator('#worldCountriesPanel [data-world-page="2"]').first.click()
-        page.wait_for_function("() => document.querySelector('#worldCountriesPanel .world-page-status')?.textContent?.startsWith('2/')")
+        page.wait_for_function("() => document.querySelector('#worldCountriesPanel .world-page-status')?.textContent?.startsWith('2 /')")
         assert ("countries",2,10) in api_calls
         # Scanner supports a direct jump to page 234 without earlier requests.
         page.locator('#marketJumpForm input[name="page"]').fill("234")
