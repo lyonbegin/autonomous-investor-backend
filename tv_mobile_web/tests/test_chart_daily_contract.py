@@ -1,0 +1,104 @@
+"""Protect the user's exact request: five calendar years of DAILY (1D) OHLCV.
+
+These tests use explicit synthetic fixtures only for verification and never
+report that fixture as collected TradingView market data.
+"""
+from datetime import date, datetime, timedelta, timezone
+
+import pytest
+from fastapi.testclient import TestClient
+
+from tv_mobile_web.chart_observer import TIMEFRAMES, chart_url, evaluate_history, five_year_start
+from tv_mobile_web.chart_store import ChartHistoryStore
+from tv_mobile_web.server import app
+
+ASOF = date(2026, 11, 5)
+
+
+def simulated_trading_dates():
+    out = []
+    d = five_year_start(ASOF)
+    while d < ASOF:
+        if d.weekday() < 5:
+            t = int(datetime.combine(d, datetime.min.time(), timezone.utc).timestamp() * 1000)
+            out.append({
+                "time_ms": t,
+                "open": 100.0,
+                "high": 101.0,
+                "low": 99.0,
+                "close": 100.0,
+                "volume": 2000.0,
+            })
+        d += timedelta(days=1)
+    return out
+
+
+def test_only_one_daily_timeframe_and_five_year_url():
+    assert TIMEFRAMES == {"1D": ("일봉", 86400)}
+    assert chart_url("NASDAQ:AAPL", "1D") == (
+        "https://www.tradingview.com/chart/?symbol=NASDAQ%3AAAPL"
+        "&interval=1D&range=60M")
+    for interval in ("1", "5", "60", "120", "1W"):
+        with pytest.raises(ValueError, match="UNSUPPORTED_CHART_TIMEFRAME"):
+            chart_url("NASDAQ:AAPL", interval)
+
+
+def test_app_options_are_daily_only():
+    client = TestClient(app)
+    result = client.get("/api/chart/options")
+    assert result.status_code == 200
+    assert result.json()["periods"] == [{"value": 5, "label": "최근 5년"}]
+    assert result.json()["intervals"] == [{"value": "1D", "label": "일봉"}]
+    assert result.json()["never_auto_collect"] is True
+
+
+@pytest.mark.parametrize("minutes", ["1", "5", "15", "60", "240", "1W"])
+def test_manual_endpoint_rejects_every_non_daily_frame_before_browser_starts(minutes):
+    client = TestClient(app)
+    response = client.post("/api/chart/collect", json={
+        "symbol": "NASDAQ:AAPL", "years": 5, "interval": minutes,
+    })
+    assert response.status_code == 422
+
+
+def test_actual_date_coverage_check_cannot_be_faked_by_300_daily_bars():
+    history = simulated_trading_dates()
+    all_days = evaluate_history(history, interval="1D", asof=ASOF)
+    assert all_days["five_year_window_covered"] is True
+    assert all_days["observed_count"] > 1000
+    only_latest = evaluate_history(history[-300:], interval="1D", asof=ASOF)
+    assert only_latest["five_year_window_covered"] is False
+    assert only_latest["coverage_status"] == "PARTIAL_HISTORY"
+    for interval in ("1", "5", "60"):
+        with pytest.raises(ValueError, match="INVALID_HISTORY_PARAMETERS"):
+            evaluate_history(history, interval=interval, asof=ASOF)
+
+
+def test_private_store_saves_only_verified_daily_bars(tmp_path):
+    store = ChartHistoryStore(tmp_path)
+    bars = simulated_trading_dates()
+    result = store.save_observation({
+        "symbol": "NASDAQ:AAPL",
+        "interval": "1D",
+        "source": "TRADINGVIEW_PUBLIC_CHART_NORMAL_UI_PASSIVE_WEBSOCKET",
+        "bars": bars,
+    }, ASOF)
+    assert result["saved"]
+    assert result["bar_count"] == len(bars)
+    assert result["five_year_extent_covered"]
+    loaded = store.read("NASDAQ:AAPL")
+    assert loaded["quality"]["observed_count"] == len(bars)
+    assert loaded["bars"][0]["time_ms"] == bars[0]["time_ms"]
+    assert loaded["metadata"]["interval"] == "1D"
+    with pytest.raises(ValueError, match="STORE_ACCEPTS_DAILY_ONLY"):
+        store.save_observation({
+            "symbol": "NASDAQ:AAPL", "interval": "1",
+            "source": "TRADINGVIEW_PUBLIC_CHART_NORMAL_UI_PASSIVE_WEBSOCKET",
+            "bars": bars,
+        }, ASOF)
+    with pytest.raises(ValueError, match="UNVERIFIED_CHART_PROVENANCE"):
+        store.save_observation({
+            "symbol": "NASDAQ:AAPL", "interval": "1D",
+            "source": "YAHOO_FAKE_OR_WIDGET",
+            "bars": bars,
+        }, ASOF)
