@@ -1,0 +1,76 @@
+name: One-off complete multiasset Markets root discovery
+on:
+  push:
+    paths:
+      - ".github/workflows/tv-all-root-menus-next-pages-once.yml"
+jobs:
+  discover-all-root-asset-pages:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Continue actual TradingView public Markets source hierarchy, keeping all pages
+        run: |
+          python - <<'PY'
+          import json,time,urllib.request,urllib.error
+          from pathlib import Path
+          base="https://tradingview-full-mobile-web-lab-production.up.railway.app"
+          records=[]
+          def get(path,method="GET"):
+              req=urllib.request.Request(base+path,method=method,headers={"Accept":"application/json"})
+              try:
+                  with urllib.request.urlopen(req,timeout=210) as r:
+                      return r.status,json.loads(r.read())
+              except urllib.error.HTTPError as e:
+                  try: return e.code,json.loads(e.read())
+                  except ValueError: return e.code,{"error":str(e)}
+          try:
+              code,before=get("/api/taxonomy/pages/status")
+              assert code==200
+              print("SOURCE_ROOT_DISCOVERY_BEFORE",json.dumps(before,ensure_ascii=False),flush=True)
+              for i in range(3):
+                  if i:time.sleep(42)
+                  try:
+                      code,result=get("/api/taxonomy/pages/refresh?pages=12",method="POST")
+                      record={"batch":i+1,"status":code,"data":result}
+                      records.append(record)
+                      print("REAL_ROOT_MENU_BATCH",i+1,code,json.dumps(result,ensure_ascii=False)[:4500],flush=True)
+                      if code!=200:break
+                      if result.get("summary",{}).get("pending_pages",1)==0:break
+                  except Exception as exc:
+                      records.append({"batch":i+1,"error":type(exc).__name__+":"+str(exc)[:200]})
+                      break
+              code,after=get("/api/taxonomy/pages/status")
+              print("SOURCE_ROOT_DISCOVERY_AFTER",json.dumps(after,ensure_ascii=False),flush=True)
+              code,pages=get("/api/taxonomy/pages?limit=5000")
+              target={
+                  "/markets/stocks/","/markets/funds/","/markets/futures/",
+                  "/markets/forex/","/markets/cryptocurrencies/",
+                  "/markets/indices/","/markets/bonds/","/markets/options/",
+                  "/markets/economy/"
+              }
+              by_path={r["path"]:r for r in pages.get("items",[])}
+              roots=[{"path":v,"status":by_path.get(v,{}).get("status"),
+                      "http_status":by_path.get(v,{}).get("source_status_code")}
+                      for v in sorted(target)]
+              audit={"before":before,"after":after,"batches":records,
+                     "asset_roots":roots,"all_world_symbols_collected":False,
+                     "all_world_menu_pages_exhausted":after.get("public_link_graph_exhausted"),
+                     "manual_only":True}
+              print("SOURCE_ALL_NINE_ROOT_STATES",json.dumps(roots,ensure_ascii=False),flush=True)
+              Path("/tmp/tv-nine-roots-discovery.json").write_text(
+                  json.dumps(audit,ensure_ascii=False,indent=2))
+              assert after["fetched_pages"]>before["fetched_pages"]
+              assert after["source_edges"]>=before["source_edges"]
+              assert all(v in by_path for v in target)
+          except Exception:
+              Path("/tmp/tv-nine-roots-discovery.json").write_text(
+                  json.dumps({"partial_records":records,"status":"ERROR"},ensure_ascii=False,indent=2))
+              raise
+          PY
+      - name: Keep real page/edge counts and all nine source root statuses
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tv-actual-markets-nine-asset-roots-progress
+          path: /tmp/tv-nine-roots-discovery.json
+          if-no-files-found: warn
