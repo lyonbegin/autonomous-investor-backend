@@ -27,7 +27,7 @@ _CAPTURE_LOCK=asyncio.Lock()
 
 class ChartRequest(BaseModel):
     symbol: str=Field(default="NASDAQ:AAPL",max_length=96)
-    interval: Literal["1","3","5","15","30","60","120","240","1D","1W"]="1D"
+    interval: Literal["1D"]="1D"
     years: Literal[5]=5
     max_pans: int=Field(default=12,ge=0,le=MAX_PANS)
     # This endpoint returns an observed-only preview, not a bulk data export.
@@ -44,7 +44,7 @@ def health():
 def chart_options():
     return {
         "periods":[{"value":"5Y","label":"최근 5년"}],
-        "timeframes":[{"value":key,"label":name} for key,(name,_) in TIMEFRAMES.items()],
+        "timeframes":[{"value":"1D","label":"일봉"}],
         "automatic_updates":False,
         "quality_rule":"Never mark 5Y complete unless observed bars reach the requested start and interval is verified",
         "limitations":"TradingView intraday history varies by plan, symbol and timeframe; 5Y minutes are not guaranteed",
