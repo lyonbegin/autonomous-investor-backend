@@ -12,18 +12,9 @@ from urllib.parse import quote, urlparse
 
 from .chart_protocol import ALLOWED_MESSAGES, collect_bars, decode_chart_messages
 
-# Timeframes match TradingView's chart interval query parameter; regular timebars.
+# Fixed 5-year DAILY requirement. Do not expose minute history here.
 TIMEFRAMES = {
-    "1": ("1분", 60),
-    "3": ("3분", 180),
-    "5": ("5분", 300),
-    "15": ("15분", 900),
-    "30": ("30분", 1800),
-    "60": ("1시간", 3600),
-    "120": ("2시간", 7200),
-    "240": ("4시간", 14400),
-    "1D": ("일봉", 86400),
-    "1W": ("주봉", 604800),
+    "1D": ("일봉", 86400),  # 5-year request ALWAYS DAILY, never minute candles
 }
 # Whole symbol is an exchange-prefixed TradingView ticker.
 SYMBOL_PATTERN = re.compile(r"^[A-Z0-9_]{1,30}:[A-Z0-9_.!/-]{1,65}$")
@@ -36,7 +27,7 @@ MAX_PANS = 32
 def chart_url(symbol: str, interval: str) -> str:
     if not SYMBOL_PATTERN.fullmatch(symbol):
         raise ValueError("INVALID_EXCHANGE_PREFIXED_SYMBOL")
-    if interval not in TIMEFRAMES:
+    if interval != "1D":
         raise ValueError("UNSUPPORTED_CHART_TIMEFRAME")
     return (f"https://{TV_HOST}/chart/?symbol={quote(symbol, safe='')}"
             f"&interval={quote(interval, safe='')}&range=60M")
@@ -57,7 +48,7 @@ def evaluate_history(bars: list[dict], *, interval: str,
     The coverage check does NOT confuse a chosen 5Y range on the UI with
     five years' worth of retrieved data. No claim of licensed access.
     """
-    if interval not in TIMEFRAMES or years != 5:
+    if interval != "1D" or years != 5:
         raise ValueError("INVALID_HISTORY_PARAMETERS")
     start=five_year_start(asof)
     start_ms=int(datetime.combine(start,datetime.min.time(),timezone.utc).timestamp()*1000)
@@ -86,7 +77,7 @@ def evaluate_history(bars: list[dict], *, interval: str,
     # Weekly chart exchanges may show holiday variations. The 5Y window
     # requires enough bars AND date depth; flat trading days are not fabricated.
     verified_interval=exact_share>=.20 if len(diffs)>=10 else False
-    tolerance_days=21 if interval in ("1D","1W") else 7
+    tolerance_days=21  # exchange closures and holidays; date extent is not completeness
     first_covered=bool(times and times[0]<=start_ms+tolerance_days*86400000)
     last_covered=bool(times and times[-1]>=end_ms-14*86400000)
     complete=bool(verified_interval and first_covered and last_covered)
@@ -189,7 +180,7 @@ async def observe_five_year_chart(context, *, symbol: str,
             pan_attempts+=1
             await page.wait_for_timeout(load_wait_ms)
         quality=evaluate_history(list(observed.values()),interval=interval,asof=asof)
-        # 5Y interval and 5Y coverage are two different conditions.
+        # Chart time aggregation (1D) and five calendar years of history are two independent checks.
         success=http_status==200 and quality["observed_count"]>=20 and quality["interval_verified"]
         return {
             "status":("OBSERVED_5Y_TIME_EXTENT" if quality["five_year_window_covered"] and success
