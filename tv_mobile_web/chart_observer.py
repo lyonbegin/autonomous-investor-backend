@@ -42,7 +42,7 @@ def five_year_start(asof: date) -> date:
 
 
 def evaluate_history(bars: list[dict], *, interval: str,
-                     asof: date, years: int = 5) -> dict:
+                     asof: date, years: int = 5, symbol: str = "") -> dict:
     """Only observed, valid, chronological OHLCV; never fake missing candles.
 
     The coverage check does NOT confuse a chosen 5Y range on the UI with
@@ -80,7 +80,27 @@ def evaluate_history(bars: list[dict], *, interval: str,
     tolerance_days=21  # exchange closures and holidays; date extent is not completeness
     first_covered=bool(times and times[0]<=start_ms+tolerance_days*86400000)
     last_covered=bool(times and times[-1]>=end_ms-14*86400000)
-    complete=bool(verified_interval and first_covered and last_covered)
+    # Date extent is insufficient: 20 old candles + 300 recent candles must
+    # not pass as "five years complete". Require 90% of expected trading dates.
+    # This is a conservative provisional weekday/24x7 calendar, NOT a full
+    # official exchange holiday-session audit.
+    always_open=symbol.split(":")[0] in {
+        "BINANCE","BYBIT","BITSTAMP","COINBASE","KRAKEN","OKX","BITFINEX"
+    }
+    expected_days=(asof-start).days
+    if not always_open:
+        expected_days=sum((start+timedelta(days=i)).weekday()<5
+                          for i in range(expected_days))
+    observed_dates={datetime.fromtimestamp(t/1000,timezone.utc).date()
+                    for t in times}
+    if not always_open:
+        counted=sum(d.weekday()<5 for d in observed_dates)
+    else:
+        counted=len(observed_dates)
+    date_density=counted/expected_days if expected_days else 0.0
+    dense_enough=date_density>=.90
+    complete=bool(verified_interval and first_covered and last_covered
+                  and dense_enough)
     return {
         "requested_start":start.isoformat(),
         "requested_end_exclusive":asof.isoformat(),
@@ -94,11 +114,16 @@ def evaluate_history(bars: list[dict], *, interval: str,
         "reaches_requested_start":first_covered,
         "reaches_requested_end":last_covered,
         "five_year_window_covered":complete,
-        "coverage_status":("COVERED_BY_OBSERVED_TIME_EXTENT" if complete
+        "expected_calendar_dates":expected_days,
+        "observed_calendar_dates":counted,
+        "daily_date_coverage_ratio":round(date_density,4),
+        "calendar_assumption":"24x7" if always_open else "weekday",
+        "min_date_coverage_ratio_for_5y":.90,
+        "coverage_status":("COVERED_5Y_DAILY_DATE_DENSITY" if complete
                            else "PARTIAL_HISTORY" if ordered else "NO_BARS_OBSERVED"),
         "market_sessions_filled":False,
         "source_interval_verified_from_bars":verified_interval,
-        "note":"5-year date extent only. Does not certify every exchange trading session; check missing dates.",
+        "note":"At least 90% of assumed dates observed. Official exchange session/holiday calendar still requires audit.",
         "bars":ordered,
     }
 
@@ -226,7 +251,7 @@ async def observe_five_year_chart(context, *, symbol: str,
         #    user drags the PRICE PANE to the right (towards older history).
         #    Do not terminate after just 3 unproductive drags.
         for attempt in range(max_pans):
-            current=evaluate_history(list(observed.values()),interval=interval,asof=asof)
+            current=evaluate_history(list(observed.values()),interval=interval,asof=asof,symbol=symbol)
             if current["five_year_window_covered"]:
                 break
             if len(observed)>last_growth:
@@ -257,7 +282,7 @@ async def observe_five_year_chart(context, *, symbol: str,
             await page.mouse.up()
             pan_attempts+=1
             await page.wait_for_timeout(load_wait_ms)
-        quality=evaluate_history(list(observed.values()),interval=interval,asof=asof)
+        quality=evaluate_history(list(observed.values()),interval=interval,asof=asof,symbol=symbol)
         # Chart time aggregation (1D) and five calendar years of history are two independent checks.
         success=http_status==200 and quality["observed_count"]>=20 and quality["interval_verified"]
         return {
