@@ -167,3 +167,151 @@ async def feature_ranges():
                            "count":x[2]-x[1]+1,"audit":"NOT_WEB_PARITY_VERIFIED"}
                           for x in FUNCTION_GROUPS],
     }
+
+
+# Real TradingView chart WebSocket OHLCV research ingestion.
+# This feature belongs ONLY to the isolated mobile-web branch/service.
+# Every collection starts with the user's explicit POST; GET never fetches data.
+import asyncio
+from datetime import datetime, timezone
+from uuid import uuid4
+from fastapi import Body
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel
+from typing import Literal
+
+from .chart_store import ChartHistoryStore
+from .chart_observer import chart_url, observe_five_year_chart
+
+_chart_job = {"state":"idle"}
+_chart_task = None
+
+
+def _history_store():
+    return ChartHistoryStore(os.getenv("TV_CHART_DATA_ROOT","/data/tv-chart-5y"))
+
+
+class CollectDaily(BaseModel):
+    symbol: str
+    years: Literal[5] = 5
+    interval: Literal["1D"] = "1D"
+
+
+@app.get("/api/chart/options")
+def chart_history_options():
+    return {
+        "periods":[{"value":5,"label":"최근 5년"}],
+        "intervals":[{"value":"1D","label":"일봉"}],
+        "requested_from":"existing TradingView /chart link",
+        "transport":"existing WF02 browser WebSocket OHLCV decoder",
+        "never_auto_collect":True,
+        "storage":"private gzip JSON plus SQLite, observed bars only",
+        "end_to_end_live_verified":False,
+    }
+
+
+@app.get("/api/chart/status")
+def chart_history_status(symbol:str):
+    try:
+        return _history_store().status(symbol.upper())
+    except ValueError as exc:
+        raise HTTPException(422,str(exc)) from exc
+
+
+@app.get("/api/chart/history")
+def chart_history_read(symbol:str):
+    try:
+        result=_history_store().read(symbol.upper(),include_bars=True)
+    except ValueError as exc:
+        raise HTTPException(409,str(exc)) from exc
+    if not result["metadata"]["saved"]:
+        raise HTTPException(404,"FIVE_YEAR_CHART_HISTORY_NOT_COLLECTED")
+    return JSONResponse(result,headers={"Cache-Control":"private, no-store"})
+
+
+@app.get("/api/chart/totals")
+def chart_history_totals():
+    return _history_store().totals()
+
+
+@app.get("/api/chart/jobs/current")
+def chart_capture_current():
+    return dict(_chart_job)
+
+
+async def _capture_5y_daily(job_id,symbol,asof):
+    global _chart_job
+    try:
+        from playwright.async_api import async_playwright
+        async with async_playwright() as p:
+            browser=await p.chromium.launch(
+                headless=True,args=["--no-sandbox","--disable-dev-shm-usage"])
+            try:
+                context=await browser.new_context(
+                    viewport={"width":1440,"height":900},
+                    locale="ko-KR",
+                )
+                try:
+                    capture=await observe_five_year_chart(
+                        context,symbol=symbol,interval="1D",
+                        asof=asof,max_pans=24,load_wait_ms=1100)
+                finally:
+                    await context.close()
+            finally:
+                await browser.close()
+        if job_id!=_chart_job.get("id"):
+            return
+        count=capture.get("observed_count",0)
+        if count<20 or not capture.get("interval_verified"):
+            _chart_job.update({
+                "state":"failed","reason":"CHART_DAILY_BARS_NOT_VERIFIED",
+                "observed_count":count,
+                "websocket_connections":capture.get("ws_connections",0),
+                "http_status":capture.get("http_status"),
+                "outbound_chart_method_counts":capture.get("outbound_chart_method_counts",{}),
+                "finished_at":datetime.now(timezone.utc).isoformat(),
+            })
+            return
+        saved=_history_store().save_observation(capture,asof)
+        _chart_job.update({
+            "state":"completed" if saved["five_year_extent_covered"]
+                    else "saved_partial",
+            "storage":saved,"observed_count":count,
+            "websocket_connections":capture.get("ws_connections",0),
+            "history_request_observed":capture.get("history_request_observed",False),
+            "outbound_chart_method_counts":capture.get("outbound_chart_method_counts",{}),
+            "finished_at":datetime.now(timezone.utc).isoformat(),
+        })
+    except Exception as exc:
+        # Browser or provider error is not translated into empty/fake candles.
+        _chart_job.update({
+            "state":"failed",
+            "reason":f"{type(exc).__name__}: {str(exc)[:250]}",
+            "finished_at":datetime.now(timezone.utc).isoformat(),
+        })
+
+
+@app.post("/api/chart/collect",status_code=202)
+async def collect_chart_5y_daily(payload:CollectDaily):
+    global _chart_job,_chart_task
+    symbol=payload.symbol.strip().upper()
+    try:
+        target=chart_url(symbol,"1D")
+    except ValueError as exc:
+        raise HTTPException(422,str(exc)) from exc
+    if _chart_task is not None and not _chart_task.done():
+        raise HTTPException(409,"ALREADY_COLLECTING_ANOTHER_CHART")
+    if _chart_job.get("state")=="running":
+        raise HTTPException(409,"ALREADY_COLLECTING_ANOTHER_CHART")
+    now=datetime.now(timezone.utc)
+    _chart_job={
+        "id":str(uuid4()),"state":"running","symbol":symbol,
+        "years":5,"interval":"1D",
+        "source_chart_url":target,
+        "started_at":now.isoformat(),
+        "asof_exclusive":now.date().isoformat(),
+        "automatic":False,"status_warning":"Date extent != audited exchange sessions",
+    }
+    _chart_task=asyncio.create_task(
+        _capture_5y_daily(_chart_job["id"],symbol,now.date()))
+    return JSONResponse(_chart_job,status_code=202,headers={"Cache-Control":"no-store"})
