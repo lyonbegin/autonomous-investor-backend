@@ -16,7 +16,10 @@ import math
 import re
 from urllib.parse import quote, urlparse
 
-from official_chart_probe import ALLOWED_MESSAGES, collect_bars, decode_chart_messages
+try:
+    from browser_worker.official_chart_probe import ALLOWED_MESSAGES, collect_bars, decode_chart_messages
+except ModuleNotFoundError:
+    from official_chart_probe import ALLOWED_MESSAGES, collect_bars, decode_chart_messages
 
 # Timeframes match TradingView's chart interval query parameter; regular timebars.
 TIMEFRAMES = {
