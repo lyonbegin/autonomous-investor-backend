@@ -153,29 +153,107 @@ async def observe_five_year_chart(context, *, symbol: str,
     last_growth=0
     stagnation=0
     pan_attempts=0
+    range_clicked=False
+    range_api_available=False
+    range_api_invoked=False
+    range_errors=[]
+    first_count=0
+    range_control_candidates=[]
     try:
         response=await page.goto(target,wait_until="domcontentloaded",timeout=45000)
         http_status=response.status if response else None
         await page.wait_for_timeout(9000)
-        # History is requested by ordinary UI panning, not proprietary
-        # API calls. Old bars might never load for access/plan reasons.
-        for _ in range(max_pans):
+        first_count=len(observed)
+        # APK sources provide setResolution('1D') and ranges().selectRange(...)
+        # through TradingViewApi; this bridge may not be exposed on the PUBLIC
+        # website. Discover presence at runtime, do not assume it exists.
+        try:
+            inspection=await page.evaluate("""() => ({
+              bridge: !!(window.TradingViewApi && typeof window.TradingViewApi.activeChart === 'function'),
+              rangeButtons: Array.from(document.querySelectorAll('button,[role="button"]'))
+                .map(e=>(e.innerText||e.getAttribute('aria-label')||'').trim())
+                .filter(s=>/^(5Y|5y|5 years|5년|5 Yr|5 yr)$/.test(s)).slice(0,8),
+            })""")
+            range_api_available=bool(inspection.get("bridge"))
+            range_control_candidates=inspection.get("rangeButtons",[])
+        except Exception as exc:
+            range_errors.append("INSPECTION_"+type(exc).__name__)
+
+        # 1. Try ordinary UI 5Y range preset where the chart exposes it.
+        #    This uses the SAME click path as a user, and is preferred over
+        #    any undocumented protocol message construction.
+        try:
+            import re
+            preset=page.get_by_role("button",name=re.compile(r"^(5Y|5 years|5년|5 Yr)$",re.I))
+            if await preset.count():
+                await preset.first.click(timeout=2500)
+                range_clicked=True
+                await page.wait_for_timeout(1800)
+        except Exception as exc:
+            range_errors.append("UI_5Y_"+type(exc).__name__)
+
+        # 2. When the native app-style TradingViewApi bridge is genuinely
+        #    available, request DAILY resolution and the explicit five-year
+        #    date range using its own public page methods. Never synthesize or
+        #    replay WebSocket traffic and never access another site's cookies.
+        if range_api_available and not range_clicked:
+            try:
+                outcome=await page.evaluate("""async ({startSec,endSec}) => {
+                  const chart=window.TradingViewApi?.activeChart?.();
+                  if(!chart)return {invoked:false,error:'NO_ACTIVE_CHART'};
+                  if(typeof chart.setResolution==='function'){
+                    await Promise.resolve(chart.setResolution('1D'));
+                  }
+                  const ranges=typeof chart.ranges==='function'?chart.ranges():null;
+                  if(!ranges||typeof ranges.selectRange!=='function')
+                    return {invoked:false,error:'NO_SELECT_RANGE'};
+                  await Promise.resolve(ranges.selectRange({from:startSec,to:endSec}));
+                  return {invoked:true};
+                }""",{
+                    "startSec":int(datetime.combine(five_year_start(asof),
+                              datetime.min.time(),timezone.utc).timestamp()),
+                    "endSec":int(datetime.combine(asof,
+                              datetime.min.time(),timezone.utc).timestamp()),
+                })
+                range_api_invoked=bool(outcome.get("invoked"))
+                if outcome.get("error"):
+                    range_errors.append(outcome["error"])
+                if range_api_invoked:
+                    await page.wait_for_timeout(1800)
+            except Exception as exc:
+                range_errors.append("NATIVE_RANGE_"+type(exc).__name__)
+        # 3. Additional historical candles normally arrive when the
+        #    user drags the PRICE PANE to the right (towards older history).
+        #    Do not terminate after just 3 unproductive drags.
+        for attempt in range(max_pans):
             current=evaluate_history(list(observed.values()),interval=interval,asof=asof)
             if current["five_year_window_covered"]:
                 break
-            if len(observed)<=last_growth:
-                stagnation+=1
-            else:
+            if len(observed)>last_growth:
                 stagnation=0
-            if stagnation>=3 or len(observed)>=MAX_BARS_OBSERVED:
+            else:
+                stagnation+=1
+            if (stagnation>=16 or len(observed)>=MAX_BARS_OBSERVED):
                 break
             last_growth=len(observed)
-            size=page.viewport_size or {"width":1400,"height":900}
-            w,h=size["width"],size["height"]
-            y=int(h*.56)
-            await page.mouse.move(int(w*.38),y)
+            # Largest on-screen price-pane canvas, not blindly the viewport.
+            canvas=await page.evaluate("""() => Array.from(document.querySelectorAll('canvas'))
+               .map(x=>x.getBoundingClientRect())
+               .filter(r=>r.width>380&&r.height>120&&r.top>=0&&r.top<innerHeight)
+               .sort((a,b)=>b.width*b.height-a.width*a.height)
+               .map(r=>({x:r.x,y:r.y,w:r.width,h:r.height}))[0]||null""")
+            if canvas:
+                start_x=canvas["x"]+canvas["w"]*.35
+                end_x=canvas["x"]+canvas["w"]*.88
+                y=canvas["y"]+canvas["h"]*.55
+            else:
+                size=page.viewport_size or {"width":1440,"height":900}
+                start_x=size["width"]*.33
+                end_x=size["width"]*.85
+                y=size["height"]*.56
+            await page.mouse.move(start_x,y)
             await page.mouse.down()
-            await page.mouse.move(int(w*.84),y,steps=10)
+            await page.mouse.move(end_x,y,steps=14)
             await page.mouse.up()
             pan_attempts+=1
             await page.wait_for_timeout(load_wait_ms)
@@ -191,6 +269,12 @@ async def observe_five_year_chart(context, *, symbol: str,
             "interval":interval,"timeframe_name":TIMEFRAMES[interval][0],
             "url":target,"http_status":http_status,
             "ui_pan_attempts":pan_attempts,"ws_connections":ws_count,
+            "initial_bar_count":first_count,
+            "range_5y_ui_clicked":range_clicked,
+            "native_range_bridge_available":range_api_available,
+            "native_range_api_called":range_api_invoked,
+            "range_control_candidates":range_control_candidates,
+            "range_interaction_errors":range_errors[:6],
             "message_counts":dict(methods),
             "outbound_chart_method_counts":dict(outbound_methods),
             "history_request_observed":outbound_methods["request_more_data"]>0,
