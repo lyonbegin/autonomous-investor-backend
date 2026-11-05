@@ -39,3 +39,11 @@
  #fullGlobalMarketCatalog .input-wrap{flex-wrap:wrap}
  #fullGlobalMarketCatalog .input-wrap input{flex-basis:100%}
 }
+
+/* Preserve every source-linked /markets/ page; pagination keeps UI responsive. */
+.world-graph-node{display:flex;align-items:center;gap:8px;padding:10px;border-bottom:1px solid var(--border);flex-wrap:wrap;font-size:11px}
+.world-graph-node:last-child{border-bottom:0}
+.world-graph-node>a{flex:1;min-width:160px;font-weight:700;color:var(--blue);overflow-wrap:anywhere}
+.world-graph-node small{width:100%;color:var(--secondary);font-size:10px;overflow-wrap:anywhere}
+#worldGraphList{max-height:360px}
+#fullGlobalMarketCatalog .mini-title{font-size:13px;letter-spacing:-.15px}
