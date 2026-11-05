@@ -36,7 +36,15 @@
     '<span class="world-tag">'+escapeHTML(s)+'</span>').join("")+'</div>'+
     '<div class="source-capability">기존 연결 스캐너: '+(rows(active.scanner_routes).length?
     rows(active.scanner_routes).map(escapeHTML).join(" · "):
-    '연결 대기. 데이터 미연결이라는 이유로 자산군을 삭제하지 않습니다.')+'</div>':'')+
+    '연결 대기. 데이터 미연결이라는 이유로 자산군을 삭제하지 않습니다.')+'</div>'+
+    '<div class="source-capability">TradingView 원본 Markets 화면 경로: '+
+    (rows(active.verified_markets_navigation_paths).length?
+      rows(active.verified_markets_navigation_paths)
+        .filter(p=>typeof p==='string' && p.startsWith('/markets/'))
+        .map(p=>'<a href="https://kr.tradingview.com'+escapeHTML(p)+
+          '" target="_blank" rel="noopener">'+escapeHTML(p)+'</a>').join(' · '):
+      'Markets 자체 루트 미확인 · 별도 심볼 검색/옵션 체인에서 다루는 상품')+
+    '</div>':'')+
     '<h3 class="mini-title">여러 자산군에 걸치는 추가 카테고리</h3>'+
     rows(data.additional_cross_asset_facets).map(f=>
     '<details class="world-facet"><summary>'+escapeHTML(f.name)+'</summary><div class="world-tags">'+
