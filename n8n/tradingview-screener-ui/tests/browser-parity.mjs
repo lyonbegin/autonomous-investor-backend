@@ -68,6 +68,11 @@ try{
   let referenceType='missing',referenceShot=null,refTabs=null;
   const originalPage=await ctx.newPage();
   const capturedReqs=[];
+  const capturedResponses=[];
+  originalPage.on('response',async response=>{
+    if(!response.url().includes('/scan?')||response.status()!==200)return;
+    try{const json=await response.json();if(json?.data?.length)capturedResponses.push({url:response.url(),totalCount:json.totalCount,rows:json.data.slice(0,20)})}catch{}
+  });
   originalPage.on('request',request=>{if(request.url().includes('/scan?')){let json=null;try{json=request.postDataJSON()}catch{}capturedReqs.push({url:request.url(),method:request.method(),json});}});
   try{
    let result=await originalPage.goto(original,{waitUntil:'domcontentloaded',timeout:35000});
@@ -90,6 +95,7 @@ try{
     await check(key+': original scan filter2 exact',sameFilter2);
   }
   await fs.writeFile(path.join(OUT,key+'_original_scans.json'),JSON.stringify(capturedReqs,null,2));
+  await fs.writeFile(path.join(OUT,key+'_original_scan_response_sample.json'),JSON.stringify(capturedResponses,null,2));
   if(referenceType==='missing'&&staticRef){const file=path.resolve('evidence',staticRef);try{await fs.access(file);referenceType='captured';referenceShot=file;}catch{}}
   const visual=await screenshotComparison(appShot,referenceShot,key);
   results.push({kind:'page',key,route,title,tabs,filters,rows,source,response_status:response.status(),referenceType,refTabs,visual,exceptions});
