@@ -1,0 +1,29 @@
+name: Screener All Filters Provider Contract Audit
+on:
+  push:
+    branches: [feature/tradingview-screener-ui-parity-20261106]
+    paths: ['.github/workflows/screener-all-filters-contract.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  filter-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    defaults:
+      run:
+        working-directory: n8n/tradingview-screener-ui
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check each filter against unmodified provider scanner
+        run: node tests/filter-catalog-audit.mjs
+      - name: Preserve complete filter status matrix
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: screener-filter-catalog-audit
+          path: n8n/tradingview-screener-ui/artifacts/complete-filter-catalog-audit.json
+          retention-days: 14
