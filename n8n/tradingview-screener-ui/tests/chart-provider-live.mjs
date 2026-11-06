@@ -16,6 +16,15 @@ for(const range of ['5d','1y']){
   probes.push({name:'live Yahoo OHLCV '+range,pass:response.ok&&valid&&ageDays>=-2&&ageDays<30,status:response.status,provider:payload.provider,sourceTicker:payload.resolvedSymbol,interval:payload.interval,rows:bars.length,ageDays,error:payload.error||null});
  }catch(err){probes.push({name:'live Yahoo OHLCV '+range,pass:false,error:String(err)})}
 }
+for(const tvSymbol of ['KRX:005930','KRX:247540']){
+ try{
+  const response=await fetch(BASE+'/api/chart?symbol='+encodeURIComponent(tvSymbol)+'&range=5d',{signal:AbortSignal.timeout(40000)});
+  const p=await response.json(),bars=p.bars||[];
+  const ticker=tvSymbol.split(':')[1];
+  const match=typeof p.resolvedSymbol==='string'&&p.resolvedSymbol.startsWith(ticker+'.')&&['.KS','.KQ'].some(s=>p.resolvedSymbol.endsWith(s));
+  probes.push({name:'live Korean ticker '+tvSymbol,pass:response.ok&&p.currency==='KRW'&&match&&bars.length>=5,status:response.status,currency:p.currency,providerSymbol:p.resolvedSymbol,rows:bars.length,attempts:p.attempts,error:p.error||null});
+ }catch(e){probes.push({name:'live Korean ticker '+tvSymbol,pass:false,error:String(e)})}
+}
 await fs.mkdir('artifacts',{recursive:true});
 await fs.writeFile('artifacts/chart-live-provider.json',JSON.stringify({probes,scope:'Real provider network, never local fixture',at:new Date().toISOString()},null,2));
 for(const p of probes)console.log((p.pass?'PASS':'FAIL')+' '+JSON.stringify(p));
