@@ -131,6 +131,24 @@ for(const s of SCENARIOS){
  }catch(e){assert(s.key+': scenario complete',false,{error:String(e).slice(0,500)});}
  finally{await page.close();}
 }
+const header=await browser.newPage();
+try{
+ await header.goto(ROOT+'/screener/',{waitUntil:'domcontentloaded'});
+ await header.locator('.global-search').click();
+ assert('header: global search button opens interactive screener search',await header.locator('.popover-symbol-search input').count()===1);
+ await header.locator('.pop-header button').click();
+ await header.keyboard.press('Control+k');
+ assert('header: Ctrl+K opens search',await header.locator('.popover-symbol-search').count()===1);
+ await header.locator('.pop-header button').click();
+ const urls=await header.locator('.top-links a').evaluateAll(nodes=>nodes.map(x=>({text:x.textContent,href:x.href})));
+ assert('header: five navigation links resolve to actual destinations',urls.length===5&&urls.every(x=>x.href.startsWith('https://')),{urls});
+ await header.locator('.header-right button[title="언어 선택"]').click();
+ assert('header: language picker opens',await header.locator('.popover-language').count()===1);
+ await header.locator('.pop-header button').click();
+ await header.locator('.header-right button[title="프로필"]').click();
+ assert('header: profile shows account connection status',await header.locator('.popover-account').count()===1);
+}catch(e){assert('header: all navigation scenarios',false,{error:String(e).slice(0,300)});}
+finally{await header.close();}
 const stock=await browser.newPage();
 try{
  await stock.goto(ROOT+'/screener/',{waitUntil:'domcontentloaded'});

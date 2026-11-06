@@ -103,7 +103,8 @@ function App(){
  useEffect(()=>{const handle=e=>{
   if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){e.preventDefault();undoAction();}
   if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='y'){e.preventDefault();redoAction();}
-  if(e.shiftKey&&e.key.toLowerCase()==='f'){e.preventDefault();setPopup('add-filter');}
+  if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();setPopup('symbol-search');}
+  if(e.shiftKey&&e.key.toLowerCase()==='f'){e.preventDefault();setFilterCategory('');setFilterQuery('');setPopup('add-filter');}
   if(e.shiftKey&&e.key.toLowerCase()==='c'){e.preventDefault();setPopup('columns');}
   if(e.shiftKey&&e.key.toLowerCase()==='m'){e.preventDefault();setFullscreen(v=>!v);}
   if(e.key==='Escape')setPopup('');
@@ -182,8 +183,15 @@ function App(){
  return <div className={'site '+(fullscreen?'is-fullscreen ':'')+(settings.compact?'compact ':'')+(['cex','dex'].includes(product)?'short-filters ':'')} data-product={product} data-source={source} data-testid="screener-app">
    {!fullscreen&&<header className="site-header">
      <button className="tv-logo" onClick={()=>switchProduct('stock')} aria-label="홈"><span className="tv-mark">◢◤</span>TradingView</button>
-     <div className="top-links"><button className="global-search"><Search size={20}/>찾기 (Ctrl+K)</button><span className="active">프로덕트</span><span>커뮤니티</span><span>마켓</span><span>브로커</span><span>더보기</span></div>
-     <div className="header-right"><button><Globe2 size={20}/> KO</button><button title="프로필"><UserRound size={20}/></button><button className="get-started" onClick={()=>setPopup('account')}>지금 시작</button></div>
+     <div className="top-links">
+       <button className="global-search" onClick={()=>setPopup('symbol-search')} title="현재 페이지 심볼 검색 (Ctrl+K)"><Search size={20}/>찾기 (Ctrl+K)</button>
+       <a className="active" href="https://kr.tradingview.com/chart/" target="_blank" rel="noopener noreferrer" title="TradingView 원본 차트">프로덕트</a>
+       <a href="https://kr.tradingview.com/ideas/" target="_blank" rel="noopener noreferrer" title="TradingView 원본 아이디어">커뮤니티</a>
+       <a href="https://investment-markets-preview-production.up.railway.app/" target="_blank" rel="noopener noreferrer" title="별도 배포된 마켓 미리보기">마켓</a>
+       <a href="https://kr.tradingview.com/brokers/" target="_blank" rel="noopener noreferrer" title="TradingView 브로커 목록">브로커</a>
+       <a href="https://kr.tradingview.com/support/" target="_blank" rel="noopener noreferrer" title="TradingView 지원 센터">더보기</a>
+      </div>
+     <div className="header-right"><button title="언어 선택" onClick={()=>setPopup('language')}><Globe2 size={20}/> KO</button><button title="프로필" onClick={()=>setPopup('account')}><UserRound size={20}/></button><button className="get-started" onClick={()=>setPopup('account')}>지금 시작</button></div>
    </header>}
    <main id="tv-content" className="screener-main">
      <section className="page-heading">
@@ -277,7 +285,7 @@ function App(){
      </>}
    </main>
    {popup&&<div className={'popover popover-'+popup.split(':')[0]} style={popup.startsWith('filter:')&&popupAnchor?popupAnchor:{}} ref={popoverRef} data-testid="active-popover">
-     <div className="pop-header"><strong>{popup==='products'?'스크리너 선택':popup==='market'?'마켓 선택':popup==='screens'?'스크린':popup==='columns'?'컬럼 셋업':popup==='add-filter'?'새 필터 넣기':popup==='settings'?'스크리너 세팅':popup==='view'?'보기':popup==='filter-options'?'필터 옵션':popup==='more-tabs'?'컬럼 프리셋':popup==='symbol-search'?'심볼 찾기':popup.startsWith('filter:')?popup.slice(7):'메뉴'}</strong><button onClick={()=>setPopup('')}><X size={18}/></button></div>
+     <div className="pop-header"><strong>{popup==='products'?'스크리너 선택':popup==='market'?'마켓 선택':popup==='screens'?'스크린':popup==='columns'?'컬럼 셋업':popup==='add-filter'?'새 필터 넣기':popup==='settings'?'스크리너 세팅':popup==='view'?'보기':popup==='filter-options'?'필터 옵션':popup==='more-tabs'?'컬럼 프리셋':popup==='symbol-search'?'심볼 찾기':popup==='language'?'언어':popup.startsWith('filter:')?popup.slice(7):'메뉴'}</strong><button onClick={()=>setPopup('')}><X size={18}/></button></div>
      {popup==='products'&&<div className="option-list">{Object.entries(CONFIG).map(([id,v])=><button key={id} onClick={()=>switchProduct(id)}><span>{v.name}</span>{id===product&&<Check size={16}/>}</button>)}</div>}
      {popup==='market'&&<><input autoFocus className="popup-search" placeholder="국가 및 시장 찾기" value={marketQuery} onChange={e=>setMarketQuery(e.target.value)}/><div className="option-list long-list">{MARKETS.filter(m=>(COUNTRY_NAMES[m]||m).toLowerCase().includes(marketQuery.toLowerCase())||m.includes(marketQuery.toLowerCase())).map(m=><button key={m} onClick={()=>selectMarket(m)}><span>{getFlag(m)}　{COUNTRY_NAMES[m]||m} <small>{m}</small></span>{m===market&&<Check size={16}/>}</button>)}</div></>}
      {popup==='screens'&&<div className="option-list"><button onClick={()=>setPopup('')}>{cfg.title}<Check size={16}/></button>{saved.filter(s=>s.product===product).map(s=><button key={s.id} onClick={()=>{applySnapshot(s.view);setPopup('')}}>{s.name}</button>)}<button onClick={saveScreen}><Plus size={16}/>새 스크린 저장</button></div>}
@@ -285,7 +293,8 @@ function App(){
      {popup==='settings'&&<div className="settings-list">{[['compact','행 높이 줄이기'],['showLogos','심볼 로고 표시'],['freezeTicker','첫 열 고정'],['hideEmpty','값 없는 열 숨기기']].map(([key,label])=><label key={key}><input type="checkbox" checked={settings[key]} onChange={e=>setSettings(v=>({...v,[key]:e.target.checked}))}/>{label}</label>)}<button className="apply-btn" onClick={()=>setPopup('')}>확인</button></div>}
      {popup==='filter-options'&&<div className="option-list"><button onClick={()=>{changeState(()=>setPills({}));setPopup('')}}><RotateCw size={16}/>모든 필터 초기화</button><button onClick={()=>{setShowAllFilters(v=>!v);setPopup('add-filter')}}><Plus size={16}/>필터 추가</button><button onClick={saveScreen}><Save size={16}/>화면 저장</button><button onClick={()=>{exportCSV();setPopup('')}}><Download size={16}/>CSV 다운로드</button></div>}
      {popup==='more-tabs'&&<div className="option-list">{cfg.tabs.map((label,i)=><button key={i} onClick={()=>{changeState(()=>setTab(i));setPopup('')}}>{label}{tab===i&&<Check size={16}/>}</button>)}</div>}
-     {popup==='symbol-search'&&<><input autoFocus placeholder="심볼 또는 기업명 찾기" value={search} onChange={e=>setSearch(e.target.value)} className="popup-search"/><div className="popup-subtitle">현재 페이지에서 검색 · 전체 시장 종목 검색과 구분</div><div className="option-list">{normalizedRows.slice(0,10).map(row=><button key={row.id} onClick={()=>setPopup('')}>{row.id}</button>)}</div></>}
+     {popup==='symbol-search'&&<><input autoFocus placeholder="심볼 또는 기업명 찾기" value={search} onChange={e=>setSearch(e.target.value)} className="popup-search"/><div className="popup-subtitle">현재 페이지에서 검색 · 전체 시장 종목 검색과 구분</div><div className="option-list">{normalizedRows.slice(0,10).map(row=><button key={row.id} onClick={()=>{setSearch(row.id.split(':').pop());setSelectedRows([row.id]);setPopup('')}}>{row.id}</button>)}</div></>}
+     {popup==='language'&&<div className="option-list"><button type="button" onClick={()=>setPopup('')}><Check size={16}/> 한국어 (현재)</button><div className="filter-note">현재 관리 화면은 한국어만 제공합니다. 번역되지 않은 언어 옵션은 표시하지 않습니다.</div></div>}
      {popup==='columns'&&<><input autoFocus className="popup-search" placeholder="컬럼 검색" value={columnSearch} onChange={e=>setColumnSearch(e.target.value)}/><div className="popup-subtitle">선택된 컬럼 · 클릭하여 추가 또는 제거</div><div className="option-list long-list">{colsToOffer.filter(c=>(colname(c)+' '+c).toLowerCase().includes(columnSearch.toLowerCase())).map(c=><button key={c} disabled={c==='ticker-view'} title={c==='ticker-view'?'심볼 컬럼은 필수입니다':colname(c)} onClick={()=>{changeState(()=>setCustomCols(v=>{const old=v||currentCols;return c==='ticker-view'?old:old.includes(c)?old.filter(x=>x!==c):[...old,c]}))}}><span>{colname(c)} <small>{c}</small></span>{currentCols.includes(c)&&<Check size={16}/>}</button>)}</div></>}
      {popup==='add-filter'&&<>
        <input className="popup-search" autoFocus aria-label="필터 찾기" placeholder="찾기" value={filterQuery} onChange={e=>{setFilterQuery(e.target.value);if(e.target.value)setFilterCategory('')}}/>
