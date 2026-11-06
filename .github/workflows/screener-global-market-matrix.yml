@@ -1,0 +1,33 @@
+name: TradingView Global Stock ETF Market Matrix (public minimal scan)
+on:
+  push:
+    branches: [feature/screener-three-xhr-json-20261106]
+    paths:
+      - 'n8n/tools/screener_global_market_matrix.py'
+      - '.github/workflows/screener-global-market-matrix.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  market-matrix:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Playwright Chromium
+        run: |
+          python -m pip install playwright==1.56.0
+          python -m playwright install --with-deps chromium
+      - name: Check every market referenced by captured ETF metainfo, for both stock and ETF
+        run: python n8n/tools/screener_global_market_matrix.py
+      - name: Upload JSON market matrix evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tv-global-stock-etf-market-matrix
+          path: global_market_matrix/
+          retention-days: 7
+          if-no-files-found: warn
