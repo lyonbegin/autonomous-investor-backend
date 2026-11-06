@@ -1,5 +1,6 @@
 import {chromium} from 'playwright';
 import fs from 'node:fs/promises';
+import {CRYPTO_TAB_COLS} from '../src/crypto-tab-presets.js';
 const ROOT='http://127.0.0.1:4173';
 const SCENARIOS=[
  {key:'stock',url:'/screener/',enum:'섹터',enumField:'sector',number:'가격',numberField:'close'},
@@ -27,7 +28,10 @@ for(const s of SCENARIOS){
   await page.locator('[data-testid="filter-'+s.enum+'"]').click();
   const editor=page.locator('[data-testid="filter-editor"]');
   await editor.waitFor();
-  await page.waitForTimeout(700);
+  await page.waitForTimeout(900);
+  const enumResponse=await page.request.get(ROOT+'/api/enum?product='+s.key,{timeout:25000});
+  const enumJSON=await enumResponse.json().catch(()=>null);
+  console.log('ENUM-DIAGNOSTIC',s.key,'HTTP',enumResponse.status(),'keys',Object.keys(enumJSON||{}).slice(0,20).join(','),'target',s.enumField);
   const opts=editor.locator('.filter-values label');
   const cnt=await opts.count();
   assert(s.key+': enum menu populates from server',cnt>0,{count:cnt});
@@ -70,18 +74,23 @@ for(const s of SCENARIOS){
   await page.locator('.settings-list .apply-btn').click();
   const sortField=await page.locator('.screener-table thead th[data-field]').nth(1).getAttribute('data-field');
   const sorted=await nextScan(page,()=>page.locator('.screener-table thead th[data-field]').nth(1).click());
-  assert(s.key+': column sorting reaches scanner',sorted.body.payload.sort?.sortBy===sortField?.replace(/\.tr$/,''),{column:sortField,sort:sorted.body.payload.sort});
+  assert(s.key+': column sorting reaches scanner',sorted.body.payload.sort?.sortBy===(sortField==='isin-displayed'?'isin':sortField?.replace(/\.tr$/,'')),{column:sortField,sort:sorted.body.payload.sort});
   const paginate=await nextScan(page,()=>page.locator('select[aria-label="페이지당 행 수"]').selectOption('50'));
   assert(s.key+': page size reflected in scanner payload',JSON.stringify(paginate.body.payload.range)==='[0,50]',{range:paginate.body.payload.range});
   await page.locator('[data-qa-id="screener-add-column-button"]').click();
   const options=page.locator('.popover-columns .option-list button');
-  if(await options.count()){
-   const first=options.first();
+  if(await options.filter({hasText:'close'}).count()){
+   const first=options.filter({hasText:'close'}).first();
    const text=await first.innerText();
    const beforeColumns=await page.locator('th[data-field]').count();
    const col=await nextScan(page,()=>first.click());
    const afterColumns=await page.locator('th[data-field]').count();
    assert(s.key+': add or remove column changes scanner request and table',beforeColumns!==afterColumns,{label:text,old:beforeColumns,new:afterColumns,columns:col.body.payload.columns?.length});
+  }
+  if(CRYPTO_TAB_COLS[s.key]){
+    const tabRequest=await nextScan(page,()=>page.locator('[data-testid="tab-1"]').click());
+    assert(s.key+': original performance tab exact request columns',JSON.stringify(tabRequest.body.payload.columns)===JSON.stringify(CRYPTO_TAB_COLS[s.key][1]),{columns:tabRequest.body.payload.columns?.length,HTTP:resultStatus(tabRequest)});
+    assert(s.key+': original performance tab scan returns HTTP 200',resultStatus(tabRequest)===200,{HTTP:resultStatus(tabRequest)});
   }
   await page.screenshot({path:'artifacts/functional-'+s.key+'.png'});
   assert(s.key+': no browser exceptions',errors.length===0,{errors});
