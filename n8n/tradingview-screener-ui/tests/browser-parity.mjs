@@ -84,7 +84,7 @@ try{
   await check(key+': HTTP 200',response.status()===200);
   await check(key+': heading exists',title?.length>2);
   await check(key+': tabs = '+tabCount,tabs===tabCount);
-  await check(key+': filters visible',key==='pine'?filters===0:filters>=3);
+  await check(key+': filters visible',key==='pine'?(await page.locator('.filter-pill:visible').count())===0:filters>=3);
   await check(key+': no React exceptions',exceptions.length===0,exceptions.join(','));
   if(['stock','etf','bond'].includes(key)){
    await check(key+': scan data or captured fallback',source==='live'||source==='captured','source='+source);
