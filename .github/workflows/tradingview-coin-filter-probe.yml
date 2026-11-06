@@ -1,0 +1,39 @@
+name: TradingView Coin Category Filter Operation Diagnostic
+on:
+  push:
+    branches: [feature/tradingview-screener-ui-parity-20261106]
+    paths: ['.github/workflows/tradingview-coin-filter-probe.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  coin-filter:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Compare real scanner category filter variants
+        run: |
+          node --input-type=module <<'JS'
+          const base={columns:['ticker-view','crypto_total_rank','crypto_common_categories.tr','market_cap_calc'],ignore_unknown_fields:false,options:{lang:'ko'},range:[0,5],sort:{sortBy:'crypto_total_rank',sortOrder:'asc'},markets:['coin']};
+          const variants=[
+            {name:'baseline',filter:[]},
+            {name:'in_range_array',filter:[{left:'crypto_common_categories',operation:'in_range',right:['dao']}]},
+            {name:'has_array',filter:[{left:'crypto_common_categories',operation:'has',right:['dao']}]},
+            {name:'has_string',filter:[{left:'crypto_common_categories',operation:'has',right:'dao'}]},
+            {name:'has_any_of_array',filter:[{left:'crypto_common_categories',operation:'has_any_of',right:['dao']}]},
+            {name:'equal_string',filter:[{left:'crypto_common_categories',operation:'equal',right:'dao'}]},
+            {name:'has_none_of_array',filter:[{left:'crypto_common_categories',operation:'has_none_of',right:['dao']}]},
+            {name:'filter2_has',filter2:{operator:'and',operands:[{expression:{left:'crypto_common_categories',operation:'has',right:['dao']}}]}}
+          ];
+          await Promise.all(variants.map(async variant=>{
+            const {name,...fields}=variant;
+            try{
+              const r=await fetch('https://scanner.tradingview.com/coin/scan?label-product=screener-coin',{method:'POST',headers:{Accept:'application/json','Content-Type':'application/json',Origin:'https://kr.tradingview.com',Referer:'https://kr.tradingview.com/'},body:JSON.stringify({...base,...fields}),signal:AbortSignal.timeout(16000)});
+              const t=await r.text();let data={};try{data=JSON.parse(t)}catch{}
+              console.log('COIN_FILTER',JSON.stringify({name,http:r.status,total:data.totalCount,rows:data.data?.length,first:data.data?.[0]?.s,message:data.error||data.msg||t.slice(0,160)}));
+            }catch(e){console.log('COIN_FILTER_ERR',name,String(e).slice(0,190));}
+          }));
+          JS
