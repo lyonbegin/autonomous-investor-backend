@@ -3,7 +3,7 @@
 TradingView ETF global/metainfo payload. No auth, no bulk pagination, no bypass.
 One symbol maximum per product/market; stop on 403/429.
 """
-import asyncio, csv, datetime as dt, json, pathlib
+import asyncio, csv, datetime as dt, json, pathlib, time
 from playwright.async_api import async_playwright
 
 MARKETS = "america argentina australia austria bahrain bangladesh belgium bulgaria brazil canada chile china colombia croatia cyprus czech denmark egypt estonia finland france germany greece hongkong hungary iceland india indonesia ireland israel italy japan kenya kuwait latvia lithuania luxembourg malaysia mexico morocco netherlands newzealand nigeria norway pakistan peru philippines poland portugal qatar romania russia ksa serbia singapore slovakia slovenia rsa korea spain srilanka sweden switzerland taiwan thailand tunisia turkey uae uk venezuela vietnam".split()
@@ -46,24 +46,28 @@ async def run_product(browser, product, label, url, expected):
             req["range"]=[0,1]
             now=utc()
             try:
-                reply=await page.evaluate(r"""async ({url,payload}) => {
-                    const started=performance.now();
-                    try {
-                        const resp=await fetch(url,{method:"POST",mode:"cors",credentials:"omit",
-                            headers:{"content-type":"application/json"},body:JSON.stringify(payload)});
-                        let body=null;let is_json=false;
-                        try {body=await resp.json();is_json=true;} catch(e) {}
-                        return {status:resp.status,elapsed_ms:Math.round(performance.now()-started),
-                            is_json,totalCount:body?.totalCount??null,
-                            rows:Array.isArray(body?.data)?body.data.length:null,
-                            first_symbol:Array.isArray(body?.data)&&body.data.length?body.data[0]?.s:null,
-                            response_keys:body&&typeof body==="object"?Object.keys(body).slice(0,20):[],
-                            error:null};
-                    } catch(e) {
-                        return {status:null,elapsed_ms:Math.round(performance.now()-started),
-                            is_json:false,error:String(e).slice(0,180)};
-                    }
-                }""",{"url":endpoint,"payload":req})
+                started=time.perf_counter()
+                response=await ctx.request.post(endpoint,
+                    data=json.dumps(req,ensure_ascii=False),
+                    headers={"Content-Type":"application/json",
+                             "Accept":"application/json",
+                             "Referer":url,
+                             "Origin":"https://kr.tradingview.com"},
+                    timeout=19000)
+                raw=await response.text()
+                try: parsed=json.loads(raw)
+                except Exception: parsed=None
+                reply={"status":response.status,
+                    "elapsed_ms":round((time.perf_counter()-started)*1000),
+                    "is_json":isinstance(parsed,(dict,list)),
+                    "totalCount":parsed.get("totalCount") if isinstance(parsed,dict) else None,
+                    "rows":len(parsed.get("data",[])) if isinstance(parsed,dict)
+                        and isinstance(parsed.get("data"),list) else None,
+                    "first_symbol":parsed["data"][0].get("s") if isinstance(parsed,dict)
+                        and isinstance(parsed.get("data"),list) and parsed["data"]
+                        and isinstance(parsed["data"][0],dict) else None,
+                    "response_keys":list(parsed.keys())[:20] if isinstance(parsed,dict) else [],
+                    "error":None if isinstance(parsed,(dict,list)) else "non_json_response"}
             except Exception as exc:
                 reply={"status":None,"error":type(exc).__name__+": "+str(exc)[:180]}
             row={"product":product,"market":market,"url":endpoint,"method":"POST",
