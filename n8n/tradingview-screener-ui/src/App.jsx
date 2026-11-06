@@ -32,17 +32,20 @@ const CONFIG={
 stock:{name:'스탁 스크리너',title:'올 스탁',kind:'stock',market:'korea',url:'/screener/',tabs:'오버뷰 성과 테크니컬즈 확장_시간 전망 평가 배당 수익성 손익_계산서 대차_대조표 현금_흐름 주당'.split(' ').map(x=>x.replaceAll('_',' ')),pills:STOCK_PILLS,sort:'market_cap_basic',cols:['ticker-view','close','change','volume','relative_volume_10d_calc','market_cap_basic','price_earnings_ttm','earnings_per_share_diluted_ttm','earnings_per_share_diluted_yoy_growth_ttm','dividends_yield_current','sector.tr','AnalystRating.tr']},
 etf:{name:'ETF 스크리너',title:'ETF 보관함',kind:'etf',market:'america',url:'/etf-screener/',tabs:['오버뷰','성과','테크니컬즈','확장 시간','자금 흐름','배당','NAV 실적','홀딩스','리스크'],pills:ETF_PILLS,sort:'aum',cols:['ticker-view','close','change','Value.Traded','relative_volume_10d_calc','aum','nav_total_return.3Y','etf_holdings_count','expense_ratio','asset_class.tr','focus.tr']},
 bond:{name:'본드 스크리너',title:'전체 채권',kind:'bond',market:'bond',url:'/bond-screener/',tabs:['오버뷰','보안 정보','금리 위험','스프레드','금액','채권 용어','쿠폰','발행자','등급'],pills:BOND_PILLS,sort:'bond_snp_rating_lt',cols:['ticker-view','isin-displayed','yield_to_worst','close_pct','close_net','current_coupon','maturity_date','redemption_type.tr','bond_issuer_type.tr','bond_snp_rating_lt.tr','bond_fitch_rating_lt.tr','bond_moodys_rating_lt.tr','exchange.tr']},
-coin:{name:'크립토 코인 스크리너',title:'전체 코인',kind:'coin',market:'coin',url:'/crypto-coins-screener/',tabs:['오버뷰','성과','테크니컬즈','평가','파생상품','주소','거래','센티멘트'],pills:['코인','시가총액','가격','체인지 %','볼륨','FDV','유통 공급량','총 공급량'],cols:['ticker-view','close','change','volume','market_cap_calc','circulating_supply','total_supply'],sort:'market_cap_calc'},
-cex:{name:'CEX 스크리너',title:'전체 거래쌍',kind:'crypto',market:'crypto',url:'/cex-screener/',tabs:['오버뷰','성과','테크니컬즈'],pills:['거래소','거래쌍','가격','체인지 %','볼륨','베이스 통화','쿼트 통화'],cols:['ticker-view','close','change','volume','exchange'],sort:'volume'},
-dex:{name:'DEX 스크리너',title:'전체 DEX 쌍',kind:'crypto',market:'crypto',url:'/dex-screener/',tabs:['오버뷰','성과','테크니컬즈','거래','거래량','트레이더'],pills:['체인','DEX','가격','체인지 %','유동성','거래량','트레이더'],cols:['ticker-view','close','change','volume'],sort:'volume'},
+coin:{name:'암호화폐 스크리너',title:'크립토 전체 시장',kind:'coin',market:'coin',url:'/crypto-coins-screener/',tabs:['오버뷰','성과','테크니컬즈','평가','파생상품','주소','거래','센티멘트'],pills:['왓치리스트','랭크','시가총액','FD 시가 총액','볼륨 / 시가총액','잔고 주소','달러 표시 거래량','볼륨 변화 %','거래량 (USD)','체인지 %','퍼포먼스 %','카테고리'],cols:['ticker-view','close','change','volume','market_cap_calc','circulating_supply','total_supply'],sort:'market_cap_calc'},
+cex:{name:'CEX 스크리너',title:'전체 페어',kind:'crypto',market:'crypto',url:'/cex-screener/',tabs:['오버뷰','성과','테크니컬즈'],pills:['왓치리스트','거래소','심볼 타입','베이스 통화','쿼트 커런시','체인지 %','퍼포먼스 %','달러 표시 거래량','볼륨 변화 %'],cols:['ticker-view','close','change','volume','exchange'],sort:'volume'},
+dex:{name:'DEX 스크리너',title:'전체 페어',kind:'crypto',market:'crypto',url:'/dex-screener/',tabs:['오버뷰','성과','테크니컬즈','거래','거래량','트레이더'],pills:['왓치리스트','블록체인','거래소','체인지 %','거래','거래량','유동성','FDV','트레이더','고유 매수자','고유 매도자','퍼포먼스 %'],cols:['ticker-view','close','change','volume'],sort:'volume'},
 pine:{name:'Pine 스크리너',title:'내 Pine 스크립트',kind:'pine',market:'',url:'/pine-screener/',tabs:[],pills:['스크립트','심볼','타임프레임'],cols:[],sort:''}
 };
 const PATH_PRODUCT=Object.fromEntries(Object.entries(CONFIG).map(([k,v])=>[v.url,k]));
 function getProduct(){return PATH_PRODUCT[location.pathname]||PATH_PRODUCT[location.pathname+'/']||'stock';}
 function fmtCompact(n){if(typeof n!=='number')return String(n??'—');const a=Math.abs(n);if(a>=1e12)return (n/1e12).toFixed(2).replace(/\.00$/,'')+' T';if(a>=1e9)return (n/1e9).toFixed(2).replace(/\.00$/,'')+' B';if(a>=1e6)return (n/1e6).toFixed(2).replace(/\.00$/,'')+' M';if(a>=1e3)return (n/1e3).toFixed(2).replace(/\.00$/,'')+' K';return n.toLocaleString('en-US',{maximumFractionDigits:2});}
-const PERCENT_FIELDS=/change|Perf\.|Volatility|yield|ratio|margin|growth|expense|coupon|pct|discount_premium|weight_top_/i;
+const PERCENT_FIELDS=/change|Perf\.|Volatility|yield|ratio|margin|growth|expense|coupon|pct|discount_premium|weight_top_|nav_total_return/i;
+const COLOR_FIELDS=/^change$|^Perf\.|nav_total_return|_growth|^TechRating|^AnalystRating/i;
 const DATE_FIELDS=/date|maturity|fiscal_period_end/i;
-function formatValue(v,key,currency,locale='ko'){if(v===undefined||v===null||v==='')return '—';if(typeof v==='object')return v.name||v.description||'—';if(typeof v==='boolean')return v?'예':'아니요';if(typeof v==='string')return v;if(DATE_FIELDS.test(key)){if(v>1e8)return new Date(v*1000).toISOString().slice(0,10);return String(v);}if(PERCENT_FIELDS.test(key))return v.toFixed(2)+'%';if(key==='relative_volume_10d_calc'||key==='RSI')return v.toFixed(2);if(key==='close'||key==='close_net'||key==='nav')return v.toLocaleString('en-US',{maximumFractionDigits:2,minimumFractionDigits:2})+(currency?' '+currency:'');if(key==='market_cap_basic'||key==='aum'||key==='Value.Traded'||key==='issue_amount'||key==='outstanding_amount')return fmtCompact(v)+(currency?' '+currency:'');return fmtCompact(v);}
+function formatValue(v,key,currency,locale='ko'){if(v===undefined||v===null||v==='')return '—';if(typeof v==='object')return v.name||v.description||'—';if(typeof v==='boolean')return v?'예':'아니요';if(typeof v==='string')return v;if(DATE_FIELDS.test(key)){if(v>1e8)return new Date(v*1000).toISOString().slice(0,10);return String(v);}if(PERCENT_FIELDS.test(key))return (v>0&&COLOR_FIELDS.test(key)?'+':'')+v.toFixed(2)+'%';if(key==='relative_volume_10d_calc'||key==='RSI')return v.toFixed(2);
+ if(key==='etf_holdings_count'||key==='rank')return String(Math.round(v));
+ if(key==='current_coupon')return v.toFixed(3)+'%';if(key==='close'||key==='close_net'||key==='nav')return v.toLocaleString('en-US',{maximumFractionDigits:currency==='KRW'?0:2,minimumFractionDigits:currency==='KRW'?0:2})+(currency?' '+currency:'');if(key==='market_cap_basic'||key==='aum'||key==='Value.Traded'||key==='issue_amount'||key==='outstanding_amount')return fmtCompact(v)+(currency?' '+currency:'');return fmtCompact(v);}
 function colname(key){return COL[key]||key.replaceAll('.tr','').replaceAll('_',' ');}
 function pillField(label,kind){const stock={'가격':'close','체인지 %':'change','시가총액':'market_cap_basic','P/E':'price_earnings_ttm','EPS 희석 성장':'earnings_per_share_diluted_yoy_growth_ttm','배당 수익 %':'dividends_yield_current','ROE':'return_on_equity_fq','베타':'beta_1_year','퍼포먼스 %':'Perf.1M'};
 const etf={'AUM':'aum','지출 비율':'expense_ratio','NAV 총 수익률':'nav_total_return.3Y','배당 수익률 % (표시됨)':'dividends_yield','퍼포먼스 %':'Perf.1M'};
@@ -61,7 +64,7 @@ function basePayload(product,market,columns,sortField,pageIndex=0,pageSize=100){
  return props;
 }
 function usableColumns(cols){return cols.filter((c,i)=>i===0||!HIDDEN.has(c));}
-function BadgeLogo({name,code}){let chr=String(name||code||'?').trim().charAt(0).toUpperCase();return <span className={'symbol-logo symbol-logo-'+(chr.charCodeAt(0)%6)}>{chr}</span>;}
+function BadgeLogo({name,code,logo}){const [failed,setFailed]=useState(false);let chr=String(name||code||'?').trim().charAt(0).toUpperCase();const id=typeof logo?.logoid==='string'?logo.logoid:null;return id&&!failed?<img className="symbol-logo external-logo" src={'https://s3-symbol-logo.tradingview.com/'+encodeURIComponent(id)+'.svg'} onError={()=>setFailed(true)} alt=""/>:<span className={'symbol-logo symbol-logo-'+(chr.charCodeAt(0)%6)}>{chr}</span>}
 function IconButton({title,children,onClick,disabled=false,qa}){return <button type="button" title={title} aria-label={title} data-qa-id={qa} className="icon-btn" disabled={disabled} onClick={onClick}>{children}</button>;}
 function getFlag(m){return FLAG[m]||'🌐';}
 function App(){
@@ -72,7 +75,7 @@ function App(){
  [page,setPage]=useState(0),[pageSize,setPageSize]=useState(100),[data,setData]=useState(null),
  [source,setSource]=useState(''),[loading,setLoading]=useState(false),[error,setError]=useState(''),
  [refData,setRefData]=useState(null),[customCols,setCustomCols]=useState(null),
- [sort,setSort]=useState({by:cfg.sort,dir:'desc'}),[settings,setSettings]=useState({compact:false,showLogos:true,hideEmpty:false,freezeTicker:true}),
+ [sort,setSort]=useState({by:cfg.sort,dir:'desc'}),[settings,setSettings]=useState({compact:false,showLogos:true,hideEmpty:false,freezeTicker:true,showRestrictedColumns:false}),
  [undo,setUndo]=useState([]),[redo,setRedo]=useState([]),[showAllFilters,setShowAllFilters]=useState(false),
  [saved,setSaved]=useState([]),[fullscreen,setFullscreen]=useState(false),[selectedRows,setSelectedRows]=useState([]),
  [columnSearch,setColumnSearch]=useState(''),[refresh,setRefresh]=useState(0),[toast,setToast]=useState('');
@@ -147,7 +150,7 @@ function App(){
  const onColumnSort=key=>{changeState(()=>setSort(v=>({by:key,dir:v.by===key&&v.dir==='desc'?'asc':'desc'})));setPage(0);};
  const colsToOffer=Array.from(new Set([...cfg.cols,...(refData?.products?.[product]?Object.values(refData.products[product].tabs).flatMap(t=>t.columns):[])]));
  const tableDataLength=normalizedRows.length;
- return <div className={'site '+(fullscreen?'is-fullscreen ':'')+(settings.compact?'compact ':'')} data-product={product} data-source={source} data-testid="screener-app">
+ return <div className={'site '+(fullscreen?'is-fullscreen ':'')+(settings.compact?'compact ':'')+(['cex','dex'].includes(product)?'short-filters ':'')} data-product={product} data-source={source} data-testid="screener-app">
    {!fullscreen&&<header className="site-header">
      <button className="tv-logo" onClick={()=>switchProduct('stock')} aria-label="홈"><span className="tv-mark">◢◤</span>TradingView</button>
      <div className="top-links"><button className="global-search"><Search size={20}/>찾기 (Ctrl+K)</button><span className="active">프로덕트</span><span>커뮤니티</span><span>마켓</span><span>브로커</span><span>더보기</span></div>
@@ -163,8 +166,8 @@ function App(){
          <div className="right-tools"><IconButton title="되돌리기" qa="screener-undo-button" disabled={!undo.length} onClick={undoAction}><Undo2 size={18}/></IconButton><IconButton title="다시 실행" qa="screener-redo-button" disabled={!redo.length} onClick={redoAction}><Redo2 size={18}/></IconButton><IconButton title="스크린 저장" onClick={saveScreen}><Save size={18}/></IconButton><IconButton title="스크리너 세팅" qa="screener-topbar-settings" onClick={()=>setPopup('settings')}><Settings2 size={21}/></IconButton></div>
        </div>
      </section>
-     <section className="pills-panel">
-       {product!=='bond'&&product!=='pine'&&<button data-pop className="filter-pill market-pill" data-testid="market-filter" onClick={()=>{setPopup('market');setMarketQuery('')}}><span>{getFlag(market)}</span>{market==='korea'?'KR':market==='america'?'US':(COUNTRY_NAMES[market]||market)} <ChevronDown size={14}/></button>}
+     <section className="pills-panel">{product==='stock'&&<button data-pop className="filter-pill ai-pill" onClick={()=>setPopup('add-filter')}>✦ AI</button>}
+       {(product==='stock'||product==='etf')&&<button data-pop className="filter-pill market-pill" data-testid="market-filter" onClick={()=>{setPopup('market');setMarketQuery('')}}><span>{getFlag(market)}</span>{market==='korea'?'KR':market==='america'?'US':(COUNTRY_NAMES[market]||market)} <ChevronDown size={14}/></button>}
        <div className="pills-scroller" data-testid="filter-pills">
          {filterLabels.map((label,index)=><React.Fragment key={label}>
            {index===0&&product!=='bond'&&product!=='pine'?<span className="pill-divider"/>:null}
@@ -191,7 +194,7 @@ function App(){
          <IconButton title="데이터 내보내기" onClick={exportCSV}><Download size={18}/></IconButton>
        </div>
      </section>
-     {product==='pine'&&<div className="pine-empty"><div className="pine-title">Pine 스크리너</div><p>스캔할 Pine 스크립트를 선택하세요. 연결된 TradingView 스크립트 데이터가 없습니다.</p><a href="https://kr.tradingview.com/pine-screener/" target="_blank" rel="noopener noreferrer">원본 Pine 스크리너 열기 <ExternalLink size={14}/></a></div>}
+     {product==='pine'&&<><div className="pine-banner">파인 스크리너 <span>BETA</span></div><div className="pine-empty"><div className="pine-art"><span>◇</span><span>△</span></div><div className="pine-title">로그인하여 Pine Screener를 사용하세요</div><p>지표별로 왓치리스트를 스캔하고 커스텀 설정을 적용하세요. 주식, 암호화폐, 외환 등 거래<br/>하는 모든 자산에 적용됩니다.</p><button className="pine-login" onClick={()=>setPopup('account')}>로그인</button></div></>}
      {product!=='pine'&&<>
        <section className="table-viewport" ref={tableRef} data-testid="screener-table-viewport">
          <table className="screener-table" data-testid="screener-table">
@@ -208,16 +211,16 @@ function App(){
              const currency=row.values.currency||row.values.fundamental_currency_code||(market==='korea'?'KRW':market==='america'?'USD':'');
              return <tr key={row.id||index} data-rowkey={row.id} className={selectedRows.includes(row.id)?'is-selected':''} onClick={()=>setSelectedRows(s=>s.includes(row.id)?s.filter(x=>x!==row.id):[...s,row.id])}>
                {visibleCols.map((column,i)=>{
-                const val=row.values[column];const percent=PERCENT_FIELDS.test(column)&&typeof val==='number';const numeric=typeof val==='number';
+                const val=row.values[column];const percent=COLOR_FIELDS.test(column)&&typeof val==='number';const numeric=typeof val==='number';
                 return <td key={column} className={(i===0?'sticky-col ':'')+(numeric?'align-right ':'')+(percent?(val<0?'negative':val>0?'positive':''):'')}>
                   {column==='ticker-view'?<div className="ticker-value">
-                     {settings.showLogos&&<BadgeLogo name={desc} code={code}/>}
+                     {settings.showLogos&&<BadgeLogo name={desc} code={code} logo={identity.logo}/>}
                      {product!=='bond'&&<span className="ticker-code">{code}</span>}
                      <a href={'https://kr.tradingview.com/symbols/'+encodeURIComponent(row.id?.replace(':','-'))+'/'} title={desc} target="_blank" rel="noopener noreferrer">{desc}</a>
                    </div>:
-                   column==='isin-displayed'?<div className="isin-value">{typeof val==='string'?val:'—'}{val&&<button title="ISIN 카피" onClick={e=>{e.stopPropagation();navigator.clipboard?.writeText(val);showToast('ISIN 복사됨')}}><Copy size={12}/></button>}</div>:
+                   column==='isin-displayed'&&product==='bond'&&!settings.showRestrictedColumns?<Lock size={14} className="locked-cell"/>:column==='isin-displayed'?<div className="isin-value">{typeof val==='string'?val:'—'}{val&&<button title="ISIN 카피" onClick={e=>{e.stopPropagation();navigator.clipboard?.writeText(val);showToast('ISIN 복사됨')}}><Copy size={12}/></button>}</div>:
                    (product==='bond'&&index>8&&index<15)?<span className="paywall-blur">{formatValue(val,column,currency)}</span>:
-                   (/(Rating|rating)/.test(column)&&typeof val==='string'&&/^(AAA|AA|Aaa|BBB)/.test(val))?<span className="rating">{val}</span>:
+                   (product==='bond'&&/(redemption_type|bond_snp_rating|bond_fitch_rating|bond_moodys_rating)/.test(column)&&!settings.showRestrictedColumns)?<Lock size={14} className="locked-cell"/>:(/(Rating|rating)/.test(column)&&typeof val==='string'&&/^(AAA|AA|Aaa|BBB)/.test(val))?<span className="rating">{val}</span>:
                    formatValue(val,column,currency)}
                  </td>
                })}
@@ -244,7 +247,7 @@ function App(){
      {popup==='market'&&<><input autoFocus className="popup-search" placeholder="국가 및 시장 찾기" value={marketQuery} onChange={e=>setMarketQuery(e.target.value)}/><div className="option-list long-list">{MARKETS.filter(m=>(COUNTRY_NAMES[m]||m).toLowerCase().includes(marketQuery.toLowerCase())||m.includes(marketQuery.toLowerCase())).map(m=><button key={m} onClick={()=>selectMarket(m)}><span>{getFlag(m)}　{COUNTRY_NAMES[m]||m} <small>{m}</small></span>{m===market&&<Check size={16}/>}</button>)}</div></>}
      {popup==='screens'&&<div className="option-list"><button onClick={()=>setPopup('')}>{cfg.title}<Check size={16}/></button>{saved.filter(s=>s.product===product).map(s=><button key={s.id} onClick={()=>{applySnapshot(s.view);setPopup('')}}>{s.name}</button>)}<button onClick={saveScreen}><Plus size={16}/>새 스크린 저장</button></div>}
      {popup==='view'&&<div className="option-list"><button onClick={()=>setPopup('')}><Table2 size={16}/>테이블 <Check size={16}/></button><button onClick={()=>{setSettings(v=>({...v,compact:!v.compact}));setPopup('')}}><Grid2X2 size={16}/>컴팩트 테이블</button></div>}
-     {popup==='settings'&&<div className="settings-list">{[['compact','행 높이 줄이기'],['showLogos','심볼 로고 표시'],['freezeTicker','첫 열 고정'],['hideEmpty','빈 셀 숨기기']].map(([key,label])=><label key={key}><input type="checkbox" checked={settings[key]} onChange={e=>setSettings(v=>({...v,[key]:e.target.checked}))}/>{label}</label>)}<button className="apply-btn" onClick={()=>setPopup('')}>확인</button></div>}
+     {popup==='settings'&&<div className="settings-list">{[['compact','행 높이 줄이기'],['showLogos','심볼 로고 표시'],['freezeTicker','첫 열 고정'],['hideEmpty','빈 셀 숨기기'],['showRestrictedColumns','채권 제한 데이터 보기']].map(([key,label])=><label key={key}><input type="checkbox" checked={settings[key]} onChange={e=>setSettings(v=>({...v,[key]:e.target.checked}))}/>{label}</label>)}<button className="apply-btn" onClick={()=>setPopup('')}>확인</button></div>}
      {popup==='filter-options'&&<div className="option-list"><button onClick={()=>{changeState(()=>setPills({}));setPopup('')}}><RotateCw size={16}/>모든 필터 초기화</button><button onClick={()=>{setShowAllFilters(v=>!v);setPopup('add-filter')}}><Plus size={16}/>필터 추가</button><button onClick={saveScreen}><Save size={16}/>화면 저장</button></div>}
      {popup==='more-tabs'&&<div className="option-list">{cfg.tabs.map((label,i)=><button key={i} onClick={()=>{changeState(()=>setTab(i));setPopup('')}}>{label}{tab===i&&<Check size={16}/>}</button>)}</div>}
      {popup==='symbol-search'&&<><input autoFocus placeholder="심볼 또는 기업명 찾기" value={search} onChange={e=>setSearch(e.target.value)} className="popup-search"/><div className="popup-subtitle">현재 페이지에서 검색 · 전체 시장 종목 검색과 구분</div><div className="option-list">{normalizedRows.slice(0,10).map(row=><button key={row.id} onClick={()=>setPopup('')}>{row.id}</button>)}</div></>}
