@@ -1,0 +1,39 @@
+name: Original TradingView Filter Picker Full Menu Capture
+on:
+  push:
+    branches: [feature/tradingview-screener-ui-parity-20261106]
+    paths: ['.github/workflows/original-filter-catalog-capture.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  capture:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    defaults:
+      run:
+        working-directory: n8n/tradingview-screener-ui
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - name: Install browser test dependencies
+        run: npm install --no-audit --no-fund
+      - name: Use preinstalled Chrome
+        run: |
+          if command -v google-chrome >/dev/null 2>&1; then
+            echo "PLAYWRIGHT_SYSTEM_CHROME=$(command -v google-chrome)" >> "$GITHUB_ENV"
+          elif command -v google-chrome-stable >/dev/null 2>&1; then
+            echo "PLAYWRIGHT_SYSTEM_CHROME=$(command -v google-chrome-stable)" >> "$GITHUB_ENV"
+          else
+            npx playwright install --with-deps chromium
+          fi
+      - name: Navigate and extract original filter picker groups and field IDs
+        run: node tests/original-filter-catalog-capture.mjs
+      - name: Upload screenshots and field metadata
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: original-filter-picker-all-groups
+          path: n8n/tradingview-screener-ui/artifacts/original-*
+          retention-days: 14
