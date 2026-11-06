@@ -38,3 +38,17 @@
 .pine-title{font-size:23px;font-weight:700;margin-bottom:13px}
 .pine-empty p{font-size:15px;line-height:24px;margin:0 auto 27px;color:#111}
 .pine-login{background:#202020;border:0;color:white;padding:12px 28px;border-radius:8px;font-size:15px;font-weight:550}
+
+.ai-spark{color:#7b61ff;font-size:17px;font-weight:800}
+.screener-table th[data-field="earnings_per_share_diluted_ttm"] span,
+.screener-table th[data-field="earnings_per_share_diluted_yoy_growth_ttm"] span,
+.screener-table th[data-field="AnalystRating.tr"] span,
+.screener-table th[data-field="TechRating_1D.tr"] span,
+.screener-table th[data-field="nav_total_return.3Y"] span,
+.screener-table th[data-field="bond_issuer_type.tr"] span,
+.screener-table th[data-field="bond_snp_rating_lt.tr"] span,
+.screener-table th[data-field="24h_vol_change|5"] span,
+.screener-table th[data-field="24h_close_change|5"] span{white-space:normal;line-height:13px;max-width:120px;display:inline-flex;justify-content:flex-end;text-align:right}
+.screener-table th[data-field="earnings_per_share_diluted_yoy_growth_ttm"] span{max-width:105px}
+.screener-table th[data-field="AnalystRating.tr"] span{max-width:95px}
+.screener-table .signal{font-size:13px;white-space:nowrap}
