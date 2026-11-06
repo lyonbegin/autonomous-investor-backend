@@ -114,6 +114,17 @@ for(const s of SCENARIOS){
     const sel=await nextScan(page,()=>typeEditor.locator('[data-testid="filter-apply"]').click());
     assert('cex: spot type selected in scanner payload',expr(sel.body.payload,'type')?.right?.includes('spot'),{filter:expr(sel.body.payload,'type'),HTTP:resultStatus(sel)});
     assert('cex: spot type filter HTTP 200',resultStatus(sel)===200,{HTTP:resultStatus(sel)});
+    await page.locator('[data-testid="filter-베이스 통화"]').click();
+    const currencyEditor=page.locator('[data-testid="filter-editor"]');
+    const currencySearch=currencyEditor.locator('input[placeholder="선택값 검색"]');
+    await currencySearch.fill('Bitcoin');
+    const currencyOption=currencyEditor.locator('.filter-values label').first();
+    await currencyOption.waitFor({timeout:35000});
+    const selectedCurrency=await currencyOption.locator('small').innerText();
+    await currencyOption.locator('input[type="checkbox"]').check();
+    const curr=await nextScan(page,()=>currencyEditor.locator('[data-testid="filter-apply"]').click());
+    assert('cex: 55k-option currency searchable and selected ID submitted',expr(curr.body.payload,'base_currency')?.right.includes(selectedCurrency),{id:selectedCurrency,HTTP:resultStatus(curr)});
+    assert('cex: base-currency filter live HTTP 200',resultStatus(curr)===200,{HTTP:resultStatus(curr)});
   }
   await page.screenshot({path:'artifacts/functional-'+s.key+'.png'});
   assert(s.key+': no browser exceptions',errors.length===0,{errors});

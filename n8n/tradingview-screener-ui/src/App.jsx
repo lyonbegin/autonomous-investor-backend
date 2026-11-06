@@ -127,7 +127,7 @@ function App(){
     .catch(err=>{if(active)console.warn('Enum request failed',product,id,String(err));});
    return()=>{active=false};
  },[product,popup,refData]);
- const orderedEnums={...(refData?.products?.[product]?.enum||{}),...(enumData[product]||{})};
+ const orderedEnums=useMemo(()=>({...refData?.products?.[product]?.enum,...enumData[product]}),[refData,enumData,product]);
  const activeLabel=popup.startsWith('filter:')?popup.slice(7):'';
  const activeSpec=specFor(product,activeLabel);
  const enumCategory=activeSpec?.type==='enum'?(activeSpec.enum||activeSpec.field):null;
@@ -231,7 +231,7 @@ function App(){
              {visibleCols.map((column,i)=><th key={column} className={(i===0&&settings.freezeTicker?'sticky-col ':'')+(column==='ticker-view'?'symbol-head ':'')+(!['ticker-view','isin-displayed'].includes(column)?'align-right':'')} onClick={()=>onColumnSort(column)} title={colname(column)} data-field={column} draggable
                onDragStart={e=>e.dataTransfer.setData('text/plain',column)} onDragOver={e=>e.preventDefault()}
                onDrop={e=>{const dragging=e.dataTransfer.getData('text/plain');changeState(()=>setCustomCols(old=>{const b=[...(old||currentCols)];const idx=b.indexOf(dragging);const dest=b.indexOf(column);if(idx>=0&&dest>=0){b.splice(idx,1);b.splice(dest,0,dragging)}return b;}))}}>
-               {i===0?<div className="symbol-header-content"><IconButton title="심볼 찾기" onClick={e=>setPopup('symbol-search')}><Search size={20}/></IconButton><span>심볼 <small data-testid="total-count">{data?.totalCount?.toLocaleString('en-US')||'0'}</small></span></div>:<span>{colname(column,product)}{sort.by===column&&(sort.dir==='desc'?<ArrowDown size={14}/>:<ArrowUp size={14}/>)}</span>}
+               {i===0?<div className="symbol-header-content"><IconButton title="심볼 찾기" onClick={e=>setPopup('symbol-search')}><Search size={20}/></IconButton><span>심볼 <small data-testid="total-count">{data?.totalCount?.toLocaleString('en-US')||'0'}</small></span></div>:<span>{colname(column,product)}{sort.by===(column==='ticker-view'?'name':column==='isin-displayed'?'isin':column.endsWith('.tr')?column.slice(0,-3):column)&&(sort.dir==='desc'?<ArrowDown size={14}/>:<ArrowUp size={14}/>)}</span>}
              </th>)}
              <th className="add-column-head"><IconButton title="컬럼 셋업" qa="screener-add-column-button" onClick={()=>{setPopup('columns');setColumnSearch('')}}><Plus size={22}/></IconButton></th>
            </tr></thead>
@@ -269,7 +269,7 @@ function App(){
        </section>
        <footer className="table-footer">
          <span className="source-hint" title={error||''}>{loading?'조회 중…':source==='live'?'스캐너 응답 · 실시간 조회':source==='captured'?'2026-11-06 캡처 데이터 (오프라인 대체)':'스캐너 조회 실패'}</span>
-         <span className="pagination">{page*pageSize+1}–{Math.min((page+1)*pageSize,data?.totalCount||0)} / {(data?.totalCount||0).toLocaleString('en-US')}</span>
+         <span className="pagination">{(data?.totalCount||0)===0?0:page*pageSize+1}–{Math.min((page+1)*pageSize,data?.totalCount||0)} / {(data?.totalCount||0).toLocaleString('en-US')}</span>
          <button onClick={()=>setPage(v=>Math.max(0,v-1))} disabled={page===0}>〈</button>
          <span>{page+1}</span><button onClick={()=>setPage(v=>v+1)} disabled={(page+1)*pageSize>=(data?.totalCount||0)}>〉</button>
          <select aria-label="페이지당 행 수" value={pageSize} onChange={e=>{setPageSize(Number(e.target.value));setPage(0)}}><option value="50">50</option><option value="100">100</option><option value="200">200</option></select>
