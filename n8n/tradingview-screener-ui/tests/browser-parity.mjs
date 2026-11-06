@@ -16,6 +16,91 @@ const SCREENS=[
 const browser=await chromium.launch({headless:true,...(process.env.PLAYWRIGHT_SYSTEM_CHROME?{executablePath:process.env.PLAYWRIGHT_SYSTEM_CHROME}:{}),args:['--no-sandbox','--disable-dev-shm-usage']});
 const ctx=await browser.newContext({viewport:{width:1565,height:960},locale:'ko-KR',deviceScaleFactor:1});
 const results=[],failures=[];
+
+/* Semantic UI inventory: compare every major structural group, all tabs, filter controls,
+   and visible table fields. Both missing and unexpected elements fail the layout gate.
+   A reference acquisition failure is NOT a passing comparison. */
+const UI_PARITY_LIMIT=.10;
+const originalSelectors={
+  siteHeader:'header',main:'main#tv-content',categorySwitch:'[data-qa-id="screener-pills-switcher"]',
+  screenTitle:'[data-qa-id="screen-title"]',undo:'[data-qa-id="screener-undo-button"]',
+  redo:'[data-qa-id="screener-redo-button"]',settings:'[data-qa-id="screener-topbar-settings"]',
+  filterPanel:'[class*="pillsPanel"],[class*="pillsContainer"]',
+  addFilter:'[data-qa-id="screener-add-new-filter"]',
+  filterOptions:'[data-qa-id="reset-options-button"]',
+  tabs:'[role="tablist"]',refresh:'[data-qa-id="screener-refresh-button"]',
+  fullscreen:'[data-qa-id="screener-enter-fullscreen"]',
+  resultTable:'table thead th[data-field]',tableBody:'table tbody tr',
+  symbolSearch:'th[data-field] button[title="찾기"]',
+  columnSetup:'[data-qa-id="screener-add-column-button"]',
+  firstColumn:'th[data-field]:first-child',logoImages:'tbody tr img',
+  bondOverlay:'[data-qa-id="screener-registration-bottom-bar"]',
+  pineGuest:'[class*="emptyScreen"],[class*="emptyState"],[class*="emptyContainer"]'
+};
+const cloneSelectors={
+  siteHeader:'.site-header',main:'main#tv-content',categorySwitch:'.category-switch',
+  screenTitle:'.screen-name',undo:'[data-qa-id="screener-undo-button"]',
+  redo:'[data-qa-id="screener-redo-button"]',settings:'[data-qa-id="screener-topbar-settings"]',
+  filterPanel:'.pills-panel',addFilter:'[data-qa-id="screener-add-new-filter"]',
+  filterOptions:'[data-qa-id="reset-options-button"]',tabs:'.tab-list[role="tablist"]',
+  refresh:'[data-qa-id="screener-refresh-button"]',
+  fullscreen:'[data-qa-id="screener-enter-fullscreen"]',
+  resultTable:'table.screener-table thead th[data-field]',tableBody:'table.screener-table tbody tr',
+  symbolSearch:'th[data-field] button[title="심볼 찾기"]',
+  columnSetup:'[data-qa-id="screener-add-column-button"]',
+  firstColumn:'th[data-field]:first-child',logoImages:'.logo-host img',
+  bondOverlay:'.bond-registration',pineGuest:'.pine-empty'
+};
+async function collectLayout(page,original,kind){
+ const selectors=original?originalSelectors:cloneSelectors;
+ return page.evaluate(({selectors,kind,original})=>{
+   const visible=node=>{if(!node)return false;let style=getComputedStyle(node);
+     const r=node.getBoundingClientRect();return style.display!=='none'&&style.visibility!=='hidden'&&r.width>0&&r.height>0};
+   const data={};for(const [name,selector]of Object.entries(selectors)){
+     const nodes=[...document.querySelectorAll(selector)];
+     data[name]={present:nodes.some(visible),count:nodes.filter(visible).length,
+       boxes:nodes.filter(visible).slice(0,2).map(n=>{let r=n.getBoundingClientRect();return{x:Math.round(r.x),y:Math.round(r.y),width:Math.round(r.width),height:Math.round(r.height)}})};
+   }
+   const tabSel=original?'#market-screener-header-columnset-tabs [role="tab"]:not([aria-hidden="true"])':'.tab-list [role="tab"]';
+   const pillSel=original?'[data-qa-id*="filter-pill"],[data-qa-id*="condition-pill"],[data-qa-id*="date-pill"]':'.pills-scroller .filter-pill';
+   const arr=sel=>[...document.querySelectorAll(sel)].filter(visible).map(n=>(n.innerText||n.textContent||'').replace(/\s+/g,' ').trim());
+   const fields=arr(original?'table thead th[data-field]':'table.screener-table thead th[data-field]');
+   const fieldIds=[...document.querySelectorAll(original?'table thead th[data-field]':'table.screener-table thead th[data-field]')].filter(visible).map(n=>n.getAttribute('data-field'));
+   return {kind,mode:original?'original':'clone',elements:data,
+     tabs:arr(tabSel),filters:arr(pillSel),fields,fieldIds,
+     symbolRows:document.querySelectorAll('table tbody tr').length,
+     screenText:(document.querySelector(original?'[data-qa-id="screen-title"]':'.screen-name')?.textContent||'').replace(/\s+/g,' ').trim()};
+ },{selectors,kind,original});
+}
+async function validateLayout(key,reference,clone){
+ const critical=['siteHeader','main','categorySwitch','screenTitle','undo','redo','settings','filterPanel',
+ 'addFilter','filterOptions','tabs','refresh','fullscreen'];
+ if(key==='pine')critical.push('pineGuest');
+ else critical.push('resultTable','tableBody','symbolSearch','columnSetup','firstColumn','logoImages');
+ if(key==='bond')critical.push('bondOverlay');
+ for(const name of critical){
+  const a=Boolean(reference.elements[name]?.present),b=Boolean(clone.elements[name]?.present);
+  await check(key+': layout '+name+' exists on both',a&&b,JSON.stringify({original:a,clone:b}));
+ }
+ if(key!=='pine'){
+  await check(key+': all visible preset tabs exist',clone.tabs.length===reference.tabs.length,
+    JSON.stringify({original:reference.tabs.length,clone:clone.tabs.length,referenceLabels:reference.tabs,cloneLabels:clone.tabs}));
+  await check(key+': all visible filter pills exist',clone.filters.length===reference.filters.length,
+    JSON.stringify({original:reference.filters.length,clone:clone.filters.length,referenceLabels:reference.filters,cloneLabels:clone.filters}));
+  await check(key+': every visible data column exists in same order',
+    JSON.stringify(reference.fieldIds)===JSON.stringify(clone.fieldIds),
+    JSON.stringify({reference:reference.fieldIds,clone:clone.fieldIds}));
+  await check(key+': result rows exist in both',reference.symbolRows>0&&clone.symbolRows>0,
+    JSON.stringify({reference:reference.symbolRows,clone:clone.symbolRows}));
+ }
+ // Major blocks must remain in the original order; compare vertical positions for diagnostics.
+ const order=key==='pine'?['siteHeader','categorySwitch','screenTitle','filterPanel']:['siteHeader','categorySwitch','screenTitle','filterPanel','tabs','resultTable'];
+ for(const mode of [reference,clone]){
+  const boxes=order.map(k=>({name:k,y:mode.elements[k]?.boxes[0]?.y})).filter(x=>typeof x.y==='number');
+  await check(key+': '+mode.mode+' major blocks correct order',boxes.every((x,i)=>!i||x.y>=boxes[i-1].y-8),JSON.stringify(boxes));
+ }
+}
+
 async function check(name,condition,details=''){
  const status=Boolean(condition);
  results.push({kind:'assertion',name,pass:status,details});
@@ -68,7 +153,8 @@ try{
   const source=await page.locator('[data-testid="screener-app"]').getAttribute('data-source');
   const appShot=path.join(OUT,key+'_ours.png');
   await page.screenshot({path:appShot,fullPage:false});
-  let referenceType='missing',referenceShot=null,refTabs=null;
+  let referenceType='missing',referenceShot=null,refTabs=null,referenceLayout=null;
+  const cloneLayout=await collectLayout(page,false,key);
   const originalPage=await ctx.newPage();
   const capturedReqs=[];
   const capturedResponses=[];
@@ -84,6 +170,7 @@ try{
     referenceType='live';referenceShot=path.join(OUT,key+'_original_live.png');
     refTabs=await originalPage.locator('#market-screener-header-columnset-tabs [role="tab"]:not([aria-hidden="true"])').count().catch(()=>null);
     await originalPage.screenshot({path:referenceShot,fullPage:false});
+    referenceLayout=await collectLayout(originalPage,true,key);
    }
   }catch(e){console.log('LIVE REF UNAVAILABLE',key,String(e).slice(0,160))}
   const logoSamples=await originalPage.locator('tbody tr').first().locator('img').evaluateAll(imgs=>imgs.map(i=>({src:i.getAttribute('src'),alt:i.getAttribute('alt'),text:i.parentElement?.textContent?.slice(0,70)}))).catch(()=>[]);
@@ -103,6 +190,12 @@ try{
   await fs.writeFile(path.join(OUT,key+'_original_scan_response_sample.json'),JSON.stringify(capturedResponses,null,2));
   if(referenceType==='missing'&&staticRef){const file=path.resolve('evidence',staticRef);try{await fs.access(file);referenceType='captured';referenceShot=file;}catch{}}
   const visual=await screenshotComparison(appShot,referenceShot,key);
+  await fs.writeFile(path.join(OUT,key+'_layout-inventory.json'),JSON.stringify({original:referenceLayout,clone:cloneLayout},null,2));
+  if(referenceLayout)await validateLayout(key,referenceLayout,cloneLayout);
+  else await check(key+': ORIGINAL REFERENCE REQUIRED',false,'Original visible DOM unavailable: cannot claim parity.');
+  await check(key+': visible pixel mismatch <= 10 percent',
+    Boolean(visual&&Number.isFinite(visual.pixel_fraction_changed_35)&&visual.pixel_fraction_changed_35<=UI_PARITY_LIMIT),
+    JSON.stringify({fraction:visual?.pixel_fraction_changed_35,limit:UI_PARITY_LIMIT,definition:'resized 392x240, absolute RGB average >35'}));
   results.push({kind:'page',key,route,title,tabs,filters,rows,source,response_status:response.status(),referenceType,refTabs,visual,exceptions});
   await check(key+': HTTP 200',response.status()===200);
   if(key!=='pine')await check(key+': public symbol logos loaded',logoLoad.loaded>0,JSON.stringify(logoLoad));
