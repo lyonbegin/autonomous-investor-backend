@@ -51,6 +51,8 @@ try{
  for(const [key,route,original,staticRef,tabCount]of SCREENS){
   const page=await ctx.newPage();
   const exceptions=[];
+  const localScanRequests=[];
+  page.on('request',req=>{if(req.url().includes('/api/scan')){try{localScanRequests.push(req.postDataJSON())}catch{}}});
   page.on('pageerror',error=>exceptions.push(error.message));
   const response=await page.goto(ROOT+route,{waitUntil:'domcontentloaded',timeout:30000});
   await page.waitForSelector('[data-testid="screener-app"]',{timeout:20000});
@@ -77,6 +79,16 @@ try{
    }
   }catch(e){console.log('LIVE REF UNAVAILABLE',key,String(e).slice(0,160))}
   await originalPage.close();
+  if(capturedReqs.length&&localScanRequests.length){
+    const originalQuery=capturedReqs[0].json;
+    const localQuery=localScanRequests.at(-1)?.payload;
+    const sameCols=JSON.stringify(originalQuery.columns)===JSON.stringify(localQuery?.columns);
+    const sameSort=JSON.stringify(originalQuery.sort)===JSON.stringify(localQuery?.sort);
+    const sameFilter2=JSON.stringify(originalQuery.filter2||null)===JSON.stringify(localQuery?.filter2||null);
+    await check(key+': original scan columns exact',sameCols,'columns '+(localQuery?.columns?.length||0));
+    await check(key+': original scan sorting exact',sameSort,JSON.stringify(localQuery?.sort));
+    await check(key+': original scan filter2 exact',sameFilter2);
+  }
   await fs.writeFile(path.join(OUT,key+'_original_scans.json'),JSON.stringify(capturedReqs,null,2));
   if(referenceType==='missing'&&staticRef){const file=path.resolve('evidence',staticRef);try{await fs.access(file);referenceType='captured';referenceShot=file;}catch{}}
   const visual=await screenshotComparison(appShot,referenceShot,key);
@@ -99,6 +111,14 @@ try{
    await page.locator('[data-qa-id="screener-add-column-button"]').click();
    await check(key+': columns popup',await page.locator('.popover-columns .option-list button').count()>4);
    await page.locator('.pop-header button').click();
+   if(key==='bond'){
+     await page.locator('[data-testid="filter-발행자"]').click();
+     await page.waitForTimeout(650);
+     await check('bond: real issuer enum search',await page.locator('.popover-filter .filter-values label').count()>=25);
+     await page.locator('.popover-filter .popup-search').fill('Johnson');
+     await check('bond: filter matches issuer names',await page.locator('.popover-filter .filter-values label').count()>=1);
+     await page.locator('.pop-header button').click();
+   }
    await page.locator('[data-qa-id="screener-topbar-settings"]').click();
    await check(key+': settings popup',await page.locator('.popover-settings input[type="checkbox"]').count()===5);
    await page.locator('.pop-header button').click();
