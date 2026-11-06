@@ -89,8 +89,8 @@ export function getEnumOptions(enums,category){
 }
 export function initialPending(spec,applied){
  const standard=spec?.type==='enum'?{type:'choices',operator:'in_range',choices:[]}:
-  spec?.type==='date'?{type:'date',operator:'in_range',min:'',max:''}:
-  {type:'range',operator:'in_range',min:'',max:''};
+  spec?.type==='date'?{type:'date',operator:'egreater',min:'',max:''}:
+  {type:'range',operator:'egreater',min:'',max:''};
  return {...standard,...(applied||{}),field:applied?.field||spec?.field||''};
 }
 export function validatePending(spec,item){
