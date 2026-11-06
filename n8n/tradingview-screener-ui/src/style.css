@@ -127,3 +127,10 @@
 .site.compact.short-filters .screener-table th{height:34px!important}
 .site.compact.short-filters .screener-table td{height:29px!important;padding-top:1px;padding-bottom:1px}
 .popover-columns .option-list button:disabled{opacity:.58;cursor:default;background:#fff}
+
+.filter-quick-presets{max-height:244px;overflow:auto;margin:10px 0 13px;border:1px solid #e6e8ed;border-radius:6px}
+.filter-quick-presets button{display:flex;gap:10px;justify-content:space-between;text-align:left;align-items:center;background:#fff;border:0;border-bottom:1px solid #f0f1f3;padding:8px 11px;width:100%;font-size:13px;color:#1e2431}
+.filter-quick-presets button:hover{background:#f2f6ff}
+.filter-quick-presets button strong{font-weight:540}
+.filter-quick-presets button small{font-size:11px;color:#89909c}
+.filter-quick-title{padding:9px 11px;font-size:11px;color:#7e8490;font-weight:600;background:#f8f9fb}

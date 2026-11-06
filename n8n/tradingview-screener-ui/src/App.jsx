@@ -5,6 +5,7 @@ import {Search,ChevronDown,Plus,MoreHorizontal,RotateCw,Maximize2,Minimize2,
   Copy,Download,ListFilter,Lock,Bookmark,AlertCircle,Menu,ExternalLink} from 'lucide-react';
 import {FILTER_DEFS,NUMBER_OPERATORS,ENUM_OPERATORS,PERIOD_CHOICES,specFor,getEnumOptions,initialPending,validatePending,makeExpressions,summaryFor} from './filter-spec.js';
 import {CRYPTO_TAB_COLS} from './crypto-tab-presets.js';
+import {getPresets} from './filter-presets.js';
 
 const MARKETS='america argentina australia austria bahrain bangladesh belgium bulgaria brazil canada chile china colombia croatia cyprus czech denmark egypt estonia finland france germany greece hongkong hungary iceland india indonesia ireland israel italy japan kenya kuwait latvia lithuania luxembourg malaysia mexico morocco netherlands newzealand nigeria norway pakistan peru philippines poland portugal qatar romania russia ksa serbia singapore slovakia slovenia rsa korea spain srilanka sweden switzerland taiwan thailand tunisia turkey uae uk venezuela vietnam'.split(' ');
 const COUNTRY_NAMES={america:'미국',korea:'대한민국',japan:'일본',china:'중국',hongkong:'홍콩',india:'인도',canada:'캐나다',uk:'영국',germany:'독일',france:'프랑스',australia:'호주',taiwan:'대만',singapore:'싱가포르',brazil:'브라질',vietnam:'베트남',thailand:'태국',switzerland:'스위스',spain:'스페인',italy:'이탈리아',netherlands:'네덜란드',mexico:'멕시코',sweden:'스웨덴',turkey:'튀르키예',russia:'러시아',ksa:'사우디아라비아',uae:'아랍에미리트',rsa:'남아프리카',newzealand:'뉴질랜드'};
@@ -294,6 +295,13 @@ function App(){
           <label className="filter-operator-label">비교 조건
             <select aria-label="비교 조건" value={pending.operator||'in_range'} onChange={e=>setPending(v=>({...v,operator:e.target.value}))}>{(activeSpec.type==='enum'?ENUM_OPERATORS:NUMBER_OPERATORS).map(x=><option key={x.id} value={x.id}>{x.label}</option>)}</select>
           </label>
+          {activeSpec.type==='number'&&getPresets(product,activeLabel).length>0&&<div className="filter-quick-presets" data-testid="filter-presets">
+            <div className="filter-quick-title">원본 스크리너 빠른 조건</div>
+            {getPresets(product,activeLabel).map((preset,i)=><button type="button" data-testid="filter-preset" key={i} onClick={()=>applyFilter(activeLabel,{...pending,type:'range',...preset,field:pending.field||activeSpec.field})}>
+              <strong>{preset.label}</strong><small>{preset.description}</small>
+            </button>)}
+            <div className="filter-quick-title">매뉴얼 셋업</div>
+          </div>}
           {activeSpec.type==='enum'?<>
             <input className="popup-search" placeholder="선택값 검색" value={filterQuery} onChange={e=>setFilterQuery(e.target.value)}/>
             <div className="filter-option-count" data-testid="enum-count">선택 {pending.choices?.length||0}개 · 원본 선택값 {enumOptions.length.toLocaleString('ko-KR')}개</div>

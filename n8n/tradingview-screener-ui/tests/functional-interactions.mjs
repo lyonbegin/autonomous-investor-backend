@@ -67,6 +67,16 @@ for(const s of SCENARIOS){
   await page.locator('[data-testid="filter-'+s.number+'"]').click();
   const reset=await nextScan(page,()=>page.locator('[data-testid="filter-editor"] .filter-edit-actions button').first().click());
   assert(s.key+': reset removes numeric condition',!expr(reset.body.payload,s.numberField));
+  if(s.key==='stock'){
+    await page.locator('[data-testid="filter-가격"]').click();
+    const preset=page.locator('[data-testid="filter-preset"]').first();
+    const presetScan=await nextScan(page,()=>preset.click());
+    const exp=expr(presetScan.body.payload,'close');
+    assert('stock: original quick preset applies real price >100',exp?.operation==='greater'&&exp?.right===100,{condition:exp,HTTP:resultStatus(presetScan)});
+    assert('stock: quick preset scanner HTTP 200',resultStatus(presetScan)===200,{HTTP:resultStatus(presetScan)});
+    await page.locator('[data-testid="filter-가격"]').click();
+    await nextScan(page,()=>page.locator('[data-testid="filter-editor"] .filter-edit-actions button').first().click());
+  }
   await page.locator('[data-qa-id="screener-topbar-settings"]').click();
   const row=page.locator('.screener-table thead th[data-field]').first();
   const before=await row.evaluate(el=>el.getBoundingClientRect().height);

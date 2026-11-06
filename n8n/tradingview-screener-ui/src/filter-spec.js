@@ -7,7 +7,7 @@ export const FILTER_DEFS={
  'EPS 희석 성장':['earnings_per_share_diluted_yoy_growth_ttm','number'],
  '배당 수익 %':['dividends_yield_current','number'],'섹터':['sector','enum','sector'],
  '애널리스트 평점':['AnalystRating','enum','analyst_rating'],
- '퍼포먼스 %':['Perf.1M','number'],'매출 성장률':['total_revenue_yoy_growth_ttm','number'],
+ '퍼포먼스 %':['Perf.YTD','number'],'매출 성장률':['total_revenue_yoy_growth_ttm','number'],
  'PEG':['price_earnings_growth_ttm','number'],'ROE':['return_on_equity_fq','number'],
  '베타':['beta_1_year','number'],
  '최근 실적 발표날짜':['earnings_release_date','date'],
@@ -16,7 +16,7 @@ export const FILTER_DEFS={
  etf:{
  '자산 클래스':['asset_class','enum','asset_class'],'포커스':['focus','enum','focus'],
  '틈새 시장':['niche','enum','niche'],'홀딩스 지역':['holdings_region','enum','holdings_region'],
- '브랜드':['brand','enum','brand'],'퍼포먼스 %':['Perf.1M','number'],
+ '브랜드':['brand','enum','brand'],'퍼포먼스 %':['Perf.YTD','number'],
  'NAV 총 수익률':['nav_total_return.3Y','number'],'AUM':['aum','number'],
  '운용 스타일':['actively_managed','enum','actively_managed'],
  '전략':['strategy','enum','strategy'],
@@ -63,6 +63,7 @@ export const FILTER_DEFS={
  }
 };
 export const PERIOD_CHOICES=[
+ {field:'Perf.YTD',label:'올해 초부터 현재까지'},
  {field:'change',label:'1일'},{field:'Perf.W',label:'1주'},{field:'Perf.1M',label:'1달'},
  {field:'Perf.3M',label:'3달'},{field:'Perf.6M',label:'6달'},
  {field:'Perf.Y',label:'1년'},{field:'Perf.5Y',label:'5년'}];
