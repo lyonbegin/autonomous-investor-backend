@@ -165,10 +165,10 @@ function App(){
        </div>
        <div className="heading-line">
          <button className="screen-name" data-pop data-qa-id="screen-title" onClick={()=>setPopup(v=>v==='screens'?'':'screens')}>{cfg.title}<ChevronDown size={19}/></button>
-         <div className="right-tools"><IconButton title="되돌리기" qa="screener-undo-button" disabled={!undo.length} onClick={undoAction}><Undo2 size={18}/></IconButton><IconButton title="다시 실행" qa="screener-redo-button" disabled={!redo.length} onClick={redoAction}><Redo2 size={18}/></IconButton><IconButton title="스크린 저장" onClick={saveScreen}><Save size={18}/></IconButton><IconButton title="스크리너 세팅" qa="screener-topbar-settings" onClick={()=>setPopup('settings')}><Settings2 size={21}/></IconButton></div>
+         <div className="right-tools"><IconButton title="되돌리기" qa="screener-undo-button" disabled={!undo.length} onClick={undoAction}><Undo2 size={18}/></IconButton><IconButton title="다시 실행" qa="screener-redo-button" disabled={!redo.length} onClick={redoAction}><Redo2 size={18}/></IconButton><IconButton title="스크리너 세팅" qa="screener-topbar-settings" onClick={()=>setPopup('settings')}><Settings2 size={21}/></IconButton></div>
        </div>
      </section>
-     <section className="pills-panel">{product==='stock'&&<button data-pop className="filter-pill ai-pill" onClick={()=>setPopup('add-filter')}>✦ AI</button>}
+     <section className="pills-panel">{product==='stock'&&<button data-pop className="filter-pill ai-pill" onClick={()=>setPopup('add-filter')}><span className="ai-spark">✦</span>AI</button>}
        {(product==='stock'||product==='etf')&&<button data-pop className="filter-pill market-pill" data-testid="market-filter" onClick={()=>{setPopup('market');setMarketQuery('')}}><span>{getFlag(market)}</span>{market==='korea'?'KR':market==='america'?'US':(COUNTRY_NAMES[market]||market)} <ChevronDown size={14}/></button>}
        <div className="pills-scroller" data-testid="filter-pills">
          {filterLabels.map((label,index)=><React.Fragment key={label}>
@@ -193,7 +193,7 @@ function App(){
        <div className="tab-tools">
          <IconButton title="리프레쉬" qa="screener-refresh-button" onClick={()=>setRefresh(x=>x+1)}><RotateCw size={18} className={loading?'spin':''}/></IconButton>
          <IconButton title={fullscreen?'전체화면 종료':'최대화'} qa="screener-enter-fullscreen" onClick={()=>setFullscreen(x=>!x)}>{fullscreen?<Minimize2 size={18}/>:<Maximize2 size={18}/>}</IconButton>
-         <IconButton title="데이터 내보내기" onClick={exportCSV}><Download size={18}/></IconButton>
+         
        </div>
      </section>
      {product==='pine'&&<><div className="pine-banner">파인 스크리너 <span>BETA</span></div><div className="pine-empty"><div className="pine-art"><span>◇</span><span>△</span></div><div className="pine-title">로그인하여 Pine Screener를 사용하세요</div><p>지표별로 왓치리스트를 스캔하고 커스텀 설정을 적용하세요. 주식, 암호화폐, 외환 등 거래<br/>하는 모든 자산에 적용됩니다.</p><button className="pine-login" onClick={()=>setPopup('account')}>로그인</button></div></>}
@@ -223,6 +223,7 @@ function App(){
                    column==='isin-displayed'&&product==='bond'&&!settings.showRestrictedColumns?<Lock size={14} className="locked-cell"/>:column==='isin-displayed'?<div className="isin-value">{typeof val==='string'?val:'—'}{val&&<button title="ISIN 카피" onClick={e=>{e.stopPropagation();navigator.clipboard?.writeText(val);showToast('ISIN 복사됨')}}><Copy size={12}/></button>}</div>:
                    (product==='bond'&&index>8&&index<15)?<span className="paywall-blur">{formatValue(val,column,currency)}</span>:
                    (product==='bond'&&/(redemption_type|bond_snp_rating|bond_fitch_rating|bond_moodys_rating)/.test(column)&&!settings.showRestrictedColumns)?<Lock size={14} className="locked-cell"/>:(/(Rating|rating)/.test(column)&&typeof val==='string'&&/^(AAA|AA|Aaa|BBB)/.test(val))?<span className="rating">{val}</span>:
+                   ['AnalystRating.tr','TechRating_1D.tr'].includes(column)&&typeof val==='string'?<span className={'signal '+(/매수|바이|buy/i.test(val)?'positive':/매도|셀|sell/i.test(val)?'negative':'')}>{/매수|바이|buy/i.test(val)?'⌃ ': /매도|셀|sell/i.test(val)?'⌄ ':''}{val}</span>:
                    formatValue(val,column,currency)}
                  </td>
                })}
@@ -250,7 +251,7 @@ function App(){
      {popup==='screens'&&<div className="option-list"><button onClick={()=>setPopup('')}>{cfg.title}<Check size={16}/></button>{saved.filter(s=>s.product===product).map(s=><button key={s.id} onClick={()=>{applySnapshot(s.view);setPopup('')}}>{s.name}</button>)}<button onClick={saveScreen}><Plus size={16}/>새 스크린 저장</button></div>}
      {popup==='view'&&<div className="option-list"><button onClick={()=>setPopup('')}><Table2 size={16}/>테이블 <Check size={16}/></button><button onClick={()=>{setSettings(v=>({...v,compact:!v.compact}));setPopup('')}}><Grid2X2 size={16}/>컴팩트 테이블</button></div>}
      {popup==='settings'&&<div className="settings-list">{[['compact','행 높이 줄이기'],['showLogos','심볼 로고 표시'],['freezeTicker','첫 열 고정'],['hideEmpty','빈 셀 숨기기'],['showRestrictedColumns','채권 제한 데이터 보기']].map(([key,label])=><label key={key}><input type="checkbox" checked={settings[key]} onChange={e=>setSettings(v=>({...v,[key]:e.target.checked}))}/>{label}</label>)}<button className="apply-btn" onClick={()=>setPopup('')}>확인</button></div>}
-     {popup==='filter-options'&&<div className="option-list"><button onClick={()=>{changeState(()=>setPills({}));setPopup('')}}><RotateCw size={16}/>모든 필터 초기화</button><button onClick={()=>{setShowAllFilters(v=>!v);setPopup('add-filter')}}><Plus size={16}/>필터 추가</button><button onClick={saveScreen}><Save size={16}/>화면 저장</button></div>}
+     {popup==='filter-options'&&<div className="option-list"><button onClick={()=>{changeState(()=>setPills({}));setPopup('')}}><RotateCw size={16}/>모든 필터 초기화</button><button onClick={()=>{setShowAllFilters(v=>!v);setPopup('add-filter')}}><Plus size={16}/>필터 추가</button><button onClick={saveScreen}><Save size={16}/>화면 저장</button><button onClick={()=>{exportCSV();setPopup('')}}><Download size={16}/>CSV 다운로드</button></div>}
      {popup==='more-tabs'&&<div className="option-list">{cfg.tabs.map((label,i)=><button key={i} onClick={()=>{changeState(()=>setTab(i));setPopup('')}}>{label}{tab===i&&<Check size={16}/>}</button>)}</div>}
      {popup==='symbol-search'&&<><input autoFocus placeholder="심볼 또는 기업명 찾기" value={search} onChange={e=>setSearch(e.target.value)} className="popup-search"/><div className="popup-subtitle">현재 페이지에서 검색 · 전체 시장 종목 검색과 구분</div><div className="option-list">{normalizedRows.slice(0,10).map(row=><button key={row.id} onClick={()=>setPopup('')}>{row.id}</button>)}</div></>}
      {popup==='columns'&&<><input autoFocus className="popup-search" placeholder="컬럼 검색" value={columnSearch} onChange={e=>setColumnSearch(e.target.value)}/><div className="popup-subtitle">선택된 컬럼 · 클릭하여 추가 또는 제거</div><div className="option-list long-list">{colsToOffer.filter(c=>(colname(c)+' '+c).toLowerCase().includes(columnSearch.toLowerCase())).map(c=><button key={c} onClick={()=>{changeState(()=>setCustomCols(v=>{const old=v||currentCols;return old.includes(c)?old.filter(x=>x!==c):[...old,c]}))}}><span>{colname(c)} <small>{c}</small></span>{currentCols.includes(c)&&<Check size={16}/>}</button>)}</div></>}
