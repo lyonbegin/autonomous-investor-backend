@@ -1,0 +1,32 @@
+import {chromium} from 'playwright';
+import fs from 'node:fs/promises';
+const ROOT=process.env.CHART_BASE_URL||'http://127.0.0.1:4173';
+const browser=await chromium.launch({headless:true,...(process.env.PLAYWRIGHT_SYSTEM_CHROME?{executablePath:process.env.PLAYWRIGHT_SYSTEM_CHROME}:{}),args:['--no-sandbox','--disable-dev-shm-usage']});
+const page=await browser.newPage({viewport:{width:1210,height:850},locale:'ko-KR'});
+const responses=[],consoleErrors=[],report={root:ROOT,at:new Date().toISOString(),test:'UNMOCKED_REAL_SCANNER_TO_REAL_CHART',pass:false};
+page.on('pageerror',e=>consoleErrors.push(String(e)));
+page.on('response',r=>{if(r.url().includes('/api/chart?'))responses.push({url:r.url(),status:r.status()})});
+await fs.mkdir('artifacts',{recursive:true});
+try{
+ await page.goto(ROOT+'/screener/',{waitUntil:'domcontentloaded',timeout:45000});
+ await page.locator('[data-testid="screener-app"][data-source="live"]').waitFor({timeout:45000});
+ const first=page.locator('tbody tr[data-rowkey]').first();
+ await first.waitFor({timeout:10000});
+ const id=await first.getAttribute('data-rowkey');report.scannerFirstSymbol=id;
+ if(!id||!id.includes(':'))throw Error('live TradingView scanner symbol is missing venue');
+ await page.getByTestId('view-switch').click();
+ await page.getByTestId('view-option-charts').click();
+ const card=page.getByTestId('chart-card').first();await card.waitFor({timeout:10000});
+ const chartId=await card.getAttribute('data-symbol');report.chartSymbol=chartId;
+ if(id!==chartId)throw Error('Screener selected real symbol differs from chart requested symbol');
+ await page.locator('[data-testid="chart-card"][data-data-source="Yahoo Finance (research)"]').first().waitFor({timeout:40000});
+ await card.getByTestId('lightweight-chart').locator('canvas').first().waitFor({timeout:15000});
+ report.source=await card.getAttribute('data-data-source');
+ report.providerResponses=responses;
+ if(!responses.some(x=>x.status===200&&x.url.includes(encodeURIComponent(id))))throw Error('No matching live 200 OHLCV provider response for '+id);
+ if(consoleErrors.length)throw Error('Browser console errors: '+consoleErrors.join('; '));
+ await page.screenshot({path:'artifacts/chart-production-endtoend.png'});
+ report.pass=true;
+}catch(e){report.error=String(e.message||e);report.providerResponses=responses;await page.screenshot({path:'artifacts/chart-production-failure.png'}).catch(()=>{});process.exitCode=1;}finally{await browser.close();}
+await fs.writeFile('artifacts/chart-production-endtoend.json',JSON.stringify(report,null,2));
+console.log((report.pass?'PASS':'FAIL')+' UNMOCKED_REAL_SCANNER_TO_REAL_CHART '+JSON.stringify(report));
