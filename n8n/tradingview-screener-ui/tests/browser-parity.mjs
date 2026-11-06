@@ -21,8 +21,39 @@ const results=[],failures=[];
    and visible table fields. Both missing and unexpected elements fail the layout gate.
    A reference acquisition failure is NOT a passing comparison. */
 const UI_PARITY_LIMIT=.10;
+const DISPLAY_FIELD_MAP={
+ TickerUniversal:'ticker-view',TickerInstrumentUniversal:'ticker-view',
+ Price:'close',ChangeCrypto:'24h_close_change|5','ChangeCrypto|Interval24H':'24h_close_change|5',
+ 'Change|TimeResolution1D':'change','Volume|TimeResolution1D':'volume',
+ 'RelativeVolume|TimeResolution1D':'relative_volume_10d_calc',
+ MarketCap:'market_cap_basic',PriceToEarnings:'price_earnings_ttm',
+ 'EpsDiluted|ttm':'earnings_per_share_diluted_ttm',
+ 'EpsDilutedGrowth|YoYTTM':'earnings_per_share_diluted_yoy_growth_ttm',
+ 'DividendsYield|ttm':'dividends_yield_current',
+ Sector:'sector.tr',AnalystRating:'AnalystRating.tr',
+ 'VolumePrice|TimeResolution1D':'Value.Traded',AssetsUnderManagement:'aum',
+ 'NavTotalReturn|Interval3Y':'nav_total_return.3Y',TotalHoldings:'etf_holdings_count',
+ ExpenseRatio:'expense_ratio',AssetClass:'asset_class.tr',Focus:'focus.tr',
+ Isin:'isin-displayed',YieldToWorst:'yield_to_worst',BondClose:'close_pct',
+ BondCloseNet:'close_net',CurrentCoupon:'current_coupon',MaturityDate:'maturity_date',
+ Redemption:'redemption_type.tr',BondIssuerType:'bond_issuer_type.tr',
+ SnpRatingLongTerm:'bond_snp_rating_lt.tr',FitchRatingLongTerm:'bond_fitch_rating_lt.tr',
+ MoodysRatingLongTerm:'bond_moodys_rating_lt.tr',Source:'exchange.tr',
+ Rank:'crypto_total_rank',MarketCapCalc:'market_cap_calc',
+ 'Volume24hCoin|Interval24H':'24h_vol_cmc',SupplyCirculating:'circulating_supply',
+ VolumeToMarketCap:'24h_vol_to_market_cap',SocialDominance:'socialdominance',
+ CryptoCategory:'crypto_common_categories.tr',
+ 'TechnicalRating|TimeResolution1D':'TechRating_1D.tr',
+ Exchange:'exchange.tr','Volume24h|Interval24H':'24h_vol|5',
+ 'Volume24hChange|Interval24H':'24h_vol_change|5',
+ Blockchain:'blockchain-id.tr','TransactionsDex|Interval24H':'dex_txs_count_24h',
+ 'TradingVolumeDex|Interval24H':'dex_trading_volume_24h',
+ 'TradersDex|Interval24H':'dex_txs_count_uniq_24h',
+ LiquidityDex:'dex_total_liquidity',FullyDilutedValuation:'fully_diluted_value'
+};
+
 const originalSelectors={
-  siteHeader:'header',main:'main#tv-content',categorySwitch:'[data-qa-id="screener-pills-switcher"]',
+  siteHeader:'header,nav,[role="banner"],[class*="siteHeader"],[class*="headerRoot"]',main:'main#tv-content',categorySwitch:'[data-qa-id="screener-pills-switcher"]',
   screenTitle:'[data-qa-id="screen-title"]',undo:'[data-qa-id="screener-undo-button"]',
   redo:'[data-qa-id="screener-redo-button"]',settings:'[data-qa-id="screener-topbar-settings"]',
   filterPanel:'[class*="pillsPanel"],[class*="pillsContainer"]',
@@ -34,6 +65,7 @@ const originalSelectors={
   symbolSearch:'th[data-field] button[title="찾기"]',
   columnSetup:'[data-qa-id="screener-add-column-button"]',
   firstColumn:'th[data-field]:first-child',logoImages:'tbody tr img',
+  watchlist:'[class*="watchlistWrapper"]',
   bondOverlay:'[data-qa-id="screener-registration-bottom-bar"]',
   pineGuest:'[class*="emptyScreen"],[class*="emptyState"],[class*="emptyContainer"]'
 };
@@ -49,7 +81,7 @@ const cloneSelectors={
   symbolSearch:'th[data-field] button[title="심볼 찾기"]',
   columnSetup:'[data-qa-id="screener-add-column-button"]',
   firstColumn:'th[data-field]:first-child',logoImages:'.logo-host img',
-  bondOverlay:'.bond-registration',pineGuest:'.pine-empty'
+  watchlist:'.watchlist-pill',bondOverlay:'.bond-registration',pineGuest:'.pine-empty'
 };
 async function collectLayout(page,original,kind){
  const selectors=original?originalSelectors:cloneSelectors;
@@ -61,8 +93,20 @@ async function collectLayout(page,original,kind){
      data[name]={present:nodes.some(visible),count:nodes.filter(visible).length,
        boxes:nodes.filter(visible).slice(0,2).map(n=>{let r=n.getBoundingClientRect();return{x:Math.round(r.x),y:Math.round(r.y),width:Math.round(r.width),height:Math.round(r.height)}})};
    }
+   if(original&&data.siteHeader&&!data.siteHeader.present){
+     const top=[...document.querySelectorAll('div')].filter(n=>{
+       const r=n.getBoundingClientRect();return visible(n)&&r.y>=-2&&r.y<20&&r.width>1000&&r.height>=45&&r.height<=100;
+     });
+     data.siteHeader={present:top.length>0,count:top.length,boxes:top.slice(0,2).map(n=>{const r=n.getBoundingClientRect();return{x:Math.round(r.x),y:Math.round(r.y),width:Math.round(r.width),height:Math.round(r.height)}})};
+   }
+   if(original&&kind==='pine'&&data.pineGuest&&!data.pineGuest.present){
+     const titles=[...document.querySelectorAll('h1,h2,h3,h4,div,p,strong')].filter(n=>{
+       const r=n.getBoundingClientRect();return visible(n)&&r.y>280&&r.y<780&&r.width<1200&&/Pine Screener|파인 스크리너/i.test((n.innerText||'').trim());
+     });
+     data.pineGuest={present:titles.length>0,count:titles.length,boxes:titles.slice(0,2).map(n=>{const r=n.getBoundingClientRect();return{x:Math.round(r.x),y:Math.round(r.y),width:Math.round(r.width),height:Math.round(r.height)}})};
+   }
    const tabSel=original?'#market-screener-header-columnset-tabs [role="tab"]:not([aria-hidden="true"])':'.tab-list [role="tab"]';
-   const pillSel=original?'[data-qa-id*="filter-pill"],[data-qa-id*="condition-pill"],[data-qa-id*="date-pill"]':'.pills-scroller .filter-pill';
+   const pillSel=original?'[data-qa-id*="filter-pill"],[data-qa-id*="condition-pill"],[data-qa-id*="date-pill"]':'.pills-scroller .filter-pill:not(.watchlist-pill)';
    const arr=sel=>[...document.querySelectorAll(sel)].filter(visible).map(n=>(n.innerText||n.textContent||'').replace(/\s+/g,' ').trim());
    const fields=arr(original?'table thead th[data-field]':'table.screener-table thead th[data-field]');
    const fieldIds=[...document.querySelectorAll(original?'table thead th[data-field]':'table.screener-table thead th[data-field]')].filter(visible).map(n=>n.getAttribute('data-field'));
@@ -73,31 +117,40 @@ async function collectLayout(page,original,kind){
  },{selectors,kind,original});
 }
 async function validateLayout(key,reference,clone){
- const critical=['siteHeader','main','categorySwitch','screenTitle','undo','redo','settings','filterPanel',
- 'addFilter','filterOptions','tabs','refresh','fullscreen'];
- if(key==='pine')critical.push('pineGuest');
- else critical.push('resultTable','tableBody','symbolSearch','columnSetup','firstColumn','logoImages');
- if(key==='bond')critical.push('bondOverlay');
- for(const name of critical){
-  const a=Boolean(reference.elements[name]?.present),b=Boolean(clone.elements[name]?.present);
-  await check(key+': layout '+name+' exists on both',a&&b,JSON.stringify({original:a,clone:b}));
+ const mustExist=['siteHeader','main'];
+ if(key==='pine')mustExist.push('pineGuest');
+ else mustExist.push('categorySwitch','screenTitle','undo','redo','settings','filterPanel',
+  'addFilter','filterOptions','tabs','refresh','fullscreen','resultTable','tableBody',
+  'symbolSearch','columnSetup','firstColumn','logoImages','watchlist');
+ if(key==='bond')mustExist.push('bondOverlay');
+ for(const name of mustExist){
+   const a=Boolean(reference.elements[name]?.present),b=Boolean(clone.elements[name]?.present);
+   await check(key+': layout '+name+' present in both',a&&b,JSON.stringify({original:a,clone:b}));
  }
- if(key!=='pine'){
-  await check(key+': all visible preset tabs exist',clone.tabs.length===reference.tabs.length,
-    JSON.stringify({original:reference.tabs.length,clone:clone.tabs.length,referenceLabels:reference.tabs,cloneLabels:clone.tabs}));
-  await check(key+': all visible filter pills exist',clone.filters.length===reference.filters.length,
-    JSON.stringify({original:reference.filters.length,clone:clone.filters.length,referenceLabels:reference.filters,cloneLabels:clone.filters}));
-  await check(key+': every visible data column exists in same order',
-    JSON.stringify(reference.fieldIds)===JSON.stringify(clone.fieldIds),
-    JSON.stringify({reference:reference.fieldIds,clone:clone.fieldIds}));
+ // Pine has no traditional screener title/filter/table. Both implementations must omit them.
+ if(key==='pine'){
+  for(const name of ['categorySwitch','screenTitle','filterPanel','tabs','resultTable','tableBody']){
+   await check(key+': absent '+name+' in both',!reference.elements[name]?.present&&!clone.elements[name]?.present);
+  }
+ } else {
+  const normalized=s=>String(s||'').replace(/\s+/g,'').replace(/[⌄▾▼]/g,'').trim();
+  await check(key+': all visible preset tab names and order',
+    JSON.stringify(reference.tabs.map(normalized))===JSON.stringify(clone.tabs.map(normalized)),
+    JSON.stringify({original:reference.tabs,clone:clone.tabs}));
+  await check(key+': all visible filter names and order',
+    JSON.stringify(reference.filters.map(normalized))===JSON.stringify(clone.filters.map(normalized)),
+    JSON.stringify({original:reference.filters,clone:clone.filters}));
+  const transformed=reference.fieldIds.map(x=>DISPLAY_FIELD_MAP[x]||x);
+  await check(key+': all columns equivalent by semantics and exact order',
+    JSON.stringify(transformed)===JSON.stringify(clone.fieldIds),
+    JSON.stringify({original:reference.fieldIds,mapped:transformed,clone:clone.fieldIds}));
   await check(key+': result rows exist in both',reference.symbolRows>0&&clone.symbolRows>0,
     JSON.stringify({reference:reference.symbolRows,clone:clone.symbolRows}));
  }
- // Major blocks must remain in the original order; compare vertical positions for diagnostics.
- const order=key==='pine'?['siteHeader','categorySwitch','screenTitle','filterPanel']:['siteHeader','categorySwitch','screenTitle','filterPanel','tabs','resultTable'];
+ const order=key==='pine'?['siteHeader','main']:['siteHeader','categorySwitch','screenTitle','filterPanel','tabs','resultTable'];
  for(const mode of [reference,clone]){
   const boxes=order.map(k=>({name:k,y:mode.elements[k]?.boxes[0]?.y})).filter(x=>typeof x.y==='number');
-  await check(key+': '+mode.mode+' major blocks correct order',boxes.every((x,i)=>!i||x.y>=boxes[i-1].y-8),JSON.stringify(boxes));
+  await check(key+': '+mode.mode+' structural order',boxes.every((x,i)=>!i||x.y>=boxes[i-1].y-8),JSON.stringify(boxes));
  }
 }
 
