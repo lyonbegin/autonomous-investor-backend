@@ -191,7 +191,7 @@ function App(){
        {(product==='stock'||product==='etf')&&<button data-pop className="filter-pill market-pill" data-testid="market-filter" onClick={()=>{setPopup('market');setMarketQuery('')}}><span>{getFlag(market)}</span>{market==='korea'?'KR':market==='america'?'US':(COUNTRY_NAMES[market]||market)} <ChevronDown size={14}/></button>}
        <div className="pills-scroller" data-testid="filter-pills">
          {filterLabels.map((label,index)=><React.Fragment key={label}>
-           {index===0&&product!=='bond'&&product!=='pine'?<span className="pill-divider"/>:null}
+           {index===1&&product!=='pine'?<span className="pill-divider"/>:null}
            <button data-pop draggable onDragStart={e=>e.dataTransfer.setData('text/plain',label)}
              onDragOver={e=>e.preventDefault()} onDrop={e=>{const from=e.dataTransfer.getData('text/plain');if(from!==label)changeState(()=>setFilterLabels(a=>{const b=a.filter(x=>x!==from);b.splice(b.indexOf(label),0,from);return b;}))}}
              title={label} className={'filter-pill '+(index===0&&label==='왓치리스트'?'watchlist-pill ':'')+(pills[label]?'filter-applied':'')} data-testid={'filter-'+label}
