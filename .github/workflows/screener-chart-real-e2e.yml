@@ -1,0 +1,57 @@
+name: Screener Charts UI and Real OHLCV Gate
+on:
+  push:
+    branches:
+      - feature/tradingview-screener-ui-parity-20261106
+    paths:
+      - 'n8n/tradingview-screener-ui/**'
+      - '.github/workflows/screener-chart-real-e2e.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  chart-browser-and-provider:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    defaults:
+      run:
+        working-directory: n8n/tradingview-screener-ui
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install and build
+        run: |
+          npm install --no-audit --no-fund
+          npm run build
+      - name: Select Chromium
+        run: |
+          if command -v google-chrome; then
+            echo "PLAYWRIGHT_SYSTEM_CHROME=$(command -v google-chrome)" >> "$GITHUB_ENV"
+          else
+            npx playwright install --with-deps chromium
+          fi
+      - name: Start local production code
+        run: |
+          nohup node server.mjs > /tmp/chart-server.log 2>&1 &
+          for i in $(seq 1 40); do
+            curl -fsS http://127.0.0.1:4173/health && break
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:4173/health
+      - name: Browser chart controls and switching — labeled fixture
+        run: node tests/chart-interactions.mjs
+      - name: Live upstream OHLCV and symbol mapping — no fixture
+        run: node tests/chart-provider-live.mjs
+      - name: Upload chart screenshots and provider results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: screener-chart-real-e2e
+          path: n8n/tradingview-screener-ui/artifacts/
+          retention-days: 14
+          if-no-files-found: warn
+      - name: Print server logs on failure
+        if: failure()
+        run: tail -100 /tmp/chart-server.log
