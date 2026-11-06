@@ -45,7 +45,7 @@ export const FILTER_DEFS={
  '잔고 주소':['addresses_count','number'],'달러 표시 거래량':['24h_vol_cmc','number'],
  '볼륨 변화 %':['24h_vol_change|5','number'],
  '거래량 (USD)':['24h_vol_cmc','number'],'체인지 %':['24h_close_change|5','number'],
- '퍼포먼스 %':['Perf.1M','number'],'카테고리':['crypto_common_categories','enum','category']
+ '퍼포먼스 %':['Perf.1M','number'],'카테고리':['crypto_common_categories','enum','crypto_common_categories']
  },
  cex:{
  '거래소':['exchange','enum','exchange'],'심볼 타입':['type','enum','type'],
@@ -54,7 +54,7 @@ export const FILTER_DEFS={
  '달러 표시 거래량':['24h_vol|5','number'],'볼륨 변화 %':['24h_vol_change|5','number']
  },
  dex:{
- '블록체인':['blockchain-id','enum','blockchain_id'],'거래소':['exchange','enum','exchange'],
+ '블록체인':['blockchain-id','enum','blockchain-id'],'거래소':['exchange','enum','exchange'],
  '체인지 %':['24h_close_change|5','number'],'거래':['dex_txs_count_24h','number'],
  '거래량':['dex_trading_volume_24h','number'],'유동성':['dex_total_liquidity','number'],
  'FDV':['fully_diluted_value','number'],'트레이더':['dex_txs_count_uniq_24h','number'],

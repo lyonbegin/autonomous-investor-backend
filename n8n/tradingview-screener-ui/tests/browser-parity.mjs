@@ -280,7 +280,7 @@ try{
    await page.locator('.pop-header button').click();
    if(key==='bond'){
      await page.locator('[data-testid="filter-발행자"]').click();
-     await page.waitForTimeout(650);
+     await page.locator('.popover-filter .filter-values label').first().waitFor({timeout:15000});
      await check('bond: real issuer enum search',await page.locator('.popover-filter .filter-values label').count()>=25);
      await page.locator('.popover-filter .popup-search').fill('Johnson');
      await check('bond: filter matches issuer names',await page.locator('.popover-filter .filter-values label').count()>=1);

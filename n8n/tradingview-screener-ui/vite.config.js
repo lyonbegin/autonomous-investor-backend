@@ -1,16 +1,19 @@
 import{defineConfig}from'vite';
 import fs from'node:fs';
+const ENUM_ALLOWED={stock:['index','sector','analyst_rating'],etf:['asset_class','focus','niche','holdings_region','brand','actively_managed','strategy','dividend_treatment','dividends_frequency','leverage','leveraged_flag','ucits_compliant_flag'],bond:['bond_issuer_type','bond_issuer','coupon_type_current','coupon_frequency','fundamental_currency_code','coupon_currency','exchange'],coin:['crypto_common_categories'],cex:['exchange','type','currency_id'],dex:['blockchain-id','exchange']};
 export default defineConfig({
   plugins:[{
     name:'tradingview-public-screener-relay',
     configureServer(server){
       server.middlewares.use('/api/enum',async(req,res)=>{
         const q=new URL(req.url,'http://localhost').searchParams;
-        const product=q.get('product');
-        if(!['stock','etf','bond','coin','cex','dex'].includes(product)){res.statusCode=400;res.end('{}');return;}
+        const product=q.get('product'),id=q.get('id');
+        res.setHeader('Content-Type','application/json; charset=utf-8');
+        if(!ENUM_ALLOWED[product]?.includes(id)){res.statusCode=400;res.end('{"error":"product and valid id required"}');return;}
         const label=product==='cex'?'crypto-cex':product==='dex'?'crypto-dex':product;
-        try{const response=await fetch('https://scanner.tradingview.com/enum/ordered?lang=ko&label-product=screener-'+label,{signal:AbortSignal.timeout(20000)});
-          res.statusCode=response.status;res.setHeader('Content-Type','application/json; charset=utf-8');res.end(await response.text());
+        const endpoint='https://scanner.tradingview.com/enum/ordered?lang=ko&label-product=screener-'+label+'&id='+encodeURIComponent(id);
+        try{const response=await fetch(endpoint,{headers:{Accept:'application/vnd.tv.orderedEnumValues.v1+json'},signal:AbortSignal.timeout(25000)});
+          res.statusCode=response.status;res.end(await response.text());
         }catch(e){res.statusCode=502;res.end(JSON.stringify({error:'enum unavailable'}));}
       });
       server.middlewares.use('/api/scan',async(req,res)=>{

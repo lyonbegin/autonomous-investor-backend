@@ -113,11 +113,19 @@ function App(){
  function redoAction(){if(!redo.length)return;setUndo(v=>[...v,snapshot()]);applySnapshot(redo.at(-1));setRedo(v=>v.slice(0,-1));}
  function switchProduct(id){if(!CONFIG[id])return;setProduct(id);history.pushState(null,'',CONFIG[id].url);setMarket(CONFIG[id].market);setTab(0);setFilterLabels(CONFIG[id].pills);setPills({});setPopup('');setSort({by:CONFIG[id].sort,dir:id==='coin'?'asc':'desc'});setCustomCols(null);setPage(0);setError('');setData(null);setSource('');setSearch('');setUndo([]);setRedo([]);}
  useEffect(()=>{const back=()=>switchProduct(getProduct());window.addEventListener('popstate',back);return()=>window.removeEventListener('popstate',back)},[]);
- useEffect(()=>{if(product==='pine'||enumData[product])return;let active=true;
-  fetch('/api/enum?product='+product).then(r=>r.ok?r.json():null).then(j=>{if(active&&j&&typeof j==='object'&&!j.error)setEnumData(v=>({...v,[product]:j}))}).catch(()=>{});
-  return()=>{active=false};
- },[product]);
- const orderedEnums=enumData[product]||refData?.products?.[product]?.enum||{};
+ useEffect(()=>{
+   if(!popup.startsWith('filter:')||product==='pine')return;
+   const spec=specFor(product,popup.slice(7));
+   const id=spec?.type==='enum'?(spec.enum||spec.field):null;
+   if(!id||Array.isArray(enumData[product]?.[id])||Array.isArray(refData?.products?.[product]?.enum?.[id]))return;
+   let active=true;
+   fetch('/api/enum?product='+encodeURIComponent(product)+'&id='+encodeURIComponent(id))
+    .then(async r=>{const j=await r.json();if(!r.ok)throw Error(j?.error||'HTTP '+r.status);return j;})
+    .then(j=>{if(active&&Array.isArray(j?.[id]))setEnumData(v=>({...v,[product]:{...(v[product]||{}),...j}}));})
+    .catch(err=>{if(active)console.warn('Enum request failed',product,id,String(err));});
+   return()=>{active=false};
+ },[product,popup,refData]);
+ const orderedEnums={...(refData?.products?.[product]?.enum||{}),...(enumData[product]||{})};
  const activeLabel=popup.startsWith('filter:')?popup.slice(7):'';
  const activeSpec=specFor(product,activeLabel);
  const enumCategory=activeSpec?.type==='enum'?(activeSpec.enum||activeSpec.field):null;

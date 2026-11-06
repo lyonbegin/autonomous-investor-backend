@@ -29,7 +29,9 @@ for(const s of SCENARIOS){
   const editor=page.locator('[data-testid="filter-editor"]');
   await editor.waitFor();
   await page.waitForTimeout(900);
-  const enumResponse=await page.request.get(ROOT+'/api/enum?product='+s.key,{timeout:25000});
+  const enumID=s.key==='coin'?'crypto_common_categories':s.key==='dex'?'blockchain-id':s.enumField;
+  const enumResponse=await page.request.get(ROOT+'/api/enum?product='+s.key+'&id='+encodeURIComponent(enumID),{timeout:25000});
+  await editor.locator('.filter-values label').first().waitFor({timeout:20000}).catch(()=>{});
   const enumJSON=await enumResponse.json().catch(()=>null);
   console.log('ENUM-DIAGNOSTIC',s.key,'HTTP',enumResponse.status(),'keys',Object.keys(enumJSON||{}).slice(0,20).join(','),'target',s.enumField);
   const opts=editor.locator('.filter-values label');

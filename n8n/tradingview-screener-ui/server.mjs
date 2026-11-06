@@ -6,6 +6,8 @@ const root=path.dirname(fileURLToPath(import.meta.url)),dist=path.join(root,'dis
 const PORT=Number(process.env.PORT||4173);
 const markets=new Set(('america argentina australia austria bahrain bangladesh belgium bulgaria brazil canada chile china colombia croatia cyprus czech denmark egypt estonia finland france germany greece hongkong hungary iceland india indonesia ireland israel italy japan kenya kuwait latvia lithuania luxembourg malaysia mexico morocco netherlands newzealand nigeria norway pakistan peru philippines poland portugal qatar romania russia ksa serbia singapore slovakia slovenia rsa korea spain srilanka sweden switzerland taiwan thailand tunisia turkey uae uk venezuela vietnam bond coin crypto').split(' '));
 const contentType={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.json':'application/json; charset=utf-8','.svg':'image/svg+xml','.png':'image/png','.jpg':'image/jpeg','.webp':'image/webp','.woff2':'font/woff2'};
+const ENUM_ALLOWED={stock:['index','sector','analyst_rating'],etf:['asset_class','focus','niche','holdings_region','brand','actively_managed','strategy','dividend_treatment','dividends_frequency','leverage','leveraged_flag','ucits_compliant_flag'],bond:['bond_issuer_type','bond_issuer','coupon_type_current','coupon_frequency','fundamental_currency_code','coupon_currency','exchange'],coin:['crypto_common_categories'],cex:['exchange','type','currency_id'],dex:['blockchain-id','exchange']};
+const enumCache=new Map();
 const json=(res,status,body)=>{res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});res.end(JSON.stringify(body))};
 async function scan(req,res){
  let raw='';try{for await(const chunk of req){raw+=chunk.toString();if(raw.length>800000)return json(res,413,{error:'Too large'})}}catch(e){return json(res,400,{error:'Read failed'})}
@@ -28,13 +30,21 @@ const server=http.createServer(async(req,res)=>{
   if(route==='/health')return json(res,200,{status:'ok',build:'tradingview-seven-screener-parity'});
   if(route==='/api/scan')return req.method==='POST'?scan(req,res):json(res,405,{error:'POST only'});
   if(route==='/api/enum'){
-   const p=new URL(req.url,'http://localhost').searchParams.get('product');
-   if(!['stock','etf','bond','coin','cex','dex'].includes(p))return json(res,400,{error:'Unknown product'});
+   if(req.method!=='GET')return json(res,405,{error:'GET only'});
+   const query=new URL(req.url,'http://localhost').searchParams;
+   const p=query.get('product'),id=query.get('id');
+   if(!ENUM_ALLOWED[p]?.includes(id))return json(res,400,{error:'Unsupported enum field; product and id are required'});
+   const cacheKey=p+':'+id,cached=enumCache.get(cacheKey);
+   if(cached&&Date.now()-cached.at<600000)return json(res,200,cached.body);
    const label=p==='cex'?'crypto-cex':p==='dex'?'crypto-dex':p;
-   try{const upstream=await fetch('https://scanner.tradingview.com/enum/ordered?lang=ko&label-product=screener-'+label,{signal:AbortSignal.timeout(20000)});
-      res.writeHead(upstream.status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'public, max-age=600'});res.end(await upstream.text());
-   }catch(e){json(res,502,{error:'Public enum source unavailable'})}
-   return;
+   const endpoint='https://scanner.tradingview.com/enum/ordered?lang=ko&label-product=screener-'+label+'&id='+encodeURIComponent(id);
+   try{
+     const upstream=await fetch(endpoint,{headers:{'Accept':'application/vnd.tv.orderedEnumValues.v1+json','Referer':'https://kr.tradingview.com/'},signal:AbortSignal.timeout(25000)});
+     const content=await upstream.text();let body;
+     try{body=JSON.parse(content)}catch{return json(res,502,{error:'Invalid upstream enum JSON'})}
+     if(upstream.ok)enumCache.set(cacheKey,{at:Date.now(),body});
+     return json(res,upstream.status,body);
+   }catch(e){return json(res,502,{error:'Provider enum unavailable',detail:String(e).slice(0,150)})}
   }
 
   if(req.method!=='GET'&&req.method!=='HEAD')return json(res,405,{error:'GET only'});
