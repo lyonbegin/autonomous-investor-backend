@@ -65,6 +65,7 @@ async function chart(req,res){
       .filter(b=>b.t!==null&&b.c!==null&&b.o!==null&&b.h!==null&&b.l!==null)
       .sort((a,b)=>a.t-b.t).filter((b,i,all)=>i===0||b.t!==all[i-1].t);
    if(!bars.length){attempts.push({symbol:providerSymbol,error:'No OHLCV bars'});continue}
+   if(candidates.length>1&&providerSymbol.endsWith('.KS')&&bars.length<10){attempts.push({symbol:providerSymbol,error:'Sparse first-board quote; checking exact same six-digit code on KOSDAQ',rows:bars.length});continue}
    const korean=/^(KRX|KOSPI|KOSDAQ):/.test(symbol);
    if(korean&&entry.meta?.currency!=='KRW'){attempts.push({symbol:providerSymbol,error:'Currency mismatch'});continue}
    const payload={symbol,resolvedSymbol:providerSymbol,provider:'Yahoo Finance (research)',interval,range,currency:entry.meta?.currency||null,timezone:entry.meta?.exchangeTimezoneName||'UTC',exchange:entry.meta?.exchangeName||null,delayed:true,retrievedAt:new Date().toISOString(),bars};
