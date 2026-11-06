@@ -6,6 +6,10 @@ export default defineConfig({
   server:{
     port:5177,
     proxy:{
+      '/screener-data':{
+        target:'https://scanner.tradingview.com',changeOrigin:true,secure:true,
+        rewrite:path=>path.replace(/^\/screener-data/,'')
+      },
       '/studio-api':{
         target:process.env.INVESTMENT_STUDIO_BACKEND_URL || 'http://127.0.0.1:8000',
         changeOrigin:true,
