@@ -274,6 +274,12 @@ try{
    await page.locator('[data-testid="tab-0"]').click();
    await page.locator('[data-qa-id="screener-add-new-filter"]').click();
    await check(key+': add filter popup',await page.locator('.popover-add-filter').count()===1);
+   await check(key+': original filter groups visible',await page.locator('[data-testid="filter-category-list"] button').count()>=(key==='stock'?8:key==='etf'?5:7));
+   await page.locator('[data-testid="filter-category-list"] button').first().click();
+   await check(key+': filter group opens connected field choices',await page.locator('[data-testid="filter-candidate-list"]').count()===1);
+   await page.locator('.filter-picker-back').click();
+   await page.locator('input[aria-label="필터 찾기"]').fill(key==='stock'?'가격':key==='etf'?'AUM':'쿠폰 %');
+   await check(key+': global filter search matches',await page.locator('[data-testid="filter-candidate-list"] button').count()>0);
    await page.locator('.pop-header button').click();
    await page.locator('[data-qa-id="screener-add-column-button"]').click();
    await check(key+': columns popup',await page.locator('.popover-columns .option-list button').count()>4);

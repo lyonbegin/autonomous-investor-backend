@@ -6,6 +6,7 @@ import {Search,ChevronDown,Plus,MoreHorizontal,RotateCw,Maximize2,Minimize2,
 import {FILTER_DEFS,NUMBER_OPERATORS,ENUM_OPERATORS,PERIOD_CHOICES,specFor,getEnumOptions,initialPending,validatePending,makeExpressions,summaryFor} from './filter-spec.js';
 import {CRYPTO_TAB_COLS} from './crypto-tab-presets.js';
 import {getPresets} from './filter-presets.js';
+import {groupsFor} from './filter-groups.js';
 
 const MARKETS='america argentina australia austria bahrain bangladesh belgium bulgaria brazil canada chile china colombia croatia cyprus czech denmark egypt estonia finland france germany greece hongkong hungary iceland india indonesia ireland israel italy japan kenya kuwait latvia lithuania luxembourg malaysia mexico morocco netherlands newzealand nigeria norway pakistan peru philippines poland portugal qatar romania russia ksa serbia singapore slovakia slovenia rsa korea spain srilanka sweden switzerland taiwan thailand tunisia turkey uae uk venezuela vietnam'.split(' ');
 const COUNTRY_NAMES={america:'미국',korea:'대한민국',japan:'일본',china:'중국',hongkong:'홍콩',india:'인도',canada:'캐나다',uk:'영국',germany:'독일',france:'프랑스',australia:'호주',taiwan:'대만',singapore:'싱가포르',brazil:'브라질',vietnam:'베트남',thailand:'태국',switzerland:'스위스',spain:'스페인',italy:'이탈리아',netherlands:'네덜란드',mexico:'멕시코',sweden:'스웨덴',turkey:'튀르키예',russia:'러시아',ksa:'사우디아라비아',uae:'아랍에미리트',rsa:'남아프리카',newzealand:'뉴질랜드'};
@@ -95,7 +96,7 @@ function App(){
  [sort,setSort]=useState({by:cfg.sort,dir:product==='coin'?'asc':'desc'}),[settings,setSettings]=useState({compact:false,showLogos:true,hideEmpty:false,freezeTicker:true,showRestrictedColumns:false}),
  [undo,setUndo]=useState([]),[redo,setRedo]=useState([]),[showAllFilters,setShowAllFilters]=useState(false),
  [saved,setSaved]=useState([]),[fullscreen,setFullscreen]=useState(false),[selectedRows,setSelectedRows]=useState([]),
- [columnSearch,setColumnSearch]=useState(''),[refresh,setRefresh]=useState(0),[toast,setToast]=useState(''),[popupAnchor,setPopupAnchor]=useState(null);
+ [columnSearch,setColumnSearch]=useState(''),[refresh,setRefresh]=useState(0),[toast,setToast]=useState(''),[popupAnchor,setPopupAnchor]=useState(null),[filterCategory,setFilterCategory]=useState('');
  const tableRef=useRef(null),popoverRef=useRef(null),searchRef=useRef(null);
  useEffect(()=>{fetch('/reference.json').then(r=>r.ok?r.json():null).then(setRefData).catch(()=>{});try{setSaved(JSON.parse(localStorage.getItem('tv-screener-saves')||'[]'));}catch{}},[]);
  useEffect(()=>{const click=e=>{if(popoverRef.current&&!popoverRef.current.contains(e.target)&&!e.target.closest('[data-pop]'))setPopup('')};document.addEventListener('mousedown',click);return()=>document.removeEventListener('mousedown',click)},[]);
@@ -173,7 +174,8 @@ function App(){
  function selectMarket(code){changeState(()=>{setMarket(code);setPage(0);setData(null)});setPopup('');setMarketQuery('');}
  function saveScreen(){const name=window.prompt('스크린 다음 이름으로 저장…',cfg.title+' - '+(COUNTRY_NAMES[market]||market));if(!name)return;const value={id:Date.now(),name,product,view:snapshot()};const arr=[...saved,value];setSaved(arr);localStorage.setItem('tv-screener-saves',JSON.stringify(arr));showToast('스크린을 저장했습니다.');}
  function exportCSV(){const quote=x=>'"'+String(x??'').replaceAll('"','""')+'"';const lines=[visibleCols.map(colname).map(quote).join(',')];normalizedRows.forEach(row=>lines.push(visibleCols.map(c=>quote(c==='ticker-view'?row.values[c]?.description||row.id:row.values[c])).join(',')));const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+lines.join('\n')],{type:'text/csv;charset=utf-8'}));a.download='screener_'+product+'_'+market+'.csv';a.click();URL.revokeObjectURL(a.href);}
- const availableAdd=useMemo(()=>[...new Set([...cfg.pills,...Object.entries(COL).filter(([k])=>cfg.cols.includes(k)).map(([,label])=>label)])].filter(x=>!filterLabels.includes(x)&&Boolean(specFor(product,x))),[cfg,filterLabels,product]);
+ const filterGroups=useMemo(()=>groupsFor(product),[product]);
+ const filterCatalog=useMemo(()=>Object.keys(FILTER_DEFS[product]||{}),[product]);
  const onColumnSort=key=>{const field=key==='ticker-view'?'name':key==='isin-displayed'?'isin':key.endsWith('.tr')?key.slice(0,-3):key;changeState(()=>setSort(v=>({by:field,dir:v.by===field&&v.dir==='desc'?'asc':'desc'})));setPage(0);};
  const colsToOffer=Array.from(new Set([...cfg.cols,...(CRYPTO_TAB_COLS[product]||[]).flat(),...(refData?.products?.[product]?Object.values(refData.products[product].tabs).flatMap(t=>t.columns):[]),...Object.values(FILTER_DEFS[product]||{}).map(x=>x[0])]));
  const tableDataLength=normalizedRows.length;
@@ -193,7 +195,7 @@ function App(){
          <div className="right-tools"><IconButton title="되돌리기" qa="screener-undo-button" disabled={!undo.length} onClick={undoAction}><Undo2 size={18}/></IconButton><IconButton title="다시 실행" qa="screener-redo-button" disabled={!redo.length} onClick={redoAction}><Redo2 size={18}/></IconButton><IconButton title="스크리너 세팅" qa="screener-topbar-settings" onClick={()=>setPopup('settings')}><Settings2 size={21}/></IconButton></div>
        </div>
      </section>
-     <section className="pills-panel">{product==='stock'&&<button data-pop className="filter-pill ai-pill" onClick={()=>setPopup('add-filter')}><span className="ai-spark">✦</span>AI</button>}
+     <section className="pills-panel">{product==='stock'&&<button data-pop className="filter-pill ai-pill" onClick={()=>{setPopup('add-filter');setFilterCategory('');setFilterQuery('')}}><span className="ai-spark">✦</span>AI</button>}
        {(product==='stock'||product==='etf')&&<button data-pop className="filter-pill market-pill" data-testid="market-filter" onClick={()=>{setPopup('market');setMarketQuery('')}}><span>{getFlag(market)}</span>{market==='korea'?'KR':market==='america'?'US':(COUNTRY_NAMES[market]||market)} <ChevronDown size={14}/></button>}
        <div className="pills-scroller" data-testid="filter-pills">
          {filterLabels.map((label,index)=><React.Fragment key={label}>
@@ -205,7 +207,7 @@ function App(){
               <ChevronDown size={13}/>{pills[label]&&<span className="active-dot"/>}
            </button>
          </React.Fragment>)}
-         <IconButton title="새 필터 넣기" qa="screener-add-new-filter" onClick={()=>{setPopup('add-filter');setFilterQuery('')}}><Plus size={20}/></IconButton>
+         <IconButton title="새 필터 넣기" qa="screener-add-new-filter" onClick={()=>{setPopup('add-filter');setFilterCategory('');setFilterQuery('')}}><Plus size={20}/></IconButton>
          <IconButton title="필터 옵션" qa="reset-options-button" onClick={()=>setPopup('filter-options')}><MoreHorizontal size={19}/></IconButton>
        </div>
      </section>
@@ -285,7 +287,29 @@ function App(){
      {popup==='more-tabs'&&<div className="option-list">{cfg.tabs.map((label,i)=><button key={i} onClick={()=>{changeState(()=>setTab(i));setPopup('')}}>{label}{tab===i&&<Check size={16}/>}</button>)}</div>}
      {popup==='symbol-search'&&<><input autoFocus placeholder="심볼 또는 기업명 찾기" value={search} onChange={e=>setSearch(e.target.value)} className="popup-search"/><div className="popup-subtitle">현재 페이지에서 검색 · 전체 시장 종목 검색과 구분</div><div className="option-list">{normalizedRows.slice(0,10).map(row=><button key={row.id} onClick={()=>setPopup('')}>{row.id}</button>)}</div></>}
      {popup==='columns'&&<><input autoFocus className="popup-search" placeholder="컬럼 검색" value={columnSearch} onChange={e=>setColumnSearch(e.target.value)}/><div className="popup-subtitle">선택된 컬럼 · 클릭하여 추가 또는 제거</div><div className="option-list long-list">{colsToOffer.filter(c=>(colname(c)+' '+c).toLowerCase().includes(columnSearch.toLowerCase())).map(c=><button key={c} disabled={c==='ticker-view'} title={c==='ticker-view'?'심볼 컬럼은 필수입니다':colname(c)} onClick={()=>{changeState(()=>setCustomCols(v=>{const old=v||currentCols;return c==='ticker-view'?old:old.includes(c)?old.filter(x=>x!==c):[...old,c]}))}}><span>{colname(c)} <small>{c}</small></span>{currentCols.includes(c)&&<Check size={16}/>}</button>)}</div></>}
-     {popup==='add-filter'&&<><input className="popup-search" autoFocus placeholder="필터 찾기" value={filterQuery} onChange={e=>setFilterQuery(e.target.value)}/><div className="option-list long-list">{availableAdd.filter(x=>x.toLowerCase().includes(filterQuery.toLowerCase())).map(label=><button key={label} onClick={()=>{changeState(()=>setFilterLabels(v=>[...v,label]));onFilterClick(label);}}><Plus size={15}/>{label}</button>)}</div></>}
+     {popup==='add-filter'&&<>
+       <input className="popup-search" autoFocus aria-label="필터 찾기" placeholder="찾기" value={filterQuery} onChange={e=>{setFilterQuery(e.target.value);if(e.target.value)setFilterCategory('')}}/>
+       {!filterCategory&&!filterQuery.trim()?<>
+          <div className="filter-picker-subtitle">원본 필터 카테고리</div>
+          <div className="option-list filter-category-list" data-testid="filter-category-list">
+           {filterGroups.map(group=><button key={group.name} type="button" onClick={()=>setFilterCategory(group.name)}>
+             <span>{group.name}</span><span className="filter-group-count">{group.originalCount}</span>
+           </button>)}
+          </div>
+          <div className="filter-picker-coverage">우측 숫자는 원본의 전체 필터 개수입니다. 현재 검색 기능이 연결된 항목은 카테고리에서 별도로 표시합니다.</div>
+       </>:<>
+          {filterCategory&&!filterQuery.trim()&&<button type="button" className="filter-picker-back" onClick={()=>setFilterCategory('')}>〈 필터 카테고리 · {filterCategory}</button>}
+          <div className="option-list long-list filter-candidate-list" data-testid="filter-candidate-list">
+             {filterCatalog.filter(label=>(!filterCategory||filterGroups.find(g=>g.name===filterCategory)?.labels.includes(label))&&label.toLocaleLowerCase().includes(filterQuery.toLocaleLowerCase())).map(label=><button key={label} type="button" onClick={()=>{
+               if(!filterLabels.includes(label))changeState(()=>setFilterLabels(v=>[...v,label]));
+               onFilterClick(label);
+             }}>
+               <span>{label}</span>{filterLabels.includes(label)?<Check size={16}/>:<Plus size={16}/>}
+             </button>)}
+             {!filterCatalog.some(label=>(!filterCategory||filterGroups.find(g=>g.name===filterCategory)?.labels.includes(label))&&label.toLocaleLowerCase().includes(filterQuery.toLocaleLowerCase()))&&<div className="filter-note">이 카테고리의 원본 필터 중 현재 검색 API와 연결된 조건은 없습니다. 작동하지 않는 조건을 임의로 표시하지 않습니다.</div>}
+          </div>
+       </>}
+     </>}
      {popup.startsWith('filter:')&&<div className="filter-edit" data-testid="filter-editor">
         <div className="filter-field-name">데이터 필드: {activeSpec?.field||'연결 안 됨'}</div>
         {activeSpec?.type==='watchlist'?<div className="filter-note">TradingView 개인 왓치리스트에는 연결되지 않았습니다. 계정 목록을 가져오지 못하므로 조건을 임의로 적용하지 않습니다.</div>:

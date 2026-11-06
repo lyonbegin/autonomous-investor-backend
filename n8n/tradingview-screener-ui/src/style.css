@@ -134,3 +134,15 @@
 .filter-quick-presets button strong{font-weight:540}
 .filter-quick-presets button small{font-size:11px;color:#89909c}
 .filter-quick-title{padding:9px 11px;font-size:11px;color:#7e8490;font-weight:600;background:#f8f9fb}
+
+
+/* Original picker groups are displayed separately from the supported field list.
+   Counts are observed original counts, not a claim that all groups are implemented. */
+.filter-picker-subtitle{font-size:14px;font-weight:600;padding:3px 8px 9px;color:#171d2a}
+.filter-category-list{max-height:310px;overflow-y:auto}
+.filter-category-list button{min-height:40px;padding:8px 10px}
+.filter-group-count{font-size:12px;color:#8b929f;font-weight:500}
+.filter-picker-coverage{padding:11px 7px 0;font-size:11px;color:#888f9d;line-height:1.5;border-top:1px solid #e8eaed}
+.filter-picker-back{border:0;background:none;text-align:left;color:#343b49;padding:7px 6px 12px;font-size:13px;font-weight:600;width:100%}
+.filter-picker-back:hover{color:#2962ff}
+.filter-candidate-list{border-top:1px solid #edf0f3}
