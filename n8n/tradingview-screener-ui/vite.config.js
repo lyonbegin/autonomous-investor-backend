@@ -4,6 +4,15 @@ export default defineConfig({
   plugins:[{
     name:'tradingview-public-screener-relay',
     configureServer(server){
+      server.middlewares.use('/api/enum',async(req,res)=>{
+        const q=new URL(req.url,'http://localhost').searchParams;
+        const product=q.get('product');
+        if(!['stock','etf','bond','coin','cex','dex'].includes(product)){res.statusCode=400;res.end('{}');return;}
+        const label=product==='cex'?'crypto-cex':product==='dex'?'crypto-dex':product;
+        try{const response=await fetch('https://scanner.tradingview.com/enum/ordered?lang=ko&label-product=screener-'+label,{signal:AbortSignal.timeout(20000)});
+          res.statusCode=response.status;res.setHeader('Content-Type','application/json; charset=utf-8');res.end(await response.text());
+        }catch(e){res.statusCode=502;res.end(JSON.stringify({error:'enum unavailable'}));}
+      });
       server.middlewares.use('/api/scan',async(req,res)=>{
         res.setHeader('Content-Type','application/json; charset=utf-8');
         if(req.method!=='POST'){res.statusCode=405;res.end(JSON.stringify({error:'POST required'}));return;}
