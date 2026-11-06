@@ -62,7 +62,7 @@ for(const s of SCENARIOS){
   const reset=await nextScan(page,()=>page.locator('[data-testid="filter-editor"] .filter-edit-actions button').first().click());
   assert(s.key+': reset removes numeric condition',!expr(reset.body.payload,s.numberField));
   await page.locator('[data-qa-id="screener-topbar-settings"]').click();
-  const row=page.locator('.screener-table tbody td').first();
+  const row=page.locator('.screener-table thead th[data-field]').first();
   const before=await row.evaluate(el=>el.getBoundingClientRect().height);
   await page.locator('.settings-list input').first().check();
   const after=await row.evaluate(el=>el.getBoundingClientRect().height);
