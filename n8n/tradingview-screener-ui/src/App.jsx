@@ -11,13 +11,13 @@ const STOCK_PILLS=['왓치리스트','지수','가격','체인지 %','시가총�
 const ETF_PILLS=['왓치리스트','자산 클래스','포커스','틈새 시장','홀딩스 지역','브랜드','퍼포먼스 %','NAV 총 수익률','AUM','운용 스타일','전략','배당 혜택','배당 수익률 % (표시됨)','배당 빈도','레버리지 활용','지출 비율','UCITS 컴플리트'];
 const BOND_PILLS=['왓치리스트','발급자 유형','발행자','채권 최저 수익률 %','쿠폰 %','쿠폰 타입','쿠폰 빈도','머튜어리티 데이트','가격 %','미결제 금액','발행 통화','쿠폰 통화','소스'];
 const COL={
-  'ticker-view':'심볼','close':'가격','change':'체인지 %','volume':'볼륨','relative_volume_10d_calc':'상대 볼륨','market_cap_basic':'시가총액','price_earnings_ttm':'P/E',
+  'ticker-view':'심볼','crypto_total_rank':'랭크','24h_close_change|5':'체인지 % 24시','24h_vol|5':'달러 표시 거래량 24시','24h_vol_change|5':'볼륨 변화 % 24시','24h_vol_cmc':'달러 표시 거래량 24시','24h_vol_to_market_cap':'볼륨 / 시가총액','socialdominance':'소셜 점유 %','crypto_common_categories.tr':'카테고리','TechRating_1D.tr':'기술 등급','blockchain-id.tr':'블록체인','dex_txs_count_24h':'거래 24시','dex_trading_volume_24h':'거래량 24시','dex_txs_count_uniq_24h':'트레이더 24시','dex_total_liquidity':'유동성','fully_diluted_value':'FDV','close':'가격','change':'체인지 %','volume':'볼륨','relative_volume_10d_calc':'상대 볼륨','market_cap_basic':'시가총액','price_earnings_ttm':'P/E',
   'earnings_per_share_diluted_ttm':'EPS 희석 순마진','earnings_per_share_diluted_yoy_growth_ttm':'EPS 희석 성장 TTM YoY','dividends_yield_current':'배당 수익 %',
   'sector.tr':'섹터','AnalystRating.tr':'애널리스트 평점','Value.Traded':'가격 × 볼륨','aum':'AUM','nav_total_return.3Y':'NAV 총 수익률 3해',
   'etf_holdings_count':'홀딩스','expense_ratio':'지출 비율','asset_class.tr':'자산 클래스','focus.tr':'포커스',
   'isin-displayed':'ISIN','yield_to_worst':'채권 최저 수익률 %','close_pct':'가격 %','close_net':'가격','current_coupon':'쿠폰 %','maturity_date':'머튜어리티 데이트',
   'redemption_type.tr':'콜/풋','bond_issuer_type.tr':'발급자 유형','bond_snp_rating_lt.tr':'S&P 등급','bond_fitch_rating_lt.tr':'피치 등급',
-  'bond_moodys_rating_lt.tr':'무디스 신용등급','exchange.tr':'소스','source-logoid':'소스',
+  'bond_moodys_rating_lt.tr':'무디스 신용등급','exchange.tr':'거래소','source-logoid':'소스',
   'Perf.W':'1주','Perf.1M':'1달','Perf.3M':'3달','Perf.6M':'6달','Perf.YTD':'연초 대비','Perf.Y':'1년','Perf.5Y':'5년',
   'Perf.10Y':'10년','Perf.All':'전체','Volatility.W':'주 변동성','Volatility.M':'월 변동성',
   'TechRating_1D.tr':'테크니컬 등급','MARating_1D.tr':'이동 평균 등급','OsRating_1D.tr':'오실레이터 등급',
@@ -27,32 +27,32 @@ const COL={
   'coupon_frequency.tr':'쿠폰 빈도','coupon_type_current.tr':'쿠폰 타입',
   'nav':'NAV','nav_discount_premium':'NAV 프리미엄','fund_flows.1M':'1달 자금 흐름','fund_flows.3M':'3달 자금 흐름','fund_flows.1Y':'1년 자금 흐름',
   'weight_top_10':'상위 10 종목 비중','beta_1_year':'1년 베타','beta_3_year':'3년 베타'};
-const HIDDEN=new Set(['type','typespecs','pricescale','minmov','fractional','minmove2','currency','fundamental_currency_code','market','sector','AnalystRating','bond_snp_rating_lt','bond_fitch_rating_lt','bond_moodys_rating_lt','source-logoid']);
+const HIDDEN=new Set(['type','typespecs','pricescale','minmov','fractional','minmove2','currency','fundamental_currency_code','market','sector','AnalystRating','bond_snp_rating_lt','bond_fitch_rating_lt','bond_moodys_rating_lt','source-logoid','blockchain-id','TechRating_1D']);
 const CONFIG={
 stock:{name:'스탁 스크리너',title:'올 스탁',kind:'stock',market:'korea',url:'/screener/',tabs:'오버뷰 성과 테크니컬즈 확장_시간 전망 평가 배당 수익성 손익_계산서 대차_대조표 현금_흐름 주당'.split(' ').map(x=>x.replaceAll('_',' ')),pills:STOCK_PILLS,sort:'market_cap_basic',cols:['ticker-view','close','change','volume','relative_volume_10d_calc','market_cap_basic','price_earnings_ttm','earnings_per_share_diluted_ttm','earnings_per_share_diluted_yoy_growth_ttm','dividends_yield_current','sector.tr','AnalystRating.tr']},
 etf:{name:'ETF 스크리너',title:'ETF 보관함',kind:'etf',market:'america',url:'/etf-screener/',tabs:['오버뷰','성과','테크니컬즈','확장 시간','자금 흐름','배당','NAV 실적','홀딩스','리스크'],pills:ETF_PILLS,sort:'aum',cols:['ticker-view','close','change','Value.Traded','relative_volume_10d_calc','aum','nav_total_return.3Y','etf_holdings_count','expense_ratio','asset_class.tr','focus.tr']},
 bond:{name:'본드 스크리너',title:'전체 채권',kind:'bond',market:'bond',url:'/bond-screener/',tabs:['오버뷰','보안 정보','금리 위험','스프레드','금액','채권 용어','쿠폰','발행자','등급'],pills:BOND_PILLS,sort:'bond_snp_rating_lt',cols:['ticker-view','isin-displayed','yield_to_worst','close_pct','close_net','current_coupon','maturity_date','redemption_type.tr','bond_issuer_type.tr','bond_snp_rating_lt.tr','bond_fitch_rating_lt.tr','bond_moodys_rating_lt.tr','exchange.tr']},
-coin:{name:'암호화폐 스크리너',title:'크립토 전체 시장',kind:'coin',market:'coin',url:'/crypto-coins-screener/',tabs:['오버뷰','성과','테크니컬즈','평가','파생상품','주소','거래','센티멘트'],pills:['왓치리스트','랭크','시가총액','FD 시가 총액','볼륨 / 시가총액','잔고 주소','달러 표시 거래량','볼륨 변화 %','거래량 (USD)','체인지 %','퍼포먼스 %','카테고리'],cols:['ticker-view','close','change','volume','market_cap_calc','circulating_supply','total_supply'],sort:'market_cap_calc'},
-cex:{name:'CEX 스크리너',title:'전체 페어',kind:'crypto',market:'crypto',url:'/cex-screener/',tabs:['오버뷰','성과','테크니컬즈'],pills:['왓치리스트','거래소','심볼 타입','베이스 통화','쿼트 커런시','체인지 %','퍼포먼스 %','달러 표시 거래량','볼륨 변화 %'],cols:['ticker-view','close','change','volume','exchange'],sort:'volume'},
-dex:{name:'DEX 스크리너',title:'전체 페어',kind:'crypto',market:'crypto',url:'/dex-screener/',tabs:['오버뷰','성과','테크니컬즈','거래','거래량','트레이더'],pills:['왓치리스트','블록체인','거래소','체인지 %','거래','거래량','유동성','FDV','트레이더','고유 매수자','고유 매도자','퍼포먼스 %'],cols:['ticker-view','close','change','volume'],sort:'volume'},
+coin:{name:'암호화폐 스크리너',title:'크립토 전체 시장',kind:'coin',market:'coin',url:'/crypto-coins-screener/',tabs:['오버뷰','성과','테크니컬즈','평가','파생상품','주소','거래','센티멘트'],pills:['왓치리스트','랭크','시가총액','FD 시가 총액','볼륨 / 시가총액','잔고 주소','달러 표시 거래량','볼륨 변화 %','거래량 (USD)','체인지 %','퍼포먼스 %','카테고리'],cols:['ticker-view','crypto_total_rank','close','type','typespecs','pricescale','minmov','fractional','minmove2','currency','24h_close_change|5','market_cap_calc','fundamental_currency_code','24h_vol_cmc','circulating_supply','24h_vol_to_market_cap','socialdominance','crypto_common_categories.tr','TechRating_1D','TechRating_1D.tr'],sort:'crypto_total_rank'},
+cex:{name:'CEX 스크리너',title:'전체 페어',kind:'crypto',market:'crypto',url:'/cex-screener/',tabs:['오버뷰','성과','테크니컬즈'],pills:['왓치리스트','거래소','심볼 타입','베이스 통화','쿼트 커런시','체인지 %','퍼포먼스 %','달러 표시 거래량','볼륨 변화 %'],cols:['ticker-view','exchange.tr','source-logoid','close','type','typespecs','pricescale','minmov','fractional','minmove2','currency','24h_close_change|5','24h_vol|5','24h_vol_change|5','TechRating_1D','TechRating_1D.tr'],sort:'24h_vol|5'},
+dex:{name:'DEX 스크리너',title:'전체 페어',kind:'crypto',market:'crypto',url:'/dex-screener/',tabs:['오버뷰','성과','테크니컬즈','거래','거래량','트레이더'],pills:['왓치리스트','블록체인','거래소','체인지 %','거래','거래량','유동성','FDV','트레이더','고유 매수자','고유 매도자','퍼포먼스 %'],cols:['ticker-view','blockchain-id.tr','blockchain-id','exchange.tr','source-logoid','close','type','typespecs','pricescale','minmov','fractional','minmove2','currency','24h_close_change|5','dex_txs_count_24h','dex_trading_volume_24h','dex_txs_count_uniq_24h','dex_total_liquidity','fully_diluted_value','TechRating_1D','TechRating_1D.tr'],sort:'dex_txs_count_24h'},
 pine:{name:'Pine 스크리너',title:'내 Pine 스크립트',kind:'pine',market:'',url:'/pine-screener/',tabs:[],pills:['스크립트','심볼','타임프레임'],cols:[],sort:''}
 };
 const PATH_PRODUCT=Object.fromEntries(Object.entries(CONFIG).map(([k,v])=>[v.url,k]));
 function getProduct(){return PATH_PRODUCT[location.pathname]||PATH_PRODUCT[location.pathname+'/']||'stock';}
-function fmtCompact(n){if(typeof n!=='number')return String(n??'—');const a=Math.abs(n);if(a>=1e12)return (n/1e12).toFixed(2).replace(/\.00$/,'')+' T';if(a>=1e9)return (n/1e9).toFixed(2).replace(/\.00$/,'')+' B';if(a>=1e6)return (n/1e6).toFixed(2).replace(/\.00$/,'')+' M';if(a>=1e3)return (n/1e3).toFixed(2).replace(/\.00$/,'')+' K';return n.toLocaleString('en-US',{maximumFractionDigits:2});}
-const PERCENT_FIELDS=/change|Perf\.|Volatility|yield|ratio|margin|growth|expense|coupon|pct|discount_premium|weight_top_|nav_total_return/i;
-const COLOR_FIELDS=/^change$|^Perf\.|nav_total_return|_growth|^TechRating|^AnalystRating/i;
+function fmtCompact(n){if(typeof n!=='number')return String(n??'—');const a=Math.abs(n);const unit=a>=1e12?1e12:a>=1e9?1e9:a>=1e6?1e6:a>=1e3?1e3:1;const suffix=unit===1e12?' T':unit===1e9?' B':unit===1e6?' M':unit===1e3?' K':'';return (n/unit).toLocaleString('en-US',{maximumFractionDigits:2})+suffix;}
+const PERCENT_FIELDS=/change|Perf\.|Volatility|yield|ratio|margin|growth|expense|coupon|pct|discount_premium|weight_top_|nav_total_return|socialdominance|24h_close/i;
+const COLOR_FIELDS=/^change$|^Perf\.|nav_total_return|_growth|^TechRating|^AnalystRating|24h_close_change|24h_vol_change/i;
 const DATE_FIELDS=/date|maturity|fiscal_period_end/i;
 function formatValue(v,key,currency,locale='ko'){if(v===undefined||v===null||v==='')return '—';if(typeof v==='object')return v.name||v.description||'—';if(typeof v==='boolean')return v?'예':'아니요';if(typeof v==='string')return v;if(DATE_FIELDS.test(key)){if(v>1e8)return new Date(v*1000).toISOString().slice(0,10);return String(v);}if(PERCENT_FIELDS.test(key))return (v>0&&COLOR_FIELDS.test(key)?'+':'')+v.toFixed(2)+'%';if(key==='relative_volume_10d_calc'||key==='RSI')return v.toFixed(2);
- if(key==='etf_holdings_count'||key==='rank')return String(Math.round(v));
- if(key==='current_coupon')return v.toFixed(3)+'%';if(key==='close'||key==='close_net'||key==='nav')return v.toLocaleString('en-US',{maximumFractionDigits:currency==='KRW'?0:2,minimumFractionDigits:currency==='KRW'?0:2})+(currency?' '+currency:'');if(key==='market_cap_basic'||key==='aum'||key==='Value.Traded'||key==='issue_amount'||key==='outstanding_amount')return fmtCompact(v)+(currency?' '+currency:'');return fmtCompact(v);}
-function colname(key){return COL[key]||key.replaceAll('.tr','').replaceAll('_',' ');}
+ if(key==='etf_holdings_count'||key==='rank'||key==='crypto_total_rank'||key==='dex_txs_count_uniq_24h')return String(Math.round(v));
+ if(key==='current_coupon')return v.toFixed(3)+'%';if(key==='close'||key==='close_net'||key==='nav')return v.toLocaleString('en-US',{maximumFractionDigits:currency==='KRW'?0:2,minimumFractionDigits:currency==='KRW'?0:2})+(currency?' '+currency:'');if(key==='market_cap_basic'||key==='market_cap_calc'||key==='aum'||key==='Value.Traded'||key==='issue_amount'||key==='outstanding_amount'||key==='24h_vol|5'||key==='24h_vol_cmc'||key==='dex_trading_volume_24h'||key==='dex_total_liquidity'||key==='fully_diluted_value')return fmtCompact(v)+(currency?' '+currency:'');return fmtCompact(v);}
+function colname(key,product){if(key==='exchange.tr'&&product==='bond')return '소스';return COL[key]||key.replaceAll('.tr','').replaceAll('_',' ');}
 function pillField(label,kind){const stock={'가격':'close','체인지 %':'change','시가총액':'market_cap_basic','P/E':'price_earnings_ttm','EPS 희석 성장':'earnings_per_share_diluted_yoy_growth_ttm','배당 수익 %':'dividends_yield_current','ROE':'return_on_equity_fq','베타':'beta_1_year','퍼포먼스 %':'Perf.1M'};
 const etf={'AUM':'aum','지출 비율':'expense_ratio','NAV 총 수익률':'nav_total_return.3Y','배당 수익률 % (표시됨)':'dividends_yield','퍼포먼스 %':'Perf.1M'};
 const bond={'채권 최저 수익률 %':'yield_to_worst','쿠폰 %':'current_coupon','가격 %':'close_pct','미결제 금액':'outstanding_amount','발급자 유형':'bond_issuer_type','발행자':'bond_issuer','쿠폰 타입':'coupon_type_current','쿠폰 빈도':'coupon_frequency','발행 통화':'fundamental_currency_code','쿠폰 통화':'coupon_currency','소스':'source'};
 return (kind==='stock'?stock:kind==='etf'?etf:bond)[label]||null;}
 function basePayload(product,market,columns,sortField,pageIndex=0,pageSize=100){
- const props={columns,ignore_unknown_fields:false,options:{lang:'ko'},range:[pageIndex*pageSize,(pageIndex+1)*pageSize],sort:{sortBy:sortField,sortOrder:'desc'},markets:[market]};
+ const props={columns,ignore_unknown_fields:false,options:{lang:'ko'},range:[pageIndex*pageSize,(pageIndex+1)*pageSize],sort:{sortBy:sortField,sortOrder:product==='coin'?'asc':'desc'},markets:[market]};
  if(product==='stock'){props.filter=[{left:'is_primary',operation:'equal',right:true}];props.filter2={operator:'and',operands:[
  {operation:{operator:'or',operands:[
  {operation:{operator:'and',operands:[{expression:{left:'type',operation:'equal',right:'stock'}},{expression:{left:'typespecs',operation:'has',right:['common']}}]}},
@@ -60,6 +60,8 @@ function basePayload(product,market,columns,sortField,pageIndex=0,pageSize=100){
  {operation:{operator:'and',operands:[{expression:{left:'type',operation:'equal',right:'dr'}}]}},
  {operation:{operator:'and',operands:[{expression:{left:'type',operation:'equal',right:'fund'}},{expression:{left:'typespecs',operation:'has_none_of',right:['etf','mutual']}}]}}
  ]}},{expression:{left:'typespecs',operation:'has_none_of',right:['pre-ipo']}}]};}
+ if(product==='cex')props.filter2={operator:'and',operands:[{expression:{left:'centralization',operation:'equal',right:'cex'}}]};
+ if(product==='dex')props.filter2={operator:'and',operands:[{operation:{operator:'and',operands:[{expression:{left:'centralization',operation:'equal',right:'dex'}},{expression:{left:'currency_id',operation:'equal',right:'USD'}}]}},{operation:{operator:'or',operands:[{operation:{operator:'and',operands:[{expression:{left:'type',operation:'equal',right:'spot'}}]}}]}}]};
  if(product==='etf')props.filter2={operator:'and',operands:[{operation:{operator:'or',operands:[{operation:{operator:'and',operands:[{expression:{left:'typespecs',operation:'has',right:['etf']}}]}},{operation:{operator:'and',operands:[{expression:{left:'type',operation:'equal',right:'structured'}}]}}]}}]};
  return props;
 }
@@ -75,7 +77,7 @@ function App(){
  [page,setPage]=useState(0),[pageSize,setPageSize]=useState(100),[data,setData]=useState(null),
  [source,setSource]=useState(''),[loading,setLoading]=useState(false),[error,setError]=useState(''),
  [refData,setRefData]=useState(null),[customCols,setCustomCols]=useState(null),
- [sort,setSort]=useState({by:cfg.sort,dir:'desc'}),[settings,setSettings]=useState({compact:false,showLogos:true,hideEmpty:false,freezeTicker:true,showRestrictedColumns:false}),
+ [sort,setSort]=useState({by:cfg.sort,dir:product==='coin'?'asc':'desc'}),[settings,setSettings]=useState({compact:false,showLogos:true,hideEmpty:false,freezeTicker:true,showRestrictedColumns:false}),
  [undo,setUndo]=useState([]),[redo,setRedo]=useState([]),[showAllFilters,setShowAllFilters]=useState(false),
  [saved,setSaved]=useState([]),[fullscreen,setFullscreen]=useState(false),[selectedRows,setSelectedRows]=useState([]),
  [columnSearch,setColumnSearch]=useState(''),[refresh,setRefresh]=useState(0),[toast,setToast]=useState('');
@@ -95,7 +97,7 @@ function App(){
  function applySnapshot(s){setMarket(s.market);setFilterLabels(s.filterLabels);setPills(s.pills);setTab(s.tab);setSort(s.sort);setCustomCols(s.customCols);setPage(0);setRefresh(v=>v+1);}
  function undoAction(){if(!undo.length)return;setRedo(v=>[...v,snapshot()]);applySnapshot(undo.at(-1));setUndo(v=>v.slice(0,-1));}
  function redoAction(){if(!redo.length)return;setUndo(v=>[...v,snapshot()]);applySnapshot(redo.at(-1));setRedo(v=>v.slice(0,-1));}
- function switchProduct(id){if(!CONFIG[id])return;setProduct(id);history.pushState(null,'',CONFIG[id].url);setMarket(CONFIG[id].market);setTab(0);setFilterLabels(CONFIG[id].pills);setPills({});setPopup('');setSort({by:CONFIG[id].sort,dir:'desc'});setCustomCols(null);setPage(0);setError('');setData(null);setSource('');setSearch('');setUndo([]);setRedo([]);}
+ function switchProduct(id){if(!CONFIG[id])return;setProduct(id);history.pushState(null,'',CONFIG[id].url);setMarket(CONFIG[id].market);setTab(0);setFilterLabels(CONFIG[id].pills);setPills({});setPopup('');setSort({by:CONFIG[id].sort,dir:id==='coin'?'asc':'desc'});setCustomCols(null);setPage(0);setError('');setData(null);setSource('');setSearch('');setUndo([]);setRedo([]);}
  useEffect(()=>{const back=()=>switchProduct(getProduct());window.addEventListener('popstate',back);return()=>window.removeEventListener('popstate',back)},[]);
  const fixture=refData?.products?.[product]?.tabs?.[String(tab)]||refData?.products?.[product]?.tabs?.['0'];
  const currentCols=useMemo(()=>customCols||fixture?.columns||cfg.cols,[customCols,fixture,cfg.cols]);
@@ -124,7 +126,7 @@ function App(){
   setLoading(true);setError('');
   const payload=makePayload();
   const productKind=cfg.kind;
-  fetch('/api/scan',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind:productKind,market,payload})})
+  fetch('/api/scan',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind:productKind,product,market,payload})})
    .then(async r=>{let j;try{j=await r.json()}catch{throw Error('응답 JSON 오류 (HTTP '+r.status+')')};if(!r.ok||!Array.isArray(j.data))throw Error(j.error||'HTTP '+r.status);return j;})
    .then(d=>{if(cancelled)return;setData(d);setSource('live');setLoading(false);})
    .catch(err=>{if(cancelled)return;setError(String(err.message||err));
@@ -202,7 +204,7 @@ function App(){
              {visibleCols.map((column,i)=><th key={column} className={(i===0?'sticky-col ':'')+(column==='ticker-view'?'symbol-head ':'')+(!['ticker-view','isin-displayed'].includes(column)?'align-right':'')} onClick={()=>onColumnSort(column)} title={colname(column)} data-field={column} draggable
                onDragStart={e=>e.dataTransfer.setData('text/plain',column)} onDragOver={e=>e.preventDefault()}
                onDrop={e=>{const dragging=e.dataTransfer.getData('text/plain');changeState(()=>setCustomCols(old=>{const b=[...(old||currentCols)];const idx=b.indexOf(dragging);const dest=b.indexOf(column);if(idx>=0&&dest>=0){b.splice(idx,1);b.splice(dest,0,dragging)}return b;}))}}>
-               {i===0?<div className="symbol-header-content"><IconButton title="심볼 찾기" onClick={e=>setPopup('symbol-search')}><Search size={20}/></IconButton><span>심볼 <small data-testid="total-count">{data?.totalCount?.toLocaleString('en-US')||'0'}</small></span></div>:<span>{colname(column)}{sort.by===column&&(sort.dir==='desc'?<ArrowDown size={14}/>:<ArrowUp size={14}/>)}</span>}
+               {i===0?<div className="symbol-header-content"><IconButton title="심볼 찾기" onClick={e=>setPopup('symbol-search')}><Search size={20}/></IconButton><span>심볼 <small data-testid="total-count">{data?.totalCount?.toLocaleString('en-US')||'0'}</small></span></div>:<span>{colname(column,product)}{sort.by===column&&(sort.dir==='desc'?<ArrowDown size={14}/>:<ArrowUp size={14}/>)}</span>}
              </th>)}
              <th className="add-column-head"><IconButton title="컬럼 셋업" qa="screener-add-column-button" onClick={()=>{setPopup('columns');setColumnSearch('')}}><Plus size={22}/></IconButton></th>
            </tr></thead>
