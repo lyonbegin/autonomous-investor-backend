@@ -44,6 +44,14 @@ jobs:
         run: node tests/chart-interactions.mjs
       - name: Live upstream OHLCV and symbol mapping — no fixture
         run: node tests/chart-provider-live.mjs
+      - name: Public Railway site — actual browser controls
+        env:
+          CHART_BASE_URL: https://tradingview-seven-screener-ui-production.up.railway.app
+        run: node tests/chart-interactions.mjs
+      - name: Public Railway site — real OHLCV 5D and 1Y
+        env:
+          CHART_BASE_URL: https://tradingview-seven-screener-ui-production.up.railway.app
+        run: node tests/chart-provider-live.mjs
       - name: Upload chart screenshots and provider results
         if: always()
         uses: actions/upload-artifact@v4
