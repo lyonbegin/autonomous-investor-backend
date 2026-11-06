@@ -63,6 +63,9 @@ jobs:
         run: npm test
       - name: Functional Chromium checks - enum options, applied JSON, undo, redo, sorting, columns and markets
         run: node tests/functional-interactions.mjs
+      - name: Capture original live crypto, CEX and DEX tab payloads for functional parity
+        if: always()
+        run: node tests/original-tab-capture.mjs
       - name: Preserve screenshots, differences, response sources and failures
         if: always()
         uses: actions/upload-artifact@v4
