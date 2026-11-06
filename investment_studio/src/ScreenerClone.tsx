@@ -27,6 +27,28 @@ const CONFIG:Record<Kind,{name:string;group:string;market:string;columns:Column[
  dex:{name:'DEX 스크리너',group:'DEX',market:'crypto',tabs:['오버뷰','퍼포먼스','기술 지표'],
  columns:[{key:'name',title:'심볼'},{key:'description',title:'이름'},{key:'close',title:'가격',numeric:true},{key:'change',title:'변동 %',numeric:true},{key:'volume',title:'거래량',numeric:true}],filters:[{id:'exchange',label:'거래소',type:'choice'},{id:'change',label:'변동 %',type:'range'}]}
 };
+const LIVE_COLUMNS:Record<'stock'|'etf'|'bond',string[]> = {
+ stock:['ticker-view','close','type','typespecs','pricescale','minmov','fractional','minmove2','currency','change','volume','relative_volume_10d_calc','market_cap_basic','fundamental_currency_code','price_earnings_ttm','earnings_per_share_diluted_ttm','earnings_per_share_diluted_yoy_growth_ttm','dividends_yield_current','sector.tr','market','sector','AnalystRating','AnalystRating.tr'],
+ etf:['ticker-view','close','type','typespecs','pricescale','minmov','fractional','minmove2','currency','change','Value.Traded','fundamental_currency_code','relative_volume_10d_calc','aum','nav_total_return.3Y','etf_holdings_count','expense_ratio','asset_class.tr','focus.tr'],
+ bond:['ticker-view','isin-displayed','yield_to_worst','close_pct','close_net','type','typespecs','fundamental_currency_code','current_coupon','maturity_date','redemption_type.tr','bond_issuer_type.tr','bond_snp_rating_lt.tr','bond_snp_rating_lt','bond_fitch_rating_lt.tr','bond_fitch_rating_lt','bond_moodys_rating_lt.tr','bond_moodys_rating_lt','exchange.tr','source-logoid']
+};
+const API_FIELD_MAP:Record<string,string>={name:'ticker-view',description:'ticker-view',
+ TickerUniversal:'ticker-view',Isin:'isin-displayed',YieldToWorst:'yield_to_worst',BondClose:'close_pct',
+ BondCloseNet:'close_net',CurrentCoupon:'current_coupon',MaturityDate:'maturity_date',
+ Redemption:'redemption_type.tr',BondIssuerType:'bond_issuer_type.tr',
+ SnpRatingLongTerm:'bond_snp_rating_lt',FitchRatingLongTerm:'bond_fitch_rating_lt.tr',
+ MoodysRatingLongTerm:'bond_moodys_rating_lt.tr',Source:'source-logoid',
+ total_assets_under_management:'aum',volume:'volume',sector:'sector.tr',exchange:'market'};
+const STOCK_TYPE_FILTER={operator:'and',operands:[{operation:{operator:'or',operands:[
+ {expression:{left:'type',operation:'equal',right:'stock'}},
+ {expression:{left:'type',operation:'equal',right:'dr'}},
+ {expression:{left:'type',operation:'equal',right:'fund'}}
+ ]}},{expression:{left:'typespecs',operation:'has_none_of',right:['pre-ipo']}}]};
+const ETF_TYPE_FILTER={operator:'and',operands:[{operation:{operator:'or',operands:[
+ {expression:{left:'typespecs',operation:'has',right:['etf']}},
+ {expression:{left:'type',operation:'equal',right:'structured'}}
+ ]}}]};
+
 const KINDS:Kind[]=['stock','etf','bond','coin','cex','dex'];
 const numberFmt=(v:unknown)=>{if(v===null||v===undefined||v==='')return '—';if(typeof v==='number'){if(Math.abs(v)>=1e12)return (v/1e12).toFixed(2)+'T';if(Math.abs(v)>=1e9)return (v/1e9).toFixed(2)+'B';if(Math.abs(v)>=1e6)return (v/1e6).toFixed(2)+'M';return v.toLocaleString('en-US',{maximumFractionDigits:3})}return String(v)};
 function safeState<T>(key:string,fallback:T):T{try{const saved=localStorage.getItem(key);return saved?JSON.parse(saved) as T:fallback}catch{return fallback}}
@@ -61,7 +83,6 @@ export default function ScreenerClone(){
  const [columnDrawer,setColumnDrawer]=useState(false);
  const timeoutRef=useRef<ReturnType<typeof setTimeout>|undefined>(undefined);
  const config=CONFIG[kind];
- const isAsset=kind==='stock'||kind==='etf';
  const selectKind=(k:Kind)=>{setKind(k);setMarket(CONFIG[k].market);setTab('오버뷰');setColumns(CONFIG[k].columns);setFilters(CONFIG[k].filters);setCriteria({});setSort(null);setPage(0);setScreenName('전체 '+CONFIG[k].group);setRows([]);setTotal(null);setError('');setActivePopup(null);historyReplace(k)};
  function historyReplace(k:Kind){const u=new URL(location.href);u.searchParams.set('screener',k);window.history.replaceState({},'',u);}
  const updateCriteria=(id:string,part:Partial<{from:string;to:string;choice:string}>)=>{
@@ -79,9 +100,18 @@ export default function ScreenerClone(){
  return out;
  }),[criteria]);
  const query=useCallback(async()=>{
-   const requestColumns=columns.map(c=>c.key);
-   const body:Record<string,unknown>={filter:activeFilters,options:{lang:'ko'},symbols:{query:{types:[]},tickers:[]},columns:requestColumns,sort:sort?[{sortBy:sort.key,sortOrder:sort.desc?'desc':'asc'}]:[],range:[page*50,page*50+50]};
-   if(isAsset)body.markets=[market];
+   const known=(kind==='stock'||kind==='etf'||kind==='bond');
+   const requestColumns=known?LIVE_COLUMNS[kind]:['ticker-view','close','change','volume','currency'];
+   const sortBy=sort?(API_FIELD_MAP[sort.key]||sort.key):(kind==='stock'?'market_cap_basic':kind==='etf'?'aum':kind==='bond'?'bond_snp_rating_lt':'volume');
+   const body:Record<string,unknown>={
+     columns:requestColumns,
+     filter:kind==='stock'?[{left:'is_primary',operation:'equal',right:true},...activeFilters]:activeFilters,
+     ignore_unknown_fields:false,options:{lang:'ko'},range:[page*50,page*50+50],
+     sort:{sortBy,sortOrder:sort?(sort.desc?'desc':'asc'):'desc'},
+     markets:[market]
+   };
+   if(kind==='stock')body.filter2=STOCK_TYPE_FILTER;
+   if(kind==='etf')body.filter2=ETF_TYPE_FILTER;
    setLoading(true);setError('');
    try{
      const ctl=new AbortController();const timer=setTimeout(()=>ctl.abort(),20000);
@@ -93,12 +123,12 @@ export default function ScreenerClone(){
      setRows(payload.data);setTotal(payload.totalCount);setUpdated(new Date().toLocaleTimeString('ko-KR'));
    }catch(e){setRows([]);setTotal(null);setError('실제 시장 데이터 조회 실패 · '+String(e))}
    finally{setLoading(false)}
- },[kind,market,page,sort,activeFilters,columns,isAsset]);
+ },[kind,market,page,sort,activeFilters]);
  useEffect(()=>{clearTimeout(timeoutRef.current);timeoutRef.current=setTimeout(()=>void query(),160);return()=>clearTimeout(timeoutRef.current)},[query]);
  useEffect(()=>{localStorage.setItem('tv-clone-watchlist',JSON.stringify(watchlist))},[watchlist]);
  const filteredRows=useMemo(()=>rows.filter(r=>(!search||(r.s+' '+r.d.join(' ')).toLowerCase().includes(search.toLowerCase()))&&(!onlyWatch||watchlist.includes(r.s))),[rows,search,onlyWatch,watchlist]);
- const colIndex=(id:string)=>columns.findIndex(c=>c.key===id);
- const cell=(row:Entry,col:Column)=>col.key==='name'?row.s:row.d[colIndex(col.key)];
+ const colIndex=(id:string)=>{const fields=(kind==='stock'||kind==='etf'||kind==='bond')?LIVE_COLUMNS[kind]:['ticker-view','close','change','volume','currency'];return fields.indexOf(API_FIELD_MAP[id]||id)};
+ const cell=(row:Entry,col:Column)=>{const v=row.d[colIndex(col.key)];if(col.key==='name'||col.key==='TickerUniversal')return (v&&typeof v==='object'&&!Array.isArray(v)&&'name' in v)?String(v.name):row.s;if(col.key==='description')return v&&typeof v==='object'&&!Array.isArray(v)&&'description' in v?String(v.description):'—';if(col.key==='volume'&&kind==='etf')return row.d[10];return v};
  const addFilter=(id:string)=>{const found=config.filters.find(f=>f.id===id);if(found&&!filters.find(f=>f.id===id))setFilters(p=>[...p,found]);setActivePopup(id)};
  const download=()=>{const lines=[columns.map(c=>c.title),...filteredRows.map(r=>columns.map(c=>String(cell(r,c)??'')))];const csv=lines.map(line=>line.map(v=>'"'+v.replaceAll('"','""')+'"').join(',')).join('\r\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'}));a.download='screener-'+kind+'-'+market+'.csv';a.click();URL.revokeObjectURL(a.href)};
  const chooseTab=(name:string)=>{setTab(name);setPage(0);if(name==='오버뷰'){setColumns(config.columns);return}const extras:Record<string,string[]>={'등급':['SnpRatingLongTerm','FitchRatingLongTerm','MoodysRatingLongTerm'],'쿠폰':['CurrentCoupon','CouponType','CouponFrequency'],'금리 위험':['YieldToWorst','ModifiedDuration'],'발행자':['BondIssuerType','BondIssuer'],'밸류에이션':['price_earnings_ttm','price_book_fq'],'배당':['dividends_yield_current','dividends_per_share_fq'],'기술 지표':['RSI','Mom','Recommend.All']};
