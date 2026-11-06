@@ -120,7 +120,7 @@ function App(){
  const activeLabel=popup.startsWith('filter:')?popup.slice(7):'';
  const activeSpec=specFor(product,activeLabel);
  const enumCategory=activeSpec?.type==='enum'?(activeSpec.enum||activeSpec.field):null;
- const enumOptions=getEnumOptions(orderedEnums,enumCategory);
+ const enumOptions=useMemo(()=>getEnumOptions(orderedEnums,enumCategory),[orderedEnums,enumCategory]);
  const pendingError=activeSpec?.type==='watchlist'?'':validatePending(activeSpec,pending);
  const fixture=refData?.products?.[product]?.tabs?.[String(tab)]||refData?.products?.[product]?.tabs?.['0'];
  const currentCols=useMemo(()=>customCols||fixture?.columns||cfg.cols,[customCols,fixture,cfg.cols]);
@@ -276,14 +276,38 @@ function App(){
      {popup==='symbol-search'&&<><input autoFocus placeholder="심볼 또는 기업명 찾기" value={search} onChange={e=>setSearch(e.target.value)} className="popup-search"/><div className="popup-subtitle">현재 페이지에서 검색 · 전체 시장 종목 검색과 구분</div><div className="option-list">{normalizedRows.slice(0,10).map(row=><button key={row.id} onClick={()=>setPopup('')}>{row.id}</button>)}</div></>}
      {popup==='columns'&&<><input autoFocus className="popup-search" placeholder="컬럼 검색" value={columnSearch} onChange={e=>setColumnSearch(e.target.value)}/><div className="popup-subtitle">선택된 컬럼 · 클릭하여 추가 또는 제거</div><div className="option-list long-list">{colsToOffer.filter(c=>(colname(c)+' '+c).toLowerCase().includes(columnSearch.toLowerCase())).map(c=><button key={c} onClick={()=>{changeState(()=>setCustomCols(v=>{const old=v||currentCols;return old.includes(c)?old.filter(x=>x!==c):[...old,c]}))}}><span>{colname(c)} <small>{c}</small></span>{currentCols.includes(c)&&<Check size={16}/>}</button>)}</div></>}
      {popup==='add-filter'&&<><input className="popup-search" autoFocus placeholder="필터 찾기" value={filterQuery} onChange={e=>setFilterQuery(e.target.value)}/><div className="option-list long-list">{availableAdd.filter(x=>x.toLowerCase().includes(filterQuery.toLowerCase())).map(label=><button key={label} onClick={()=>{changeState(()=>setFilterLabels(v=>[...v,label]));onFilterClick(label);}}><Plus size={15}/>{label}</button>)}</div></>}
-     {popup.startsWith('filter:')&&<div className="filter-edit"><div className="filter-field-name">{pillField(popup.slice(7),product)||popup.slice(7)}</div>
-       {popup.slice(7)==='왓치리스트'?<div className="filter-note">왓치리스트에 등록된 종목을 관리합니다. 서버에서 사용자 로그인 목록은 제공되지 않습니다.</div>:
-       Boolean(ENUM_FILTERS[product]?.[popup.slice(7)])?
-       <><input className="popup-search" placeholder="값 검색" value={filterQuery} onChange={e=>setFilterQuery(e.target.value)}/>
-       <div className="option-list filter-values">{(enumOptions.length?enumOptions:[]).filter(x=>String(x.name||x.id).toLowerCase().includes(filterQuery.toLowerCase())||String(x.id).toLowerCase().includes(filterQuery.toLowerCase())).slice(0,120).map(opt=><label key={opt.id}><input type="checkbox" checked={(pending.choices||[]).includes(opt.id)} onChange={e=>setPending(v=>({...v,type:'choices',choices:e.target.checked?[...(v.choices||[]),opt.id]:(v.choices||[]).filter(x=>x!==opt.id)}))}/><span>{opt.name||opt.id}<small style={{color:'#9398a0',fontSize:11,marginLeft:6}}>{opt.id}</small></span></label>)}{!enumOptions.length&&<div className="filter-note">원본 필터 값 조회 중 또는 선택지 없음. 숫자 범위 필터를 사용하세요.</div>}</div></>:
-       <><div className="range-label">수치 범위</div><div className="range-inputs"><input type="number" placeholder="최소값" value={pending.min||''} onChange={e=>setPending(v=>({...v,min:e.target.value,type:'range'}))}/><span>—</span><input type="number" placeholder="최대값" value={pending.max||''} onChange={e=>setPending(v=>({...v,max:e.target.value,type:'range'}))}/></div></>}
-       <div className="filter-edit-actions"><button onClick={()=>{changeState(()=>setPills(v=>{const n={...v};delete n[popup.slice(7)];return n}));setPopup('')}}>리셋</button><button className="apply-btn" onClick={()=>applyFilter(popup.slice(7),pending)}>적용</button></div>
-     </div>}
+     {popup.startsWith('filter:')&&<div className="filter-edit" data-testid="filter-editor">
+        <div className="filter-field-name">데이터 필드: {activeSpec?.field||'연결 안 됨'}</div>
+        {activeSpec?.type==='watchlist'?<div className="filter-note">TradingView 개인 왓치리스트에는 연결되지 않았습니다. 계정 목록을 가져오지 못하므로 조건을 임의로 적용하지 않습니다.</div>:
+        !activeSpec?<div className="filter-note" role="alert">지원되는 스캐너 데이터 필드가 확인되지 않아 이 조건은 적용할 수 없습니다.</div>:
+        <>
+          {activeLabel==='퍼포먼스 %'&&<label className="filter-operator-label">기간<select aria-label="성과 기간" value={pending.field||activeSpec.field} onChange={e=>setPending(v=>({...v,field:e.target.value}))}>{PERIOD_CHOICES.map(x=><option key={x.field} value={x.field}>{x.label}</option>)}</select></label>}
+          <label className="filter-operator-label">비교 조건
+            <select aria-label="비교 조건" value={pending.operator||'in_range'} onChange={e=>setPending(v=>({...v,operator:e.target.value}))}>{(activeSpec.type==='enum'?ENUM_OPERATORS:NUMBER_OPERATORS).map(x=><option key={x.id} value={x.id}>{x.label}</option>)}</select>
+          </label>
+          {activeSpec.type==='enum'?<>
+            <input className="popup-search" placeholder="선택값 검색" value={filterQuery} onChange={e=>setFilterQuery(e.target.value)}/>
+            <div className="filter-option-count" data-testid="enum-count">선택 {pending.choices?.length||0}개 · 원본 선택값 {enumOptions.length.toLocaleString('ko-KR')}개</div>
+            <div className="filter-batch-actions"><button onClick={()=>{const matches=enumOptions.filter(x=>(x.name+' '+x.id).toLowerCase().includes(filterQuery.toLowerCase())).slice(0,200).map(x=>x.id);setPending(v=>({...v,choices:[...new Set([...(v.choices||[]),...matches])]}));}}>검색 결과 선택</button><button onClick={()=>setPending(v=>({...v,choices:[]}))}>선택 해제</button></div>
+            <div className="option-list filter-values">
+              {enumOptions.filter(x=>(x.name+' '+x.id).toLowerCase().includes(filterQuery.toLowerCase())).slice(0,250).map(opt=><label key={opt.id}><input type="checkbox" checked={(pending.choices||[]).includes(opt.id)} onChange={e=>setPending(v=>({...v,type:'choices',choices:e.target.checked?[...(v.choices||[]),opt.id]:(v.choices||[]).filter(x=>x!==opt.id)}))}/><span>{opt.name}<small>{opt.id}</small></span></label>)}
+              {!enumOptions.length&&<div className="filter-note" role="status">원본 필터 선택값 조회에 실패했거나 결과가 없습니다. 조회할 수 없는 선택지는 임의로 만들지 않습니다.</div>}
+              {enumOptions.length>250&&<div className="filter-note">전체 {enumOptions.length.toLocaleString('ko-KR')}개 중 검색 조건에 맞는 항목의 앞부분을 표시합니다. 검색을 좁혀 선택하세요.</div>}
+            </div>
+          </>:<>
+            <div className="range-label">{activeSpec.type==='date'?'날짜 조건':'수치 조건'}</div>
+            <div className="range-inputs">
+              <input aria-label={(pending.operator==='in_range'||pending.operator==='not_in_range')?'최소값':'조건값'} type={activeSpec.type==='date'?'date':'number'} placeholder="조건값" value={pending.min??''} onChange={e=>setPending(v=>({...v,min:e.target.value}))}/>
+              {(pending.operator==='in_range'||pending.operator==='not_in_range')&&<><span>—</span><input aria-label="최대값" type={activeSpec.type==='date'?'date':'number'} placeholder="최대값" value={pending.max??''} onChange={e=>setPending(v=>({...v,max:e.target.value}))}/></>}
+            </div>
+          </>}
+          {pendingError&&<div className="filter-validation" role="status">{pendingError}</div>}
+        </>}
+        <div className="filter-edit-actions">
+          <button onClick={()=>{changeState(()=>setPills(v=>{const n={...v};delete n[activeLabel];return n}));setPopup('')}}>리셋</button>
+          {activeSpec?.type!=='watchlist'&&<button data-testid="filter-apply" className="apply-btn" disabled={Boolean(pendingError)} onClick={()=>applyFilter(activeLabel,pending)}>적용</button>}
+        </div>
+      </div>}
      {popup==='account'&&<div className="filter-note">공식 TradingView 서비스가 아닌 내부 프로젝트용 UI입니다.</div>}
    </div>}
    {toast&&<div role="status" className="toast">{toast}</div>}
