@@ -59,6 +59,8 @@ jobs:
             sleep 1
           done
           curl -fIs http://127.0.0.1:4173/screener/
+      - name: Diagnose live TradingView enum response schemas and labels
+        run: node tests/enum-provider-probe.mjs
       - name: Drive seven screeners, compare original vs implementation and test controls
         run: npm test
       - name: Functional Chromium checks - enum options, applied JSON, undo, redo, sorting, columns and markets
