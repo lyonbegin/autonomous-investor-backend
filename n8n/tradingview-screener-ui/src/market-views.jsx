@@ -1,4 +1,5 @@
 import React,{useEffect,useMemo,useState} from 'react';
+import {createPortal} from 'react-dom';
 import {Activity,BarChart3,ChevronDown,LayoutGrid} from 'lucide-react';
 import './market-views.css';
 
@@ -85,18 +86,20 @@ function Heatmap({rows,product}){
  })}</div>;
 }
 export default function MarketViews({view,rows,product}){
- const [period,setPeriod]=useState('5d'),[type,setType]=useState('Area'),[scale,setScale]=useState('Auto'),[volume,setVolume]=useState(true),[showCount,setShowCount]=useState(8),[refresh,setRefresh]=useState(0);
+ const [period,setPeriod]=useState('5d'),[type,setType]=useState('Area'),[scale,setScale]=useState('Auto'),[volume,setVolume]=useState(true),[showCount,setShowCount]=useState(8),[refresh,setRefresh]=useState(0),[toolbarTarget,setToolbarTarget]=useState(null);
+ useEffect(()=>{setToolbarTarget(document.getElementById('chart-toolbar-target'))},[view]);
  useEffect(()=>{setShowCount(8)},[product,view,rows?.[0]?.id]);
  const selectable=rows||[];
- return <section className="chart-content" aria-label={view==='charts'?'종목 차트 보기':'종목 히트맵 보기'}>
-  {view==='charts'&&<div className="chart-toolbar" data-testid="chart-toolbar">
+ const toolbar=<div className="chart-toolbar" data-testid="chart-toolbar">
    <label className="chart-view-label"><Activity size={18}/> Charts</label>
    <label> <span className="sr-only">차트 가격 축</span><select aria-label="차트 가격 축" value={scale} onChange={e=>setScale(e.target.value)}><option>Auto</option><option>Log</option><option>Percent</option></select><ChevronDown size={12}/></label>
    <label><span className="sr-only">차트 유형</span><select aria-label="차트 유형" value={type} onChange={e=>setType(e.target.value)}><option>Area</option><option>Line</option><option>Candles</option></select><ChevronDown size={12}/></label>
    <label><BarChart3 size={17}/><span className="sr-only">거래량 표시</span><select aria-label="거래량 표시" value={volume?'show':'hide'} onChange={e=>setVolume(e.target.value==='show')}><option value="show">Vol</option><option value="hide">Vol off</option></select><ChevronDown size={12}/></label>
    <div className="chart-timeframes">{PERIODS.map(([name,value])=><button key={name} type="button" className={value===period?'selected':''} data-testid={'chart-range-'+value} onClick={()=>setPeriod(value)}>{name}</button>)}</div>
    <button title="차트 새로고침" onClick={()=>setRefresh(v=>v+1)} className="chart-reload">↻</button>
-  </div>}
+  </div>;
+ return <section className="chart-content" aria-label={view==='charts'?'종목 차트 보기':'종목 히트맵 보기'}>
+  {view==='charts'&&(toolbarTarget?createPortal(toolbar,toolbarTarget):toolbar)}
   {view==='heatmap'?<Heatmap rows={selectable} product={product}/>:<>
    <div className="stock-chart-grid" data-testid="screener-chart-grid">
     {selectable.slice(0,showCount).map(row=><PointChart key={row.id} row={row} period={period} type={type} scale={scale} volume={volume} refresh={refresh}/>)}
