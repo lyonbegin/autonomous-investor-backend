@@ -1,0 +1,31 @@
+name: TradingView Screener Deep Menu Audit
+on:
+  push:
+    branches:
+      - feature/screener-playwright-network-inventory-20261106
+    paths:
+      - 'n8n/tools/screener_menu_deep_capture.py'
+      - '.github/workflows/screener-menu-deep-audit.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: |
+          pip install playwright==1.56.0
+          python -m playwright install --with-deps chromium
+      - name: Inspect public screener pages and menus without account access
+        run: python n8n/tools/screener_menu_deep_capture.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: screener-deep-menu-audit
+          path: screener_menu_audit/
+          retention-days: 7
