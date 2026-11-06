@@ -1,0 +1,34 @@
+name: TradingView CEX Symbol Type Values
+on:
+  push:
+    branches: [feature/tradingview-screener-ui-parity-20261106]
+    paths: ['.github/workflows/screener-cex-types.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Check real CEX type values and filter operator
+        run: |
+          node --input-type=module <<'JS'
+          const all=['spot','swap','futures','future','index','option'];
+          const endpoint='https://scanner.tradingview.com/crypto/scan?label-product=screener-crypto-cex';
+          for(const id of all){
+            const payload={
+              columns:['ticker-view','type'],range:[0,2],
+              sort:{sortBy:'24h_vol|5',sortOrder:'desc'},markets:['crypto'],
+              filter:[{left:'type',operation:'in_range',right:[id]}],
+              filter2:{operator:'and',operands:[{expression:{left:'centralization',operation:'equal',right:'cex'}}]}
+            };
+            try{
+              const resp=await fetch(endpoint,{method:'POST',
+               headers:{Accept:'application/json','Content-Type':'application/json'},
+               body:JSON.stringify(payload),signal:AbortSignal.timeout(12000)});
+              const body=await resp.json();
+              console.log('CEX_TYPE_RESULT',JSON.stringify({id,status:resp.status,count:body.totalCount,symbol:body.data?.[0]?.s,types:body.data?.[0]?.d?.slice(1),err:body.msg||body.error}));
+            }catch(e){console.log('CEX_TYPE_ERR',id,String(e).slice(0,170));}
+          }
+          JS
