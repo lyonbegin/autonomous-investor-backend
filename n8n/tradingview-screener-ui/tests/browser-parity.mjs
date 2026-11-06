@@ -287,7 +287,7 @@ try{
      await page.locator('.pop-header button').click();
    }
    await page.locator('[data-qa-id="screener-topbar-settings"]').click();
-   await check(key+': settings popup',await page.locator('.popover-settings input[type="checkbox"]').count()===5);
+   await check(key+': settings popup',await page.locator('.popover-settings input[type="checkbox"]').count()===4);
    await page.locator('.pop-header button').click();
   }
   if(key==='stock'||key==='etf'){
