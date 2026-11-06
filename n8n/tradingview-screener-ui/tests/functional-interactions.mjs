@@ -105,6 +105,16 @@ for(const s of SCENARIOS){
     assert(s.key+': original performance tab exact request columns',JSON.stringify(tabRequest.body.payload.columns)===JSON.stringify(CRYPTO_TAB_COLS[s.key][1]),{columns:tabRequest.body.payload.columns?.length,HTTP:resultStatus(tabRequest)});
     assert(s.key+': original performance tab scan returns HTTP 200',resultStatus(tabRequest)===200,{HTTP:resultStatus(tabRequest)});
   }
+  if(s.key==='cex'){
+    await page.locator('[data-testid="filter-심볼 타입"]').click();
+    const typeEditor=page.locator('[data-testid="filter-editor"]');
+    const types=await typeEditor.locator('.filter-values label').allInnerTexts();
+    assert('cex: verified type values visible',types.length===3&&types.some(x=>x.includes('spot')),{types});
+    await typeEditor.locator('.filter-values label').first().locator('input').check();
+    const sel=await nextScan(page,()=>typeEditor.locator('[data-testid="filter-apply"]').click());
+    assert('cex: spot type selected in scanner payload',expr(sel.body.payload,'type')?.right?.includes('spot'),{filter:expr(sel.body.payload,'type'),HTTP:resultStatus(sel)});
+    assert('cex: spot type filter HTTP 200',resultStatus(sel)===200,{HTTP:resultStatus(sel)});
+  }
   await page.screenshot({path:'artifacts/functional-'+s.key+'.png'});
   assert(s.key+': no browser exceptions',errors.length===0,{errors});
  }catch(e){assert(s.key+': scenario complete',false,{error:String(e).slice(0,500)});}

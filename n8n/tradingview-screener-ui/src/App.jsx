@@ -3,7 +3,7 @@ import {Search,ChevronDown,Plus,MoreHorizontal,RotateCw,Maximize2,Minimize2,
   Settings2,Undo2,Redo2,SlidersHorizontal,Columns3,Grid2X2,Table2,
   Globe2,UserRound,Star,Save,Check,X,ArrowDown,ArrowUp,Filter,
   Copy,Download,ListFilter,Lock,Bookmark,AlertCircle,Menu,ExternalLink} from 'lucide-react';
-import {FILTER_DEFS,NUMBER_OPERATORS,ENUM_OPERATORS,PERIOD_CHOICES,specFor,getEnumOptions,initialPending,validatePending,makeExpressions,summaryFor} from './filter-spec.js';
+import {FILTER_DEFS,NUMBER_OPERATORS,ENUM_OPERATORS,PERIOD_CHOICES,VERIFIED_CEX_TYPES,specFor,getEnumOptions,initialPending,validatePending,makeExpressions,summaryFor} from './filter-spec.js';
 import {CRYPTO_TAB_COLS} from './crypto-tab-presets.js';
 import {getPresets} from './filter-presets.js';
 import {groupsFor} from './filter-groups.js';
@@ -131,7 +131,7 @@ function App(){
  const activeLabel=popup.startsWith('filter:')?popup.slice(7):'';
  const activeSpec=specFor(product,activeLabel);
  const enumCategory=activeSpec?.type==='enum'?(activeSpec.enum||activeSpec.field):null;
- const enumOptions=useMemo(()=>getEnumOptions(orderedEnums,enumCategory),[orderedEnums,enumCategory]);
+ const enumOptions=useMemo(()=>{const values=getEnumOptions(orderedEnums,enumCategory);return values.length?values:product==='cex'&&enumCategory==='type'?VERIFIED_CEX_TYPES:[]},[orderedEnums,enumCategory,product]);
  const pendingError=activeSpec?.type==='watchlist'?'':validatePending(activeSpec,pending);
  const fixture=refData?.products?.[product]?.tabs?.[String(tab)]||refData?.products?.[product]?.tabs?.['0'];
  const currentCols=useMemo(()=>customCols||fixture?.columns||CRYPTO_TAB_COLS[product]?.[tab]||cfg.cols,[customCols,fixture,cfg.cols,product,tab]);

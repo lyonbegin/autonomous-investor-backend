@@ -62,6 +62,13 @@ export const FILTER_DEFS={
  '고유 매도자':['dex_sellers_uniq_24h','number'],'퍼포먼스 %':['Perf.1M','number']
  }
 };
+// Verified by live scanner on 2026-11-06: spot=21005, swap=18729, futures=394.
+// Upstream /enum/ordered?id=type returns {}, so these are explicit verified
+// fallback values. They are not an arbitrary substitute for other enum fields.
+export const VERIFIED_CEX_TYPES=[
+ {id:'spot',name:'현물 (Spot)'},{id:'swap',name:'무기한 선물 (Swap)'},
+ {id:'futures',name:'선물 (Futures)'}
+];
 export const PERIOD_CHOICES=[
  {field:'Perf.YTD',label:'올해 초부터 현재까지'},
  {field:'change',label:'1일'},{field:'Perf.W',label:'1주'},{field:'Perf.1M',label:'1달'},
