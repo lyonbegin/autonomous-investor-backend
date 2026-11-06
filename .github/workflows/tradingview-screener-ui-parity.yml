@@ -27,8 +27,17 @@ jobs:
           node-version: '22'
       - name: Install React and browser test dependencies
         run: npm install --no-audit --no-fund
-      - name: Install Playwright Chromium
-        run: npx playwright install --with-deps chromium
+      - name: Use preinstalled Google Chrome, falling back to Playwright Chromium
+        run: |
+          if command -v google-chrome >/dev/null 2>&1; then
+            echo "PLAYWRIGHT_SYSTEM_CHROME=$(command -v google-chrome)" >> "$GITHUB_ENV"
+            google-chrome --version
+          elif command -v google-chrome-stable >/dev/null 2>&1; then
+            echo "PLAYWRIGHT_SYSTEM_CHROME=$(command -v google-chrome-stable)" >> "$GITHUB_ENV"
+            google-chrome-stable --version
+          else
+            npx playwright install --with-deps chromium
+          fi
       - name: Retrieve original 2026-11-06 UI and complete Fetch/XHR evidence
         env:
           GH_TOKEN: ${{ github.token }}
