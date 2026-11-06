@@ -1,0 +1,34 @@
+name: TradingView Stock ETF Bond Fetch XHR JSON Evidence
+on:
+  push:
+    branches:
+      - feature/screener-three-xhr-json-20261106
+    paths:
+      - 'n8n/tools/screener_three_network_capture.py'
+      - '.github/workflows/screener-three-network-json.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 16
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Playwright Chromium
+        run: |
+          python -m pip install playwright==1.56.0
+          python -m playwright install --with-deps chromium
+      - name: Inspect stock ETF and bond screener public UI
+        run: python n8n/tools/screener_three_network_capture.py
+      - name: Upload JSON records and UI evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tv-three-screeners-xhr-json
+          path: screener_three_network_json/
+          retention-days: 7
+          if-no-files-found: warn
