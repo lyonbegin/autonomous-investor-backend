@@ -105,3 +105,20 @@
 .site[data-product="dex"] .screener-table :is(th,td):nth-child(10){width:90px}
 .site[data-product="dex"] .screener-table :is(th,td):nth-child(11){width:40px}
 .site[data-product="dex"] .screener-table :is(th,td):nth-child(12){width:38px}
+
+/* Functional filter editor. Keep parity for the closed state; open panels follow their button. */
+.filter-operator-label{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:8px 0 13px;font-size:13px;font-weight:600;color:#343944}
+.filter-operator-label select{flex:1;max-width:250px;background:#fff;border:1px solid #dfe2e7;border-radius:7px;padding:9px 6px;font-size:13px;color:#222733}
+.filter-option-count{font-size:12px;color:#626a76;margin:2px 0 8px}
+.filter-batch-actions{display:flex;justify-content:space-between;gap:8px;margin:5px 0 9px}
+.filter-batch-actions button{background:#f5f6f8;border:1px solid #e5e7eb;border-radius:6px;padding:5px 8px;font-size:12px}
+.filter-batch-actions button:hover{background:#eaf0fb}
+.filter-values{max-height:290px;overflow-y:auto;scrollbar-width:thin;border:1px solid #f1f2f4;border-radius:6px}
+.filter-values label{align-items:flex-start;font-size:13px;gap:10px}
+.filter-values label:hover{background:#f6f8fb}
+.filter-values label>span{flex:1;min-width:0;overflow-wrap:anywhere}
+.filter-values label small{display:block;color:#959ba7;margin-left:0;margin-top:1px;font-size:10px;word-break:break-all}
+.filter-validation{border-radius:6px;color:#a64726;background:#fff7f1;padding:8px 9px;font-size:12px;margin-top:11px}
+.filter-edit-actions button:disabled{opacity:.38;cursor:not-allowed}
+.popover-filter{min-height:220px;max-height:min(74vh,650px);overflow:auto}
+.range-inputs input{min-width:100px}
