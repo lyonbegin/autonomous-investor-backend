@@ -164,8 +164,13 @@ async function screenshotComparison(ours,expectedPath,key){
  if(!expectedPath)return null;
  try{
   await fs.access(expectedPath);
-  const a=await sharp(ours).resize(392,240,{fit:'fill'}).removeAlpha().raw().toBuffer();
-  const b=await sharp(expectedPath).resize(392,240,{fit:'fill'}).removeAlpha().raw().toBuffer();
+  // Judge ORIGINAL screenshot resolution, never a downsampled preview.
+  const aImage=await sharp(ours).removeAlpha().raw().toBuffer({resolveWithObject:true});
+  const bImage=await sharp(expectedPath).removeAlpha().raw().toBuffer({resolveWithObject:true});
+  const {width,height,channels}=aImage.info;
+  if(width!==bImage.info.width||height!==bImage.info.height||channels!==3||bImage.info.channels!==3)
+    throw new Error('Native screenshot geometry mismatch, original='+bImage.info.width+'x'+bImage.info.height+' clone='+width+'x'+height);
+  const a=aImage.data,b=bImage.data;
   const compare=new Uint8Array(a.length);
   let total=0,changed=0;
   for(let i=0;i<a.length;i+=3){
@@ -174,8 +179,12 @@ async function screenshotComparison(ours,expectedPath,key){
    if(diff>35)changed++;
    compare[i]=dr;compare[i+1]=dg;compare[i+2]=db;
   }
-  const score={mean_absolute_rgb_error:+(total/(a.length/3)).toFixed(2),pixel_fraction_changed_35:+(changed/(a.length/3)).toFixed(3)};
-  await sharp(Buffer.from(compare),{raw:{width:392,height:240,channels:3}}).png().toFile(path.join(OUT,key+'_diff.png'));
+  const score={mean_absolute_rgb_error:+(total/(width*height)).toFixed(2),
+    pixel_fraction_changed_35:+(changed/(width*height)).toFixed(4),
+    measured_resolution:width+'x'+height,measured_pixels:width*height,
+    threshold_mean_absolute_rgb:35};
+  // Scale only the displayed difference preview, not the acceptance measurement.
+  await sharp(Buffer.from(compare),{raw:{width,height,channels:3}}).resize(392,240).png().toFile(path.join(OUT,key+'_diff.png'));
   await sharp({create:{width:1176,height:240,channels:4,background:'#fff'}}).composite([
    {input:await sharp(expectedPath).resize(392,240).toBuffer(),left:0,top:0},
    {input:await sharp(ours).resize(392,240).toBuffer(),left:392,top:0},
@@ -248,7 +257,7 @@ try{
   else await check(key+': ORIGINAL REFERENCE REQUIRED',false,'Original visible DOM unavailable: cannot claim parity.');
   await check(key+': visible pixel mismatch <= 10 percent',
     Boolean(visual&&Number.isFinite(visual.pixel_fraction_changed_35)&&visual.pixel_fraction_changed_35<=UI_PARITY_LIMIT),
-    JSON.stringify({fraction:visual?.pixel_fraction_changed_35,limit:UI_PARITY_LIMIT,definition:'resized 392x240, absolute RGB average >35'}));
+    JSON.stringify({fraction:visual?.pixel_fraction_changed_35,limit:UI_PARITY_LIMIT,definition:'native screenshot pixels, absolute RGB average >35'}));
   results.push({kind:'page',key,route,title,tabs,filters,rows,source,response_status:response.status(),referenceType,refTabs,visual,exceptions});
   await check(key+': HTTP 200',response.status()===200);
   if(key!=='pine')await check(key+': public symbol logos loaded',logoLoad.loaded>0,JSON.stringify(logoLoad));
