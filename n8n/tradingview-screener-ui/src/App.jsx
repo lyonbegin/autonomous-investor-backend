@@ -48,9 +48,9 @@ function fmtCompact(n){if(typeof n!=='number')return String(n??'—');const a=Ma
 const PERCENT_FIELDS=/change|Perf\.|Volatility|yield|ratio|margin|growth|expense|coupon|pct|discount_premium|weight_top_|nav_total_return|socialdominance|24h_close/i;
 const COLOR_FIELDS=/^change$|^Perf\.|nav_total_return|_growth|^TechRating|^AnalystRating|24h_close_change|24h_vol_change/i;
 const DATE_FIELDS=/date|maturity|fiscal_period_end/i;
-function formatValue(v,key,currency,product='stock'){if(v===undefined||v===null||v==='')return '—';if(typeof v==='object')return v.name||v.description||'—';if(typeof v==='boolean')return v?'예':'아니요';if(typeof v==='string'&&/^[-+]?\d+(?:\.\d+)?$/.test(v)&&/^(?:dex_|24h_|close$|market_cap|fully_diluted|socialdominance)/.test(key))v=Number(v);if(typeof v==='string')return v;if(DATE_FIELDS.test(key)){if(v>1e8)return new Date(v*1000).toISOString().slice(0,10);return String(v);}if(PERCENT_FIELDS.test(key))return (v>0&&COLOR_FIELDS.test(key)?'+':'')+v.toFixed(2)+'%';if(key==='relative_volume_10d_calc'||key==='RSI')return v.toFixed(2);
- if(key==='etf_holdings_count'||key==='rank'||key==='crypto_total_rank'||key==='dex_txs_count_uniq_24h')return String(Math.round(v));
- if(key==='current_coupon')return v.toFixed(3)+'%';if(key==='close'||key==='close_net'||key==='nav'){const crypto=['coin','cex','dex'].includes(product);return v.toLocaleString('en-US',{maximumFractionDigits:currency==='KRW'?0:crypto?8:2,minimumFractionDigits:currency==='KRW'?0:2})+(currency?' '+currency:'');}if(key==='market_cap_basic'||key==='market_cap_calc'||key==='aum'||key==='Value.Traded'||key==='issue_amount'||key==='outstanding_amount'||key==='24h_vol|5'||key==='24h_vol_cmc'||key==='dex_trading_volume_24h'||key==='dex_total_liquidity'||key==='fully_diluted_value')return fmtCompact(v)+(currency?' '+currency:'');return fmtCompact(v);}
+function formatValue(v,key,currency,product='stock',tickPrecision=null){if(v===undefined||v===null||v==='')return '—';if(typeof v==='object')return v.name||v.description||'—';if(typeof v==='boolean')return v?'예':'아니요';if(typeof v==='string'&&/^[-+]?\d+(?:\.\d+)?$/.test(v)&&/^(?:dex_|24h_|close$|market_cap|fully_diluted|socialdominance)/.test(key))v=Number(v);if(typeof v==='string')return v;if(DATE_FIELDS.test(key)){if(v>1e8)return new Date(v*1000).toISOString().slice(0,10);return String(v);}if(PERCENT_FIELDS.test(key))return (v>0&&COLOR_FIELDS.test(key)?'+':'')+v.toFixed(2)+'%';if(key==='relative_volume_10d_calc'||key==='RSI')return v.toFixed(2);
+ if(key==='etf_holdings_count'||key==='rank'||key==='crypto_total_rank')return String(Math.round(v));
+ if(key==='current_coupon')return v.toFixed(3)+'%';if(key==='close'||key==='close_net'||key==='nav'){const dp=currency==='KRW'?0:typeof tickPrecision==='number'?tickPrecision:2;return v.toLocaleString('en-US',{maximumFractionDigits:dp,minimumFractionDigits:dp})+(currency?' '+currency:'');}if(key==='market_cap_basic'||key==='market_cap_calc'||key==='aum'||key==='Value.Traded'||key==='issue_amount'||key==='outstanding_amount'||key==='24h_vol|5'||key==='24h_vol_cmc'||key==='dex_trading_volume_24h'||key==='dex_total_liquidity'||key==='fully_diluted_value')return fmtCompact(v)+(currency?' '+currency:'');return fmtCompact(v);}
 function colname(key,product){if(key==='exchange.tr'&&product==='bond')return '소스';return COL[key]||key.replaceAll('.tr','').replaceAll('_',' ');}
 function pillField(label,kind){const stock={'가격':'close','체인지 %':'change','시가총액':'market_cap_basic','P/E':'price_earnings_ttm','EPS 희석 성장':'earnings_per_share_diluted_yoy_growth_ttm','배당 수익 %':'dividends_yield_current','ROE':'return_on_equity_fq','베타':'beta_1_year','퍼포먼스 %':'Perf.1M'};
 const etf={'AUM':'aum','지출 비율':'expense_ratio','NAV 총 수익률':'nav_total_return.3Y','배당 수익률 % (표시됨)':'dividends_yield','퍼포먼스 %':'Perf.1M'};
@@ -71,7 +71,14 @@ function basePayload(product,market,columns,sortField,pageIndex=0,pageSize=100){
  return props;
 }
 function usableColumns(cols){return cols.filter((c,i)=>i===0||!HIDDEN.has(c));}
-function BadgeLogo({name,code,logo}){const [failed,setFailed]=useState(false);let chr=String(name||code||'?').trim().charAt(0).toUpperCase();const id=typeof logo?.logoid==='string'?logo.logoid:null;return id&&!failed?<img className="symbol-logo external-logo" src={'https://s3-symbol-logo.tradingview.com/'+encodeURIComponent(id)+'.svg'} onError={()=>setFailed(true)} alt=""/>:<span className={'symbol-logo symbol-logo-'+(chr.charCodeAt(0)%6)}>{chr}</span>}
+function logoUrl(id){if(!id||typeof id!=='string'||id.includes('..'))return '';return 'https://s3-symbol-logo.tradingview.com/'+id.split('/').map(encodeURIComponent).join('/')+'.svg';}
+function BadgeLogo({name,code,logo,logoid}){const [failed,setFailed]=useState(false),[loaded,setLoaded]=useState(false);
+ const id=logoid||logo?.logoid, url=logoUrl(id),chr=String(name||code||'?').trim().charAt(0).toUpperCase(),safe=/^[a-zA-Z]$/.test(chr)?chr:'●';
+ return <span className={'logo-host symbol-logo-'+(chr.charCodeAt(0)%6)}>
+   <span className="logo-letter">{safe}</span>
+   {url&&!failed&&<img className={'symbol-logo external-logo '+(loaded?'loaded':'')} src={url} onLoad={()=>setLoaded(true)} onError={()=>setFailed(true)} alt=""/>}
+ </span>;
+}
 function IconButton({title,children,onClick,disabled=false,qa}){return <button type="button" title={title} aria-label={title} data-qa-id={qa} className="icon-btn" disabled={disabled} onClick={onClick}>{children}</button>;}
 function getFlag(m){return FLAG[m]||'🌐';}
 function App(){
@@ -223,6 +230,9 @@ function App(){
            <tbody>{normalizedRows.map((row,index)=>{
              const identity=row.values['ticker-view']||{}, code=identity.name||row.id?.split(':').pop(), desc=identity.description||row.id;
              const currency=row.values.currency||row.values.fundamental_currency_code||(market==='korea'?'KRW':market==='america'?'USD':'');
+             const rawTick=Number(row.values.minmov||1)/Number(row.values.pricescale||0);
+             const tickPrecision=Number.isFinite(rawTick)&&rawTick>0&&rawTick<=1
+               ?Math.min(9,(String(Number(rawTick.toPrecision(10))).split('.')[1]||'').length):null;
              return <tr key={row.id||index} data-rowkey={row.id} className={selectedRows.includes(row.id)?'is-selected':''} onClick={()=>setSelectedRows(s=>s.includes(row.id)?s.filter(x=>x!==row.id):[...s,row.id])}>
                {visibleCols.map((column,i)=>{
                 const val=row.values[column];const percent=COLOR_FIELDS.test(column)&&typeof val==='number';const numeric=typeof val==='number';
@@ -232,11 +242,13 @@ function App(){
                      {product!=='bond'&&<span className="ticker-code">{code}</span>}
                      <a href={'https://kr.tradingview.com/symbols/'+encodeURIComponent(row.id?.replace(':','-'))+'/'} title={desc} target="_blank" rel="noopener noreferrer">{desc}</a>
                    </div>:
+                   column==='blockchain-id.tr'&&product==='dex'?<div className="logo-field"><BadgeLogo name={val} code={val} logoid={row.values['blockchain-id']?'blockchain/'+row.values['blockchain-id']:null}/><span>{val||'—'}</span></div>:
+                   column==='exchange.tr'&&['dex','cex','bond'].includes(product)?<div className="logo-field"><BadgeLogo name={val} code={val} logoid={row.values['source-logoid']}/><span>{val||'—'}</span></div>:
                    column==='isin-displayed'&&product==='bond'&&!settings.showRestrictedColumns?<Lock size={14} className="locked-cell"/>:column==='isin-displayed'?<div className="isin-value">{typeof val==='string'?val:'—'}{val&&<button title="ISIN 카피" onClick={e=>{e.stopPropagation();navigator.clipboard?.writeText(val);showToast('ISIN 복사됨')}}><Copy size={12}/></button>}</div>:
-                   (product==='bond'&&index>8&&index<15)?<span className="paywall-blur">{formatValue(val,column,currency,product)}</span>:
+                   (product==='bond'&&index>8&&index<15)?<span className="paywall-blur">{formatValue(val,column,currency,product,tickPrecision)}</span>:
                    (product==='bond'&&/(redemption_type|bond_snp_rating|bond_fitch_rating|bond_moodys_rating)/.test(column)&&!settings.showRestrictedColumns)?<Lock size={14} className="locked-cell"/>:(/(Rating|rating)/.test(column)&&typeof val==='string'&&/^(AAA|AA|Aaa|BBB)/.test(val))?<span className="rating">{val}</span>:
                    ['AnalystRating.tr','TechRating_1D.tr'].includes(column)&&typeof val==='string'?<span className={'signal '+(/매수|바이|buy/i.test(val)?'positive':/매도|셀|sell/i.test(val)?'negative':'')}>{/매수|바이|buy/i.test(val)?'⌃ ': /매도|셀|sell/i.test(val)?'⌄ ':''}{val}</span>:
-                   formatValue(val,column,currency,product)}
+                   formatValue(val,column,currency,product,tickPrecision)}
                  </td>
                })}
                <td className="row-tail"></td>
