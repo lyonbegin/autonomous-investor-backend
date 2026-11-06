@@ -83,6 +83,7 @@ export default function ScreenerClone(){
  const [columnDrawer,setColumnDrawer]=useState(false);
  const timeoutRef=useRef<ReturnType<typeof setTimeout>|undefined>(undefined);
  const config=CONFIG[kind];
+ const isAsset=kind==='stock'||kind==='etf';
  const selectKind=(k:Kind)=>{setKind(k);setMarket(CONFIG[k].market);setTab('오버뷰');setColumns(CONFIG[k].columns);setFilters(CONFIG[k].filters);setCriteria({});setSort(null);setPage(0);setScreenName('전체 '+CONFIG[k].group);setRows([]);setTotal(null);setError('');setActivePopup(null);historyReplace(k)};
  function historyReplace(k:Kind){const u=new URL(location.href);u.searchParams.set('screener',k);window.history.replaceState({},'',u);}
  const updateCriteria=(id:string,part:Partial<{from:string;to:string;choice:string}>)=>{
