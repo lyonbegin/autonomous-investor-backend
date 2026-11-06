@@ -101,7 +101,7 @@ def req_event(req):
     r=safe_request(req)
     r.update({"id":request_counter,"action":current_action,"started_at":datetime.datetime.now(datetime.timezone.utc).isoformat()})
     records.append(r)
-    setattr(req,"_capture_index",len(records)-1)  # request Python object can be immutable: index fallback below
+    # Match corresponding responses using URL/method; do not mutate Playwright Request objects.
 
 async def response_event(res):
     if len(records)>MAX_EVENTS:return
