@@ -14,8 +14,8 @@ const browser=await chromium.launch({headless:true,...(process.env.PLAYWRIGHT_SY
 const results=[],failures=[];
 function assert(k,flag,details={}){const value={name:k,pass:!!flag,...details};results.push(value);console.log((flag?'PASS ':'FAIL ')+k+' '+JSON.stringify(details).slice(0,500));if(!flag)failures.push(value);}
 function expr(payload,field){return (payload?.filter||[]).find(x=>x.left===field);}
-async function nextScan(page,action){
- const requested=page.waitForRequest(req=>req.url().endsWith('/api/scan')&&req.method()==='POST',{timeout:12000});
+async function nextScan(page,action,requiredPayload=()=>true){
+ const requested=page.waitForRequest(req=>req.url().endsWith('/api/scan')&&req.method()==='POST'&&requiredPayload(req.postDataJSON().payload),{timeout:12000});
  await action();const req=await requested;return {body:req.postDataJSON(),response:await req.response().catch(()=>null)};
 }
 function resultStatus(scan){return scan.response?scan.response.status():null;}
@@ -70,9 +70,10 @@ for(const s of SCENARIOS){
   if(s.key==='stock'){
     await page.locator('[data-testid="filter-가격"]').click();
     const preset=page.locator('[data-testid="filter-preset"]').first();
-    const presetScan=await nextScan(page,()=>preset.click());
-    const exp=expr(presetScan.body.payload,'close');
-    assert('stock: original quick preset applies real price >100',exp?.operation==='greater'&&exp?.right===100,{condition:exp,HTTP:resultStatus(presetScan)});
+    const presetScan=await nextScan(page,()=>preset.click(),p=>(p.filter||[]).some(x=>x.left==='close'&&x.operation==='greater'&&x.right===100));
+    const priceExpr=(presetScan.body.payload.filter||[]).filter(x=>x.left==='close');
+    const exp=priceExpr.find(x=>x.operation==='greater'&&x.right===100);
+    assert('stock: original quick preset applies real price >100',!!exp,{condition:exp,allPriceConditions:priceExpr,HTTP:resultStatus(presetScan)});
     assert('stock: quick preset scanner HTTP 200',resultStatus(presetScan)===200,{HTTP:resultStatus(presetScan)});
     await page.locator('[data-testid="filter-가격"]').click();
     await nextScan(page,()=>page.locator('[data-testid="filter-editor"] .filter-edit-actions button').first().click());
