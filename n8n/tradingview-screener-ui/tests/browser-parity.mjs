@@ -83,6 +83,8 @@ try{
     await originalPage.screenshot({path:referenceShot,fullPage:false});
    }
   }catch(e){console.log('LIVE REF UNAVAILABLE',key,String(e).slice(0,160))}
+  const logoSamples=await originalPage.locator('tbody tr').first().locator('img').evaluateAll(imgs=>imgs.map(i=>({src:i.getAttribute('src'),alt:i.getAttribute('alt'),text:i.parentElement?.textContent?.slice(0,70)}))).catch(()=>[]);
+  await fs.writeFile(path.join(OUT,key+'_original_logo_urls.json'),JSON.stringify(logoSamples,null,2));
   await originalPage.close();
   if(capturedReqs.length&&localScanRequests.length){
     const originalQuery=capturedReqs[0].json;
