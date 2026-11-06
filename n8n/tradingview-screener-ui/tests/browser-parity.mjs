@@ -65,6 +65,8 @@ try{
   await page.screenshot({path:appShot,fullPage:false});
   let referenceType='missing',referenceShot=null,refTabs=null;
   const originalPage=await ctx.newPage();
+  const capturedReqs=[];
+  originalPage.on('request',request=>{if(request.url().includes('/scan?')){let json=null;try{json=request.postDataJSON()}catch{}capturedReqs.push({url:request.url(),method:request.method(),json});}});
   try{
    let result=await originalPage.goto(original,{waitUntil:'domcontentloaded',timeout:35000});
    await originalPage.waitForTimeout(4500);
@@ -75,6 +77,7 @@ try{
    }
   }catch(e){console.log('LIVE REF UNAVAILABLE',key,String(e).slice(0,160))}
   await originalPage.close();
+  await fs.writeFile(path.join(OUT,key+'_original_scans.json'),JSON.stringify(capturedReqs,null,2));
   if(referenceType==='missing'&&staticRef){const file=path.resolve('evidence',staticRef);try{await fs.access(file);referenceType='captured';referenceShot=file;}catch{}}
   const visual=await screenshotComparison(appShot,referenceShot,key);
   results.push({kind:'page',key,route,title,tabs,filters,rows,source,response_status:response.status(),referenceType,refTabs,visual,exceptions});
