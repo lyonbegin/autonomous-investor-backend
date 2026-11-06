@@ -122,3 +122,8 @@
 .filter-edit-actions button:disabled{opacity:.38;cursor:not-allowed}
 .popover-filter{min-height:220px;max-height:min(74vh,650px);overflow:auto}
 .range-inputs input{min-width:100px}
+
+/* The generic compact setting must also override short filter CEX/DEX geometry. */
+.site.compact.short-filters .screener-table th{height:34px!important}
+.site.compact.short-filters .screener-table td{height:29px!important;padding-top:1px;padding-bottom:1px}
+.popover-columns .option-list button:disabled{opacity:.58;cursor:default;background:#fff}
