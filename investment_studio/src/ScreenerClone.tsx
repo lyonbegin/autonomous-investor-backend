@@ -79,11 +79,7 @@ export default function ScreenerClone(){
  return out;
  }),[criteria]);
  const query=useCallback(async()=>{
-   const current=CONFIG[kind];
-   const effective=columns.filter(c=>c.key!=='name');
-   const requestColumns=effective.map(c=>c.key);
-   // The first field for stock/ETF is name. Bond's identity is TickerUniversal.
-   if(!requestColumns.includes(current.columns[0].key))requestColumns.unshift(current.columns[0].key);
+   const requestColumns=columns.map(c=>c.key);
    const body:Record<string,unknown>={filter:activeFilters,options:{lang:'ko'},symbols:{query:{types:[]},tickers:[]},columns:requestColumns,sort:sort?[{sortBy:sort.key,sortOrder:sort.desc?'desc':'asc'}]:[],range:[page*50,page*50+50]};
    if(isAsset)body.markets=[market];
    setLoading(true);setError('');
@@ -101,7 +97,7 @@ export default function ScreenerClone(){
  useEffect(()=>{clearTimeout(timeoutRef.current);timeoutRef.current=setTimeout(()=>void query(),160);return()=>clearTimeout(timeoutRef.current)},[query]);
  useEffect(()=>{localStorage.setItem('tv-clone-watchlist',JSON.stringify(watchlist))},[watchlist]);
  const filteredRows=useMemo(()=>rows.filter(r=>(!search||(r.s+' '+r.d.join(' ')).toLowerCase().includes(search.toLowerCase()))&&(!onlyWatch||watchlist.includes(r.s))),[rows,search,onlyWatch,watchlist]);
- const colIndex=(id:string)=>columns.filter(c=>c.key!=='name').map(c=>c.key).includes(id)?columns.filter(c=>c.key!=='name').findIndex(c=>c.key===id):-1;
+ const colIndex=(id:string)=>columns.findIndex(c=>c.key===id);
  const cell=(row:Entry,col:Column)=>col.key==='name'?row.s:row.d[colIndex(col.key)];
  const addFilter=(id:string)=>{const found=config.filters.find(f=>f.id===id);if(found&&!filters.find(f=>f.id===id))setFilters(p=>[...p,found]);setActivePopup(id)};
  const download=()=>{const lines=[columns.map(c=>c.title),...filteredRows.map(r=>columns.map(c=>String(cell(r,c)??'')))];const csv=lines.map(line=>line.map(v=>'"'+v.replaceAll('"','""')+'"').join(',')).join('\r\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'}));a.download='screener-'+kind+'-'+market+'.csv';a.click();URL.revokeObjectURL(a.href)};
