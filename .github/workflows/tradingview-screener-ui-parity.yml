@@ -61,6 +61,8 @@ jobs:
           curl -fIs http://127.0.0.1:4173/screener/
       - name: Drive seven screeners, compare original vs implementation and test controls
         run: npm test
+      - name: Functional Chromium checks - enum options, applied JSON, undo, redo, sorting, columns and markets
+        run: node tests/functional-interactions.mjs
       - name: Preserve screenshots, differences, response sources and failures
         if: always()
         uses: actions/upload-artifact@v4
