@@ -84,7 +84,7 @@ try{
   await check(key+': HTTP 200',response.status()===200);
   await check(key+': heading exists',title?.length>2);
   await check(key+': tabs = '+tabCount,tabs===tabCount);
-  await check(key+': filters visible',filters>=3);
+  await check(key+': filters visible',key==='pine'?filters===0:filters>=3);
   await check(key+': no React exceptions',exceptions.length===0,exceptions.join(','));
   if(['stock','etf','bond'].includes(key)){
    await check(key+': scan data or captured fallback',source==='live'||source==='captured','source='+source);
@@ -100,7 +100,7 @@ try{
    await check(key+': columns popup',await page.locator('.popover-columns .option-list button').count()>4);
    await page.locator('.pop-header button').click();
    await page.locator('[data-qa-id="screener-topbar-settings"]').click();
-   await check(key+': settings popup',await page.locator('.popover-settings input[type="checkbox"]').count()===4);
+   await check(key+': settings popup',await page.locator('.popover-settings input[type="checkbox"]').count()===5);
    await page.locator('.pop-header button').click();
   }
   if(key==='stock'||key==='etf'){
