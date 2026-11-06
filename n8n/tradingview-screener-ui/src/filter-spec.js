@@ -76,7 +76,7 @@ export const DATE_OPERATORS=NUMBER_OPERATORS;
 export function specFor(product,label,extra={}){
  if(label==='왓치리스트')return {field:null,type:'watchlist',label};
  const def=FILTER_DEFS[product]?.[label];
- if(def)return {field:def[0],type:def[1],enum:def[2],label};
+ if(def)return {field:def[0],type:def[1],enum:def[2],label,stringSet:product==='coin'&&label==='카테고리'};
  if(extra[label]&&typeof extra[label]==='string')return {field:extra[label],type:'number',label};
  return null;
 }
@@ -119,7 +119,7 @@ export function makeExpressions(product,pills,extra={}){
   if(err){invalid.push({label,error:err});continue;}
   const field=item.field||spec.field,op=item.operator||'in_range';
   if(spec.type==='enum'){
-   conditions.push({left:field,operation:op,right:item.choices});
+   conditions.push({left:field,operation:spec.stringSet?(op==='not_in_range'?'has_none_of':'has'):op,right:item.choices});
   }else if(op==='in_range'||op==='not_in_range'){
    conditions.push({left:field,operation:op,right:[typedValue(spec,item.min),typedValue(spec,item.max)]});
   }else{
