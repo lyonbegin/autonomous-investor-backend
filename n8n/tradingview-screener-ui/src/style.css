@@ -69,3 +69,39 @@
 .logo-field .logo-host{width:24px;height:24px;font-size:12px}
 .screener-table td:has(.logo-field){min-width:145px}
 .screener-table td:has(.logo-field){text-align:left}
+
+
+/* 2026-11-06 original CEX/DEX measured 1565x960: fix real visible column
+   boundaries, row start and header spacing. Do not mask screenshot regions. */
+.site.short-filters .tabs-panel{height:54px}
+.site.short-filters .screener-table th{height:49px}
+.site[data-product="cex"] .screener-table,
+.site[data-product="dex"] .screener-table{width:1565px;min-width:1565px;table-layout:fixed;font-size:14px}
+.site[data-product="cex"] .ticker-value a,
+.site[data-product="dex"] .ticker-value a{font-size:14px}
+.site[data-product="cex"] .ticker-value a:after,
+.site[data-product="dex"] .ticker-value a:after{content:none}
+.site[data-product="cex"] .screener-table th,
+.site[data-product="cex"] .screener-table td,
+.site[data-product="dex"] .screener-table th,
+.site[data-product="dex"] .screener-table td{min-width:0;max-width:none;width:auto}
+.site[data-product="cex"] .screener-table :is(th,td):nth-child(1){width:526px;min-width:526px;max-width:526px}
+.site[data-product="cex"] .screener-table :is(th,td):nth-child(2){width:290px}
+.site[data-product="cex"] .screener-table :is(th,td):nth-child(3){width:165px}
+.site[data-product="cex"] .screener-table :is(th,td):nth-child(4){width:100px}
+.site[data-product="cex"] .screener-table :is(th,td):nth-child(5){width:210px}
+.site[data-product="cex"] .screener-table :is(th,td):nth-child(6){width:165px}
+.site[data-product="cex"] .screener-table :is(th,td):nth-child(7){width:70px}
+.site[data-product="cex"] .screener-table :is(th,td):nth-child(8){width:39px}
+.site[data-product="dex"] .screener-table :is(th,td):nth-child(1){width:340px;min-width:340px;max-width:340px}
+.site[data-product="dex"] .screener-table :is(th,td):nth-child(2){width:227px}
+.site[data-product="dex"] .screener-table :is(th,td):nth-child(3){width:272px}
+.site[data-product="dex"] .screener-table :is(th,td):nth-child(4){width:120px}
+.site[data-product="dex"] .screener-table :is(th,td):nth-child(5){width:88px}
+.site[data-product="dex"] .screener-table :is(th,td):nth-child(6){width:90px}
+.site[data-product="dex"] .screener-table :is(th,td):nth-child(7){width:95px}
+.site[data-product="dex"] .screener-table :is(th,td):nth-child(8){width:75px}
+.site[data-product="dex"] .screener-table :is(th,td):nth-child(9){width:90px}
+.site[data-product="dex"] .screener-table :is(th,td):nth-child(10){width:90px}
+.site[data-product="dex"] .screener-table :is(th,td):nth-child(11){width:40px}
+.site[data-product="dex"] .screener-table :is(th,td):nth-child(12){width:38px}
