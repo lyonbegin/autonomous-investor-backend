@@ -3,6 +3,7 @@ import {Search,ChevronDown,Plus,MoreHorizontal,RotateCw,Maximize2,Minimize2,
   Settings2,Undo2,Redo2,SlidersHorizontal,Columns3,Grid2X2,Table2,
   Globe2,UserRound,Star,Save,Check,X,ArrowDown,ArrowUp,Filter,
   Copy,Download,ListFilter,Lock,Bookmark,AlertCircle,Menu,ExternalLink} from 'lucide-react';
+import {FILTER_DEFS,NUMBER_OPERATORS,ENUM_OPERATORS,PERIOD_CHOICES,specFor,getEnumOptions,initialPending,validatePending,makeExpressions,summaryFor} from './filter-spec.js';
 
 const MARKETS='america argentina australia austria bahrain bangladesh belgium bulgaria brazil canada chile china colombia croatia cyprus czech denmark egypt estonia finland france germany greece hongkong hungary iceland india indonesia ireland israel italy japan kenya kuwait latvia lithuania luxembourg malaysia mexico morocco netherlands newzealand nigeria norway pakistan peru philippines poland portugal qatar romania russia ksa serbia singapore slovakia slovenia rsa korea spain srilanka sweden switzerland taiwan thailand tunisia turkey uae uk venezuela vietnam'.split(' ');
 const COUNTRY_NAMES={america:'미국',korea:'대한민국',japan:'일본',china:'중국',hongkong:'홍콩',india:'인도',canada:'캐나다',uk:'영국',germany:'독일',france:'프랑스',australia:'호주',taiwan:'대만',singapore:'싱가포르',brazil:'브라질',vietnam:'베트남',thailand:'태국',switzerland:'스위스',spain:'스페인',italy:'이탈리아',netherlands:'네덜란드',mexico:'멕시코',sweden:'스웨덴',turkey:'튀르키예',russia:'러시아',ksa:'사우디아라비아',uae:'아랍에미리트',rsa:'남아프리카',newzealand:'뉴질랜드'};
@@ -92,7 +93,7 @@ function App(){
  [sort,setSort]=useState({by:cfg.sort,dir:product==='coin'?'asc':'desc'}),[settings,setSettings]=useState({compact:false,showLogos:true,hideEmpty:false,freezeTicker:true,showRestrictedColumns:false}),
  [undo,setUndo]=useState([]),[redo,setRedo]=useState([]),[showAllFilters,setShowAllFilters]=useState(false),
  [saved,setSaved]=useState([]),[fullscreen,setFullscreen]=useState(false),[selectedRows,setSelectedRows]=useState([]),
- [columnSearch,setColumnSearch]=useState(''),[refresh,setRefresh]=useState(0),[toast,setToast]=useState('');
+ [columnSearch,setColumnSearch]=useState(''),[refresh,setRefresh]=useState(0),[toast,setToast]=useState(''),[popupAnchor,setPopupAnchor]=useState(null);
  const tableRef=useRef(null),popoverRef=useRef(null),searchRef=useRef(null);
  useEffect(()=>{fetch('/reference.json').then(r=>r.ok?r.json():null).then(setRefData).catch(()=>{});try{setSaved(JSON.parse(localStorage.getItem('tv-screener-saves')||'[]'));}catch{}},[]);
  useEffect(()=>{const click=e=>{if(popoverRef.current&&!popoverRef.current.contains(e.target)&&!e.target.closest('[data-pop]'))setPopup('')};document.addEventListener('mousedown',click);return()=>document.removeEventListener('mousedown',click)},[]);
@@ -116,8 +117,11 @@ function App(){
   return()=>{active=false};
  },[product]);
  const orderedEnums=enumData[product]||refData?.products?.[product]?.enum||{};
- const enumCategory=popup.startsWith('filter:')?(ENUM_FILTERS[product]?.[popup.slice(7)]||null):null;
- const enumOptions=enumCategory&&Array.isArray(orderedEnums[enumCategory])?orderedEnums[enumCategory]:[];
+ const activeLabel=popup.startsWith('filter:')?popup.slice(7):'';
+ const activeSpec=specFor(product,activeLabel);
+ const enumCategory=activeSpec?.type==='enum'?(activeSpec.enum||activeSpec.field):null;
+ const enumOptions=getEnumOptions(orderedEnums,enumCategory);
+ const pendingError=activeSpec?.type==='watchlist'?'':validatePending(activeSpec,pending);
  const fixture=refData?.products?.[product]?.tabs?.[String(tab)]||refData?.products?.[product]?.tabs?.['0'];
  const currentCols=useMemo(()=>customCols||fixture?.columns||cfg.cols,[customCols,fixture,cfg.cols]);
  const defaultRequest=refData?.products?.[product]?.tabs?.['0']?.request;
@@ -127,16 +131,8 @@ function App(){
    template.columns=cols;template.markets=[market];template.range=[page*pageSize,(page+1)*pageSize];
    template.sort={sortBy:sort.by||cfg.sort,sortOrder:sort.dir};
    template.options={...template.options,lang:'ko'};
-   const conditions=[];
-   Object.entries(pills).forEach(([label,item])=>{
-     const field=pillField(label,product);
-     if(!field||!item||item.enabled===false)return;
-     if(item.type==='range'){
-       if(item.min!==''&&!Number.isNaN(Number(item.min)))conditions.push({left:field,operation:'egreater',right:Number(item.min)});
-       if(item.max!==''&&!Number.isNaN(Number(item.max)))conditions.push({left:field,operation:'eless',right:Number(item.max)});
-     }else if(item.type==='choices'&&item.choices?.length)conditions.push({left:field,operation:'in_range',right:item.choices});
-   });
-   if(conditions.length)template.filter=[...(template.filter||[]),...conditions];
+   const {conditions}=makeExpressions(product,pills);
+ if(conditions.length)template.filter=[...(template.filter||[]),...conditions];
    return template;
  },[product,market,currentCols,sort,page,pageSize,pills,defaultRequest,cfg.sort]);
  useEffect(()=>{
