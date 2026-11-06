@@ -1,0 +1,40 @@
+name: TradingView Enum API Format Diagnostic
+on:
+  push:
+    branches: [feature/tradingview-screener-ui-parity-20261106]
+    paths: ['.github/workflows/tradingview-screener-enum-probe.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  enum:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Compare schema with and without mandatory Accept and id
+        run: |
+          node --input-type=module <<'JS'
+          const labels=[['stock','sector'],['etf','asset_class'],['bond','bond_issuer_type'],['coin','category'],['crypto','category'],['crypto-cex','exchange'],['crypto-dex','blockchain_id']];
+          const reqs=labels.flatMap(([p,id])=>[
+            {p,id,accept:false,withId:true},{p,id,accept:true,withId:false},{p,id,accept:true,withId:true}
+          ]);
+          const promises=reqs.map(async t=>{
+            const u=new URL('https://scanner.tradingview.com/enum/ordered');
+            u.searchParams.set('lang','ko');u.searchParams.set('label-product','screener-'+t.p);
+            if(t.withId)u.searchParams.set('id',t.id);
+            const headers={'Referer':'https://kr.tradingview.com/','Origin':'https://kr.tradingview.com'};
+            if(t.accept)headers.Accept='application/vnd.tv.orderedEnumValues.v1+json';
+            try{
+              const r=await fetch(u,{headers,signal:AbortSignal.timeout(20000)});
+              const raw=await r.text();let parsed={};
+              try{parsed=JSON.parse(raw)}catch{}
+              const keys=Object.keys(parsed||{});
+              console.log('RESULT',JSON.stringify({...t,status:r.status,type:r.headers.get('content-type'),keys:keys.slice(0,12),count:keys.length,shape:Array.isArray(parsed)?'array':'object',first:raw.slice(0,140)}));
+            }catch(e){console.log('ERR',JSON.stringify({...t,error:String(e)}));}
+          });
+          await Promise.all(promises);
+          JS
