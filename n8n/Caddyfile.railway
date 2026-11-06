@@ -67,6 +67,33 @@
         }
     }
 
+    # Public market screener reads from the official scanner; never invent quote data.
+    # Restrict to read-only metadata endpoints and POST scan, with a fixed upstream.
+    @screenerScan {
+        method POST
+        path_regexp scanapi ^/screener-data/[a-z]+/scan$
+    }
+    @screenerMeta {
+        method GET
+        path_regexp enumpath ^/screener-data/enum/ordered$
+    }
+    handle @screenerScan {
+        uri strip_prefix /screener-data
+        reverse_proxy https://scanner.tradingview.com {
+            header_up Host scanner.tradingview.com
+            header_up -Cookie
+            header_up -Authorization
+        }
+    }
+    handle @screenerMeta {
+        uri strip_prefix /screener-data
+        reverse_proxy https://scanner.tradingview.com {
+            header_up Host scanner.tradingview.com
+            header_up -Cookie
+            header_up -Authorization
+        }
+    }
+
     # Web application is visible without the test-stage username/password.
     handle {
         root * /srv
