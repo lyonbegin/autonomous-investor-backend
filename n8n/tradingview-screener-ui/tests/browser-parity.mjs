@@ -13,7 +13,7 @@ const SCREENS=[
  ['cex','/cex-screener/','https://kr.tradingview.com/cex-screener/',null,3],
  ['dex','/dex-screener/','https://kr.tradingview.com/dex-screener/',null,6],
  ['pine','/pine-screener/','https://kr.tradingview.com/pine-screener/',null,0]];
-const browser=await chromium.launch({headless:true,args:['--no-sandbox','--disable-dev-shm-usage']});
+const browser=await chromium.launch({headless:true,...(process.env.PLAYWRIGHT_SYSTEM_CHROME?{executablePath:process.env.PLAYWRIGHT_SYSTEM_CHROME}:{}),args:['--no-sandbox','--disable-dev-shm-usage']});
 const ctx=await browser.newContext({viewport:{width:1565,height:960},locale:'ko-KR',deviceScaleFactor:1});
 const results=[],failures=[];
 async function check(name,condition,details=''){
