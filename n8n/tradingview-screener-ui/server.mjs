@@ -27,6 +27,16 @@ const server=http.createServer(async(req,res)=>{
   const route=new URL(req.url,'http://localhost').pathname;
   if(route==='/health')return json(res,200,{status:'ok',build:'tradingview-seven-screener-parity'});
   if(route==='/api/scan')return req.method==='POST'?scan(req,res):json(res,405,{error:'POST only'});
+  if(route==='/api/enum'){
+   const p=new URL(req.url,'http://localhost').searchParams.get('product');
+   if(!['stock','etf','bond','coin','cex','dex'].includes(p))return json(res,400,{error:'Unknown product'});
+   const label=p==='cex'?'crypto-cex':p==='dex'?'crypto-dex':p;
+   try{const upstream=await fetch('https://scanner.tradingview.com/enum/ordered?lang=ko&label-product=screener-'+label,{signal:AbortSignal.timeout(20000)});
+      res.writeHead(upstream.status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'public, max-age=600'});res.end(await upstream.text());
+   }catch(e){json(res,502,{error:'Public enum source unavailable'})}
+   return;
+  }
+
   if(req.method!=='GET'&&req.method!=='HEAD')return json(res,405,{error:'GET only'});
   let relative=decodeURIComponent(route).replace(/^\/+/,'');
   if(!relative||route.endsWith('/')||!path.extname(relative))relative='index.html';
