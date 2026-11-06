@@ -1,0 +1,64 @@
+name: TradingView 7 Screener UI Browser Parity
+on:
+  push:
+    branches:
+      - feature/tradingview-screener-ui-parity-20261106
+    paths:
+      - 'n8n/tradingview-screener-ui/**'
+      - '.github/workflows/tradingview-screener-ui-parity.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  playwright-parity:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: n8n/tradingview-screener-ui
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install React and browser test dependencies
+        run: npm install --no-audit --no-fund
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Retrieve original 2026-11-06 UI and complete Fetch/XHR evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p evidence public
+          gh run download 42182742603 --repo "${{ github.repository }}" --name tv-three-screeners-xhr-json --dir evidence
+          python3 scripts/prepare-reference.py --evidence evidence/requests_responses.json --out public/reference.json
+          ls -lh evidence/* public/reference.json | head -20
+      - name: Build UI
+        run: npm run build
+      - name: Start UI and check health
+        run: |
+          nohup npm run dev > /tmp/tv-ui-vite.log 2>&1 &
+          for i in $(seq 1 50); do
+            if curl -fsS http://127.0.0.1:4173/screener/ -o /dev/null; then
+              echo "UI_READY=true"
+              break
+            fi
+            sleep 1
+          done
+          curl -fIs http://127.0.0.1:4173/screener/
+      - name: Drive seven screeners, compare original vs implementation and test controls
+        run: npm test
+      - name: Preserve screenshots, differences, response sources and failures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tv-seven-screener-ui-parity-report
+          path: |
+            n8n/tradingview-screener-ui/artifacts/
+            n8n/tradingview-screener-ui/public/reference.json
+          retention-days: 14
+          if-no-files-found: warn
+      - name: Dump server diagnostics on failure
+        if: failure()
+        run: cat /tmp/tv-ui-vite.log
