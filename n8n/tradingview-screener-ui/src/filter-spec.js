@@ -1,7 +1,22 @@
 // Executable screener filter definitions. IDs are scanner field IDs, not translated labels.
 // Multiselect values come from TradingView's enum/ordered response. Never substitute display labels.
+// Each of these exact scanner IDs was checked against the real provider for
+// stock, ETF, coin, CEX, and DEX on 2026-11-06: HTTP 200 (9 fields x 5 markets).
+// Numeric threshold is supported; original multi-parameter dialogs are not claimed.
+export const TECHNICAL_FILTERS={
+ '상대강도지수':['RSI','number'],
+ '모멘텀':['Mom','number'],
+ '오썸 오실레이터':['AO','number'],
+ '커모디티 채널 인덱스':['CCI20','number'],
+ '스토캐스틱':['Stoch.K','number'],
+ '이동평균 수렴 발산':['MACD.macd','number'],
+ '평균방향성지수':['ADX','number'],
+ '평균 트루레인지':['ATR','number'],
+ '단순 이동 평균':['SMA50','number']
+};
 export const FILTER_DEFS={
  stock:{
+ ...TECHNICAL_FILTERS,
  '지수':['index','enum','index'],'가격':['close','number'],'체인지 %':['change','number'],
  '시가총액':['market_cap_basic','number'],'P/E':['price_earnings_ttm','number'],
  'EPS 희석 성장':['earnings_per_share_diluted_yoy_growth_ttm','number'],
@@ -14,6 +29,7 @@ export const FILTER_DEFS={
  '다가올 실적 발표날짜':['earnings_release_next_date','date']
  },
  etf:{
+ ...TECHNICAL_FILTERS,
  '자산 클래스':['asset_class','enum','asset_class'],'포커스':['focus','enum','focus'],
  '틈새 시장':['niche','enum','niche'],'홀딩스 지역':['holdings_region','enum','holdings_region'],
  '브랜드':['brand','enum','brand'],'퍼포먼스 %':['Perf.YTD','number'],
@@ -40,6 +56,7 @@ export const FILTER_DEFS={
  '소스':['exchange','enum','exchange']
  },
  coin:{
+ ...TECHNICAL_FILTERS,
  '랭크':['crypto_total_rank','number'],'시가총액':['market_cap_calc','number'],
  'FD 시가 총액':['fully_diluted_value','number'],'볼륨 / 시가총액':['24h_vol_to_market_cap','number'],
  '잔고 주소':['addresses_count','number'],'달러 표시 거래량':['24h_vol_cmc','number'],
@@ -48,12 +65,14 @@ export const FILTER_DEFS={
  '퍼포먼스 %':['Perf.1M','number'],'카테고리':['crypto_common_categories','enum','crypto_common_categories']
  },
  cex:{
+ ...TECHNICAL_FILTERS,
  '거래소':['exchange','enum','exchange'],'심볼 타입':['type','enum','type'],
  '베이스 통화':['base_currency','enum','currency_id'],'쿼트 커런시':['currency','enum','currency_id'],
  '체인지 %':['24h_close_change|5','number'],'퍼포먼스 %':['Perf.1M','number'],
  '달러 표시 거래량':['24h_vol|5','number'],'볼륨 변화 %':['24h_vol_change|5','number']
  },
  dex:{
+ ...TECHNICAL_FILTERS,
  '블록체인':['blockchain-id','enum','blockchain-id'],'거래소':['exchange','enum','exchange'],
  '체인지 %':['24h_close_change|5','number'],'거래':['dex_txs_count_24h','number'],
  '거래량':['dex_trading_volume_24h','number'],'유동성':['dex_total_liquidity','number'],

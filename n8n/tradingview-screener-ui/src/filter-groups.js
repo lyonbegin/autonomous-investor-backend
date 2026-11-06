@@ -2,11 +2,12 @@
 // public screener filter picker screenshots, 2026-11-06.
 // items only include filters whose scanner fields have been implemented locally.
 // These groups are a local navigation mapping, not a claim that all original items exist.
+const TECH_LABELS=['상대강도지수','모멘텀','오썸 오실레이터','커모디티 채널 인덱스','스토캐스틱','이동평균 수렴 발산','평균방향성지수','평균 트루레인지','단순 이동 평균'];
 export const FILTER_GROUPS={
  stock:[
  ['보안 정보',25,['지수','섹터','애널리스트 평점','최근 실적 발표날짜','다가올 실적 발표날짜']],
  ['마켓 데이터',40,['가격','체인지 %','시가총액','퍼포먼스 %','베타']],
- ['테크니컬즈',39,[]],
+ ['테크니컬즈',39,TECH_LABELS],
  ['파이낸셜',47,['EPS 희석 성장','매출 성장률','ROE']],
  ['평가',24,['P/E','PEG']],
  ['성장',9,['EPS 희석 성장','매출 성장률']],
@@ -15,7 +16,7 @@ export const FILTER_GROUPS={
  etf:[
  ['보안 정보',17,['자산 클래스','포커스','틈새 시장','홀딩스 지역','브랜드','운용 스타일','전략','레버리지 활용','UCITS 컴포넌트']],
  ['마켓 데이터',41,['AUM','퍼포먼스 %']],
- ['테크니컬즈',39,[]],
+ ['테크니컬즈',39,TECH_LABELS],
  ['분석',20,['NAV 총 수익률','지출 비율']],
  ['배당',4,['배당 혜택','배당 수익률 % (표시됨)','배당 빈도']]],
  bond:[
@@ -29,7 +30,7 @@ export const FILTER_GROUPS={
  coin:[
  ['코인 인포',7,['랭크','시가총액','카테고리']],
  ['마켓 데이터',15,['FD 시가 총액','볼륨 / 시가총액','달러 표시 거래량','거래량 (USD)','볼륨 변화 %','체인지 %','퍼포먼스 %']],
- ['테크니컬즈',35,[]],
+ ['테크니컬즈',35,TECH_LABELS],
  ['평가',7,['볼륨 / 시가총액','FD 시가 총액']],
  ['파생상품',7,[]],
  ['보유자',3,['잔고 주소']],
@@ -38,12 +39,12 @@ export const FILTER_GROUPS={
  cex:[
  ['보안 정보',4,['거래소','심볼 타입','베이스 통화','쿼트 커런시']],
  ['마켓 데이터',19,['체인지 %','퍼포먼스 %','달러 표시 거래량','볼륨 변화 %']],
- ['테크니컬즈',35,[]],
+ ['테크니컬즈',35,TECH_LABELS],
  ['평가',2,[]]],
  dex:[
  ['풀 정보',4,['블록체인','거래소']],
  ['마켓 데이터',16,['체인지 %','유동성','FDV','퍼포먼스 %']],
- ['테크니컬즈',35,[]],
+ ['테크니컬즈',35,TECH_LABELS],
  ['거래 활동',6,['거래','거래량','트레이더','고유 매수자','고유 매도자']]]
 };
 export function groupsFor(product){return (FILTER_GROUPS[product]||[]).map(([name,originalCount,labels])=>({name,originalCount,labels}));}

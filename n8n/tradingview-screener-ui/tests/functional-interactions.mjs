@@ -126,6 +126,18 @@ for(const s of SCENARIOS){
     assert('cex: 55k-option currency searchable and selected ID submitted',expr(curr.body.payload,'base_currency')?.right.includes(selectedCurrency),{id:selectedCurrency,HTTP:resultStatus(curr)});
     assert('cex: base-currency filter live HTTP 200',resultStatus(curr)===200,{HTTP:resultStatus(curr)});
   }
+  if(['stock','etf','coin','cex','dex'].includes(s.key)){
+    await page.locator('[data-qa-id="screener-add-new-filter"]').click();
+    await page.locator('[data-testid="filter-category-list"] button').filter({hasText:'테크니컬즈'}).click();
+    const candidates=page.locator('[data-testid="filter-candidate-list"] button');
+    assert(s.key+': technical filter category has actual executable options',(await candidates.count())>=9);
+    await candidates.filter({hasText:'상대강도지수'}).click();
+    const editor=page.locator('[data-testid="filter-editor"]');
+    await editor.locator('[aria-label="조건값"]').fill('50');
+    const scan=await nextScan(page,()=>editor.locator('[data-testid="filter-apply"]').click(),p=>(p.filter||[]).some(x=>x.left==='RSI'&&x.right===50));
+    assert(s.key+': RSI numeric predicate submitted',expr(scan.body.payload,'RSI')?.right===50,{condition:expr(scan.body.payload,'RSI')});
+    assert(s.key+': RSI backend HTTP 200',resultStatus(scan)===200,{HTTP:resultStatus(scan)});
+  }
   await page.screenshot({path:'artifacts/functional-'+s.key+'.png'});
   assert(s.key+': no browser exceptions',errors.length===0,{errors});
  }catch(e){assert(s.key+': scenario complete',false,{error:String(e).slice(0,500)});}
