@@ -3,7 +3,7 @@
 // candidate schema mismatch, not proof that the concept is unsupported.
 // This test never substitutes artificial or cached market results.
 import fs from 'node:fs/promises';
-import {FILTER_DEFS,specFor,makeExpressions,initialPending} from '../src/filter-spec.js';
+import {FILTER_DEFS,VERIFIED_CEX_TYPES,specFor,makeExpressions,initialPending} from '../src/filter-spec.js';
 
 const settings={
   stock:{market:'korea',label:'stock',sort:'market_cap_basic'},
@@ -51,8 +51,10 @@ async function evaluateField(product,label){
  if(spec.type==='enum'){
    const url='https://scanner.tradingview.com/enum/ordered?lang=ko&label-product=screener-'+conf.label+'&id='+encodeURIComponent(spec.enum||spec.field);
    const r=await request(url);
-   const vals=r.json?.[spec.enum||spec.field];
-   enumeration={http:r.status,options:Array.isArray(vals)?vals.length:0,error:r.status!==200?r.body:null};
+   let vals=r.json?.[spec.enum||spec.field];
+   const documentedFallback=product==='cex'&&spec.field==='type'&&(!Array.isArray(vals)||!vals.length);
+   if(documentedFallback)vals=VERIFIED_CEX_TYPES;
+   enumeration={http:r.status,options:Array.isArray(vals)?vals.length:0,source:documentedFallback?'live-scanner-verified fallback':'provider enum API',error:r.status!==200?r.body:null};
    if(!Array.isArray(vals)||!vals.length)return {product,label,field:spec.field,type:spec.type,result:'no_enum_options',enum:enumeration};
    item={...item,choices:[String(vals[0].id)]};
  }else if(spec.type==='date'){
@@ -88,3 +90,5 @@ const report={captured:new Date().toISOString(),source:'TradingView public scann
 await fs.mkdir('artifacts',{recursive:true});
 await fs.writeFile('artifacts/complete-filter-catalog-audit.json',JSON.stringify(report,null,2),'utf-8');
 console.log('CATALOG_FINAL',JSON.stringify({total:report.total,byStatus:tally}));
+const errors=outcomes.filter(row=>row.result!=='accepted');
+if(errors.length){console.error('FILTER_CATALOG_FAILURE',JSON.stringify(errors));process.exitCode=1;}

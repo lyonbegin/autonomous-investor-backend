@@ -2,7 +2,10 @@ name: Screener All Filters Provider Contract Audit
 on:
   push:
     branches: [feature/tradingview-screener-ui-parity-20261106]
-    paths: ['.github/workflows/screener-all-filters-contract.yml']
+    paths:
+      - '.github/workflows/screener-all-filters-contract.yml'
+      - 'n8n/tradingview-screener-ui/src/filter-spec.js'
+      - 'n8n/tradingview-screener-ui/tests/filter-catalog-audit.mjs'
   workflow_dispatch:
 permissions:
   contents: read
