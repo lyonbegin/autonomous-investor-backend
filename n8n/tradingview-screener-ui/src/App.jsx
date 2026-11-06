@@ -8,7 +8,7 @@ const MARKETS='america argentina australia austria bahrain bangladesh belgium bu
 const COUNTRY_NAMES={america:'미국',korea:'대한민국',japan:'일본',china:'중국',hongkong:'홍콩',india:'인도',canada:'캐나다',uk:'영국',germany:'독일',france:'프랑스',australia:'호주',taiwan:'대만',singapore:'싱가포르',brazil:'브라질',vietnam:'베트남',thailand:'태국',switzerland:'스위스',spain:'스페인',italy:'이탈리아',netherlands:'네덜란드',mexico:'멕시코',sweden:'스웨덴',turkey:'튀르키예',russia:'러시아',ksa:'사우디아라비아',uae:'아랍에미리트',rsa:'남아프리카',newzealand:'뉴질랜드'};
 const FLAG={america:'🇺🇸',korea:'🇰🇷',japan:'🇯🇵',china:'🇨🇳',hongkong:'🇭🇰',india:'🇮🇳',canada:'🇨🇦',uk:'🇬🇧',germany:'🇩🇪',france:'🇫🇷',australia:'🇦🇺',taiwan:'🇹🇼',brazil:'🇧🇷',singapore:'🇸🇬',vietnam:'🇻🇳'};
 const STOCK_PILLS=['왓치리스트','지수','가격','체인지 %','시가총액','P/E','EPS 희석 성장','배당 수익 %','섹터','애널리스트 평점','퍼포먼스 %','매출 성장률','PEG','ROE','베타','최근 실적 발표날짜','다가올 실적 발표날짜'];
-const ETF_PILLS=['왓치리스트','자산 클래스','포커스','틈새 시장','홀딩스 지역','브랜드','퍼포먼스 %','NAV 총 수익률','AUM','운용 스타일','전략','배당 혜택','배당 수익률 % (표시됨)','배당 빈도','레버리지 활용','지출 비율','UCITS 컴플리트'];
+const ETF_PILLS=['왓치리스트','자산 클래스','포커스','틈새 시장','홀딩스 지역','브랜드','퍼포먼스 %','NAV 총 수익률','AUM','운용 스타일','전략','배당 혜택','배당 수익률 % (표시됨)','배당 빈도','레버리지 활용','지출 비율','UCITS 컴포넌트'];
 const BOND_PILLS=['왓치리스트','발급자 유형','발행자','채권 최저 수익률 %','쿠폰 %','쿠폰 타입','쿠폰 빈도','머튜어리티 데이트','가격 %','미결제 금액','발행 통화','쿠폰 통화','소스'];
 const COL={
   'ticker-view':'심볼','crypto_total_rank':'랭크','24h_close_change|5':'체인지 % 24시','24h_vol|5':'달러 표시 거래량 24시','24h_vol_change|5':'볼륨 변화 % 24시','24h_vol_cmc':'달러 표시 거래량 24시','24h_vol_to_market_cap':'볼륨 / 시가총액','socialdominance':'소셜 점유 %','crypto_common_categories.tr':'카테고리','TechRating_1D.tr':'기술 등급','blockchain-id.tr':'블록체인','dex_txs_count_24h':'거래 24시','dex_trading_volume_24h':'거래량 24시','dex_txs_count_uniq_24h':'트레이더 24시','dex_total_liquidity':'유동성','fully_diluted_value':'FDV','close':'가격','change':'체인지 %','volume':'볼륨','relative_volume_10d_calc':'상대 볼륨','market_cap_basic':'시가총액','price_earnings_ttm':'P/E',
@@ -29,7 +29,7 @@ const COL={
   'weight_top_10':'상위 10 종목 비중','beta_1_year':'1년 베타','beta_3_year':'3년 베타'};
 const ENUM_FILTERS={
 stock:{'지수':'index','섹터':'sector','애널리스트 평점':'analyst_rating'},
-etf:{'자산 클래스':'asset_class','포커스':'focus','틈새 시장':'niche','홀딩스 지역':'holdings_region','브랜드':'brand','운용 스타일':'actively_managed','전략':'strategy','배당 혜택':'dividend_treatment','배당 빈도':'dividends_frequency','레버리지 활용':'leverage','UCITS 컴플리트':'ucits_compliant_flag'},
+etf:{'자산 클래스':'asset_class','포커스':'focus','틈새 시장':'niche','홀딩스 지역':'holdings_region','브랜드':'brand','운용 스타일':'actively_managed','전략':'strategy','배당 혜택':'dividend_treatment','배당 빈도':'dividends_frequency','레버리지 활용':'leverage','UCITS 컴포넌트':'ucits_compliant_flag'},
 bond:{'발급자 유형':'bond_issuer_type','발행자':'bond_issuer','쿠폰 타입':'coupon_type_current','쿠폰 빈도':'coupon_frequency','발행 통화':'fundamental_currency_code','쿠폰 통화':'coupon_currency','소스':'exchange'},
 coin:{'카테고리':'category'},cex:{'거래소':'exchange'},dex:{'거래소':'exchange','블록체인':'blockchain_id'}};
 const HIDDEN=new Set(['type','typespecs','pricescale','minmov','fractional','minmove2','currency','fundamental_currency_code','market','sector','AnalystRating','bond_snp_rating_lt','bond_fitch_rating_lt','bond_moodys_rating_lt','source-logoid','blockchain-id','TechRating_1D']);
@@ -194,7 +194,7 @@ function App(){
            {index===0&&product!=='bond'&&product!=='pine'?<span className="pill-divider"/>:null}
            <button data-pop draggable onDragStart={e=>e.dataTransfer.setData('text/plain',label)}
              onDragOver={e=>e.preventDefault()} onDrop={e=>{const from=e.dataTransfer.getData('text/plain');if(from!==label)changeState(()=>setFilterLabels(a=>{const b=a.filter(x=>x!==from);b.splice(b.indexOf(label),0,from);return b;}))}}
-             title={label} className={'filter-pill '+(pills[label]?'filter-applied':'')} data-testid={'filter-'+label}
+             title={label} className={'filter-pill '+(index===0&&label==='왓치리스트'?'watchlist-pill ':'')+(pills[label]?'filter-applied':'')} data-testid={'filter-'+label}
              onClick={()=>onFilterClick(label)}>{pills[label]?.choices?.length?label+': '+pills[label].choices.join(','):label}
               <ChevronDown size={13}/>{pills[label]&&<span className="active-dot"/>}
            </button>
