@@ -67,12 +67,14 @@ async def run_product(browser, product, label, url, expected):
                         and isinstance(parsed.get("data"),list) and parsed["data"]
                         and isinstance(parsed["data"][0],dict) else None,
                     "response_keys":list(parsed.keys())[:20] if isinstance(parsed,dict) else [],
+                    "response_json":parsed if isinstance(parsed,(dict,list)) else None,
                     "error":None if isinstance(parsed,(dict,list)) else "non_json_response"}
             except Exception as exc:
                 reply={"status":None,"error":type(exc).__name__+": "+str(exc)[:180]}
             row={"product":product,"market":market,"url":endpoint,"method":"POST",
                 "captured_at_utc":now,"range":[0,1],
-                "request_markets":[market],"request_columns":len(req.get("columns",[])),**reply}
+                "request_markets":[market],"request_columns":len(req.get("columns",[])),
+                "request_json":req,**reply}
             results.append(row)
             print(product,market,"HTTP",reply.get("status"),"total",reply.get("totalCount"),
                   "rows",reply.get("rows"),"error",reply.get("error"),flush=True)
