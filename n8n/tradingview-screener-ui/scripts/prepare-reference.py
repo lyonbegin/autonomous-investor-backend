@@ -14,7 +14,12 @@ out={'source':'GitHub Actions Playwright captured scanner request and response J
      'captured':datetime.datetime.now(datetime.timezone.utc).isoformat(), 'products':{}}
 for entry in data:
     page=pages.get(entry.get('page'))
-    if not page or '/scan?' not in entry.get('url','') or entry.get('status')!=200:continue
+    if not page or entry.get('status')!=200:continue
+    if '/enum/ordered' in entry.get('url',''):
+        enum=entry.get('response_json')
+        if isinstance(enum,dict):out['products'].setdefault(page,{'tabs':{}})['enum']=enum
+        continue
+    if '/scan?' not in entry.get('url',''):continue
     action=entry.get('action','')
     if action=='initial':index=0
     else:
