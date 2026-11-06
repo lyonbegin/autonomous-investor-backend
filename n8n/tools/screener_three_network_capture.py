@@ -24,7 +24,8 @@ OUT.mkdir(parents=True, exist_ok=True)
 HOSTS = {"scanner.tradingview.com", "kr.tradingview.com"}
 QUERY_KEYS = {"lang", "label-product", "screener_key", "source", "version"}
 DENY = re.compile(r"cookie|pass(word)?|csrf|token|secret|auth|session|user.?id|email|api.?key|account", re.I)
-MAX_BODY = 90000
+MAX_BODY = 1000000
+MAX_RESPONSE_BODY = 6000000
 MAX_EVENTS = 1500
 events, snapshots, actions, pages, errors, inflight = [], [], [], [], [], set()
 request_ids = {}
@@ -43,14 +44,14 @@ def safe_url(url):
     return p.scheme + "://" + p.netloc + p.path + (("?" + urlencode(params)) if params else "")
 
 def clean_payload(x, depth=0):
-    if depth > 8:
+    if depth > 30:
         return "[max-depth]"
     if isinstance(x, dict):
         return {str(k): clean_payload(v, depth+1) for k,v in x.items() if not DENY.search(str(k))}
     if isinstance(x, list):
-        return [clean_payload(v, depth+1) for v in x[:1000]]
+        return [clean_payload(v, depth+1) for v in x[:10000]]
     if isinstance(x, str):
-        return x[:500]
+        return x[:2000]
     if x is None or isinstance(x, (bool,int,float)):
         return x
     return str(type(x).__name__)
@@ -105,10 +106,13 @@ def request_hook(req):
             body = json.loads(req.post_data or "null")
             if len(json.dumps(body,ensure_ascii=False)) <= MAX_BODY:
                 event["request_json"] = clean_payload(body)
+                event["request_json_complete"] = True
             else:
                 event["request_error"] = "body_exceeds_safe_capture_limit"
+                event["request_json_complete"] = False
         except Exception as exc:
             event["request_error"] = "non_json_" + type(exc).__name__
+            event["request_json_complete"] = False
     events.append(event)
     request_ids[id(req)] = event
 
@@ -124,6 +128,19 @@ async def response_hook(resp):
     try:
         payload = await asyncio.wait_for(resp.json(), timeout=15)
         ev["response_structure"] = response_summary(payload)
+        # Public screener responses only: save complete sanitized response JSON if within cap.
+        # Offers, watchlists and any account-specific endpoints are never persisted.
+        path = urlsplit(ev["url"]).path
+        if urlsplit(ev["url"]).hostname == "scanner.tradingview.com" and (
+            path.endswith("/scan") or path.endswith("/metainfo") or path == "/enum/ordered"):
+            encoded = json.dumps(payload, ensure_ascii=False, separators=(",",":"))
+            ev["response_json_bytes"] = len(encoded.encode("utf-8"))
+            if len(encoded.encode("utf-8")) <= MAX_RESPONSE_BODY:
+                ev["response_json"] = clean_payload(payload)
+                ev["response_json_complete"] = True
+            else:
+                ev["response_json_complete"] = False
+                ev["response_json_omission_reason"] = "response_exceeds_6MB_limit"
     except Exception as exc:
         ev["response_error"] = type(exc).__name__
 
@@ -289,6 +306,7 @@ async def main():
                "actions":sum(a["page"]==name for a in actions),
                "successful_actions":sum(a["page"]==name and a["result"]=="ok" for a in actions),
                "response_structures":sum(e["page"]==name and "response_structure" in e for e in events),
+               "full_response_json":sum(e["page"]==name and e.get("response_json_complete") is True for e in events),
                "with_request_json":sum(e["page"]==name and "request_json" in e for e in events)
              } for name,_ in PAGES},
              "endpoints":dict(Counter(e["method"]+" "+e["url"] for e in events))}
