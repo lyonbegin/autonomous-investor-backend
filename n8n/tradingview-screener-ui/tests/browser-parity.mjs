@@ -57,7 +57,10 @@ try{
   const response=await page.goto(ROOT+route,{waitUntil:'domcontentloaded',timeout:30000});
   await page.waitForSelector('[data-testid="screener-app"]',{timeout:20000});
   if(key!=='pine'){await page.waitForFunction(()=>document.querySelector('[data-testid="screener-app"]').dataset.source!==''&&!document.querySelector('[data-testid="screener-app"]').querySelector('.spin'),null,{timeout:40000}).catch(()=>{});}
-  await page.waitForTimeout(250);
+  await page.waitForTimeout(550);
+  await page.waitForFunction(()=>[...document.querySelectorAll('.logo-host img')].slice(0,20).every(img=>img.complete),null,{timeout:3000}).catch(()=>{});
+  const logoLoad=await page.locator('.logo-host img').evaluateAll(imgs=>({count:imgs.length,loaded:imgs.filter(i=>i.complete&&i.naturalWidth>0).length,failed:imgs.filter(i=>i.complete&&!i.naturalWidth).length}));
+  await fs.writeFile(path.join(OUT,key+'_local_logo_status.json'),JSON.stringify(logoLoad,null,2));
   const title=await page.locator('.screen-name').innerText();
   const tabs=await page.locator('[role="tab"]').count();
   const filters=await page.locator('.filter-pill').count();
@@ -102,6 +105,7 @@ try{
   const visual=await screenshotComparison(appShot,referenceShot,key);
   results.push({kind:'page',key,route,title,tabs,filters,rows,source,response_status:response.status(),referenceType,refTabs,visual,exceptions});
   await check(key+': HTTP 200',response.status()===200);
+  if(key!=='pine')await check(key+': public symbol logos loaded',logoLoad.loaded>0,JSON.stringify(logoLoad));
   await check(key+': heading exists',title?.length>2);
   await check(key+': tabs = '+tabCount,tabs===tabCount);
   await check(key+': filters visible',key==='pine'?(await page.locator('.filter-pill:visible').count())===0:filters>=3);
