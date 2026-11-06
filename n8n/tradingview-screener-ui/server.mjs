@@ -27,38 +27,52 @@ async function scan(req,res){
 
 const chartCache=new Map();
 const chartWindows=Object.freeze({'1d':'5m','5d':'15m','1mo':'60m','3mo':'1d','6mo':'1d','ytd':'1d','1y':'1d','5y':'1wk','max':'1mo'});
-function resolveChartSymbol(tv){
-  const match=/^([A-Z0-9_-]{2,16}):([A-Z0-9][A-Z0-9.^-]{0,30})$/i.exec(tv);
-  if(!match)return null;
-  const venue=match[1].toUpperCase(),ticker=match[2].toUpperCase();
-  // Do not silently substitute price histories from a different pair/contract.
-  if(!new Set(['NASDAQ','NYSE','AMEX','ARCA','BATS','NYSEARCA','NYSEMKT','OTC','OTCMKTS']).has(venue))return null;
-  if(ticker.startsWith('^')||ticker.includes('..'))return null;
-  return ticker.replace(/\./g,'-');
+const US_CHART_VENUES=new Set(['NASDAQ','NYSE','AMEX','ARCA','BATS','NYSEARCA','NYSEMKT','OTC','OTCMKTS']);
+function resolveChartCandidates(tv){
+ const match=/^([A-Z0-9_-]{2,16}):([A-Z0-9][A-Z0-9.^-]{0,30})$/i.exec(tv);
+ if(!match)return [];
+ const venue=match[1].toUpperCase(),ticker=match[2].toUpperCase();
+ if(ticker.startsWith('^')||ticker.includes('..'))return [];
+ // TradingView uses KRX:6-digit for both Korean listing boards.
+ // Yahoo uses .KS (KOSPI) and .KQ (KOSDAQ). Try the SAME six-digit issuer only.
+ // Never borrow another symbol, exchange or historical data without verifying.
+ if(/^[0-9]{6}$/.test(ticker)){
+   if(venue==='KRX')return [ticker+'.KS',ticker+'.KQ'];
+   if(venue==='KOSPI')return [ticker+'.KS'];
+   if(venue==='KOSDAQ')return [ticker+'.KQ'];
+ }
+ if(US_CHART_VENUES.has(venue))return [ticker.replace(/\./g,'-')];
+ return [];
 }
 async function chart(req,res){
  const q=new URL(req.url,'http://localhost').searchParams;
  const symbol=String(q.get('symbol')||''),range=String(q.get('range')||'5d');
  if(!Object.hasOwn(chartWindows,range))return json(res,400,{error:'지원되지 않는 차트 기간입니다'});
- const providerSymbol=resolveChartSymbol(symbol);
- if(!providerSymbol)return json(res,422,{error:'이 시장/심볼은 검증된 시계열 공급원에 연결되지 않았습니다. 다른 종목 가격으로 대체하지 않습니다.',symbol});
- const key=providerSymbol+'|'+range,cached=chartCache.get(key);
+ const candidates=resolveChartCandidates(symbol);
+ if(!candidates.length)return json(res,422,{error:'이 시장/심볼은 검증된 시계열 공급원에 연결되지 않았습니다. 다른 종목 가격으로 대체하지 않습니다.',symbol});
+ const key=symbol+'|'+range,cached=chartCache.get(key);
  if(cached&&Date.now()-cached.at<60000)return json(res,200,cached.payload);
- const interval=chartWindows[range];
- const url='https://query1.finance.yahoo.com/v8/finance/chart/'+encodeURIComponent(providerSymbol)+'?range='+encodeURIComponent(range)+'&interval='+encodeURIComponent(interval)+'&events=false&includeAdjustedClose=false';
- try{
-  const response=await fetch(url,{headers:{Accept:'application/json','User-Agent':'Mozilla/5.0 (compatible; StockAutomationResearch/1.0)'},signal:AbortSignal.timeout(18000)});
-  if(!response.ok)return json(res,502,{error:'시계열 공급자가 HTTP '+response.status+'을 반환했습니다. 차트 데이터를 임의 생성하지 않습니다.',provider:'Yahoo Finance',symbol});
-  const body=await response.json(),entry=body?.chart?.result?.[0],quote=entry?.indicators?.quote?.[0],timestamps=entry?.timestamp;
-  if(!Array.isArray(timestamps)||!quote)return json(res,502,{error:'시계열 제공자의 OHLCV 응답이 유효하지 않습니다',provider:'Yahoo Finance',symbol});
-  const clean=n=>typeof n==='number'&&Number.isFinite(n)?n:null;
-  const bars=timestamps.map((t,i)=>({t:clean(t),o:clean(quote.open?.[i]),h:clean(quote.high?.[i]),l:clean(quote.low?.[i]),c:clean(quote.close?.[i]),v:clean(quote.volume?.[i])}))
-    .filter(b=>b.t!==null&&b.c!==null&&b.o!==null&&b.h!==null&&b.l!==null).sort((a,b)=>a.t-b.t);
-  if(!bars.length)return json(res,404,{error:'선택한 기간에 조회 가능한 실제 가격봉이 없습니다',provider:'Yahoo Finance',symbol});
-  const payload={symbol,resolvedSymbol:providerSymbol,provider:'Yahoo Finance (research)',interval,range,currency:entry.meta?.currency||null,timezone:entry.meta?.exchangeTimezoneName||'UTC',exchange:entry.meta?.exchangeName||null,delayed:true,retrievedAt:new Date().toISOString(),bars};
-  if(chartCache.size>150)chartCache.delete(chartCache.keys().next().value);
-  chartCache.set(key,{at:Date.now(),payload});return json(res,200,payload);
- }catch(err){return json(res,502,{error:'실제 시계열 공급원 연결 실패: '+String(err.message||err).slice(0,130),provider:'Yahoo Finance',symbol})}
+ const interval=chartWindows[range],attempts=[];
+ for(const providerSymbol of candidates){
+  const url='https://query1.finance.yahoo.com/v8/finance/chart/'+encodeURIComponent(providerSymbol)+'?range='+encodeURIComponent(range)+'&interval='+encodeURIComponent(interval)+'&events=false&includeAdjustedClose=false';
+  try{
+   const response=await fetch(url,{headers:{Accept:'application/json','User-Agent':'Mozilla/5.0 (compatible; StockAutomationResearch/1.0)'},signal:AbortSignal.timeout(18000)});
+   if(!response.ok){attempts.push({symbol:providerSymbol,http:response.status});continue}
+   const body=await response.json(),entry=body?.chart?.result?.[0],quote=entry?.indicators?.quote?.[0],timestamps=entry?.timestamp;
+   if(!Array.isArray(timestamps)||!quote){attempts.push({symbol:providerSymbol,error:'No quote arrays'});continue}
+   const clean=n=>typeof n==='number'&&Number.isFinite(n)?n:null;
+   const bars=timestamps.map((t,i)=>({t:clean(t),o:clean(quote.open?.[i]),h:clean(quote.high?.[i]),l:clean(quote.low?.[i]),c:clean(quote.close?.[i]),v:clean(quote.volume?.[i])}))
+      .filter(b=>b.t!==null&&b.c!==null&&b.o!==null&&b.h!==null&&b.l!==null)
+      .sort((a,b)=>a.t-b.t).filter((b,i,all)=>i===0||b.t!==all[i-1].t);
+   if(!bars.length){attempts.push({symbol:providerSymbol,error:'No OHLCV bars'});continue}
+   const korean=/^(KRX|KOSPI|KOSDAQ):/.test(symbol);
+   if(korean&&entry.meta?.currency!=='KRW'){attempts.push({symbol:providerSymbol,error:'Currency mismatch'});continue}
+   const payload={symbol,resolvedSymbol:providerSymbol,provider:'Yahoo Finance (research)',interval,range,currency:entry.meta?.currency||null,timezone:entry.meta?.exchangeTimezoneName||'UTC',exchange:entry.meta?.exchangeName||null,delayed:true,retrievedAt:new Date().toISOString(),bars};
+   if(chartCache.size>150)chartCache.delete(chartCache.keys().next().value);
+   chartCache.set(key,{at:Date.now(),payload});return json(res,200,payload);
+  }catch(err){attempts.push({symbol:providerSymbol,error:String(err.message||err).slice(0,110)})}
+ }
+ return json(res,502,{error:'해당 종목의 실제 가격봉을 확보하지 못했습니다. 다른 종목으로 대체하지 않습니다.',symbol,interval,attempts});
 }
 
 const server=http.createServer(async(req,res)=>{
