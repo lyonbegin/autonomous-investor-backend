@@ -27,6 +27,11 @@ const COL={
   'coupon_frequency.tr':'쿠폰 빈도','coupon_type_current.tr':'쿠폰 타입',
   'nav':'NAV','nav_discount_premium':'NAV 프리미엄','fund_flows.1M':'1달 자금 흐름','fund_flows.3M':'3달 자금 흐름','fund_flows.1Y':'1년 자금 흐름',
   'weight_top_10':'상위 10 종목 비중','beta_1_year':'1년 베타','beta_3_year':'3년 베타'};
+const ENUM_FILTERS={
+stock:{'지수':'index','섹터':'sector','애널리스트 평점':'analyst_rating'},
+etf:{'자산 클래스':'asset_class','포커스':'focus','틈새 시장':'niche','홀딩스 지역':'holdings_region','브랜드':'brand','운용 스타일':'actively_managed','전략':'strategy','배당 혜택':'dividend_treatment','배당 빈도':'dividends_frequency','레버리지 활용':'leverage','UCITS 컴플리트':'ucits_compliant_flag'},
+bond:{'발급자 유형':'bond_issuer_type','발행자':'bond_issuer','쿠폰 타입':'coupon_type_current','쿠폰 빈도':'coupon_frequency','발행 통화':'fundamental_currency_code','쿠폰 통화':'coupon_currency','소스':'exchange'},
+coin:{'카테고리':'category'},cex:{'거래소':'exchange'},dex:{'거래소':'exchange','블록체인':'blockchain_id'}};
 const HIDDEN=new Set(['type','typespecs','pricescale','minmov','fractional','minmove2','currency','fundamental_currency_code','market','sector','AnalystRating','bond_snp_rating_lt','bond_fitch_rating_lt','bond_moodys_rating_lt','source-logoid','blockchain-id','TechRating_1D']);
 const CONFIG={
 stock:{name:'스탁 스크리너',title:'올 스탁',kind:'stock',market:'korea',url:'/screener/',tabs:'오버뷰 성과 테크니컬즈 확장_시간 전망 평가 배당 수익성 손익_계산서 대차_대조표 현금_흐름 주당'.split(' ').map(x=>x.replaceAll('_',' ')),pills:STOCK_PILLS,sort:'market_cap_basic',cols:['ticker-view','close','change','volume','relative_volume_10d_calc','market_cap_basic','price_earnings_ttm','earnings_per_share_diluted_ttm','earnings_per_share_diluted_yoy_growth_ttm','dividends_yield_current','sector.tr','AnalystRating.tr']},
@@ -49,7 +54,7 @@ function formatValue(v,key,currency,locale='ko'){if(v===undefined||v===null||v==
 function colname(key,product){if(key==='exchange.tr'&&product==='bond')return '소스';return COL[key]||key.replaceAll('.tr','').replaceAll('_',' ');}
 function pillField(label,kind){const stock={'가격':'close','체인지 %':'change','시가총액':'market_cap_basic','P/E':'price_earnings_ttm','EPS 희석 성장':'earnings_per_share_diluted_yoy_growth_ttm','배당 수익 %':'dividends_yield_current','ROE':'return_on_equity_fq','베타':'beta_1_year','퍼포먼스 %':'Perf.1M'};
 const etf={'AUM':'aum','지출 비율':'expense_ratio','NAV 총 수익률':'nav_total_return.3Y','배당 수익률 % (표시됨)':'dividends_yield','퍼포먼스 %':'Perf.1M'};
-const bond={'채권 최저 수익률 %':'yield_to_worst','쿠폰 %':'current_coupon','가격 %':'close_pct','미결제 금액':'outstanding_amount','발급자 유형':'bond_issuer_type','발행자':'bond_issuer','쿠폰 타입':'coupon_type_current','쿠폰 빈도':'coupon_frequency','발행 통화':'fundamental_currency_code','쿠폰 통화':'coupon_currency','소스':'source'};
+const bond={'채권 최저 수익률 %':'yield_to_worst','쿠폰 %':'current_coupon','가격 %':'close_pct','미결제 금액':'outstanding_amount','발급자 유형':'bond_issuer_type','발행자':'bond_issuer','쿠폰 타입':'coupon_type_current','쿠폰 빈도':'coupon_frequency','발행 통화':'fundamental_currency_code','쿠폰 통화':'coupon_currency','소스':'exchange'};
 return (kind==='stock'?stock:kind==='etf'?etf:bond)[label]||null;}
 function basePayload(product,market,columns,sortField,pageIndex=0,pageSize=100){
  const props={columns,ignore_unknown_fields:false,options:{lang:'ko'},range:[pageIndex*pageSize,(pageIndex+1)*pageSize],sort:{sortBy:sortField,sortOrder:product==='coin'?'asc':'desc'},markets:[market]};
@@ -76,7 +81,7 @@ function App(){
  [marketQuery,setMarketQuery]=useState(''),[filterQuery,setFilterQuery]=useState(''),[pending,setPending]=useState({min:'',max:'',choices:[]}),
  [page,setPage]=useState(0),[pageSize,setPageSize]=useState(100),[data,setData]=useState(null),
  [source,setSource]=useState(''),[loading,setLoading]=useState(false),[error,setError]=useState(''),
- [refData,setRefData]=useState(null),[customCols,setCustomCols]=useState(null),
+ [refData,setRefData]=useState(null),[enumData,setEnumData]=useState({}),[customCols,setCustomCols]=useState(null),
  [sort,setSort]=useState({by:cfg.sort,dir:product==='coin'?'asc':'desc'}),[settings,setSettings]=useState({compact:false,showLogos:true,hideEmpty:false,freezeTicker:true,showRestrictedColumns:false}),
  [undo,setUndo]=useState([]),[redo,setRedo]=useState([]),[showAllFilters,setShowAllFilters]=useState(false),
  [saved,setSaved]=useState([]),[fullscreen,setFullscreen]=useState(false),[selectedRows,setSelectedRows]=useState([]),
@@ -99,6 +104,13 @@ function App(){
  function redoAction(){if(!redo.length)return;setUndo(v=>[...v,snapshot()]);applySnapshot(redo.at(-1));setRedo(v=>v.slice(0,-1));}
  function switchProduct(id){if(!CONFIG[id])return;setProduct(id);history.pushState(null,'',CONFIG[id].url);setMarket(CONFIG[id].market);setTab(0);setFilterLabels(CONFIG[id].pills);setPills({});setPopup('');setSort({by:CONFIG[id].sort,dir:id==='coin'?'asc':'desc'});setCustomCols(null);setPage(0);setError('');setData(null);setSource('');setSearch('');setUndo([]);setRedo([]);}
  useEffect(()=>{const back=()=>switchProduct(getProduct());window.addEventListener('popstate',back);return()=>window.removeEventListener('popstate',back)},[]);
+ useEffect(()=>{if(product==='pine'||enumData[product])return;let active=true;
+  fetch('/api/enum?product='+product).then(r=>r.ok?r.json():null).then(j=>{if(active&&j&&typeof j==='object'&&!j.error)setEnumData(v=>({...v,[product]:j}))}).catch(()=>{});
+  return()=>{active=false};
+ },[product]);
+ const orderedEnums=enumData[product]||refData?.products?.[product]?.enum||{};
+ const enumCategory=popup.startsWith('filter:')?(ENUM_FILTERS[product]?.[popup.slice(7)]||null):null;
+ const enumOptions=enumCategory&&Array.isArray(orderedEnums[enumCategory])?orderedEnums[enumCategory]:[];
  const fixture=refData?.products?.[product]?.tabs?.[String(tab)]||refData?.products?.[product]?.tabs?.['0'];
  const currentCols=useMemo(()=>customCols||fixture?.columns||cfg.cols,[customCols,fixture,cfg.cols]);
  const defaultRequest=refData?.products?.[product]?.tabs?.['0']?.request;
@@ -258,9 +270,9 @@ function App(){
      {popup==='add-filter'&&<><input className="popup-search" autoFocus placeholder="필터 찾기" value={filterQuery} onChange={e=>setFilterQuery(e.target.value)}/><div className="option-list long-list">{availableAdd.filter(x=>x.toLowerCase().includes(filterQuery.toLowerCase())).map(label=><button key={label} onClick={()=>{changeState(()=>setFilterLabels(v=>[...v,label]));setPopup('');}}><Plus size={15}/>{label}</button>)}</div></>}
      {popup.startsWith('filter:')&&<div className="filter-edit"><div className="filter-field-name">{pillField(popup.slice(7),product)||popup.slice(7)}</div>
        {popup.slice(7)==='왓치리스트'?<div className="filter-note">왓치리스트에 등록된 종목을 관리합니다. 서버에서 사용자 로그인 목록은 제공되지 않습니다.</div>:
-       ['섹터','자산 클래스','발급자 유형','발행자','쿠폰 타입','쿠폰 빈도','발행 통화','쿠폰 통화','소스','포커스','애널리스트 평점','브랜드','홀딩스 지역'].includes(popup.slice(7))?
+       Boolean(ENUM_FILTERS[product]?.[popup.slice(7)])?
        <><input className="popup-search" placeholder="값 검색" value={filterQuery} onChange={e=>setFilterQuery(e.target.value)}/>
-       <div className="option-list filter-values">{(popup.includes('섹터')?['전자 기술','금융','의료 기술','소비자 내구재','생산자 제조','산업 서비스']:popup.includes('발급자')?['기업','에이전시','소브린','수프라내셔널']:popup.includes('자산 클래스')?['주식','채권','상품','통화','대체']:popup.includes('평점')?['강력 매수','매수','중립','매도','강력 매도']:popup.includes('통화')?['USD','EUR','KRW','JPY','CNY']:['전체','고정','변동','기타']).filter(x=>x.includes(filterQuery)).map(opt=><label key={opt}><input type="checkbox" checked={(pending.choices||[]).includes(opt)} onChange={e=>setPending(v=>({...v,type:'choices',choices:e.target.checked?[...(v.choices||[]),opt]:(v.choices||[]).filter(x=>x!==opt)}))}/>{opt}</label>)}</div></>:
+       <div className="option-list filter-values">{(enumOptions.length?enumOptions:[]).filter(x=>String(x.name||x.id).toLowerCase().includes(filterQuery.toLowerCase())||String(x.id).toLowerCase().includes(filterQuery.toLowerCase())).slice(0,120).map(opt=><label key={opt.id}><input type="checkbox" checked={(pending.choices||[]).includes(opt.id)} onChange={e=>setPending(v=>({...v,type:'choices',choices:e.target.checked?[...(v.choices||[]),opt.id]:(v.choices||[]).filter(x=>x!==opt.id)}))}/><span>{opt.name||opt.id}<small style={{color:'#9398a0',fontSize:11,marginLeft:6}}>{opt.id}</small></span></label>)}{!enumOptions.length&&<div className="filter-note">원본 필터 값 조회 중 또는 선택지 없음. 숫자 범위 필터를 사용하세요.</div>}</div></>:
        <><div className="range-label">수치 범위</div><div className="range-inputs"><input type="number" placeholder="최소값" value={pending.min||''} onChange={e=>setPending(v=>({...v,min:e.target.value,type:'range'}))}/><span>—</span><input type="number" placeholder="최대값" value={pending.max||''} onChange={e=>setPending(v=>({...v,max:e.target.value,type:'range'}))}/></div></>}
        <div className="filter-edit-actions"><button onClick={()=>{changeState(()=>setPills(v=>{const n={...v};delete n[popup.slice(7)];return n}));setPopup('')}}>리셋</button><button className="apply-btn" onClick={()=>applyFilter(popup.slice(7),pending)}>적용</button></div>
      </div>}
