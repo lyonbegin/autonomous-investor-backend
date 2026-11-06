@@ -67,6 +67,8 @@ jobs:
         run: node tests/functional-interactions.mjs
       - name: Browser chart view interactions (fixture-only display contract)
         run: node tests/chart-interactions.mjs
+      - name: Check live chart provider OHLCV (not a fixture)
+        run: node tests/chart-provider-live.mjs
       - name: Capture original live crypto, CEX and DEX tab payloads for functional parity
         if: always()
         run: node tests/original-tab-capture.mjs
