@@ -25,7 +25,7 @@ HOSTS = {"scanner.tradingview.com", "kr.tradingview.com"}
 QUERY_KEYS = {"lang", "label-product", "screener_key", "source", "version"}
 DENY = re.compile(r"cookie|pass(word)?|csrf|token|secret|auth|session|user.?id|email|api.?key|account", re.I)
 MAX_BODY = 1000000
-MAX_RESPONSE_BODY = 6000000
+MAX_RESPONSE_BODY = 15000000
 MAX_EVENTS = 1500
 events, snapshots, actions, pages, errors, inflight = [], [], [], [], [], set()
 request_ids = {}
@@ -49,9 +49,9 @@ def clean_payload(x, depth=0):
     if isinstance(x, dict):
         return {str(k): clean_payload(v, depth+1) for k,v in x.items() if not DENY.search(str(k))}
     if isinstance(x, list):
-        return [clean_payload(v, depth+1) for v in x[:10000]]
+        return [clean_payload(v, depth+1) for v in x]
     if isinstance(x, str):
-        return x[:2000]
+        return x
     if x is None or isinstance(x, (bool,int,float)):
         return x
     return str(type(x).__name__)
@@ -140,7 +140,7 @@ async def response_hook(resp):
                 ev["response_json_complete"] = True
             else:
                 ev["response_json_complete"] = False
-                ev["response_json_omission_reason"] = "response_exceeds_6MB_limit"
+                ev["response_json_omission_reason"] = "response_exceeds_15MB_limit"
     except Exception as exc:
         ev["response_error"] = type(exc).__name__
 
