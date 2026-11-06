@@ -2,6 +2,7 @@ import React,{useEffect,useMemo,useState} from 'react';
 import {createPortal} from 'react-dom';
 import {Activity,BarChart3,ChevronDown,LayoutGrid} from 'lucide-react';
 import './market-views.css';
+import LightweightPriceChart from './lightweight-price-chart.jsx';
 
 const PERIODS=[['1D','1d'],['5D','5d'],['1M','1mo'],['3M','3mo'],['6M','6mo'],['YTD','ytd'],['1Y','1y'],['5Y','5y'],['All','max']];
 const format=(n,d=2)=>Number.isFinite(n)?n.toLocaleString('en-US',{maximumFractionDigits:d,minimumFractionDigits:d}):'—';
@@ -51,22 +52,7 @@ function PointChart({row,period,type,scale,volume,refresh}){
    error?<div className="stock-chart-status chart-error" role="alert">차트 데이터 없음<br/><small>{error}</small></div>:
    !series?<div className="stock-chart-status" role="alert">유효한 시계열 데이터가 없습니다.</div>:
   <>
-   <div className="stock-chart-plot">
-    <svg data-testid="chart-svg" viewBox="0 0 650 252" preserveAspectRatio="none" role="img" aria-label={symbol+' '+period+' 실제 가격 및 거래량 차트'} onMouseLeave={()=>setHover(null)} onMouseMove={e=>{
-      const bounds=e.currentTarget.getBoundingClientRect();const fraction=Math.min(1,Math.max(0,(e.clientX-bounds.left)/bounds.width));setHover(Math.min(series.valid.length-1,Math.max(0,Math.round(fraction*(series.valid.length-1)))));
-    }}>
-     <defs><linearGradient id={'fill'+symbol.replace(/[^a-zA-Z0-9]/g,'')} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={falling?'#f23645':'#089981'} stopOpacity=".26"/><stop offset="100%" stopColor={falling?'#f23645':'#089981'} stopOpacity=".012"/></linearGradient></defs>
-     {[40,92,144,196].map(v=><line key={v} x1="0" x2="600" y1={v} y2={v} stroke="#f3f4f6" strokeWidth=".6"/>)}
-     {volume&&series.valid.map((b,i)=>b.v>0?<rect key={i} x={series.x(i)-Math.max(1,Math.min(2.7,290/series.valid.length))/2} width={Math.max(1,Math.min(2.7,290/series.valid.length))} y={244-b.v/series.maxVolume*30} height={b.v/series.maxVolume*30} fill={i>0&&b.c<series.valid[i-1].c?'#f796a0':'#7bd1c2'}/>:null)}
-     {type==='Candles'?series.valid.map((b,i)=>{const up=b.c>=b.o,xx=series.x(i),top=series.y(Math.max(b.o,b.c)),bottom=series.y(Math.min(b.o,b.c));return <g key={i} stroke={up?'#089981':'#f23645'} fill={up?'#089981':'#f23645'}><line x1={xx} y1={series.y(b.h)} x2={xx} y2={series.y(b.l)} strokeWidth="1"/><rect x={xx-1.35} y={top} width="2.7" height={Math.max(1,bottom-top)} strokeWidth=".5"/></g>;}):<>
-      {type==='Area'&&<path d={series.area} fill={'url(#fill'+symbol.replace(/[^a-zA-Z0-9]/g,'')+')'}/>}
-      <path d={series.line} fill="none" stroke={falling?'#f23645':'#089981'} strokeWidth="2.15" strokeLinejoin="round" strokeLinecap="round"/>
-     </>}
-     {hover!==null&&<line x1={series.x(hover)} x2={series.x(hover)} y1="0" y2="246" stroke="#9da2aa" strokeDasharray="3 3" strokeWidth=".8"/>}
-     {[0,.25,.5,.75,1].map(frac=>{const v=series.bottom+(series.top-series.bottom)*frac;const lab=scale==='Log'?Math.exp(v):v;return <text key={frac} x="610" y={Math.round(200-frac*189)} fontSize="11" fill="#5e6672">{scale==='Percent'?format(lab,1)+'%':format(lab,2)}</text>})}
-    </svg>
-    {picked&&<div className={'chart-last-price '+(falling?'down':'up')}>{scale==='Percent'?format((picked.c/series.baseline-1)*100,2)+'%':format(picked.c,2)}</div>}
-   </div>
+   <div className="stock-chart-plot"><LightweightPriceChart bars={series.valid} type={type} scale={scale} volume={volume} period={period}/></div>
    <div className="stock-chart-dates"><span>{new Date(series.valid[0].t*1000).toLocaleDateString('ko-KR',{timeZone:result.timezone,month:'numeric',day:'numeric'})}</span><span>{selectedDate}</span><span>{new Date(last.t*1000).toLocaleDateString('ko-KR',{timeZone:result.timezone,month:'numeric',day:'numeric'})}</span></div>
    <div className="chart-data-source" title={'종목 '+symbol+' → '+result.resolvedSymbol+' · 제공자 '+result.provider+' · 데이터 지연 및 사용권 확인 필요'}>{result.provider} · {result.resolvedSymbol} · {series.valid.length}봉 · {result.interval}{result.delayed?' · 지연 가능':''}</div>
   </>}
