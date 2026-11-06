@@ -7,6 +7,7 @@ import {FILTER_DEFS,NUMBER_OPERATORS,ENUM_OPERATORS,PERIOD_CHOICES,VERIFIED_CEX_
 import {CRYPTO_TAB_COLS} from './crypto-tab-presets.js';
 import {getPresets} from './filter-presets.js';
 import {groupsFor} from './filter-groups.js';
+import MarketViews from './market-views.jsx';
 
 const MARKETS='america argentina australia austria bahrain bangladesh belgium bulgaria brazil canada chile china colombia croatia cyprus czech denmark egypt estonia finland france germany greece hongkong hungary iceland india indonesia ireland israel italy japan kenya kuwait latvia lithuania luxembourg malaysia mexico morocco netherlands newzealand nigeria norway pakistan peru philippines poland portugal qatar romania russia ksa serbia singapore slovakia slovenia rsa korea spain srilanka sweden switzerland taiwan thailand tunisia turkey uae uk venezuela vietnam'.split(' ');
 const COUNTRY_NAMES={america:'미국',korea:'대한민국',japan:'일본',china:'중국',hongkong:'홍콩',india:'인도',canada:'캐나다',uk:'영국',germany:'독일',france:'프랑스',australia:'호주',taiwan:'대만',singapore:'싱가포르',brazil:'브라질',vietnam:'베트남',thailand:'태국',switzerland:'스위스',spain:'스페인',italy:'이탈리아',netherlands:'네덜란드',mexico:'멕시코',sweden:'스웨덴',turkey:'튀르키예',russia:'러시아',ksa:'사우디아라비아',uae:'아랍에미리트',rsa:'남아프리카',newzealand:'뉴질랜드'};
@@ -86,7 +87,7 @@ function BadgeLogo({name,code,logo,logoid}){const [failed,setFailed]=useState(fa
 function IconButton({title,children,onClick,disabled=false,qa}){return <button type="button" title={title} aria-label={title} data-qa-id={qa} className="icon-btn" disabled={disabled} onClick={onClick}>{children}</button>;}
 function getFlag(m){return FLAG[m]||'🌐';}
 function App(){
- const [product,setProduct]=useState(getProduct),cfg=CONFIG[product];
+ const [product,setProduct]=useState(getProduct),[view,setView]=useState('table'),cfg=CONFIG[product];
  const [market,setMarket]=useState(cfg.market),[tab,setTab]=useState(0),[filterLabels,setFilterLabels]=useState(cfg.pills);
  const [pills,setPills]=useState({}),[popup,setPopup]=useState(''),[search,setSearch]=useState(''),
  [marketQuery,setMarketQuery]=useState(''),[filterQuery,setFilterQuery]=useState(''),[pending,setPending]=useState({min:'',max:'',choices:[]}),
@@ -109,12 +110,12 @@ function App(){
   if(e.shiftKey&&e.key.toLowerCase()==='m'){e.preventDefault();setFullscreen(v=>!v);}
   if(e.key==='Escape')setPopup('');
  };window.addEventListener('keydown',handle);return()=>window.removeEventListener('keydown',handle)},[undo,redo,market,filterLabels,pills,tab,sort]);
- function snapshot(){return {market,filterLabels:[...filterLabels],pills:{...pills},tab,sort:{...sort},customCols:customCols?[...customCols]:null};}
+ function snapshot(){return {view,market,filterLabels:[...filterLabels],pills:{...pills},tab,sort:{...sort},customCols:customCols?[...customCols]:null};}
  function changeState(fn){setUndo(v=>[...v.slice(-19),snapshot()]);setRedo([]);fn();}
- function applySnapshot(s){setMarket(s.market);setFilterLabels(s.filterLabels);setPills(s.pills);setTab(s.tab);setSort(s.sort);setCustomCols(s.customCols);setPage(0);setRefresh(v=>v+1);}
+ function applySnapshot(s){setView(s.view||'table');setMarket(s.market);setFilterLabels(s.filterLabels);setPills(s.pills);setTab(s.tab);setSort(s.sort);setCustomCols(s.customCols);setPage(0);setRefresh(v=>v+1);}
  function undoAction(){if(!undo.length)return;setRedo(v=>[...v,snapshot()]);applySnapshot(undo.at(-1));setUndo(v=>v.slice(0,-1));}
  function redoAction(){if(!redo.length)return;setUndo(v=>[...v,snapshot()]);applySnapshot(redo.at(-1));setRedo(v=>v.slice(0,-1));}
- function switchProduct(id){if(!CONFIG[id])return;setProduct(id);history.pushState(null,'',CONFIG[id].url);setMarket(CONFIG[id].market);setTab(0);setFilterLabels(CONFIG[id].pills);setPills({});setPopup('');setSort({by:CONFIG[id].sort,dir:id==='coin'?'asc':'desc'});setCustomCols(null);setPage(0);setError('');setData(null);setSource('');setSearch('');setUndo([]);setRedo([]);}
+ function switchProduct(id){if(!CONFIG[id])return;setView('table');setProduct(id);history.pushState(null,'',CONFIG[id].url);setMarket(CONFIG[id].market);setTab(0);setFilterLabels(CONFIG[id].pills);setPills({});setPopup('');setSort({by:CONFIG[id].sort,dir:id==='coin'?'asc':'desc'});setCustomCols(null);setPage(0);setError('');setData(null);setSource('');setSearch('');setUndo([]);setRedo([]);}
  useEffect(()=>{const back=()=>switchProduct(getProduct());window.addEventListener('popstate',back);return()=>window.removeEventListener('popstate',back)},[]);
  useEffect(()=>{
    if(!popup.startsWith('filter:')||product==='pine')return;
@@ -220,11 +221,11 @@ function App(){
        </div>
      </section>
      <section className="tabs-panel">
-       {product!=='bond'&&product!=='pine'&&<button className="view-switch" data-pop onClick={()=>setPopup('view')}><Table2 size={20}/>테이블<ChevronDown size={14}/></button>}
-       <div className="tab-list" role="tablist" aria-label="컬럼 프리셋">
+       {product!=='bond'&&product!=='pine'&&<button className="view-switch" data-pop data-testid="view-switch" onClick={()=>setPopup('view')}>{view==='charts'?<Grid2X2 size={20}/>:view==='heatmap'?<Grid2X2 size={20}/>:<Table2 size={20}/>} {view==='charts'?'Charts':view==='heatmap'?'Heatmap':'테이블'}<ChevronDown size={14}/></button>}
+       {view==='table'?<div className="tab-list" role="tablist" aria-label="컬럼 프리셋">
          {cfg.tabs.map((t,i)=><button key={t} className={'tab-btn '+(tab===i?'selected':'')} role="tab" aria-selected={tab===i} data-testid={'tab-'+i} onClick={()=>{changeState(()=>{setTab(i);setCustomCols(null)});setPage(0)}}>{t}</button>)}
          {cfg.tabs.length>9&&<button className="tab-more" data-pop onClick={()=>setPopup('more-tabs')}>더보기 <ChevronDown size={13}/></button>}
-       </div>
+       </div>:<div id="chart-toolbar-target" className="chart-toolbar-target"/>}
        <div className="tab-tools">
          <IconButton title="리프레쉬" qa="screener-refresh-button" onClick={()=>setRefresh(x=>x+1)}><RotateCw size={18} className={loading?'spin':''}/></IconButton>
          <IconButton title={fullscreen?'전체화면 종료':'최대화'} qa="screener-enter-fullscreen" onClick={()=>setFullscreen(x=>!x)}>{fullscreen?<Minimize2 size={18}/>:<Maximize2 size={18}/>}</IconButton>
@@ -233,7 +234,7 @@ function App(){
      </section>
      {product==='pine'&&<><div className="pine-banner">파인 스크리너 <span>BETA</span></div><div className="pine-empty"><div className="pine-art"><span>◇</span><span>△</span></div><div className="pine-title">로그인하여 Pine Screener를 사용하세요</div><p>지표별로 왓치리스트를 스캔하고 커스텀 설정을 적용하세요. 주식, 암호화폐, 외환 등 거래<br/>하는 모든 자산에 적용됩니다.</p><button className="pine-login" onClick={()=>setPopup('account')}>로그인</button></div></>}
      {product!=='pine'&&<>
-       <section className="table-viewport" ref={tableRef} data-testid="screener-table-viewport">
+       {view==='table'?<><section className="table-viewport" ref={tableRef} data-testid="screener-table-viewport">
          <table className="screener-table" data-testid="screener-table">
            <thead><tr>
              {visibleCols.map((column,i)=><th key={column} className={(i===0&&settings.freezeTicker?'sticky-col ':'')+(column==='ticker-view'?'symbol-head ':'')+(!['ticker-view','isin-displayed'].includes(column)?'align-right':'')} onClick={()=>onColumnSort(column)} title={colname(column)} data-field={column} draggable
@@ -281,7 +282,7 @@ function App(){
          <button onClick={()=>setPage(v=>Math.max(0,v-1))} disabled={page===0}>〈</button>
          <span>{page+1}</span><button onClick={()=>setPage(v=>v+1)} disabled={(page+1)*pageSize>=(data?.totalCount||0)}>〉</button>
          <select aria-label="페이지당 행 수" value={pageSize} onChange={e=>{setPageSize(Number(e.target.value));setPage(0)}}><option value="50">50</option><option value="100">100</option><option value="200">200</option></select>
-       </footer>
+       </footer></>:<MarketViews view={view} rows={normalizedRows} product={product}/>}
      </>}
    </main>
    {popup&&<div className={'popover popover-'+popup.split(':')[0]} style={popup.startsWith('filter:')&&popupAnchor?popupAnchor:{}} ref={popoverRef} data-testid="active-popover">
@@ -289,7 +290,7 @@ function App(){
      {popup==='products'&&<div className="option-list">{Object.entries(CONFIG).map(([id,v])=><button key={id} onClick={()=>switchProduct(id)}><span>{v.name}</span>{id===product&&<Check size={16}/>}</button>)}</div>}
      {popup==='market'&&<><input autoFocus className="popup-search" placeholder="국가 및 시장 찾기" value={marketQuery} onChange={e=>setMarketQuery(e.target.value)}/><div className="option-list long-list">{MARKETS.filter(m=>(COUNTRY_NAMES[m]||m).toLowerCase().includes(marketQuery.toLowerCase())||m.includes(marketQuery.toLowerCase())).map(m=><button key={m} onClick={()=>selectMarket(m)}><span>{getFlag(m)}　{COUNTRY_NAMES[m]||m} <small>{m}</small></span>{m===market&&<Check size={16}/>}</button>)}</div></>}
      {popup==='screens'&&<div className="option-list"><button onClick={()=>setPopup('')}>{cfg.title}<Check size={16}/></button>{saved.filter(s=>s.product===product).map(s=><button key={s.id} onClick={()=>{applySnapshot(s.view);setPopup('')}}>{s.name}</button>)}<button onClick={saveScreen}><Plus size={16}/>새 스크린 저장</button></div>}
-     {popup==='view'&&<div className="option-list"><button onClick={()=>setPopup('')}><Table2 size={16}/>테이블 <Check size={16}/></button><button onClick={()=>{setSettings(v=>({...v,compact:!v.compact}));setPopup('')}}><Grid2X2 size={16}/>컴팩트 테이블</button></div>}
+     {popup==='view'&&<div className="option-list"><div className="filter-picker-subtitle">VIEW TYPE</div><button data-testid="view-option-table" onClick={()=>{setView('table');setPopup('')}}><Table2 size={16}/>Table {view==='table'&&<Check size={16}/>}</button><button data-testid="view-option-charts" onClick={()=>{setView('charts');setPopup('')}}><Grid2X2 size={16}/>Charts {view==='charts'&&<Check size={16}/>}</button><button data-testid="view-option-heatmap" onClick={()=>{setView('heatmap');setPopup('')}}><Grid2X2 size={16}/>Heatmap {view==='heatmap'&&<Check size={16}/>}</button></div>}
      {popup==='settings'&&<div className="settings-list">{[['compact','행 높이 줄이기'],['showLogos','심볼 로고 표시'],['freezeTicker','첫 열 고정'],['hideEmpty','값 없는 열 숨기기']].map(([key,label])=><label key={key}><input type="checkbox" checked={settings[key]} onChange={e=>setSettings(v=>({...v,[key]:e.target.checked}))}/>{label}</label>)}<button className="apply-btn" onClick={()=>setPopup('')}>확인</button></div>}
      {popup==='filter-options'&&<div className="option-list"><button onClick={()=>{changeState(()=>setPills({}));setPopup('')}}><RotateCw size={16}/>모든 필터 초기화</button><button onClick={()=>{setShowAllFilters(v=>!v);setPopup('add-filter')}}><Plus size={16}/>필터 추가</button><button onClick={saveScreen}><Save size={16}/>화면 저장</button><button onClick={()=>{exportCSV();setPopup('')}}><Download size={16}/>CSV 다운로드</button></div>}
      {popup==='more-tabs'&&<div className="option-list">{cfg.tabs.map((label,i)=><button key={i} onClick={()=>{changeState(()=>setTab(i));setPopup('')}}>{label}{tab===i&&<Check size={16}/>}</button>)}</div>}
