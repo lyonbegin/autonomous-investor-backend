@@ -1,11 +1,11 @@
 // Verified quick-selection labels and bounds from 2026-11-06 Playwright original
 // popup observations (menu_snapshots.json); unavailable technical crossovers are not fabricated.
-const gt=(label,value,description='')=>({label,description,operation:'greater',min:String(value),max:''});
-const gte=(label,value,description='')=>({label,description,operation:'egreater',min:String(value),max:''});
-const lt=(label,value,description='')=>({label,description,operation:'less',min:String(value),max:''});
-const lte=(label,value,description='')=>({label,description,operation:'eless',min:String(value),max:''});
-const eq=(label,value,description='')=>({label,description,operation:'equal',min:String(value),max:''});
-const range=(label,min,max,description='')=>({label,description,operation:'in_range',min:String(min),max:String(max)});
+const gt=(label,value,description='')=>({label,description,operator:'greater',min:String(value),max:''});
+const gte=(label,value,description='')=>({label,description,operator:'egreater',min:String(value),max:''});
+const lt=(label,value,description='')=>({label,description,operator:'less',min:String(value),max:''});
+const lte=(label,value,description='')=>({label,description,operator:'eless',min:String(value),max:''});
+const eq=(label,value,description='')=>({label,description,operator:'equal',min:String(value),max:''});
+const range=(label,min,max,description='')=>({label,description,operator:'in_range',min:String(min),max:String(max)});
 const gains=[
  gt('초과 30%',30,'예외적 상승'),gt('초과 20%',20,'매우 강한 상승'),
  gt('초과 10%',10,'강한 상승'),gt('초과 5%',5,'보통 상승'),
