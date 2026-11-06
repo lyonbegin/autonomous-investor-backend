@@ -1,0 +1,46 @@
+name: TradingView Technical Filter Field Contract Probe
+on:
+  push:
+    branches: [feature/tradingview-screener-ui-parity-20261106]
+    paths: ['.github/workflows/screener-technical-fields.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  fields:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Probe original tech fields across all five products
+        run: |
+          node --input-type=module <<'JS'
+          const products=[
+            {id:'stock',market:'korea',label:'stock',sort:'market_cap_basic'},
+            {id:'etf',market:'america',label:'etf',sort:'aum'},
+            {id:'coin',market:'coin',label:'coin',sort:'crypto_total_rank'},
+            {id:'cex',market:'crypto',label:'crypto-cex',sort:'24h_vol|5',centralization:'cex'},
+            {id:'dex',market:'crypto',label:'crypto-dex',sort:'dex_txs_count_24h',centralization:'dex'}];
+          const fields=['TechRating_1D','RSI','Mom','AO','CCI20','Stoch.K','MARating_1D','OsRating_1D','MACD.macd','ADX','ATR','SMA50'];
+          const tasks=products.flatMap(p=>fields.map(f=>({p,f})));
+          let done=0;
+          await Promise.all(Array.from({length:4},async()=>{
+            while(tasks.length){
+              const {p,f}=tasks.shift();
+              const payload={
+                columns:['ticker-view'],range:[0,1],markets:[p.market],
+                sort:{sortBy:p.sort,sortOrder:'desc'},
+                filter:[{left:f,operation:'egreater',right:0}],
+                ...(p.centralization?{filter2:{operator:'and',operands:[{expression:{left:'centralization',operation:'equal',right:p.centralization}}]}}:{})
+              };
+              try{
+                const r=await fetch('https://scanner.tradingview.com/'+p.market+'/scan?label-product=screener-'+p.label,{
+                  method:'POST',headers:{Accept:'application/json','Content-Type':'application/json'},
+                  body:JSON.stringify(payload),signal:AbortSignal.timeout(17000)});
+                let data;try{data=await r.json()}catch{data={}};
+                console.log('TECH_FIELD',JSON.stringify({product:p.id,field:f,http:r.status,count:data.totalCount,error:data.msg||data.error}));
+              }catch(e){console.log('TECH_FIELD',JSON.stringify({product:p.id,field:f,http:0,error:String(e).slice(0,150)}));}
+              done++;
+            }
+          }));
+          console.log('TECH_COMPLETE',done);
+          JS
