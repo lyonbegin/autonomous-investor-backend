@@ -42,7 +42,7 @@ for(const s of SCENARIOS){
     await opts.first().locator('input[type="checkbox"]').check();
     const scan=await nextScan(page,()=>editor.locator('[data-testid="filter-apply"]').click());
     const got=expr(scan.body.payload,s.enumField);
-    assert(s.key+': enum selected ID forwarded to scanner',!!got&&got.right.includes(picked),{selected:picked,condition:got,HTTP:resultStatus(scan)});
+    assert(s.key+': enum selected ID forwarded to scanner',!!got&&got.right.includes(picked)&&(s.key!=='coin'||got.operation==='has'),{selected:picked,condition:got,HTTP:resultStatus(scan)});
     assert(s.key+': enum result is HTTP 200',resultStatus(scan)===200,{HTTP:resultStatus(scan)});
     assert(s.key+': enum applied pill visually updates',await page.locator('[data-testid="filter-'+s.enum+'"]').getAttribute('class').then(x=>x.includes('filter-applied')));
     const undo=await nextScan(page,()=>page.locator('[data-qa-id="screener-undo-button"]').click());
