@@ -38,11 +38,19 @@ jobs:
         run: |
           source .wf02-isolated-venv/bin/activate
           python isolation/wf02_dependency_lab.py
+      - name: Probe pinned PYNE CLI directly without modifying WF02
+        if: always()
+        shell: bash
+        run: |
+          source .wf02-isolated-venv/bin/activate
+          python isolation/probe_pyne_cli.py
       - name: Upload isolated diagnostic report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: wf02-isolated-recursive-library-and-conversion
-          path: wf02_isolated_report.json
+          path: |
+            wf02_isolated_report.json
+            wf02_isolated_cli_probe.json
           retention-days: 14
           if-no-files-found: warn
