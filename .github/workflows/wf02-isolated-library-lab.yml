@@ -44,6 +44,12 @@ jobs:
         run: |
           source .wf02-isolated-venv/bin/activate
           python isolation/probe_pyne_cli.py
+      - name: Compile five real SHA-pinned Strategy sources
+        if: always()
+        shell: bash
+        run: |
+          source .wf02-isolated-venv/bin/activate
+          python isolation/probe_real_5_sources.py
       - name: Upload isolated diagnostic report
         if: always()
         uses: actions/upload-artifact@v4
@@ -52,5 +58,6 @@ jobs:
           path: |
             wf02_isolated_report.json
             wf02_isolated_cli_probe.json
+            wf02_isolated_real5_result.json
           retention-days: 14
           if-no-files-found: warn
