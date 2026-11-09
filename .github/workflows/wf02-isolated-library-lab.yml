@@ -36,7 +36,8 @@ jobs:
           INVESTMENT_DATABASE_URL: ''
           STUDIO_DB_PATH: ''
         run: |
-          .wf02-isolated-venv/bin/python isolation/wf02_dependency_lab.py
+          source .wf02-isolated-venv/bin/activate
+          python isolation/wf02_dependency_lab.py
       - name: Upload isolated diagnostic report
         if: always()
         uses: actions/upload-artifact@v4
