@@ -27,7 +27,7 @@ jobs:
         shell: bash
         run: |
           python -m venv .wf02-isolated-venv
-          .wf02-isolated-venv/bin/python -m pip install --disable-pip-version-check 'hoox-pyne==0.6.31'
+          .wf02-isolated-venv/bin/python -m pip install --disable-pip-version-check 'hoox-pyne[compile]==0.6.31'
           .wf02-isolated-venv/bin/python -m pip show hoox-pyne
           .wf02-isolated-venv/bin/pyne --version
       - name: Test original WF02 recursive imports and isolated Pine to Python
