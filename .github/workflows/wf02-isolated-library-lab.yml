@@ -50,6 +50,14 @@ jobs:
         run: |
           source .wf02-isolated-venv/bin/activate
           python isolation/probe_real_5_sources.py
+      - name: Execute upstream PYNE library-aware interpret and nested dependency tests
+        shell: bash
+        env:
+          INVESTMENT_DATABASE_URL: ''
+          STUDIO_DB_PATH: ''
+        run: |
+          source .wf02-isolated-venv/bin/activate
+          python isolation/wf02_library_aware.py
       - name: Upload isolated diagnostic report
         if: always()
         uses: actions/upload-artifact@v4
@@ -59,5 +67,6 @@ jobs:
             wf02_isolated_report.json
             wf02_isolated_cli_probe.json
             wf02_isolated_real5_result.json
+            wf02_isolated_library_runtime_report.json
           retention-days: 14
           if-no-files-found: warn
