@@ -1,0 +1,47 @@
+name: WF02 isolated Pine and recursive Library lab
+on:
+  push:
+    branches:
+      - sandbox/wf02-pine-library-isolated-20261109
+    paths:
+      - 'isolation/**'
+      - '.github/workflows/wf02-isolated-library-lab.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: wf02-isolated-library-lab
+  cancel-in-progress: false
+jobs:
+  inspect-and-convert:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - name: Checkout isolated copy, not production branch
+        uses: actions/checkout@v4
+      - name: Install independent Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Create independent virtual environment and install exact PYNE
+        shell: bash
+        run: |
+          python -m venv .wf02-isolated-venv
+          .wf02-isolated-venv/bin/python -m pip install --disable-pip-version-check 'hoox-pyne==0.6.31'
+          .wf02-isolated-venv/bin/python -m pip show hoox-pyne
+          .wf02-isolated-venv/bin/pyne --version
+      - name: Test original WF02 recursive imports and isolated Pine to Python
+        shell: bash
+        env:
+          INVESTMENT_DATABASE_URL: ''
+          STUDIO_DB_PATH: ''
+        run: |
+          .wf02-isolated-venv/bin/python isolation/wf02_dependency_lab.py
+      - name: Upload isolated diagnostic report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wf02-isolated-recursive-library-and-conversion
+          path: wf02_isolated_report.json
+          retention-days: 14
+          if-no-files-found: warn
