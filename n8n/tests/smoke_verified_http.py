@@ -71,6 +71,14 @@ def main():
             assert body["items"]==[] and body["published_only"],"UNVERIFIED_CATALOG_NOT_EMPTY"
             code,data=call(base+"/api/investment/verified-scripts/candidates")
             assert code==200,(code,data[:260])
+            # A nonpublished strategy must never leak original source or
+            # trigger the TradingView chart worker; no synthetic fallback.
+            encoded="PUB%3B5442675d418140c58486eb4a7ae12768"
+            for suffix in ("/source","/chart?symbol=NASDAQ%3AAMZN&horizon=2h"):
+                code,data=call(base+"/api/investment/verified-scripts/"+encoded+suffix)
+                assert code==422 and json.loads(data)["status"]=="DDDS_PUBLISHED_SOURCE_OR_WORKER_BARS_INVALID",(code,data[:260])
+            code,data=call(base+"/api/investment/verified-scripts/PUB%3Banother/chart?symbol=NASDAQ%3AAMZN&horizon=2h")
+            assert code==404 and json.loads(data)["status"]=="PINNED_VERIFIED_DDDS_ONLY",(code,data[:260])
             code,data=call(base+"/api/investment/verified-scripts/publish",
                 {"source_id":"PUB;not-verified","version_key":"v1","pine_sha256":"a"*64},
                 origin=base)

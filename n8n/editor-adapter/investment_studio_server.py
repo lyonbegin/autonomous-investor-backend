@@ -7,7 +7,7 @@ import json
 import threading
 import urllib.error
 from http.server import ThreadingHTTPServer
-from urllib.parse import urlsplit, parse_qs
+from urllib.parse import urlsplit, parse_qs, unquote
 
 import studio_server as studio
 import investment_tv_chart_integration as chart_integration
@@ -76,6 +76,63 @@ class InvestmentHandler(studio.Handler):
             except OSError as exc:
                 return self._json(503,{"status":"VERIFIED_CATALOG_DB_UNAVAILABLE",
                     "reason":type(exc).__name__},sid,fresh)
+        if current.path.startswith("/api/investment/verified-scripts/") and (
+            current.path.endswith("/source") or current.path.endswith("/chart")):
+            sid,fresh=self._sid()
+            fragment=current.path.removeprefix("/api/investment/verified-scripts/")
+            raw_id,kind=fragment.rsplit("/",1)
+            source_id=unquote(raw_id)
+            if source_id!=verified_catalog.DDDS_ID:
+                return self._json(404,{"status":"PINNED_VERIFIED_DDDS_ONLY"},sid,fresh)
+            try:
+                exact=verified_catalog.published_source(source_id)
+                if kind=="source":
+                    return self._json(200,exact,sid,fresh)
+                q=parse_qs(current.query)
+                symbol=(q.get("symbol") or [""])[0]
+                horizon=(q.get("horizon") or [""])[0]
+                if symbol!="NASDAQ:AMZN" or horizon!="2h":
+                    return self._json(422,{
+                        "status":"DDDS_ONLY_REAL_NASDAQ_AMZN_2H",
+                        "paper_enabled":False,"live_orders_enabled":False
+                    },sid,fresh)
+                from investment_pipeline_ddds_bridge import fetch_site_bars
+                bars,meta=fetch_site_bars(source_id)
+                return self._json(200,{
+                    "script_id":source_id,"script_name":exact["script_name"],
+                    "kind":"strategy","pine_version":6,
+                    "source_hash":exact["source_hash"],
+                    "symbol":symbol,"horizon":horizon,
+                    "market_data":{
+                        "provider":meta["provider"],"provider_symbol":symbol,
+                        "base_interval":"120","effective_interval":"120",
+                        "fallback_used":False,"count":len(bars),
+                        "fetched_at":meta.get("captured_at")
+                    },
+                    "bars":[{"timestamp":b["time_ms"],
+                             **{k:b[k] for k in ("open","high","low","close","volume")}}
+                            for b in bars],
+                    "visual":{
+                        "runtime":"VELA_PINETS_CLIENT_EXECUTION_REQUIRED",
+                        "adapter":"native_client_pending","nodes":[],"markers":[],
+                        "error":None
+                    },
+                    "official_tradingview_publication_parity_verified":False,
+                    "original_tradingview_299_trades_verified":False,
+                    "paper_enabled":False,"live_orders_enabled":False,
+                },sid,fresh)
+            except (ValueError,TypeError) as exc:
+                return self._json(422,{
+                    "status":"DDDS_PUBLISHED_SOURCE_OR_WORKER_BARS_INVALID",
+                    "reason":str(exc)[:220],
+                    "paper_enabled":False,"live_orders_enabled":False
+                },sid,fresh)
+            except (urllib.error.HTTPError,urllib.error.URLError,TimeoutError,OSError) as exc:
+                return self._json(502,{
+                    "status":"DDDS_TV_WORKER_ACTUAL_CHART_UNAVAILABLE",
+                    "reason":type(exc).__name__+":"+str(exc)[:150],
+                    "paper_enabled":False,"live_orders_enabled":False
+                },sid,fresh)
         if current.path == "/api/investment/verified-scripts/candidates":
             sid,fresh=self._sid()
             try:
