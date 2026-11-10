@@ -1,0 +1,101 @@
+name: Strategy Economic Research — evidence-gated
+on:
+  push:
+    branches: [research/strategy-evidence-bootstrap-20261110]
+    paths:
+      - 'research/**'
+      - '.github/workflows/research-evidence-gated.yml'
+  workflow_dispatch:
+    inputs:
+      dataset_url:
+        description: 'HTTPS URL of synchronized, provider-attributed PL/GC OHLCV CSV'
+        required: true
+        type: string
+      dataset_sha256:
+        description: 'Expected exact CSV SHA-256'
+        required: true
+        type: string
+      provider:
+        description: 'Claimed market-data vendor (not authenticated by this pipeline)'
+        required: true
+        type: string
+      provider_url:
+        description: 'Provenance URL of vendor dataset'
+        required: true
+        type: string
+      contract_definition:
+        description: 'Exchange symbols, expiry and roll methodology, trading session'
+        required: true
+        type: string
+permissions:
+  contents: write
+concurrency:
+  group: strategy-evidence-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  functionality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run independent engine unit tests (NOT a market backtest)
+        run: python -m unittest discover -s research/tests -v
+
+  market-data-run:
+    needs: functionality
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Require HTTPS dataset and a valid 64-hex checksum
+        env:
+          INPUT_URL: ${{ inputs.dataset_url }}
+          INPUT_SHA: ${{ inputs.dataset_sha256 }}
+        run: |
+          python - <<'PY'
+          import os, re
+          from urllib.parse import urlparse
+          url = os.environ['INPUT_URL']
+          sha = os.environ['INPUT_SHA']
+          if urlparse(url).scheme != 'https' or not re.fullmatch(r'[a-fA-F0-9]{64}', sha):
+              raise SystemExit('Invalid provider HTTPS URL / expected SHA-256')
+          PY
+      - name: Download data, enforce byte-level checksum (NOT provider-authentication)
+        env:
+          INPUT_URL: ${{ inputs.dataset_url }}
+          INPUT_SHA: ${{ inputs.dataset_sha256 }}
+        run: |
+          curl --fail --location --show-error --silent --proto '=https' --proto-redir '=https' "$INPUT_URL" --output "$RUNNER_TEMP/pl_gc.csv"
+          echo "$INPUT_SHA  $RUNNER_TEMP/pl_gc.csv" | sha256sum --check -
+      - name: Calculate independent strategy, orders, PnL and chart series
+        env:
+          INPUT_SHA: ${{ inputs.dataset_sha256 }}
+          INPUT_PROVIDER: ${{ inputs.provider }}
+          INPUT_PROVIDER_URL: ${{ inputs.provider_url }}
+          INPUT_CONTRACT: ${{ inputs.contract_definition }}
+        run: |
+          python -m research.run_case --bars-csv "$RUNNER_TEMP/pl_gc.csv" \
+            --bars-sha256 "$INPUT_SHA" \
+            --provider "$INPUT_PROVIDER" \
+            --provider-url "$INPUT_PROVIDER_URL" \
+            --contract-definition "$INPUT_CONTRACT" \
+            --output-root research/results
+      - name: Commit immutable SHA-traced research results to isolated branch
+        run: |
+          git config user.name "research-evidence-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add research/results/0CVvd49h/
+          if git diff --staged --quiet; then
+            echo "Existing identical run; no new commit"
+          else
+            git commit -m "data(research): store SHA-linked 0CVvd49h intermarket evidence"
+            git push origin "HEAD:${{ github.ref_name }}"
+          fi
