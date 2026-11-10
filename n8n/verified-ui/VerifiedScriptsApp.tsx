@@ -1,6 +1,6 @@
 import React,{useEffect,useState} from 'react';
 import {api} from './api';
-import type {CommunityScript,ScriptDetail,PineSource} from './types';
+import type {CommunityScript,ScriptDetail,PineSource,PineVisualResponse} from './types';
 import {ScriptsPage} from './pages/scripts/ScriptsPage';
 import {ScriptDetailPage} from './pages/scripts/ScriptDetailPage';
 import {PineSideBySidePage} from './pages/scripts/PineSideBySidePage';
@@ -21,9 +21,6 @@ async function verified<T>(path:string):Promise<T>{
   return res.json() as Promise<T>;
 }
 let catalogCache=new Map<string,ApprovedScript>();
-const sourceApi=api.scriptSource;
-const metaApi=api.scriptMeta;
-const detailApi=api.scriptDetail;
 
 api.scripts=async(page=1,scriptType='all')=>{
   const offset=(Math.max(1,page)-1)*50;
@@ -39,19 +36,12 @@ api.scriptSearch=async(q:string,limit=100)=>{
 api.scriptMeta=async(id:string)=>{
   const selected=catalogCache.get(id);
   if(!selected)throw Error('관리자 검증 완료 목록에 없는 전략입니다.');
-  try{
-    const m=await metaApi(id);
-    return {...m,author:selected.author||m.author,name:selected.name||m.name,
-       symbol:selected.symbol||m.symbol,interval:selected.interval||m.interval,
-       script_id_part:id};
-  }catch{
-    return selected;
-  }
+  return selected;
 };
 api.scriptSource=async(id:string)=>{
   const expected=catalogCache.get(id)?.source_hash;
   if(!expected)throw Error('승인된 Pine 원본이 아닙니다.');
-  const source: PineSource=await sourceApi(id);
+  const source: PineSource=await verified<PineSource>('/'+encodeURIComponent(id)+'/source');
   if(source.source_hash!==expected||!source.source)
     throw Error('공개된 Pine 원본과 승인 시점의 SHA-256이 달라 실행을 차단했습니다.');
   return source;
@@ -59,17 +49,27 @@ api.scriptSource=async(id:string)=>{
 api.scriptDetail=async(id:string)=>{
   const selected=catalogCache.get(id);
   if(!selected)throw Error('승인 목록에 존재하지 않는 전략입니다.');
-  try{
-    return await detailApi(id);
-  }catch{
-    // The full-text TradingView collector can be unavailable. The approved,
-    // immutable metadata gives an honest fallback, without a fake source.
-    return {
-      source_kind:'strategy',source_id:id,
-      source_url:selected.chart_url||'',title:selected.name,
-      full_text:selected.description||'WF-02 검증 완료 전략'
-    } as ScriptDetail;
-  }
+  return {
+    source_kind:'strategy',source_id:id,
+    source_url:selected.chart_url||'',title:selected.name,
+    full_text:selected.description||'WF-02 승인된 Pine 원본'
+  } as ScriptDetail;
+};
+
+api.scriptChart=async(id:string,symbol:string,horizon:string)=>{
+  const selected=catalogCache.get(id);
+  if(!selected||id!=='PUB;5442675d418140c58486eb4a7ae12768')
+    throw Error('승인되지 않은 전략의 실시간 차트 실행은 지원하지 않습니다.');
+  if(symbol!=='NASDAQ:AMZN'||horizon!=='2h')
+    throw Error('DDDS는 실제 NASDAQ:AMZN 2시간봉에서만 비교합니다.');
+  const chart=await verified<PineVisualResponse>(
+    '/'+encodeURIComponent(id)+'/chart?symbol='+encodeURIComponent(symbol)+
+    '&horizon='+encodeURIComponent(horizon));
+  if(chart.script_id!==id||chart.source_hash!==selected.source_hash||
+     chart.symbol!==symbol||chart.horizon!==horizon||
+     chart.market_data.fallback_used===true||chart.bars.length<40)
+    throw Error('Pine 승인 원본 SHA·TradingView 시세 일치 검증 실패');
+  return chart;
 };
 
 type Screen={kind:'list'|'detail'|'compare';id?:string};

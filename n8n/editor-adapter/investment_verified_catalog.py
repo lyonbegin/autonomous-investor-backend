@@ -206,6 +206,31 @@ def select_and_publish(source_id,version_key,pine_sha):
             "not_official_tradingview_strategy_tester_parity":True}
 
 
+def published_source(source_id):
+    """Return the exact rights-approved, already-published immutable Pine text."""
+    if source_id!=DDDS_ID:
+        raise ValueError("ONLY_PINNED_DDDS_CHART_SUPPORTED")
+    initialize()
+    with closing(open_registry()) as db:
+        row=db.execute("""SELECT version_key,pine_sha256,python_sha256
+             FROM investment_verified_strategy_catalog
+             WHERE source_id=? AND pine_sha256=? ORDER BY selected_at DESC LIMIT 1""",
+             (DDDS_ID,DDDS_SHA)).fetchone()
+    if not row or row["version_key"]!=DDDS_VERSION or row["python_sha256"]!=DDDS_PY_SHA:
+        raise ValueError("EXACT_PUBLISHED_DDDS_NOT_FOUND")
+    source=_stored_source(DDDS_ID,DDDS_VERSION)
+    if (not source or source.get("rights_state")!="APPROVED" or
+        hashlib.sha256(source["pine_code"].encode("utf-8")).hexdigest()!=DDDS_SHA):
+        raise ValueError("PUBLISHED_DDDS_PINE_SOURCE_SHA_OR_RIGHTS_MISMATCH")
+    return {
+        "script_id_part":DDDS_ID,"version":DDDS_VERSION,
+        "kind":"strategy","pine_version":6,
+        "source_hash":DDDS_SHA,"source":source["pine_code"],
+        "script_name":"Displaced Donchian Decycler | Trend Breakout Strategy with MFI",
+        "protected":False,"ok":True,
+    }
+
+
 def catalog(limit=50,offset=0,query="",script_type="all"):
     initialize()
     if not isinstance(limit,int) or not 1<=limit<=100 or not isinstance(offset,int) or offset<0:
