@@ -544,7 +544,10 @@ def process(run_id,sid,requested_source=None):
                 try:
                     from investment_pipeline_ddds_bridge import run_ddds_after_conversion
                     chart=run_ddds_after_conversion(converted,generated_code)
-                    statuses["python"]="PYNE_FREE_CURRENT_SITE_300_BARS_EXECUTED"
+                    full_300=chart["bar_count"]==300
+                    statuses["python"]=(
+                        "PYNE_FREE_CURRENT_SITE_300_BARS_EXECUTED" if full_300
+                        else "PYNE_FREE_CURRENT_TV_WORKER_BARS_EXECUTED")
                     stage(run_id,"python",PYTHON,statuses["python"],{
                         "source_id":DDDS_SOURCE_ID,"version_key":DDDS_VERSION,
                         "source_sha256":DDDS_SOURCE_SHA,
@@ -553,7 +556,9 @@ def process(run_id,sid,requested_source=None):
                         "bar_count":chart["bar_count"],
                         "market_data_same_as_python_input":True,
                         "tradingview_official_parity_verified":False})
-                    statuses["chart"]="REUSED_VERIFIED_SITE_PINE_PYTHON_300_BARS"
+                    statuses["chart"]=(
+                        "REUSED_VERIFIED_SITE_PINE_PYTHON_300_BARS" if full_300
+                        else "TV_WORKER_PYTHON_EXECUTED_PRIOR_300_BAR_PARITY_REUSED")
                     stage(run_id,"chart",PARITY,statuses["chart"],chart)
                 except Exception as exc:
                     statuses["chart"]="BLOCKED_DDDS_CHART_OR_PROVENANCE_NOT_VERIFIED"
@@ -572,8 +577,11 @@ def process(run_id,sid,requested_source=None):
             statuses["chart"]="BLOCKED_FREE_PYNE_CONVERSION_NOT_READY"
             stage(run_id,"chart",PARITY,statuses["chart"],
                   {"reason":statuses.get("python")})
+        chart_stage=statuses.get("chart")
         final=("SITE_CHART_VERIFIED_EVIDENCE_REUSED"
-            if statuses.get("chart")=="REUSED_VERIFIED_SITE_PINE_PYTHON_300_BARS"
+            if chart_stage=="REUSED_VERIFIED_SITE_PINE_PYTHON_300_BARS"
+            else "TV_WORKER_PYTHON_EXECUTED_PRIOR_PARITY_REUSED"
+            if chart_stage=="TV_WORKER_PYTHON_EXECUTED_PRIOR_300_BAR_PARITY_REUSED"
             else "PARTIAL_BLOCKED")
         with closing(open_registry()) as db:
             trace_failures=db.execute("""SELECT count(*) FROM investment_pipeline_events
@@ -595,7 +603,7 @@ def process(run_id,sid,requested_source=None):
                 "converted_source":converted,"chart":chart,
                 "postgres_sync":postgres_finish,
                 "postgres_trace_failures":trace_failures,
-                "note":"Exact DDDS Python was re-executed on current site OHLCV; historical Vela↔Python plot comparison was checked by immutable source/Python SHA and reused, not re-run inside this backend pipeline. Open the integrated live charts for a fresh Pine↔Python parity computation. Official TradingView author-published BATS chart/299 trades remain unverified."}
+                "note":"Exact DDDS Python was executed on actual TradingView public chart worker OHLCV (40-300 bars). Historical 300-bar Vela/Python evidence was checked by immutable source/Python SHA and reused, NOT recomputed on these fresh bars. Official TradingView author-published BATS chart and 299 trades remain unverified."}
         with closing(open_registry()) as db:
             db.execute("""UPDATE investment_pipeline_runs SET status=?,finished_at=?,
                 selected_source_id=?,selected_version=?,result_json=? WHERE run_id=?""",

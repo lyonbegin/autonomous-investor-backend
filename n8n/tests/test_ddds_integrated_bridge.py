@@ -2,6 +2,7 @@
 runtime and previously verified Vela parity must all be independently checked.
 """
 import hashlib
+import json
 import sys
 import unittest
 from pathlib import Path
@@ -21,17 +22,25 @@ PY_SHA=hashlib.sha256(CODE.encode()).hexdigest()
 SELECTED={"source_id":ID,"version_key":VERSION,"source_sha256":SHA}
 
 
-def chart_document(bars=300,symbol="NASDAQ:AMZN",fallback=False,source_sha=SHA):
+def chart_document(bars=300,symbol="NASDAQ:AMZN",
+                   provenance="TRADINGVIEW_PUBLIC_CHART_PASSIVE_WEBSOCKET"):
     begin=1791374400000
     candles=[{
-      "timestamp":begin+i*7200000,
+      "time_ms":begin+i*7200000,
       "open":248.0,"high":252.0,"low":246.0,
       "close":250.0,"volume":100000.0
     } for i in range(bars)]
-    return {"script_id":ID,"source_hash":source_sha,"symbol":symbol,
-      "horizon":"2h","market_data":{"provider":"verified-api-source","fallback_used":fallback},
-      "bars":candles}
-
+    return {
+      "status":"OFFICIAL_CHART_OHLCV_CAPTURED",
+      "provenance":provenance,
+      "symbol":symbol,"timeframe":"120",
+      "licensed_data_api":False,
+      "complete_2016_2026_history":False,
+      "ddds_tradingview_orders_available":False,
+      "interval_120_observed_gap_count":bars-1,
+      "bar_count":len(candles),"bars":candles,
+      "captured_at":"2026-11-10T00:00:00+00:00",
+    }
 
 def executed_runner(code,bars):
     assert code==CODE
@@ -63,13 +72,19 @@ class RealChartBridge(unittest.TestCase):
         for item in reversed(self.patches):item.stop()
 
     def run_real(self,**kw):
+        def fetch_worker(url):
+            self.assertEqual(url,bridge.WORKER)
+            self.assertNotIn("autonomous-investor-public-api",url)
+            return kw.pop("document",chart_document())
         return bridge.run_ddds_after_conversion(kw.pop("selected",SELECTED),
-          kw.pop("code",CODE),fetch=lambda _:kw.pop("document",chart_document()),
+          kw.pop("code",CODE),fetch=fetch_worker,
           runner=kw.pop("runner",executed_runner))
 
     def test_300_exact_current_real_bars_only_claim_prior_vela_parity(self):
         x=self.run_real()
         self.assertEqual(x["bar_count"],300)
+        self.assertTrue(x["current_input_is_full_300_bars"])
+        self.assertEqual(x["market_provider"],"TRADINGVIEW_PUBLIC_CHART_PASSIVE_WEBSOCKET")
         self.assertEqual(x["python_sha256"],PY_SHA)
         self.assertTrue(x["current_python_runtime_executed"])
         self.assertFalse(x["current_input_vela_parity_evaluated_in_this_backend_run"])
@@ -112,17 +127,44 @@ class RealChartBridge(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,"PREVIOUS_SITE_PARITY_PROVEN"):
                 self.run_real()
 
-    def test_source_chart_bats_or_wrong_hash_is_blocked(self):
+    def test_worker_wrong_symbol_or_unverified_provenance_blocked(self):
         for data in (chart_document(symbol="BATS:AMZN"),
-                     chart_document(source_sha="0"*64)):
-            with self.assertRaisesRegex(ValueError,"SOURCE_SYMBOL_OR_TIMEFRAME_CHANGED"):
+                     chart_document(provenance="UNVERIFIED_OR_FALLBACK")):
+            with self.assertRaisesRegex(ValueError,"FREE_DDDS_EXPECTS_REAL_PUBLIC"):
                 self.run_real(document=data)
 
-    def test_fallback_or_short_history_blocked(self):
-        with self.assertRaisesRegex(ValueError,"FALLBACK_OR_PROVIDER_UNKNOWN"):
-            self.run_real(document=chart_document(fallback=True))
-        with self.assertRaisesRegex(ValueError,"LESS_THAN_300"):
-            self.run_real(document=chart_document(bars=80))
+    def test_current_80_worker_bars_run_without_claiming_300_fresh_bars(self):
+        result=self.run_real(document=chart_document(bars=80))
+        self.assertEqual(result["bar_count"],80)
+        self.assertTrue(result["current_python_runtime_executed"])
+        self.assertFalse(result["current_input_is_full_300_bars"])
+        self.assertFalse(result["current_input_vela_parity_evaluated_in_this_backend_run"])
+
+    def test_short_or_corrupt_worker_bars_blocked(self):
+        with self.assertRaisesRegex(ValueError,"FREE_DDDS_OHLCV_BAR_COUNT_INVALID"):
+            self.run_real(document=chart_document(bars=20))
+        bad=chart_document()
+        bad["bars"][5]["volume"]=None
+        with self.assertRaisesRegex(ValueError,"FREE_DDDS_NONFINITE_OHLCV"):
+            self.run_real(document=bad)
+
+    def test_actual_http_request_posts_to_worker(self):
+        class FakeResponse:
+            status=200
+            def __enter__(self):return self
+            def __exit__(self,*args):return False
+            def read(self,limit):return json.dumps(chart_document()).encode()
+        def fake_urlopen(req,timeout):
+            self.assertEqual(req.get_method(),"POST")
+            self.assertEqual(req.full_url,bridge.WORKER)
+            self.assertEqual(timeout,90)
+            return FakeResponse()
+        with patch.object(bridge,"urlopen",side_effect=fake_urlopen):
+            bars,market=bridge.fetch_site_bars()
+        self.assertEqual(len(bars),300)
+        self.assertEqual(market["provider"],"TRADINGVIEW_PUBLIC_CHART_PASSIVE_WEBSOCKET")
+
+
 
     def test_corrupted_generated_python_runtime_refused(self):
         def bad_runner(code,bars):

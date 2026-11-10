@@ -1,60 +1,52 @@
-"""WF02 bridge: same exact stored Pine/PYNE artifact, 300 real site bars.
+"""WF02: pinned DDDS/PYNE against real TradingView public-chart worker bars.
 
-This stage executes the generated Python on the current public API's 2h bars.
-The *previous* Vela-vs-Python comparison is independently stored and linked,
-not misrepresented as a new TradingView website comparison or a newly run
-Vela check in this backend process. Rendering both charts is delegated to the
-verified admin React UI, which re-executes Vela and Python on matching bars.
+The 40-300 latest NASDAQ:AMZN 120-minute OHLCV candles are captured by the
+existing browser worker; offline Public API and Quant Lab are not used.
+Older 300-bar Vela/Python evidence is cited as PRIOR, never freshly computed.
+Original published TV strategy fills and 299 trades remain unverified.
 """
 from __future__ import annotations
 import hashlib
 import json
-from urllib.parse import quote, urlencode
+from urllib.parse import quote
 from urllib.request import Request, urlopen
-import os
 
 from investment_ddds_parity import DDDS_SOURCE_ID, DDDS_SOURCE_SHA, DDDS_VERSION
-from investment_free_pyne_chart import PINNED_PYTHON_SHA
+from investment_free_pyne_chart import PINNED_PYTHON_SHA, WORKER, validate_bars
 from investment_shared_bars_compare import execute_shared_bars
-
-PUBLIC_API_DEFAULT="https://autonomous-investor-public-api-production.up.railway.app"
 
 
 def fetch_site_bars(source_id=DDDS_SOURCE_ID, *, fetch=None):
+    """Read exact real TradingView chart OHLCV, no fallback or fabricated bars."""
     if source_id != DDDS_SOURCE_ID:
         raise ValueError("DDDS_ONLY_RUNNER_CANNOT_EXECUTE_OTHER_STRATEGY")
-    api=os.environ.get("INVESTMENT_PUBLIC_API",PUBLIC_API_DEFAULT).rstrip("/")
-    url=(api+"/api/public/scripts/"+quote(source_id,safe="")+"/chart?"+
-         urlencode({"symbol":"NASDAQ:AMZN","horizon":"2h"}))
+    url=WORKER
     if fetch is None:
-        req=Request(url,headers={"Accept":"application/json",
-              "User-Agent":"WF02-exact-DDDS-site-chart/1.0"})
-        with urlopen(req,timeout=45) as response:
+        req=Request(url,method="POST",data=b"{}",headers={
+            "Accept":"application/json","Content-Type":"application/json",
+            "User-Agent":"WF02-exact-DDDS-TV-worker/1.0"})
+        with urlopen(req,timeout=90) as response:
             if response.status!=200:
-                raise ValueError("PINNED_DDDS_PUBLIC_CHART_NOT_200")
-            document=json.loads(response.read(3_000_000))
+                raise ValueError("DDDS_TV_WORKER_CHART_NOT_200")
+            document=json.loads(response.read(500_000))
     else:
         document=fetch(url)
-    if (not isinstance(document,dict) or
-        document.get("script_id")!=DDDS_SOURCE_ID or
-        document.get("source_hash")!=DDDS_SOURCE_SHA or
-        document.get("symbol")!="NASDAQ:AMZN" or
-        document.get("horizon")!="2h"):
-        raise ValueError("DDDS_SITE_CHART_SOURCE_SYMBOL_OR_TIMEFRAME_CHANGED")
-    meta=document.get("market_data") or {}
-    if meta.get("fallback_used") is True or not meta.get("provider"):
-        raise ValueError("DDDS_SITE_CHART_FALLBACK_OR_PROVIDER_UNKNOWN")
-    data=document.get("bars")
-    if not isinstance(data,list) or len(data)<300:
-        raise ValueError("DDDS_SITE_CHART_LESS_THAN_300_BARS")
-    bars=[]
-    for entry in data[-300:]:
-        if not isinstance(entry,dict):
-            raise ValueError("DDDS_SITE_CHART_INVALID_OHLCV")
-        bars.append({"time_ms":entry.get("timestamp"),
-          **{k:entry.get(k) for k in ("open","high","low","close","volume")}})
+    # The existing worker validator checks NASDAQ:AMZN 120m, websocket
+    # provenance, 40-300 candles, observed 120m gaps, and valid OHLCV.
+    # The strategy/source SHA is separately validated against the pinned DB.
+    data=validate_bars(document)
+    bars=[{"time_ms":row["time_ms"],
+           **{key:row[key] for key in ("open","high","low","close","volume")}}
+          for row in data]
+    meta={
+        "provider":document["provenance"],
+        "bar_count":len(bars),
+        "captured_at":document.get("captured_at"),
+        "observed_120min_gaps":document["interval_120_observed_gap_count"],
+        "licensed_data_api":False,
+        "fallback_used":False,
+    }
     return bars,meta
-
 
 def run_ddds_after_conversion(selected,python_code, *, fetch=None, runner=None):
     """No generic fallback or approval from just one converted Python file."""
@@ -96,8 +88,9 @@ def run_ddds_after_conversion(selected,python_code, *, fetch=None, runner=None):
       "symbol":"NASDAQ:AMZN","timeframe":"120","acknowledge_mpl":True,
       "bars":bars}
     runtime=execute_shared_bars(payload,compiled_code=python_code,runner=runner)
-    if runtime["status"]!="EXACT_SITE_CHART_INPUT_PYTHON_EXECUTED" or runtime["bar_count"]!=300:
-        raise ValueError("DDDS_300_BARS_ACTUAL_PYTHON_EXECUTION_NOT_VERIFIED")
+    if (runtime["status"]!="EXACT_SITE_CHART_INPUT_PYTHON_EXECUTED" or
+        runtime["bar_count"]!=len(bars)):
+        raise ValueError("DDDS_TV_WORKER_PYTHON_EXECUTION_NOT_VERIFIED")
     return {
        "status":"DDDS_CURRENT_PYTHON_EXECUTED_PRIOR_SITE_PARITY_REUSED",
        "source_id":DDDS_SOURCE_ID,"version_key":DDDS_VERSION,
@@ -109,6 +102,9 @@ def run_ddds_after_conversion(selected,python_code, *, fetch=None, runner=None):
        "last_time_ms":runtime["time_ms"][-1],
        "input_ohlcv_sha256":runtime["input_ohlcv_sha256"],
        "market_provider":market["provider"],
+       "market_capture_time":market["captured_at"],
+       "observed_120min_gaps":market["observed_120min_gaps"],
+       "current_input_is_full_300_bars":len(bars)==300,
        "current_python_runtime_executed":True,
        "current_input_matches_python":True,
        "current_input_vela_parity_evaluated_in_this_backend_run":False,
