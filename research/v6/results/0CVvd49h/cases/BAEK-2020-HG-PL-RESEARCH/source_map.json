@@ -1,0 +1,108 @@
+{
+  "strategy_id": "0CVvd49h",
+  "original_sha256": "06728ba8446771d2e45c63f2fca0d8cce378c96b445836f47c82e279285c1852",
+  "original_order_sites": [
+    {
+      "line": 780,
+      "type": "strategy.entry"
+    },
+    {
+      "line": 786,
+      "type": "strategy.exit"
+    },
+    {
+      "line": 788,
+      "type": "strategy.exit"
+    },
+    {
+      "line": 794,
+      "type": "strategy.entry"
+    },
+    {
+      "line": 800,
+      "type": "strategy.exit"
+    },
+    {
+      "line": 802,
+      "type": "strategy.exit"
+    },
+    {
+      "line": 816,
+      "type": "strategy.entry"
+    },
+    {
+      "line": 820,
+      "type": "strategy.exit"
+    },
+    {
+      "line": 827,
+      "type": "strategy.entry"
+    },
+    {
+      "line": 831,
+      "type": "strategy.exit"
+    }
+  ],
+  "external_case": "BAEK-2020-HG-PL-RESEARCH",
+  "source_paper": "https://www.mdpi.com/2071-1050/12/17/6791",
+  "rule_lineage": [
+    {
+      "source_confirmed": {
+        "rule": "Study selects pairs and tests cointegration using Engle-Granger/ECM; SVR hedge ratio",
+        "location": "Section 2.4, Systemic Trading Architecture and Trading Strategy and Hedge Ratio from SVM",
+        "classification": "PAPER_METHOD"
+      }
+    },
+    {
+      "source_confirmed": {
+        "rule": "Signals at deviation beyond a 15-day moving average with standard-deviation band; pairs opened simultaneously, exited on reverting to mean",
+        "location": "Section 2.4, Strategy and Hedge Ratio from SVM",
+        "classification": "PAPER_METHOD"
+      }
+    },
+    {
+      "developer_assumption": {
+        "field": "underlyings",
+        "value": "HG + PL",
+        "why": "Illustrative metal futures pairing. Specific HG-PL pair is not claimed as a tested study pair"
+      }
+    },
+    {
+      "developer_assumption": {
+        "field": "hedge_method",
+        "value": "training-only OLS",
+        "why": "Stdlib proxy for SVM regression / ECM; not equivalently cointegration-tested"
+      }
+    },
+    {
+      "developer_assumption": {
+        "field": "entry_z",
+        "value": 1.5,
+        "why": "Developer threshold; paper text supports band but not this numeric multiple"
+      }
+    },
+    {
+      "developer_assumption": {
+        "field": "exit_z",
+        "value": 0.35,
+        "why": "Quantified mean-reversion exit threshold supplied by developer"
+      }
+    },
+    {
+      "developer_assumption": {
+        "field": "stop_z",
+        "value": 5.0,
+        "why": "Capital/risk research assumption"
+      }
+    },
+    {
+      "developer_assumption": {
+        "field": "execution",
+        "value": "next daily bar open; fixed contract sizes; explicit assumed fees",
+        "why": "Not asserted as source instructions"
+      }
+    }
+  ],
+  "source_version": "2026-11-10 research archive",
+  "claim_direct_pine_parity": false
+}

@@ -1,0 +1,90 @@
+{
+  "source_id": "0CVvd49h",
+  "case_id": "BAEK-2020-HG-PL-RESEARCH",
+  "kind": "ols_cointegration_reversion",
+  "mode": "RESEARCH_ONLY",
+  "live_orders_enabled": false,
+  "title": "HG-PL 15-day rolling spread: OLS pilot adapting Baek ECM/SVR methodology",
+  "source_evidence_url": "https://www.mdpi.com/2071-1050/12/17/6791",
+  "source_confirmed_rules": [
+    {
+      "rule": "Study selects pairs and tests cointegration using Engle-Granger/ECM; SVR hedge ratio",
+      "location": "Section 2.4, Systemic Trading Architecture and Trading Strategy and Hedge Ratio from SVM",
+      "classification": "PAPER_METHOD"
+    },
+    {
+      "rule": "Signals at deviation beyond a 15-day moving average with standard-deviation band; pairs opened simultaneously, exited on reverting to mean",
+      "location": "Section 2.4, Strategy and Hedge Ratio from SVM",
+      "classification": "PAPER_METHOD"
+    }
+  ],
+  "research_assumptions": [
+    {
+      "field": "underlyings",
+      "value": "HG + PL",
+      "why": "Illustrative metal futures pairing. Specific HG-PL pair is not claimed as a tested study pair"
+    },
+    {
+      "field": "hedge_method",
+      "value": "training-only OLS",
+      "why": "Stdlib proxy for SVM regression / ECM; not equivalently cointegration-tested"
+    },
+    {
+      "field": "entry_z",
+      "value": 1.5,
+      "why": "Developer threshold; paper text supports band but not this numeric multiple"
+    },
+    {
+      "field": "exit_z",
+      "value": 0.35,
+      "why": "Quantified mean-reversion exit threshold supplied by developer"
+    },
+    {
+      "field": "stop_z",
+      "value": 5.0,
+      "why": "Capital/risk research assumption"
+    },
+    {
+      "field": "execution",
+      "value": "next daily bar open; fixed contract sizes; explicit assumed fees",
+      "why": "Not asserted as source instructions"
+    }
+  ],
+  "instrument_info": {
+    "PL": {
+      "venue": "NYMEX",
+      "multiplier_oz": 50,
+      "price_unit": "USD per troy oz"
+    },
+    "HG": {
+      "venue": "COMEX",
+      "multiplier_lb": 25000,
+      "price_unit": "USD per lb"
+    }
+  },
+  "parameters": {
+    "timeframe": "1d",
+    "training_bars": 40,
+    "band_bars": 15,
+    "entry_z": 1.5,
+    "exit_z": 0.35,
+    "stop_z": 5.0,
+    "max_hold_bars": 7,
+    "qty_y": 2,
+    "qty_x": 1,
+    "multiplier_y": 50,
+    "multiplier_x": 25000,
+    "max_hedge_mismatch_fraction": 0.35,
+    "roundtrip_fee_per_contract_usd": 8,
+    "slippage_per_side_per_contract_usd": 2
+  },
+  "classification": {
+    "taxonomy_candidates": [
+      "S045",
+      "S028"
+    ],
+    "new_taxonomy_proposal": "METALS-HG-PL-COINT-REVERSION",
+    "status": "RESEARCH_ANALOGY_NOT_VERIFIED_MAPPED"
+  },
+  "hypothesis": "Deviation of dynamically estimated HG/PL price relationship may mean revert after common metal-market shocks; not guaranteed."
+}

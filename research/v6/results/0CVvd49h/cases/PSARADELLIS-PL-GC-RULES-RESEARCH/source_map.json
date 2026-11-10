@@ -1,0 +1,104 @@
+{
+  "strategy_id": "0CVvd49h",
+  "original_sha256": "06728ba8446771d2e45c63f2fca0d8cce378c96b445836f47c82e279285c1852",
+  "original_order_sites": [
+    {
+      "line": 780,
+      "type": "strategy.entry"
+    },
+    {
+      "line": 786,
+      "type": "strategy.exit"
+    },
+    {
+      "line": 788,
+      "type": "strategy.exit"
+    },
+    {
+      "line": 794,
+      "type": "strategy.entry"
+    },
+    {
+      "line": 800,
+      "type": "strategy.exit"
+    },
+    {
+      "line": 802,
+      "type": "strategy.exit"
+    },
+    {
+      "line": 816,
+      "type": "strategy.entry"
+    },
+    {
+      "line": 820,
+      "type": "strategy.exit"
+    },
+    {
+      "line": 827,
+      "type": "strategy.entry"
+    },
+    {
+      "line": 831,
+      "type": "strategy.exit"
+    }
+  ],
+  "external_case": "PSARADELLIS-PL-GC-RULES-RESEARCH",
+  "source_paper": "https://research-portal.st-andrews.ac.uk/en/publications/technical-analysis-spread-trading-and-data-snooping-control/",
+  "rule_lineage": [
+    {
+      "source_confirmed": {
+        "rule": "Paper evaluates thousands of technical trading rules on daily spread pairs and controls data snooping",
+        "location": "Methods / Introduction; manuscript pp. 1-7",
+        "classification": "PAPER_METHOD"
+      }
+    },
+    {
+      "source_confirmed": {
+        "rule": "Platinum-gold spread listed, with RSI2 as best rule label in study Table 2",
+        "location": "Accepted manuscript Table 2, appendix p.39",
+        "classification": "PAPER_CLASSIFICATION"
+      }
+    },
+    {
+      "source_confirmed": {
+        "rule": "2 platinum contracts against 1 gold contract for equal underlying ounces",
+        "location": "Accepted manuscript footnote 6, p.7",
+        "classification": "PAPER_CONTRACT_NORMALIZATION"
+      }
+    },
+    {
+      "developer_assumption": {
+        "field": "rsi_bars",
+        "value": 14,
+        "why": "RSI2 is paper rule ID, not confirmed 2-period RSI; research chooses 14"
+      }
+    },
+    {
+      "developer_assumption": {
+        "field": "oversold/overbought",
+        "value": [
+          35,
+          65
+        ],
+        "why": "Independently designed thresholds; not paper-validated optimum"
+      }
+    },
+    {
+      "developer_assumption": {
+        "field": "exit_midpoint_band",
+        "value": 7,
+        "why": "Developer-chosen mean reversion exit"
+      }
+    },
+    {
+      "developer_assumption": {
+        "field": "execution",
+        "value": "next daily open; max 7 bars, assumed fees/slippage",
+        "why": "Simulator design, no paper strategy replication"
+      }
+    }
+  ],
+  "source_version": "2026-11-10 research archive",
+  "claim_direct_pine_parity": false
+}

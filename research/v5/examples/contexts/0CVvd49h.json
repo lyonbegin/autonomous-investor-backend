@@ -1,0 +1,7 @@
+{
+  "chart_symbol":"CAPITALCOM:XPTUSD",
+  "timeframe":"60m",
+  "source":"v3 detailed contract 2026-11-10, reference example for ledger #13",
+  "confidence":"DOCUMENT_CONTEXT_ONLY_NOT_RECONFIRMED_FROM_FULL_PINE",
+  "economic_hypothesis":"Platinum and gold futures may be compared, but original MASU+ Pine only trades one chart instrument."
+}

@@ -1,0 +1,32 @@
+name: Research v5 - offline contract regression
+on:
+  push:
+    branches:
+      - feature/auto-research-v5-evidence-20261110
+    paths:
+      - 'research/v5/**'
+      - '.github/workflows/research-v5-contract-tests.yml'
+  workflow_dispatch:
+    inputs:
+      source_id:
+        description: 'Optional source ID label for reporting (no private Pine archive in CI)'
+        required: false
+        default: 'a5uitxrd'
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Validate stdlib research contracts without private originals
+        env:
+          PYTHONPATH: research/v5/src
+        run: python -m unittest discover -s research/v5/tests -v
+      - name: Explicit CI limitation
+        run: |
+          echo 'No TradingView Pine source ZIP, private dataset, live LLM key or real market quotes are present in this public CI.'
+          echo 'Passing unit tests DOES NOT establish automated research discovery or market profitability.'

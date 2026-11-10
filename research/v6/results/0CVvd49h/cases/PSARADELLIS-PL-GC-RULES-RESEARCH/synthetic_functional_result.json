@@ -1,0 +1,581 @@
+{
+  "status": "SYNTHETIC_FUNCTIONAL_TEST_ONLY",
+  "family": "relative_value_rsi",
+  "trades": [
+    {
+      "entry_timestamp": "2026-01-16T00:00:00+00:00",
+      "exit_timestamp": "2026-01-17T00:00:00+00:00",
+      "signal_timestamp": "2026-01-16T00:00:00+00:00",
+      "legs": [
+        {
+          "symbol": "PL",
+          "side": "BUY",
+          "contracts": 2,
+          "multiplier": 50
+        },
+        {
+          "symbol": "GC",
+          "side": "SELL",
+          "contracts": 1,
+          "multiplier": 100
+        }
+      ],
+      "entry_prices": {
+        "y": 1064.7858,
+        "x": 1255.08676
+      },
+      "exit_prices": {
+        "y": 1062.87294,
+        "x": 1252.09455
+      },
+      "gross_pnl_usd": 107.935,
+      "modeled_costs_usd": 36.0,
+      "modeled_net_pnl_usd": 71.935,
+      "exit_reason": "RSI_MIDPOINT"
+    },
+    {
+      "entry_timestamp": "2026-01-18T00:00:00+00:00",
+      "exit_timestamp": "2026-01-25T00:00:00+00:00",
+      "signal_timestamp": "2026-01-24T00:00:00+00:00",
+      "legs": [
+        {
+          "symbol": "PL",
+          "side": "SELL",
+          "contracts": 2,
+          "multiplier": 50
+        },
+        {
+          "symbol": "GC",
+          "side": "BUY",
+          "contracts": 1,
+          "multiplier": 100
+        }
+      ],
+      "entry_prices": {
+        "y": 1060.90452,
+        "x": 1248.49511
+      },
+      "exit_prices": {
+        "y": 1052.13079,
+        "x": 1223.1105
+      },
+      "gross_pnl_usd": -1661.088,
+      "modeled_costs_usd": 36.0,
+      "modeled_net_pnl_usd": -1697.088,
+      "exit_reason": "MAX_HOLD_BARS"
+    },
+    {
+      "entry_timestamp": "2026-01-26T00:00:00+00:00",
+      "exit_timestamp": "2026-02-02T00:00:00+00:00",
+      "signal_timestamp": "2026-02-01T00:00:00+00:00",
+      "legs": [
+        {
+          "symbol": "PL",
+          "side": "SELL",
+          "contracts": 2,
+          "multiplier": 50
+        },
+        {
+          "symbol": "GC",
+          "side": "BUY",
+          "contracts": 1,
+          "multiplier": 100
+        }
+      ],
+      "entry_prices": {
+        "y": 1052.27694,
+        "x": 1222.58172
+      },
+      "exit_prices": {
+        "y": 1063.93043,
+        "x": 1248.77214
+      },
+      "gross_pnl_usd": 1453.693,
+      "modeled_costs_usd": 36.0,
+      "modeled_net_pnl_usd": 1417.693,
+      "exit_reason": "MAX_HOLD_BARS"
+    },
+    {
+      "entry_timestamp": "2026-02-05T00:00:00+00:00",
+      "exit_timestamp": "2026-02-12T00:00:00+00:00",
+      "signal_timestamp": "2026-02-11T00:00:00+00:00",
+      "legs": [
+        {
+          "symbol": "PL",
+          "side": "BUY",
+          "contracts": 2,
+          "multiplier": 50
+        },
+        {
+          "symbol": "GC",
+          "side": "SELL",
+          "contracts": 1,
+          "multiplier": 100
+        }
+      ],
+      "entry_prices": {
+        "y": 1072.10061,
+        "x": 1263.19139
+      },
+      "exit_prices": {
+        "y": 1086.99632,
+        "x": 1277.26781
+      },
+      "gross_pnl_usd": 81.929,
+      "modeled_costs_usd": 36.0,
+      "modeled_net_pnl_usd": 45.929,
+      "exit_reason": "MAX_HOLD_BARS"
+    },
+    {
+      "entry_timestamp": "2026-02-13T00:00:00+00:00",
+      "exit_timestamp": "2026-02-19T00:00:00+00:00",
+      "signal_timestamp": "2026-02-18T00:00:00+00:00",
+      "legs": [
+        {
+          "symbol": "PL",
+          "side": "BUY",
+          "contracts": 2,
+          "multiplier": 50
+        },
+        {
+          "symbol": "GC",
+          "side": "SELL",
+          "contracts": 1,
+          "multiplier": 100
+        }
+      ],
+      "entry_prices": {
+        "y": 1088.0841,
+        "x": 1278.09463
+      },
+      "exit_prices": {
+        "y": 1088.94445,
+        "x": 1278.03551
+      },
+      "gross_pnl_usd": 91.947,
+      "modeled_costs_usd": 36.0,
+      "modeled_net_pnl_usd": 55.947,
+      "exit_reason": "RSI_MIDPOINT"
+    },
+    {
+      "entry_timestamp": "2026-02-20T00:00:00+00:00",
+      "exit_timestamp": "2026-02-27T00:00:00+00:00",
+      "signal_timestamp": "2026-02-26T00:00:00+00:00",
+      "legs": [
+        {
+          "symbol": "PL",
+          "side": "SELL",
+          "contracts": 2,
+          "multiplier": 50
+        },
+        {
+          "symbol": "GC",
+          "side": "BUY",
+          "contracts": 1,
+          "multiplier": 100
+        }
+      ],
+      "entry_prices": {
+        "y": 1088.37141,
+        "x": 1276.31239
+      },
+      "exit_prices": {
+        "y": 1083.01451,
+        "x": 1255.00468
+      },
+      "gross_pnl_usd": -1595.081,
+      "modeled_costs_usd": 36.0,
+      "modeled_net_pnl_usd": -1631.081,
+      "exit_reason": "MAX_HOLD_BARS"
+    },
+    {
+      "entry_timestamp": "2026-02-28T00:00:00+00:00",
+      "exit_timestamp": "2026-03-07T00:00:00+00:00",
+      "signal_timestamp": "2026-03-06T00:00:00+00:00",
+      "legs": [
+        {
+          "symbol": "PL",
+          "side": "SELL",
+          "contracts": 2,
+          "multiplier": 50
+        },
+        {
+          "symbol": "GC",
+          "side": "BUY",
+          "contracts": 1,
+          "multiplier": 100
+        }
+      ],
+      "entry_prices": {
+        "y": 1082.43252,
+        "x": 1253.2045
+      },
+      "exit_prices": {
+        "y": 1082.58318,
+        "x": 1265.81691
+      },
+      "gross_pnl_usd": 1246.175,
+      "modeled_costs_usd": 36.0,
+      "modeled_net_pnl_usd": 1210.175,
+      "exit_reason": "MAX_HOLD_BARS"
+    },
+    {
+      "entry_timestamp": "2026-03-11T00:00:00+00:00",
+      "exit_timestamp": "2026-03-18T00:00:00+00:00",
+      "signal_timestamp": "2026-03-17T00:00:00+00:00",
+      "legs": [
+        {
+          "symbol": "PL",
+          "side": "BUY",
+          "contracts": 2,
+          "multiplier": 50
+        },
+        {
+          "symbol": "GC",
+          "side": "SELL",
+          "contracts": 1,
+          "multiplier": 100
+        }
+      ],
+      "entry_prices": {
+        "y": 1086.69299,
+        "x": 1278.96287
+      },
+      "exit_prices": {
+        "y": 1099.48517,
+        "x": 1289.56274
+      },
+      "gross_pnl_usd": 219.231,
+      "modeled_costs_usd": 36.0,
+      "modeled_net_pnl_usd": 183.231,
+      "exit_reason": "MAX_HOLD_BARS"
+    },
+    {
+      "entry_timestamp": "2026-03-19T00:00:00+00:00",
+      "exit_timestamp": "2026-03-24T00:00:00+00:00",
+      "signal_timestamp": "2026-03-23T00:00:00+00:00",
+      "legs": [
+        {
+          "symbol": "PL",
+          "side": "BUY",
+          "contracts": 2,
+          "multiplier": 50
+        },
+        {
+          "symbol": "GC",
+          "side": "SELL",
+          "contracts": 1,
+          "multiplier": 100
+        }
+      ],
+      "entry_prices": {
+        "y": 1101.52582,
+        "x": 1291.13925
+      },
+      "exit_prices": {
+        "y": 1110.22144,
+        "x": 1298.81786
+      },
+      "gross_pnl_usd": 101.701,
+      "modeled_costs_usd": 36.0,
+      "modeled_net_pnl_usd": 65.701,
+      "exit_reason": "RSI_MIDPOINT"
+    },
+    {
+      "entry_timestamp": "2026-03-25T00:00:00+00:00",
+      "exit_timestamp": "2026-04-01T00:00:00+00:00",
+      "signal_timestamp": "2026-03-31T00:00:00+00:00",
+      "legs": [
+        {
+          "symbol": "PL",
+          "side": "SELL",
+          "contracts": 2,
+          "multiplier": 50
+        },
+        {
+          "symbol": "GC",
+          "side": "BUY",
+          "contracts": 1,
+          "multiplier": 100
+        }
+      ],
+      "entry_prices": {
+        "y": 1111.40211,
+        "x": 1299.25015
+      },
+      "exit_prices": {
+        "y": 1111.99901,
+        "x": 1285.32981
+      },
+      "gross_pnl_usd": -1451.724,
+      "modeled_costs_usd": 36.0,
+      "modeled_net_pnl_usd": -1487.724,
+      "exit_reason": "MAX_HOLD_BARS"
+    },
+    {
+      "entry_timestamp": "2026-04-02T00:00:00+00:00",
+      "exit_timestamp": "2026-04-09T00:00:00+00:00",
+      "signal_timestamp": "2026-04-08T00:00:00+00:00",
+      "legs": [
+        {
+          "symbol": "PL",
+          "side": "SELL",
+          "contracts": 2,
+          "multiplier": 50
+        },
+        {
+          "symbol": "GC",
+          "side": "BUY",
+          "contracts": 1,
+          "multiplier": 100
+        }
+      ],
+      "entry_prices": {
+        "y": 1111.07784,
+        "x": 1282.75869
+      },
+      "exit_prices": {
+        "y": 1103.37258,
+        "x": 1284.77806
+      },
+      "gross_pnl_usd": 972.463,
+      "modeled_costs_usd": 36.0,
+      "modeled_net_pnl_usd": 936.463,
+      "exit_reason": "MAX_HOLD_BARS"
+    },
+    {
+      "entry_timestamp": "2026-04-13T00:00:00+00:00",
+      "exit_timestamp": "2026-04-20T00:00:00+00:00",
+      "signal_timestamp": "2026-04-19T00:00:00+00:00",
+      "legs": [
+        {
+          "symbol": "PL",
+          "side": "BUY",
+          "contracts": 2,
+          "multiplier": 50
+        },
+        {
+          "symbol": "GC",
+          "side": "SELL",
+          "contracts": 1,
+          "multiplier": 100
+        }
+      ],
+      "entry_prices": {
+        "y": 1103.1264,
+        "x": 1295.21882
+      },
+      "exit_prices": {
+        "y": 1116.35588,
+        "x": 1306.93428
+      },
+      "gross_pnl_usd": 151.402,
+      "modeled_costs_usd": 36.0,
+      "modeled_net_pnl_usd": 115.402,
+      "exit_reason": "MAX_HOLD_BARS"
+    },
+    {
+      "entry_timestamp": "2026-04-21T00:00:00+00:00",
+      "exit_timestamp": "2026-04-26T00:00:00+00:00",
+      "signal_timestamp": "2026-04-25T00:00:00+00:00",
+      "legs": [
+        {
+          "symbol": "PL",
+          "side": "BUY",
+          "contracts": 2,
+          "multiplier": 50
+        },
+        {
+          "symbol": "GC",
+          "side": "SELL",
+          "contracts": 1,
+          "multiplier": 100
+        }
+      ],
+      "entry_prices": {
+        "y": 1119.21232,
+        "x": 1308.92848
+      },
+      "exit_prices": {
+        "y": 1132.58332,
+        "x": 1320.44233
+      },
+      "gross_pnl_usd": 185.715,
+      "modeled_costs_usd": 36.0,
+      "modeled_net_pnl_usd": 149.715,
+      "exit_reason": "RSI_MIDPOINT"
+    }
+  ],
+  "events": [
+    {
+      "signal_time": "2026-01-15T00:00:00+00:00",
+      "fill_time": "2026-01-16T00:00:00+00:00",
+      "action": "ENTER_LONG_SPREAD",
+      "reason": "RSI_OVERSOLD"
+    },
+    {
+      "signal_time": "2026-01-16T00:00:00+00:00",
+      "fill_time": "2026-01-17T00:00:00+00:00",
+      "action": "EXIT",
+      "reason": "RSI_MIDPOINT"
+    },
+    {
+      "signal_time": "2026-01-17T00:00:00+00:00",
+      "fill_time": "2026-01-18T00:00:00+00:00",
+      "action": "ENTER_SHORT_SPREAD",
+      "reason": "RSI_OVERBOUGHT"
+    },
+    {
+      "signal_time": "2026-01-24T00:00:00+00:00",
+      "fill_time": "2026-01-25T00:00:00+00:00",
+      "action": "EXIT",
+      "reason": "MAX_HOLD_BARS"
+    },
+    {
+      "signal_time": "2026-01-25T00:00:00+00:00",
+      "fill_time": "2026-01-26T00:00:00+00:00",
+      "action": "ENTER_SHORT_SPREAD",
+      "reason": "RSI_OVERBOUGHT"
+    },
+    {
+      "signal_time": "2026-02-01T00:00:00+00:00",
+      "fill_time": "2026-02-02T00:00:00+00:00",
+      "action": "EXIT",
+      "reason": "MAX_HOLD_BARS"
+    },
+    {
+      "signal_time": "2026-02-04T00:00:00+00:00",
+      "fill_time": "2026-02-05T00:00:00+00:00",
+      "action": "ENTER_LONG_SPREAD",
+      "reason": "RSI_OVERSOLD"
+    },
+    {
+      "signal_time": "2026-02-11T00:00:00+00:00",
+      "fill_time": "2026-02-12T00:00:00+00:00",
+      "action": "EXIT",
+      "reason": "MAX_HOLD_BARS"
+    },
+    {
+      "signal_time": "2026-02-12T00:00:00+00:00",
+      "fill_time": "2026-02-13T00:00:00+00:00",
+      "action": "ENTER_LONG_SPREAD",
+      "reason": "RSI_OVERSOLD"
+    },
+    {
+      "signal_time": "2026-02-18T00:00:00+00:00",
+      "fill_time": "2026-02-19T00:00:00+00:00",
+      "action": "EXIT",
+      "reason": "RSI_MIDPOINT"
+    },
+    {
+      "signal_time": "2026-02-19T00:00:00+00:00",
+      "fill_time": "2026-02-20T00:00:00+00:00",
+      "action": "ENTER_SHORT_SPREAD",
+      "reason": "RSI_OVERBOUGHT"
+    },
+    {
+      "signal_time": "2026-02-26T00:00:00+00:00",
+      "fill_time": "2026-02-27T00:00:00+00:00",
+      "action": "EXIT",
+      "reason": "MAX_HOLD_BARS"
+    },
+    {
+      "signal_time": "2026-02-27T00:00:00+00:00",
+      "fill_time": "2026-02-28T00:00:00+00:00",
+      "action": "ENTER_SHORT_SPREAD",
+      "reason": "RSI_OVERBOUGHT"
+    },
+    {
+      "signal_time": "2026-03-06T00:00:00+00:00",
+      "fill_time": "2026-03-07T00:00:00+00:00",
+      "action": "EXIT",
+      "reason": "MAX_HOLD_BARS"
+    },
+    {
+      "signal_time": "2026-03-10T00:00:00+00:00",
+      "fill_time": "2026-03-11T00:00:00+00:00",
+      "action": "ENTER_LONG_SPREAD",
+      "reason": "RSI_OVERSOLD"
+    },
+    {
+      "signal_time": "2026-03-17T00:00:00+00:00",
+      "fill_time": "2026-03-18T00:00:00+00:00",
+      "action": "EXIT",
+      "reason": "MAX_HOLD_BARS"
+    },
+    {
+      "signal_time": "2026-03-18T00:00:00+00:00",
+      "fill_time": "2026-03-19T00:00:00+00:00",
+      "action": "ENTER_LONG_SPREAD",
+      "reason": "RSI_OVERSOLD"
+    },
+    {
+      "signal_time": "2026-03-23T00:00:00+00:00",
+      "fill_time": "2026-03-24T00:00:00+00:00",
+      "action": "EXIT",
+      "reason": "RSI_MIDPOINT"
+    },
+    {
+      "signal_time": "2026-03-24T00:00:00+00:00",
+      "fill_time": "2026-03-25T00:00:00+00:00",
+      "action": "ENTER_SHORT_SPREAD",
+      "reason": "RSI_OVERBOUGHT"
+    },
+    {
+      "signal_time": "2026-03-31T00:00:00+00:00",
+      "fill_time": "2026-04-01T00:00:00+00:00",
+      "action": "EXIT",
+      "reason": "MAX_HOLD_BARS"
+    },
+    {
+      "signal_time": "2026-04-01T00:00:00+00:00",
+      "fill_time": "2026-04-02T00:00:00+00:00",
+      "action": "ENTER_SHORT_SPREAD",
+      "reason": "RSI_OVERBOUGHT"
+    },
+    {
+      "signal_time": "2026-04-08T00:00:00+00:00",
+      "fill_time": "2026-04-09T00:00:00+00:00",
+      "action": "EXIT",
+      "reason": "MAX_HOLD_BARS"
+    },
+    {
+      "signal_time": "2026-04-12T00:00:00+00:00",
+      "fill_time": "2026-04-13T00:00:00+00:00",
+      "action": "ENTER_LONG_SPREAD",
+      "reason": "RSI_OVERSOLD"
+    },
+    {
+      "signal_time": "2026-04-19T00:00:00+00:00",
+      "fill_time": "2026-04-20T00:00:00+00:00",
+      "action": "EXIT",
+      "reason": "MAX_HOLD_BARS"
+    },
+    {
+      "signal_time": "2026-04-20T00:00:00+00:00",
+      "fill_time": "2026-04-21T00:00:00+00:00",
+      "action": "ENTER_LONG_SPREAD",
+      "reason": "RSI_OVERSOLD"
+    },
+    {
+      "signal_time": "2026-04-25T00:00:00+00:00",
+      "fill_time": "2026-04-26T00:00:00+00:00",
+      "action": "EXIT",
+      "reason": "RSI_MIDPOINT"
+    },
+    {
+      "signal_time": "2026-04-27T00:00:00+00:00",
+      "fill_time": "2026-04-28T00:00:00+00:00",
+      "action": "ENTER_SHORT_SPREAD",
+      "reason": "RSI_OVERBOUGHT"
+    }
+  ],
+  "open_position_at_end": true,
+  "closed_trade_count": 13,
+  "gross_pnl_usd": -95.702,
+  "modeled_net_pnl_usd": -563.702,
+  "market_backtest": "REAL_BACKTEST_NOT_RUN",
+  "claim_replicates_paper": false,
+  "spread_definition": "PL quote USD/oz minus GC quote USD/oz, 2 PL vs 1 GC matched ounce amount",
+  "academic_method_gap": "RSI(14)/30/70 are author research assumptions, not published RSI2 parameters"
+}

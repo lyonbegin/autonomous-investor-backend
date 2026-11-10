@@ -1,0 +1,62 @@
+{
+  "case_id": "PSARADELLIS-PL-GC-RULES-RESEARCH",
+  "source_id": "0CVvd49h",
+  "source_paper_url": "https://research-portal.st-andrews.ac.uk/en/publications/technical-analysis-spread-trading-and-data-snooping-control/",
+  "source_confirmed_rules": [
+    {
+      "rule": "Paper evaluates thousands of technical trading rules on daily spread pairs and controls data snooping",
+      "location": "Methods / Introduction; manuscript pp. 1-7",
+      "classification": "PAPER_METHOD"
+    },
+    {
+      "rule": "Platinum-gold spread listed, with RSI2 as best rule label in study Table 2",
+      "location": "Accepted manuscript Table 2, appendix p.39",
+      "classification": "PAPER_CLASSIFICATION"
+    },
+    {
+      "rule": "2 platinum contracts against 1 gold contract for equal underlying ounces",
+      "location": "Accepted manuscript footnote 6, p.7",
+      "classification": "PAPER_CONTRACT_NORMALIZATION"
+    }
+  ],
+  "developer_assumptions": [
+    {
+      "field": "rsi_bars",
+      "value": 14,
+      "why": "RSI2 is paper rule ID, not confirmed 2-period RSI; research chooses 14"
+    },
+    {
+      "field": "oversold/overbought",
+      "value": [
+        35,
+        65
+      ],
+      "why": "Independently designed thresholds; not paper-validated optimum"
+    },
+    {
+      "field": "exit_midpoint_band",
+      "value": 7,
+      "why": "Developer-chosen mean reversion exit"
+    },
+    {
+      "field": "execution",
+      "value": "next daily open; max 7 bars, assumed fees/slippage",
+      "why": "Simulator design, no paper strategy replication"
+    }
+  ],
+  "generated_code": {
+    "kind": "relative_value_rsi",
+    "status": "PYTHON_GENERATED_RESEARCH_ONLY",
+    "code_sha256": "fe276c534b472f9572e262218ec02cff508de3aa0ec3e9b0d653fcdc5d4c3b62",
+    "spec_sha256": "817e3773c66c354c51b3dc4c8b0dc84a0b3d63a4f8ad35f9d954a0427dbe169d"
+  },
+  "mode": "RESEARCH_ONLY",
+  "source_claim": "NOT_PAPER_REPLICATION",
+  "real_backtest": "REAL_BACKTEST_NOT_RUN",
+  "fixture_name": "synthetic_daily_bars.json",
+  "fixture_sha256": "0b715469f60245185499f9f97253daf139bbacbdb4108a7c9c58e709ed0792de",
+  "requirements": [
+    "Python 3.10+ stdlib"
+  ],
+  "live_orders_enabled": false
+}

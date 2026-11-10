@@ -1,0 +1,101 @@
+{
+  "strategy_id": "0CVvd49h",
+  "original_sha256": "06728ba8446771d2e45c63f2fca0d8cce378c96b445836f47c82e279285c1852",
+  "original_order_sites": [
+    {
+      "line": 780,
+      "type": "strategy.entry"
+    },
+    {
+      "line": 786,
+      "type": "strategy.exit"
+    },
+    {
+      "line": 788,
+      "type": "strategy.exit"
+    },
+    {
+      "line": 794,
+      "type": "strategy.entry"
+    },
+    {
+      "line": 800,
+      "type": "strategy.exit"
+    },
+    {
+      "line": 802,
+      "type": "strategy.exit"
+    },
+    {
+      "line": 816,
+      "type": "strategy.entry"
+    },
+    {
+      "line": 820,
+      "type": "strategy.exit"
+    },
+    {
+      "line": 827,
+      "type": "strategy.entry"
+    },
+    {
+      "line": 831,
+      "type": "strategy.exit"
+    }
+  ],
+  "external_case": "IWATSUBO-CROSS-VENUE-MICROSTRUCTURE",
+  "source_paper": "https://www.mdpi.com/1911-8074/15/12/593",
+  "rule_lineage": [
+    {
+      "source_confirmed": {
+        "rule": "The study defines two directions of platinum NYMEX–TOCOM quote arbitrage using NY/TO bid–ask and USD/JPY forward rate",
+        "location": "Section 3, Equation (1) PROF",
+        "classification": "PAPER_FORMULA"
+      }
+    },
+    {
+      "source_confirmed": {
+        "rule": "Study analyzes the connection of possible arbitrage opportunity to liquidity, not a guaranteed net-profit execution recipe",
+        "location": "Abstract, Section 1, Section 3",
+        "classification": "PAPER_SCOPE"
+      }
+    },
+    {
+      "developer_assumption": {
+        "field": "contract_sizes",
+        "value": "NY 50 troy oz against Tokyo 3 × 500 g",
+        "why": "Lot approximation; historical/current venue specs must be checked, residual exposure exists"
+      }
+    },
+    {
+      "developer_assumption": {
+        "field": "fx",
+        "value": "Forward bid/ask for synthetic quote replay",
+        "why": "No actual forward contract hedge, cash flows proxy; not locked FX arbitrage"
+      }
+    },
+    {
+      "developer_assumption": {
+        "field": "entry_net_edge",
+        "value": 10000,
+        "why": "Net of illustrative 8000 JPY roundtrip fees, research threshold"
+      }
+    },
+    {
+      "developer_assumption": {
+        "field": "exit",
+        "value": "Net entry edge compression or 3 snapshots",
+        "why": "Developed exit rule; paper does not prescribe"
+      }
+    },
+    {
+      "developer_assumption": {
+        "field": "quote_max_age",
+        "value": 3,
+        "why": "Research quality gate; not paper executable policy"
+      }
+    }
+  ],
+  "source_version": "2026-11-10 research archive",
+  "claim_direct_pine_parity": false
+}

@@ -1,0 +1,64 @@
+{
+  "case_id": "BAEK-2020-HG-PL-RESEARCH",
+  "source_id": "0CVvd49h",
+  "source_paper_url": "https://www.mdpi.com/2071-1050/12/17/6791",
+  "source_confirmed_rules": [
+    {
+      "rule": "Study selects pairs and tests cointegration using Engle-Granger/ECM; SVR hedge ratio",
+      "location": "Section 2.4, Systemic Trading Architecture and Trading Strategy and Hedge Ratio from SVM",
+      "classification": "PAPER_METHOD"
+    },
+    {
+      "rule": "Signals at deviation beyond a 15-day moving average with standard-deviation band; pairs opened simultaneously, exited on reverting to mean",
+      "location": "Section 2.4, Strategy and Hedge Ratio from SVM",
+      "classification": "PAPER_METHOD"
+    }
+  ],
+  "developer_assumptions": [
+    {
+      "field": "underlyings",
+      "value": "HG + PL",
+      "why": "Illustrative metal futures pairing. Specific HG-PL pair is not claimed as a tested study pair"
+    },
+    {
+      "field": "hedge_method",
+      "value": "training-only OLS",
+      "why": "Stdlib proxy for SVM regression / ECM; not equivalently cointegration-tested"
+    },
+    {
+      "field": "entry_z",
+      "value": 1.5,
+      "why": "Developer threshold; paper text supports band but not this numeric multiple"
+    },
+    {
+      "field": "exit_z",
+      "value": 0.35,
+      "why": "Quantified mean-reversion exit threshold supplied by developer"
+    },
+    {
+      "field": "stop_z",
+      "value": 5.0,
+      "why": "Capital/risk research assumption"
+    },
+    {
+      "field": "execution",
+      "value": "next daily bar open; fixed contract sizes; explicit assumed fees",
+      "why": "Not asserted as source instructions"
+    }
+  ],
+  "generated_code": {
+    "kind": "ols_cointegration_reversion",
+    "status": "PYTHON_GENERATED_RESEARCH_ONLY",
+    "code_sha256": "4d7b4a050c09d19846822da9d582b9f4dcf5233d4872ba8f69097d2c0af0a11a",
+    "spec_sha256": "9dae7e4e9d01a1b0dbc5f92a9c7195c2048c26ce36a189da9fa8d34e33c7400b"
+  },
+  "mode": "RESEARCH_ONLY",
+  "source_claim": "NOT_PAPER_REPLICATION",
+  "real_backtest": "REAL_BACKTEST_NOT_RUN",
+  "fixture_name": "synthetic_daily_bars.json",
+  "fixture_sha256": "0b715469f60245185499f9f97253daf139bbacbdb4108a7c9c58e709ed0792de",
+  "requirements": [
+    "Python 3.10+ stdlib"
+  ],
+  "live_orders_enabled": false
+}

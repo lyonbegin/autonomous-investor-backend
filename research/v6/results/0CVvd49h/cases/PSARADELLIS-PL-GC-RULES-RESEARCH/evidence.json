@@ -1,0 +1,28 @@
+{
+  "case_id": "PSARADELLIS-PL-GC-RULES-RESEARCH",
+  "source_url": "https://research-portal.st-andrews.ac.uk/en/publications/technical-analysis-spread-trading-and-data-snooping-control/",
+  "publisher": "International Journal of Forecasting",
+  "authors": "Ioannis Psaradellis, Jason Laws, Athanasios A. Pantelous, Georgios Sermpinis",
+  "year": 2023,
+  "doi": "10.1016/j.ijforecast.2021.10.002",
+  "exact_paper_section": [
+    {
+      "rule": "Paper evaluates thousands of technical trading rules on daily spread pairs and controls data snooping",
+      "location": "Methods / Introduction; manuscript pp. 1-7",
+      "classification": "PAPER_METHOD"
+    },
+    {
+      "rule": "Platinum-gold spread listed, with RSI2 as best rule label in study Table 2",
+      "location": "Accepted manuscript Table 2, appendix p.39",
+      "classification": "PAPER_CLASSIFICATION"
+    },
+    {
+      "rule": "2 platinum contracts against 1 gold contract for equal underlying ounces",
+      "location": "Accepted manuscript footnote 6, p.7",
+      "classification": "PAPER_CONTRACT_NORMALIZATION"
+    }
+  ],
+  "not_from_original_pine": true,
+  "new_model_rules_are_developer_assumptions": true,
+  "evidence_review": "WEB_RESEARCH_AND_MANUAL_METHOD_EXTRACTION"
+}

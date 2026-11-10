@@ -1,0 +1,86 @@
+{
+  "source_id": "0CVvd49h",
+  "case_id": "PSARADELLIS-PL-GC-RULES-RESEARCH",
+  "kind": "relative_value_rsi",
+  "mode": "RESEARCH_ONLY",
+  "live_orders_enabled": false,
+  "title": "Platinum-Gold ounce-neutral RSI spread mean-reversion research rule",
+  "source_evidence_url": "https://research-portal.st-andrews.ac.uk/en/publications/technical-analysis-spread-trading-and-data-snooping-control/",
+  "source_confirmed_rules": [
+    {
+      "rule": "Paper evaluates thousands of technical trading rules on daily spread pairs and controls data snooping",
+      "location": "Methods / Introduction; manuscript pp. 1-7",
+      "classification": "PAPER_METHOD"
+    },
+    {
+      "rule": "Platinum-gold spread listed, with RSI2 as best rule label in study Table 2",
+      "location": "Accepted manuscript Table 2, appendix p.39",
+      "classification": "PAPER_CLASSIFICATION"
+    },
+    {
+      "rule": "2 platinum contracts against 1 gold contract for equal underlying ounces",
+      "location": "Accepted manuscript footnote 6, p.7",
+      "classification": "PAPER_CONTRACT_NORMALIZATION"
+    }
+  ],
+  "research_assumptions": [
+    {
+      "field": "rsi_bars",
+      "value": 14,
+      "why": "RSI2 is paper rule ID, not confirmed 2-period RSI; research chooses 14"
+    },
+    {
+      "field": "oversold/overbought",
+      "value": [
+        35,
+        65
+      ],
+      "why": "Independently designed thresholds; not paper-validated optimum"
+    },
+    {
+      "field": "exit_midpoint_band",
+      "value": 7,
+      "why": "Developer-chosen mean reversion exit"
+    },
+    {
+      "field": "execution",
+      "value": "next daily open; max 7 bars, assumed fees/slippage",
+      "why": "Simulator design, no paper strategy replication"
+    }
+  ],
+  "instrument_info": {
+    "PL": {
+      "venue": "NYMEX",
+      "multiplier_oz": 50,
+      "price_unit": "USD per oz"
+    },
+    "GC": {
+      "venue": "COMEX",
+      "multiplier_oz": 100,
+      "price_unit": "USD per oz"
+    }
+  },
+  "parameters": {
+    "timeframe": "1d",
+    "rsi_bars": 14,
+    "oversold": 35,
+    "overbought": 65,
+    "exit_midpoint_band": 7,
+    "max_hold_bars": 7,
+    "qty_y": 2,
+    "qty_x": 1,
+    "multiplier_y": 50,
+    "multiplier_x": 100,
+    "roundtrip_fee_per_contract_usd": 8,
+    "slippage_per_side_per_contract_usd": 2
+  },
+  "classification": {
+    "taxonomy_candidates": [
+      "S028",
+      "S045"
+    ],
+    "new_taxonomy_proposal": "METALS-PL-GC-RSI-SPREAD",
+    "status": "RESEARCH_ANALOGY_NOT_VERIFIED_MAPPED"
+  },
+  "hypothesis": "Platinum-gold price divergence may revert; RSI extremes of the ounce-normalized spread are a testable indicator, with FDR/walk-forward checks required."
+}

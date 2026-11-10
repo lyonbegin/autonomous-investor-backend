@@ -1,0 +1,23 @@
+{
+  "case_id": "BAEK-2020-HG-PL-RESEARCH",
+  "source_url": "https://www.mdpi.com/2071-1050/12/17/6791",
+  "publisher": "Sustainability",
+  "authors": "Seungho Baek, Mina Glambosky, Seok Hee Oh, Jeong Lee",
+  "year": 2020,
+  "doi": "10.3390/su12176791",
+  "exact_paper_section": [
+    {
+      "rule": "Study selects pairs and tests cointegration using Engle-Granger/ECM; SVR hedge ratio",
+      "location": "Section 2.4, Systemic Trading Architecture and Trading Strategy and Hedge Ratio from SVM",
+      "classification": "PAPER_METHOD"
+    },
+    {
+      "rule": "Signals at deviation beyond a 15-day moving average with standard-deviation band; pairs opened simultaneously, exited on reverting to mean",
+      "location": "Section 2.4, Strategy and Hedge Ratio from SVM",
+      "classification": "PAPER_METHOD"
+    }
+  ],
+  "not_from_original_pine": true,
+  "new_model_rules_are_developer_assumptions": true,
+  "evidence_review": "WEB_RESEARCH_AND_MANUAL_METHOD_EXTRACTION"
+}

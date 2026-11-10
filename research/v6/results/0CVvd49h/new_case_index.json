@@ -1,0 +1,25 @@
+{
+  "date": "2026-11-10",
+  "source_id": "0CVvd49h",
+  "case_implementations": [
+    {
+      "id": "BAEK-2020-HG-PL-RESEARCH",
+      "status": "GENERATED_SYNTHETIC_TEST_PASSED",
+      "functional_closed_trades": 7
+    },
+    {
+      "id": "PSARADELLIS-PL-GC-RULES-RESEARCH",
+      "status": "GENERATED_SYNTHETIC_TEST_PASSED",
+      "functional_closed_trades": 13
+    },
+    {
+      "id": "IWATSUBO-CROSS-VENUE-MICROSTRUCTURE",
+      "status": "GENERATED_SYNTHETIC_TEST_PASSED",
+      "functional_closed_trades": 1
+    }
+  ],
+  "prior_wrong_failure_state": "RULE_EXTRACTION_INCOMPLETE",
+  "new_research_generation": "STRATEGY_IMPLEMENTED_WITH_DISCLOSED_ASSUMPTIONS",
+  "real_backtest": "REAL_BACKTEST_NOT_RUN",
+  "additional_12": "MISSING_CANONICAL_SOURCE"
+}
