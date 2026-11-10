@@ -1,0 +1,87 @@
+{
+  "schema_version": 1,
+  "source": {
+    "sequential_ledger_row": 13,
+    "strategy_id": "0CVvd49h",
+    "title": "MASU+ v7.2 (NW+ELM+BOS)",
+    "pine_version": 6,
+    "source_type": "OFFICIAL_OPEN_SOURCE_RETRIEVED",
+    "source_url": "https://www.tradingview.com/script/0CVvd49h-MASU-v7-2-NW-ELM-BOS/",
+    "pine_sha256": "06728ba8446771d2e45c63f2fca0d8cce378c96b445836f47c82e279285c1852",
+    "source_type_judgement": "SINGLE_UNDERLYING_DIRECTIONAL_STRATEGY",
+    "evidence": "Source invokes strategy.entry long/short on chart instrument. MTF request.security is on syminfo.tickerid; no two-leg orders. Correlation symbols are input values, not proof of futures spread execution.",
+    "status": "SOURCE_READ_AND_SHA_MATCHED_IN_ARCHIVE"
+  },
+  "cases": [
+    {
+      "id": "CME-PL-GC-ILLUSTRATION",
+      "source_url": "https://www.cmegroup.com/education/courses/introduction-to-precious-metals/understanding-intermarket-spreads-platinum-and-gold",
+      "type": "EXCHANGE_WORKED_TRANSACTION",
+      "facts": {
+        "leg_1": "BUY 2 APR PL at 988.40; SELL at 1056.40; 50oz per contract",
+        "leg_2": "SELL 1 APR GC at 1231.90; BUY at 1244.20; 100oz per contract",
+        "gross_pnl_usd": 5570,
+        "source_provides_zscore_entry_rule": false
+      },
+      "development_assumptions": {
+        "strategy_file": "research/intermarket.py",
+        "spread": "PL close - GC close per oz",
+        "lookback_bars": 20,
+        "entry_zscore": 2,
+        "exit_zscore": 0,
+        "signal_close_fill_next_open": true,
+        "commission_and_slippage": "user-configurable; zero only for worked arithmetic"
+      },
+      "status": "INDEPENDENT_PYTHON_WRITTEN_FUNCTIONAL_UNIT_TESTED_NOT_REAL_BACKTESTED"
+    },
+    {
+      "id": "CHAN-2013-CH3",
+      "source_url": "https://onlinelibrary.wiley.com/doi/10.1002/9781118676998.ch3",
+      "type": "ACADEMIC_BOOK_CHAPTER",
+      "facts": {
+        "method": "Mean reversion using Bollinger bands; discusses price, log-price or ratios and dynamic Kalman hedge ratios"
+      },
+      "development_assumptions": null,
+      "status": "SOURCE_IDENTIFIED_RULE_EXTRACTION_AND_CODE_PENDING"
+    },
+    {
+      "id": "BAEK-2020-FUTURES-PAIRS",
+      "source_url": "https://www.mdpi.com/2071-1050/12/17/6791",
+      "type": "PEER_REVIEWED_PAPER",
+      "facts": {
+        "method": "Futures pairs trading, cointegration, error-correction hedge ratio, SVM"
+      },
+      "development_assumptions": null,
+      "status": "SOURCE_IDENTIFIED_EXACT_ENTRY_EXIT_RULE_EXTRACTION_PENDING"
+    },
+    {
+      "id": "PSARADELLIS-2018-COMMODITY-PAIRS",
+      "source_url": "https://www.research.ed.ac.uk/en/publications/pairs-trading-technical-analysis-and-data-snooping-mean-reversion/",
+      "type": "ACADEMIC_RESEARCH",
+      "facts": {
+        "method": "Mean-reversion vs momentum technical rules; 18,412 candidate rules; daily commodities 1990-2016 and out-of-sample / multiple-testing checks"
+      },
+      "development_assumptions": null,
+      "status": "SOURCE_IDENTIFIED_RULE_EXTRACTION_AND_DATA_PENDING"
+    },
+    {
+      "id": "IWATSUBO-2018-PLATINUM-GOLD",
+      "source_url": "https://www.sciencedirect.com/science/article/pii/S2405851318300102",
+      "type": "MICROSTRUCTURE_STUDY_NOT_TRADE_RECIPE",
+      "facts": {
+        "method": "Tokyo, London, NY intraday seasonality of informational efficiency/liquidity/volatility/volume"
+      },
+      "development_assumptions": null,
+      "status": "SOURCE_IDENTIFIED_RESEARCH_HYPOTHESIS_ONLY_NO_PUBLISHED_ENTRY_EXIT_RULE"
+    }
+  ],
+  "research_gate": {
+    "sequential_3393_order_original": "MISSING",
+    "sequential_next_id": "NOT_SELECTED",
+    "complete_33890_xlsx": "MISSING",
+    "full_work_instruction": "MISSING",
+    "market_ohlcv_source": "NOT_VERIFIED",
+    "real_market_backtest": "NOT_RUN",
+    "tradingview_parity": "NOT_VERIFIED"
+  }
+}
