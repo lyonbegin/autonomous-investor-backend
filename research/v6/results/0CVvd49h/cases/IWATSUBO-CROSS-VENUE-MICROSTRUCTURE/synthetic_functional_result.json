@@ -1,0 +1,38 @@
+{
+  "status": "SYNTHETIC_QUOTE_REPLAY_ONLY",
+  "trades": [
+    {
+      "entry_timestamp": "2026-02-02T08:00:00+00:00",
+      "exit_timestamp": "2026-02-02T08:01:00+00:00",
+      "direction": "BUY_NY_SELL_JP",
+      "entry_cashflow_jpy": 87500.0,
+      "exit_cashflow_jpy": -17497.5,
+      "gross_quote_replay_pnl_jpy": 70002.5,
+      "modeled_net_quote_replay_pnl_jpy": 62002.5,
+      "execution_state": "UNEXECUTED_SYNTHETIC_QUOTE_REPLAY",
+      "qualification": "Not locked arbitrage: mismatched metal mass, forward settlement and leg-risk not fully modeled"
+    }
+  ],
+  "events": [
+    {
+      "timestamp": "2026-02-02T08:00:00+00:00",
+      "action": "SIGNAL_ONLY_OPEN_RESEARCH",
+      "direction": "BUY_NY_SELL_JP",
+      "edge_after_assumed_cost_jpy": 79500.0
+    },
+    {
+      "timestamp": "2026-02-02T08:01:00+00:00",
+      "action": "SIGNAL_ONLY_CLOSE_RESEARCH"
+    }
+  ],
+  "open_position_at_end": false,
+  "closed_trade_count": 1,
+  "modeled_net_quote_replay_pnl_jpy": 62002.5,
+  "market_backtest": "REAL_BACKTEST_NOT_RUN",
+  "paper_execution": false,
+  "live_orders_enabled": false,
+  "risk_warnings": [
+    "Forward quote conversion is research proxy; actual FX hedge/settlement, lot transfer, borrow, margins and simultaneous fills unverified",
+    "1 NY(50oz) vs 3 Tokyo(500g) leaves residual metal exposure; not riskless arbitrage"
+  ]
+}

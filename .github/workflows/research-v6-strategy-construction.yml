@@ -1,0 +1,42 @@
+name: Research v6 - Strategy generation and evidence contracts
+on:
+  push:
+    branches:
+      - feature/auto-research-v5-evidence-20261110
+    paths:
+      - 'research/v6/**'
+      - '.github/workflows/research-v6-strategy-construction.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  research-codegen:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Generate research strategies from three case specs
+        run: python research/v6/build_v6.py
+      - name: Verify evidence-scope contracts and three generated strategy families
+        run: python -m unittest discover -s research/v6/tests -v
+      - name: Execute generated research code on synthetic fixtures
+        shell: bash
+        run: |
+          set -euo pipefail
+          python research/v6/results/BAEK-2020-HG-PL-RESEARCH/generated_strategy.py research/v6/fixtures/synthetic_daily_bars.json > /tmp/baek.json
+          python research/v6/results/PSARADELLIS-PL-GC-RULES-RESEARCH/generated_strategy.py research/v6/fixtures/synthetic_daily_bars.json > /tmp/psaradellis.json
+          python research/v6/results/IWATSUBO-CROSS-VENUE-MICROSTRUCTURE/generated_strategy.py research/v6/fixtures/synthetic_quote_snapshots.json > /tmp/iwatsubo.json
+          python - <<'PY'
+          import json
+          for f in ('/tmp/baek.json','/tmp/psaradellis.json','/tmp/iwatsubo.json'):
+              v=json.load(open(f))
+              assert v['closed_trade_count'] > 0
+              assert v['market_backtest']=='REAL_BACKTEST_NOT_RUN'
+          PY
+      - name: Explicit scope boundary
+        run: echo 'CI tests use synthetic fixtures ONLY. No user original Pine, online AI discovery, actual market backtest or LIVE/PAPER orders are run.'

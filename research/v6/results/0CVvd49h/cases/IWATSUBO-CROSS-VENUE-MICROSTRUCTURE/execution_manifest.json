@@ -1,0 +1,59 @@
+{
+  "case_id": "IWATSUBO-CROSS-VENUE-MICROSTRUCTURE",
+  "source_id": "0CVvd49h",
+  "source_paper_url": "https://www.mdpi.com/1911-8074/15/12/593",
+  "source_confirmed_rules": [
+    {
+      "rule": "The study defines two directions of platinum NYMEX–TOCOM quote arbitrage using NY/TO bid–ask and USD/JPY forward rate",
+      "location": "Section 3, Equation (1) PROF",
+      "classification": "PAPER_FORMULA"
+    },
+    {
+      "rule": "Study analyzes the connection of possible arbitrage opportunity to liquidity, not a guaranteed net-profit execution recipe",
+      "location": "Abstract, Section 1, Section 3",
+      "classification": "PAPER_SCOPE"
+    }
+  ],
+  "developer_assumptions": [
+    {
+      "field": "contract_sizes",
+      "value": "NY 50 troy oz against Tokyo 3 × 500 g",
+      "why": "Lot approximation; historical/current venue specs must be checked, residual exposure exists"
+    },
+    {
+      "field": "fx",
+      "value": "Forward bid/ask for synthetic quote replay",
+      "why": "No actual forward contract hedge, cash flows proxy; not locked FX arbitrage"
+    },
+    {
+      "field": "entry_net_edge",
+      "value": 10000,
+      "why": "Net of illustrative 8000 JPY roundtrip fees, research threshold"
+    },
+    {
+      "field": "exit",
+      "value": "Net entry edge compression or 3 snapshots",
+      "why": "Developed exit rule; paper does not prescribe"
+    },
+    {
+      "field": "quote_max_age",
+      "value": 3,
+      "why": "Research quality gate; not paper executable policy"
+    }
+  ],
+  "generated_code": {
+    "kind": "cross_venue_platinum_quotes",
+    "status": "PYTHON_GENERATED_RESEARCH_ONLY",
+    "code_sha256": "52de844749c47fe481abba09514f699be04fa5bb750fd7147e19debdff5327a4",
+    "spec_sha256": "78e231de86c25db79cd512f55902096e5291a734979e9e1f1142164d550ec6a6"
+  },
+  "mode": "RESEARCH_ONLY",
+  "source_claim": "NOT_PAPER_REPLICATION",
+  "real_backtest": "REAL_BACKTEST_NOT_RUN",
+  "fixture_name": "synthetic_quote_snapshots.json",
+  "fixture_sha256": "41803aa0992ddaa520f8482b5dc1f71ad6e98cbc5a5b6f0870fe9e1260f427b9",
+  "requirements": [
+    "Python 3.10+ stdlib"
+  ],
+  "live_orders_enabled": false
+}

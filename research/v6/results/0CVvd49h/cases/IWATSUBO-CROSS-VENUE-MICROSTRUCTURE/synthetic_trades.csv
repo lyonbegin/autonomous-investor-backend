@@ -1,0 +1,2 @@
+﻿entry_timestamp,exit_timestamp,strategy_kind,legs,gross_fixture_pnl,modeled_net_fixture_pnl,currency,execution_status
+2026-02-02T08:00:00+00:00,2026-02-02T08:01:00+00:00,cross_venue_platinum_quotes,"{""direction"": ""BUY_NY_SELL_JP""}",70002.5,62002.5,JPY,SYNTHETIC_ONLY

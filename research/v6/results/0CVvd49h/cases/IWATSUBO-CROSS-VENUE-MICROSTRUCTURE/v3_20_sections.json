@@ -1,0 +1,302 @@
+{
+  "01_original_identity": {
+    "TradingView_id": "0CVvd49h",
+    "name": "MASU+ v7.2",
+    "source_ref": "../../original.pine",
+    "pine_sha256": "06728ba8446771d2e45c63f2fca0d8cce378c96b445836f47c82e279285c1852",
+    "original_is_not_this_case": true
+  },
+  "02_Pine_full_code": {
+    "source_lines": 1158,
+    "source_code": "../../original.pine",
+    "semantic_scope": "STATIC_CALL_SITES_ONLY",
+    "order_call_sites": [
+      {
+        "line": 780,
+        "type": "strategy.entry"
+      },
+      {
+        "line": 786,
+        "type": "strategy.exit"
+      },
+      {
+        "line": 788,
+        "type": "strategy.exit"
+      },
+      {
+        "line": 794,
+        "type": "strategy.entry"
+      },
+      {
+        "line": 800,
+        "type": "strategy.exit"
+      },
+      {
+        "line": 802,
+        "type": "strategy.exit"
+      },
+      {
+        "line": 816,
+        "type": "strategy.entry"
+      },
+      {
+        "line": 820,
+        "type": "strategy.exit"
+      },
+      {
+        "line": 827,
+        "type": "strategy.entry"
+      },
+      {
+        "line": 831,
+        "type": "strategy.exit"
+      }
+    ]
+  },
+  "03_instruments": {
+    "leg_contracts": {
+      "NY": {
+        "venue": "NYMEX",
+        "size": "50 troy oz",
+        "currency": "USD"
+      },
+      "JP": {
+        "venue": "JPX/OSE Platinum Standard (historical TOCOM successor)",
+        "size": "500 g official contract, access unverified",
+        "currency": "JPY"
+      },
+      "FX": {
+        "pair": "USD/JPY forward",
+        "currency": "JPY per USD"
+      }
+    },
+    "venue_contract_permissions": "BROKER_CHECK_REQUIRED",
+    "unit_normalization": "Direction A: BUY NYMEX 1 contract ×50 oz using ASK, SELL Tokyo OSE 3 contracts ×500g using BID. Direction B reverse. FX pair uses forward BID/ASK for valuation, but a real hedging forward is not implemented. 50oz≈1,555.17g vs 1,500g in Tokyo; 3.55% unmatched physical metal."
+  },
+  "04_original_entry_exit": {
+    "original_order_call_sites": [
+      {
+        "line": 780,
+        "type": "strategy.entry"
+      },
+      {
+        "line": 786,
+        "type": "strategy.exit"
+      },
+      {
+        "line": 788,
+        "type": "strategy.exit"
+      },
+      {
+        "line": 794,
+        "type": "strategy.entry"
+      },
+      {
+        "line": 800,
+        "type": "strategy.exit"
+      },
+      {
+        "line": 802,
+        "type": "strategy.exit"
+      },
+      {
+        "line": 816,
+        "type": "strategy.entry"
+      },
+      {
+        "line": 820,
+        "type": "strategy.exit"
+      },
+      {
+        "line": 827,
+        "type": "strategy.entry"
+      },
+      {
+        "line": 831,
+        "type": "strategy.exit"
+      }
+    ],
+    "external_trade_rules_from_paper_do_not_exist_in_original": true
+  },
+  "05_original_performance": {
+    "original_backtest": "NOT_REPRODUCED",
+    "paper_claim_vs_our_results": "SYNTHETIC_FIXTURE_ONLY",
+    "live_paper": false
+  },
+  "06_economic_mechanism": {
+    "who_and_why": "Price discovery/liquidity may differ between NYMEX and historical TOCOM and present JPX/OSE platinum listings; opposite execution-side bid/ask comparisons after forward FX normalization reveal temporary apparent price discrepancies.",
+    "hypothesis": "During overlapping sessions the executable, currency-adjusted two-venue quote gap may exceed realistic funding, hedging and partial-fill costs. Reject if simultaneous market depth/FX permissions/contract equivalence fail."
+  },
+  "07_existing_87_mapping": {
+    "file": "taxonomy_87.csv",
+    "mapping_rows": 87,
+    "relevant_candidate_ids": [
+      "S014",
+      "S006",
+      "S012"
+    ],
+    "mapping_confidence": "INDIRECT_RESEARCH_ANALOGY; NOT VERIFIED IMPLEMENTATION",
+    "new_taxonomy_proposal": "CROSS-VENUE-PLATINUM-FX-QUOTES"
+  },
+  "08_existing_additional_12": {
+    "status": "SOURCE_LIST_MISSING",
+    "mapping_rows": 0,
+    "why": "12 original names/IDs not yet verified; do not invent new canonical IDs"
+  },
+  "09_hypothesis_and_falsification": {
+    "hypothesis": "During overlapping sessions the executable, currency-adjusted two-venue quote gap may exceed realistic funding, hedging and partial-fill costs. Reject if simultaneous market depth/FX permissions/contract equivalence fail.",
+    "falsification": "No stable relation, out-of-sample expected net edge <= 0 after true trading costs, non-executable contract or stale quotes"
+  },
+  "10_web_search_and_selection": {
+    "research_status": "WEB_RESEARCH_MANUAL_VERIFIED_NOT_AUTONOMOUS_MODEL_DISCOVERY",
+    "doi": "10.3390/jrfm15120593",
+    "url": "https://www.mdpi.com/1911-8074/15/12/593",
+    "automatic_search_log": "NOT_EXECUTED"
+  },
+  "11_independent_published_case": {
+    "authors": "Kentaro Iwatsubo and Clinton Watkins",
+    "publisher": "Journal of Risk and Financial Management",
+    "year": 2022,
+    "doi": "10.3390/jrfm15120593",
+    "url": "https://www.mdpi.com/1911-8074/15/12/593",
+    "paper_locations": [
+      {
+        "rule": "The study defines two directions of platinum NYMEX–TOCOM quote arbitrage using NY/TO bid–ask and USD/JPY forward rate",
+        "location": "Section 3, Equation (1) PROF",
+        "classification": "PAPER_FORMULA"
+      },
+      {
+        "rule": "Study analyzes the connection of possible arbitrage opportunity to liquidity, not a guaranteed net-profit execution recipe",
+        "location": "Abstract, Section 1, Section 3",
+        "classification": "PAPER_SCOPE"
+      }
+    ]
+  },
+  "12_confirmed_rules_vs_developer_assumptions": {
+    "SOURCE_CONFIRMED": [
+      {
+        "rule": "The study defines two directions of platinum NYMEX–TOCOM quote arbitrage using NY/TO bid–ask and USD/JPY forward rate",
+        "location": "Section 3, Equation (1) PROF",
+        "classification": "PAPER_FORMULA"
+      },
+      {
+        "rule": "Study analyzes the connection of possible arbitrage opportunity to liquidity, not a guaranteed net-profit execution recipe",
+        "location": "Abstract, Section 1, Section 3",
+        "classification": "PAPER_SCOPE"
+      }
+    ],
+    "DEVELOPER_CREATED": [
+      {
+        "field": "contract_sizes",
+        "value": "NY 50 troy oz against Tokyo 3 × 500 g",
+        "why": "Lot approximation; historical/current venue specs must be checked, residual exposure exists"
+      },
+      {
+        "field": "fx",
+        "value": "Forward bid/ask for synthetic quote replay",
+        "why": "No actual forward contract hedge, cash flows proxy; not locked FX arbitrage"
+      },
+      {
+        "field": "entry_net_edge",
+        "value": 10000,
+        "why": "Net of illustrative 8000 JPY roundtrip fees, research threshold"
+      },
+      {
+        "field": "exit",
+        "value": "Net entry edge compression or 3 snapshots",
+        "why": "Developed exit rule; paper does not prescribe"
+      },
+      {
+        "field": "quote_max_age",
+        "value": 3,
+        "why": "Research quality gate; not paper executable policy"
+      }
+    ]
+  },
+  "13_real_leg_structure": {
+    "legs": "Direction A: BUY NYMEX 1 contract ×50 oz using ASK, SELL Tokyo OSE 3 contracts ×500g using BID. Direction B reverse. FX pair uses forward BID/ASK for valuation, but a real hedging forward is not implemented. 50oz≈1,555.17g vs 1,500g in Tokyo; 3.55% unmatched physical metal.",
+    "instrument_detail": {
+      "NY": {
+        "venue": "NYMEX",
+        "size": "50 troy oz",
+        "currency": "USD"
+      },
+      "JP": {
+        "venue": "JPX/OSE Platinum Standard (historical TOCOM successor)",
+        "size": "500 g official contract, access unverified",
+        "currency": "JPY"
+      },
+      "FX": {
+        "pair": "USD/JPY forward",
+        "currency": "JPY per USD"
+      }
+    },
+    "contract_access": "NOT_BROKER_VERIFIED"
+  },
+  "14_entry_exit_algorithm": {
+    "logic": "At matching contract month and overlapping venue sessions, evaluate cash_A=3×500×JP_bid - 1×50×NY_ask×FX_forward_ask, cash_B=1×50×NY_bid×FX_forward_bid -3×500×JP_ask. Signal if max(cash_A,cash_B) - assumed 8,000 JPY roundtrip costs >=10,000 JPY and all quote times within 3 seconds. On edge compression or max 3 20-second quote snapshots, reverse at observed bid/ask. This quote-replay is a research proxy: actual currency forward execution, clearing, financing, transfer/expiry differences not modeled.",
+    "parameters": {
+      "ny_contract_oz": 50,
+      "jp_contract_grams": 500,
+      "ny_qty": 1,
+      "jp_qty": 3,
+      "fx_grams_per_troy_oz": 31.1034768,
+      "estimated_roundtrip_fees_jpy": 8000,
+      "min_net_edge_jpy": 10000,
+      "max_venue_lag_seconds": 3,
+      "max_hold_snapshots": 3,
+      "max_weight_mismatch_fraction": 0.05
+    },
+    "signal_vs_fill": "SAME_SNAPSHOT_QUOTE_REPLAY_NO_EXECUTION"
+  },
+  "15_risk_cost_and_pnl": {
+    "risk": "JPX/OSE 500g contract specification independently identified, but specific month/account permissions and cross-venue delivery equivalence unverified; delivery/clearing not fungible. Non-zero residual metal delta and forward hedge mismatches mean it is NOT riskless. Bid/Ask cannot be assumed simultaneously filled; size/depth and market access unverified.",
+    "formula": "For direction A, entry cashflow research proxy = 1,500g×Tokyo bid JPY/g −50oz×NY ask USD/oz×FX forward ask JPY/USD. Exit reversal = 50oz×NY bid×FX forward bid −1,500g×Tokyo ask. Quote-replay net = entry+exit−assumed 8,000 JPY. Synthetic fixture example gross 70,002.5 JPY and modeled net 62,002.5 JPY, NOT executable trade profit.",
+    "synthetic_trade_count": 1,
+    "functional_results_file": "synthetic_functional_result.json",
+    "market_return_claim": "NONE"
+  },
+  "16_real_market_data": {
+    "required": "Need timestamp-synchronized NY and JP orderbook with actual depth, OTC FX-forward bid/ask for matching expiry, official contract specification and expiry, cross-venue access/settlement funding/custody and realistic fee estimates. Current 5 snapshots are synthetic.",
+    "fixture_sha256": "41803aa0992ddaa520f8482b5dc1f71ad6e98cbc5a5b6f0870fe9e1260f427b9",
+    "data_type": "DETERMINISTIC_SYNTHETIC_TEST",
+    "market_data_sha256": null,
+    "status": "MISSING"
+  },
+  "17_full_generated_Python": {
+    "file": "generated_strategy.py",
+    "code_sha256": "52de844749c47fe481abba09514f699be04fa5bb750fd7147e19debdff5327a4",
+    "complete_embedded_stdlib_runtime": true,
+    "requirements": "Python 3.10+ stdlib",
+    "cli": "python generated_strategy.py ../../../fixtures/synthetic_quote_snapshots.json"
+  },
+  "18_functional_and_source_parity_tests": {
+    "status": "UNIT_AND_GENERATED_TEST_PASSED",
+    "test_suite": "../../../../tests/test_v6_strategies.py",
+    "paper_exact_replication": "NOT_CLAIMED",
+    "v5_source_parity": "NOT_TESTED",
+    "actual_broker_execution": "NONE"
+  },
+  "19_trades_equity_and_charts": {
+    "real_backtest": "REAL_BACKTEST_NOT_RUN",
+    "synthetic_trades": "synthetic_trades.csv",
+    "synthetic_raw_result": "synthetic_functional_result.json",
+    "real_trades": "NOT_AVAILABLE",
+    "equity_real": "NOT_AVAILABLE",
+    "verified_chart": "NOT_AVAILABLE"
+  },
+  "20_adoption_and_lineage": {
+    "decision": "RESEARCH_STRATEGY_IMPLEMENTED_PENDING_REAL_DATA",
+    "source_id": "0CVvd49h",
+    "case_id": "IWATSUBO-CROSS-VENUE-MICROSTRUCTURE",
+    "paper_doi": "10.3390/jrfm15120593",
+    "code_sha256": "52de844749c47fe481abba09514f699be04fa5bb750fd7147e19debdff5327a4",
+    "in_existing_87": "INDIRECT_RESEARCH_CANDIDATE",
+    "new_taxonomy_proposal": "CROSS-VENUE-PLATINUM-FX-QUOTES",
+    "additional_12": "MISSING_CANONICAL_SOURCE",
+    "db": "NOT_PERSISTED",
+    "web": "NOT_DEPLOYED",
+    "PAPER": false,
+    "LIVE": false
+  }
+}

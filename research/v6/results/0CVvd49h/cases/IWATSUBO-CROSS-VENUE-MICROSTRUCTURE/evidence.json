@@ -1,0 +1,23 @@
+{
+  "case_id": "IWATSUBO-CROSS-VENUE-MICROSTRUCTURE",
+  "source_url": "https://www.mdpi.com/1911-8074/15/12/593",
+  "publisher": "Journal of Risk and Financial Management",
+  "authors": "Kentaro Iwatsubo and Clinton Watkins",
+  "year": 2022,
+  "doi": "10.3390/jrfm15120593",
+  "exact_paper_section": [
+    {
+      "rule": "The study defines two directions of platinum NYMEX–TOCOM quote arbitrage using NY/TO bid–ask and USD/JPY forward rate",
+      "location": "Section 3, Equation (1) PROF",
+      "classification": "PAPER_FORMULA"
+    },
+    {
+      "rule": "Study analyzes the connection of possible arbitrage opportunity to liquidity, not a guaranteed net-profit execution recipe",
+      "location": "Abstract, Section 1, Section 3",
+      "classification": "PAPER_SCOPE"
+    }
+  ],
+  "not_from_original_pine": true,
+  "new_model_rules_are_developer_assumptions": true,
+  "evidence_review": "WEB_RESEARCH_AND_MANUAL_METHOD_EXTRACTION"
+}
