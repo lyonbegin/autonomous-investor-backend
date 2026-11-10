@@ -1,0 +1,43 @@
+{
+  "source_id":"a5uitxrd",
+  "relationship_to_pine":"EXTERNAL_MARKET_NEUTRAL_PEAD_RESEARCH_NOT_ORIGINAL_PINE_TRADING_RULE",
+  "retrieval_method":"MANUALLY_RESEARCHED_PUBLIC_WEB_2026_11_10_NOT_AUTONOMOUS_SEARCH",
+  "cases":[
+    {
+      "case_id":"PEAD-EVENT-DECILE-SPREAD",
+      "evidence":{
+        "url":"https://doi.org/10.1016/j.jbef.2020.100446",
+        "publisher":"Journal of Behavioral and Experimental Finance / Josef Fink",
+        "location":"A review of the Post-Earnings-Announcement Drift (2021), §1.2 and Observation 2, paragraphs on SUE and zero-investment quantile portfolios",
+        "evidence_type":"PEER_REVIEWED_RESEARCH_REVIEW_NOT_A_READY_TO_TRADE_ALGORITHM",
+        "verified_status":"WEB_PAGE_TEXT_CHECKED_BY_ASSISTANT_2026_11_10",
+        "trade_description":"Review describes highest-vs-lowest standardized unexpected earnings decile portfolios with long positive and short negative earnings surprises. 60-trading-day and published excess-return claims are historical literature, not system results.",
+        "limitations":"Review is not a brokerage execution manual; real earnings surprise timestamp, survivorship-free universe and borrow availability are required."
+      },
+      "strategy_spec":{
+        "spec_id":"PEAD-EVENT-DECILE-SPREAD",
+        "source_id":"a5uitxrd",
+        "kind":"earnings_decile_long_short",
+        "mode":"SYNTHETIC_TEST_ONLY",
+        "source_evidence_url":"https://doi.org/10.1016/j.jbef.2020.100446",
+        "source_confirmed_rules":[
+          {"rule":"High standardized earnings surprise stocks are the long portfolio; low surprise stocks are the short portfolio as a research design.","source_location":"Fink review §1.2, Observation 2: highest and lowest earnings surprise decile; historical literature not algorithm parameters."}
+        ],
+        "research_assumptions":[
+          {"field":"hold_bars","value":2,"basis":"Fixture execution duration only; not the paper's optimal holding period."},
+          {"field":"notional_per_leg_usd","value":1000,"basis":"Equal gross-notional test sizing chosen by developer."},
+          {"field":"decile_fraction","value":0.1,"basis":"Use decile ranking as review's literature convention; exact data construction and edge conditions assumed."},
+          {"field":"fill_timing","value":"first_price_bar_after_all_earnings_public","basis":"No look-ahead illustrative execution rule, not a quoted research fill assumption."},
+          {"field":"commission","value":null,"basis":"Not provided or verified; net profitability deliberately unknown."}
+        ],
+        "parameters":{"hold_bars":2,"notional_per_leg_usd":1000,"decile_fraction":0.1},
+        "legs":[
+          {"leg_name":"LONG_TOP_SUE_DECILE","side":"BUY","definition":"select highest observed pre-trade SUE among real eligible universe"},
+          {"leg_name":"SHORT_BOTTOM_SUE_DECILE","side":"SELL","definition":"select lowest observed pre-trade SUE with verified borrow"}
+        ],
+        "data_required":"PUBLICATION_TIME_VALIDATED_EARNINGS_ACTUAL_EXPECTED_VALUES_AND_SURVIVORSHIP_FREE_DAILY_QUOTES; NOT_PRESENT",
+        "commission_usd":null,"margin_usd":null,"live_eligible":false
+      }
+    }
+  ]
+}

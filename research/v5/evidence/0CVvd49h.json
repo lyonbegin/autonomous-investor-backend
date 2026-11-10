@@ -1,0 +1,191 @@
+{
+  "source_id": "0CVvd49h",
+  "relationship_to_pine": "EXTERNAL_ECONOMIC_CONTEXT_NOT_IMPLEMENTED_BY_ORIGINAL_PINE",
+  "retrieval_method": "MANUAL_WEB_VERIFICATION_2026_11_10_NOT_AUTOMATED_SEARCH",
+  "cases": [
+    {
+      "case_id": "CME-PL-GC-WORKED-TRADE",
+      "kind": "worked_transaction",
+      "evidence": {
+        "url": "https://www.cmegroup.com/education/courses/introduction-to-precious-metals/understanding-intermarket-spreads-platinum-and-gold",
+        "publisher": "CME Group",
+        "location": "Gold-Platinum Spread Trade / PLATINUM-GOLD SPREAD PROFIT AND LOSS EXAMPLE / Trade Enter Prices & Trade Exit Prices table",
+        "evidence_type": "EXCHANGE_EDUCATION_WORKED_TRADE",
+        "verified_status": "WEB_PAGE_TEXT_CHECKED",
+        "trade_description": "BUY 2 April PL at $988.40 and SELL 1 April GC at $1,231.90 on March 2; reverse at $1,056.40 / $1,244.20 on March 30; 50oz PL vs 100oz GC",
+        "source_reported_gross_pnl_usd": 5570,
+        "does_not_define_automatic_entry_signal": true
+      },
+      "strategy_spec": {
+        "spec_id": "CME-PL-GC-WORKED-TRADE",
+        "source_id": "0CVvd49h",
+        "kind": "worked_transaction",
+        "mode": "EDUCATIONAL_PNL_ONLY",
+        "source_confirmed_rules": [
+          {
+            "rule": "Worked entry long two April PL contracts and short one April GC",
+            "source_location": "CME section PLATINUM-GOLD SPREAD PROFIT AND LOSS EXAMPLE"
+          },
+          {
+            "rule": "Worked exit reverse both legs on March 30 at table prices",
+            "source_location": "CME trade enter and exit table"
+          }
+        ],
+        "research_assumptions": [],
+        "legs": [
+          {
+            "symbol": "PL",
+            "venue": "NYMEX",
+            "contract_month": "April; illustrative year",
+            "side": "BUY",
+            "quantity": 2,
+            "multiplier": 50,
+            "entry_price": 988.4,
+            "exit_price": 1056.4,
+            "currency": "USD"
+          },
+          {
+            "symbol": "GC",
+            "venue": "COMEX",
+            "contract_month": "April; illustrative year",
+            "side": "SELL",
+            "quantity": 1,
+            "multiplier": 100,
+            "entry_price": 1231.9,
+            "exit_price": 1244.2,
+            "currency": "USD"
+          }
+        ],
+        "data_required": "NONE_FOR_WORKED_ARITHMETIC_REAL_MARKET_BACKTEST_NOT_RUN",
+        "commission_usd": null,
+        "margin_usd": null,
+        "live_eligible": false
+      }
+    },
+    {
+      "case_id": "CHAN-SEASONAL-PL-GC",
+      "kind": "seasonal_futures_spread",
+      "evidence": {
+        "url": "https://epchan.blogspot.com/2006/11/trading-platinum-gold-seasonal-spread.html",
+        "publisher": "Ernie Chan",
+        "published_date": "2006-11-24",
+        "location": "Article: Trading a platinum-gold seasonal spread; strategy paragraph",
+        "evidence_type": "AUTHOR_BLOG_DESCRIBED_TRADING_RULE",
+        "verified_status": "WEB_PAGE_TEXT_CHECKED",
+        "trade_description": "BUY 2 July PL futures and short 1 June GC futures around end-February; exit around mid-April",
+        "precision_limitation": "The words around do not define exact trade calendar date, exchange session, fill price or fees"
+      },
+      "strategy_spec": {
+        "spec_id": "CHAN-SEASONAL-PL-GC",
+        "source_id": "0CVvd49h",
+        "kind": "seasonal_futures_spread",
+        "mode": "SYNTHETIC_TEST_ONLY",
+        "source_confirmed_rules": [
+          {
+            "rule": "At end of February buy 2 July PL contracts and sell 1 June GC contract",
+            "source_location": "Ernie Chan blog 2006-11-24 strategy paragraph"
+          },
+          {
+            "rule": "Exit around mid-April",
+            "source_location": "Ernie Chan blog 2006-11-24 strategy paragraph"
+          }
+        ],
+        "research_assumptions": [
+          {
+            "field": "entry_after",
+            "value": "02-28",
+            "basis": "Research date chosen to operationalize around end-February, not published exact date"
+          },
+          {
+            "field": "exit_after",
+            "value": "04-15",
+            "basis": "Research date chosen to operationalize around mid-April, not published exact date"
+          },
+          {
+            "field": "fill_rule",
+            "value": "NEXT_OBSERVED_BAR_OPEN",
+            "basis": "Research backtest model, not source fill method"
+          },
+          {
+            "field": "roundtrip_fees_usd",
+            "value": null,
+            "basis": "Not supplied; net P&L stays null"
+          }
+        ],
+        "parameters": {
+          "entry_after": "02-28",
+          "exit_after": "04-15",
+          "roundtrip_fees_usd": null
+        },
+        "legs": [
+          {
+            "symbol": "PL",
+            "venue": "NYMEX",
+            "contract_month": "July; requires real per-year contract mapping",
+            "side": "BUY",
+            "quantity": 2,
+            "multiplier": 50,
+            "currency": "USD"
+          },
+          {
+            "symbol": "GC",
+            "venue": "COMEX",
+            "contract_month": "June; requires real per-year contract mapping",
+            "side": "SELL",
+            "quantity": 1,
+            "multiplier": 100,
+            "currency": "USD"
+          }
+        ],
+        "data_required": "SIMULTANEOUS_PUBLISHED_HISTORIC_PL_JULY_AND_GC_JUNE_QUOTES_NOT_AVAILABLE",
+        "commission_usd": null,
+        "margin_usd": null,
+        "live_eligible": false
+      }
+    },
+    {
+      "case_id": "BAEK-2020-HG-PL-RESEARCH",
+      "kind": "evidence_only",
+      "evidence": {
+        "url": "https://www.mdpi.com/2071-1050/12/17/6791",
+        "doi": "10.3390/su12176791",
+        "publisher": "Sustainability (MDPI)",
+        "location": "Section 4 Conclusions, Table 7 / Table 8",
+        "evidence_type": "ACADEMIC_BACKTEST_STUDY",
+        "verified_status": "WEB_PAGE_TEXT_CHECKED",
+        "trade_description": "Study includes a cointegrated COMEX Copper vs NYMEX Platinum futures pair, estimated hedge ratio 0.02 in Table 7 and paper-reported backtest results in Table 8",
+        "disclaimer": "Study expressly notes theoretical prices and ignores order-book restrictions; results are not independently reproduced"
+      },
+      "strategy_spec": null,
+      "status": "RULE_EXTRACTION_INCOMPLETE_NO_PYTHON_ALLOWED"
+    },
+    {
+      "case_id": "PSARADELLIS-PL-GC-RULES-RESEARCH",
+      "kind": "evidence_only",
+      "evidence": {
+        "url": "https://research-repository.st-andrews.ac.uk/bitstream/handle/10023/28760/Psaradellis_2021_IJF_Technicalanalysis_AAM.pdf?sequence=1",
+        "publisher": "Psaradellis and coauthors",
+        "location": "Literature reference from v3 contract; exact page/table not verified in this run",
+        "evidence_type": "ACADEMIC_STUDY_REFERENCED_BY_PROJECT",
+        "verified_status": "PROJECT_REFERENCE_ONLY_NOT_INDEPENDENTLY_REVIEWED",
+        "trade_description": "Platinum-gold technical pairs spread rules (project reference mentions RSI/Bollinger/channel families); no fully source-checked parameterization in this run"
+      },
+      "strategy_spec": null,
+      "status": "SOURCE_RULES_UNVERIFIED_NO_PYTHON"
+    },
+    {
+      "case_id": "IWATSUBO-CROSS-VENUE-MICROSTRUCTURE",
+      "kind": "evidence_only",
+      "evidence": {
+        "url": "https://doi.org/10.3390/jrfm15120593",
+        "publisher": "Iwatsubo and Watkins",
+        "location": "Literature reference from v3 contract; page/figure/table not verified in this run",
+        "evidence_type": "MICROSTRUCTURE_EVIDENCE_RESEARCH",
+        "verified_status": "PROJECT_REFERENCE_ONLY_NOT_INDEPENDENTLY_REVIEWED",
+        "trade_description": "NYMEX-versus-Japanese platinum price/FX bid-ask and trade-access research context. Study not treated as a ready trading algorithm"
+      },
+      "strategy_spec": null,
+      "status": "SOURCE_RULES_UNVERIFIED_NO_PYTHON"
+    }
+  ]
+}

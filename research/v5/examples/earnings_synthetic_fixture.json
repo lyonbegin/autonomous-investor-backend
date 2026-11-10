@@ -1,0 +1,22 @@
+{
+  "data_label":"SYNTHETIC_TEST_DATA_NOT_MARKET",
+  "events":[
+    {"symbol":"EQ01","sue":-3.0,"available_at":"2026-02-02T13:00:00Z","borrow_available":true},
+    {"symbol":"EQ02","sue":-2.0,"available_at":"2026-02-02T13:00:00Z","borrow_available":true},
+    {"symbol":"EQ03","sue":-1.5,"available_at":"2026-02-02T13:00:00Z","borrow_available":true},
+    {"symbol":"EQ04","sue":-1.0,"available_at":"2026-02-02T13:00:00Z","borrow_available":true},
+    {"symbol":"EQ05","sue":-0.2,"available_at":"2026-02-02T13:00:00Z","borrow_available":true},
+    {"symbol":"EQ06","sue":0.3,"available_at":"2026-02-02T13:00:00Z","borrow_available":true},
+    {"symbol":"EQ07","sue":0.7,"available_at":"2026-02-02T13:00:00Z","borrow_available":true},
+    {"symbol":"EQ08","sue":1.2,"available_at":"2026-02-02T13:00:00Z","borrow_available":true},
+    {"symbol":"EQ09","sue":1.9,"available_at":"2026-02-02T13:00:00Z","borrow_available":true},
+    {"symbol":"EQ10","sue":3.2,"available_at":"2026-02-02T13:00:00Z","borrow_available":true}
+  ],
+  "bars":[
+    {"date":"2026-02-02","open":{"EQ01":100,"EQ10":100}},
+    {"date":"2026-02-03","open":{"EQ01":100,"EQ10":100}},
+    {"date":"2026-02-04","open":{"EQ01":97,"EQ10":103}},
+    {"date":"2026-02-05","open":{"EQ01":95,"EQ10":106}},
+    {"date":"2026-02-06","open":{"EQ01":96,"EQ10":105}}
+  ]
+}
