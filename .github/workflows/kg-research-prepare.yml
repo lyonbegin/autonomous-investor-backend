@@ -1,0 +1,62 @@
+name: TradingView KG - ChatGPT research task PREPARE ONLY
+
+on:
+  workflow_dispatch:
+    inputs:
+      strategy_id:
+        description: TradingView 전략 ID (현재 시드 목록에 등록된 ID)
+        required: true
+        type: string
+        default: 02yfhjiz
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kg-research-preparation
+  cancel-in-progress: false
+
+jobs:
+  prepare-chatgpt-task:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Pick exactly one source from the seed queue
+        env:
+          TV_ID: ${{ inputs.strategy_id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          jq -c --arg id "$TV_ID" 'select(.strategy_id == $id)' research/queue/seed.jsonl > selected.jsonl
+          if [ "$(wc -l < selected.jsonl)" -ne 1 ]; then
+            echo 'ERROR: Strategy ID must exist exactly once in seed queue.' >&2
+            exit 1
+          fi
+          cp selected.jsonl selected-strategy.json
+          {
+            printf '# 연구 대상 원본\n'
+            cat selected-strategy.json
+            printf '\n# 공통 지시문\n'
+            cat research/prompts/COMMON_KG_RESEARCH.md
+            printf '\n# 단계별 작업 지시문\n'
+            cat research/prompts/STAGE_TASKS.md
+          } > CHATGPT_RESEARCH_TASK.md
+          {
+            echo '## ChatGPT 연구 작업 준비 결과'
+            echo ''
+            echo '- 상태: **PREPARED_ONLY**'
+            echo '- AI 검색·지식그래프 생성·역복원은 아직 실행되지 않았습니다.'
+            echo '- 다음 단계: HITEL 연동 지침에 따른 ChatGPT 작업 전달기를 연결하십시오.'
+            echo ''
+            echo '```json'
+            cat selected-strategy.json
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: chatgpt-research-prepared-${{ inputs.strategy_id }}
+          path: |
+            CHATGPT_RESEARCH_TASK.md
+            selected-strategy.json
+          retention-days: 30
