@@ -1,0 +1,40 @@
+{
+  "research_id": "TV-KG-000001",
+  "strategy_id": "02yfhjiz",
+  "title": "Complex Single Trade Strategy",
+  "author": "JustinTimeTunes",
+  "tradingview_url": "https://www.tradingview.com/script/02yfhjiz-Complex-Single-Trade-Strategy/",
+  "source_of_list": "TradingView_Recursive_33890_20261108.zip:strategies.csv",
+  "source_page_reviewed": true,
+  "pine_source_obtained": false,
+  "classification": "NEXT_RESEARCH",
+  "rationale": "외부 매수/매도 신호를 입력받아 단일 포지션과 세 종류 손절, 네 종류 분할익절을 운용하는 일반 포지션 관리 전략. 주식 또는 코인 추세 예측만을 목표로 하는 전용 전략이라는 근거 없음.",
+  "fact_elements": [
+    "buy/sell signal input >0 buy, <0 sell, 0 neither",
+    "max one open position",
+    "opposite signal ignore, close, or close-and-reverse option",
+    "regular stop, initial trailing stop, trailing stop",
+    "four take-profit levels with position-size reductions"
+  ],
+  "search_status": "FIRST_CANDIDATE_FOUND",
+  "candidates": [
+    {
+      "title": "Take Profit and Stop Loss Trading Strategies Comparison in Combination with an MACD Trading System",
+      "authors": [
+        "Dimitrios Vezeris",
+        "Themistoklis Kyrgos",
+        "Christos Schinas"
+      ],
+      "year": 2018,
+      "doi": "10.3390/jrfm11030056",
+      "url": "https://www.mdpi.com/1911-8074/11/3/56",
+      "candidate_type": "SPECIFIED_BACKTEST_RESEARCH",
+      "relationship": "STOP_LOSS_TAKE_PROFIT_RELATED_NOT_IDENTICAL",
+      "needs_full_case_extraction": true
+    }
+  ],
+  "kg_status": "NOT_STARTED",
+  "reverse_reconstruction_status": "NOT_STARTED",
+  "full_reversibility": "NOT_VERIFIED",
+  "notes": "선별 및 1차 검색만 수행. Pine 전체 코드, 문헌 전수 검색, 원문 거래명세 추출, 그래프 생성·역복원은 아직 완료되지 않음."
+}
