@@ -1,0 +1,217 @@
+{
+  "id": "CME_R6_37_SELECTED_FACT_AUDIT",
+  "source_fact_scope": "23 earlier + 14 additional market and macro facts; document text not exhaustively reconstructed",
+  "prior_23": {
+    "matched": 23,
+    "failed": 0,
+    "unchanged_id_paths_preserved": true
+  },
+  "new_14": {
+    "matched": 14,
+    "failed": 0
+  },
+  "total_selected": {
+    "matched": 37,
+    "total": 37
+  },
+  "all_checks_passed": true,
+  "independent_clean_room_chatgpt": false,
+  "rows": [
+    {
+      "id": "F24",
+      "source": "CME-COURSE",
+      "scope": "GENERAL_CONTEXT",
+      "source_locator": "Creating a Futures Spread, paras 1–2",
+      "semantic_recovered": true,
+      "provenance_linked": true,
+      "status": "PASS",
+      "graph_targets": [
+        "general:risk:relative_exposure"
+      ],
+      "diagnosis": ""
+    },
+    {
+      "id": "F25",
+      "source": "CME-COURSE",
+      "scope": "GENERAL_CONTEXT",
+      "source_locator": "Types of Spreads",
+      "semantic_recovered": true,
+      "provenance_linked": true,
+      "status": "PASS",
+      "graph_targets": [
+        "general:approach:intermarket",
+        "general:approach:calendar"
+      ],
+      "diagnosis": ""
+    },
+    {
+      "id": "F26",
+      "source": "CME-COURSE",
+      "scope": "GENERAL_CONTEXT",
+      "source_locator": "Types of Spreads, inter-market paragraph",
+      "semantic_recovered": true,
+      "provenance_linked": true,
+      "status": "PASS",
+      "graph_targets": [
+        "general:risk:legging"
+      ],
+      "diagnosis": ""
+    },
+    {
+      "id": "F27",
+      "source": "CME-COURSE",
+      "scope": "GENERAL_CONTEXT",
+      "source_locator": "Types of Spreads, inter-market paragraph",
+      "semantic_recovered": true,
+      "provenance_linked": true,
+      "status": "PASS",
+      "graph_targets": [
+        "general:mitigation:dedicated",
+        "general:mitigation:liquid",
+        "general:mitigation:software"
+      ],
+      "diagnosis": ""
+    },
+    {
+      "id": "F28",
+      "source": "CME-COURSE",
+      "scope": "GENERAL_CONTEXT",
+      "source_locator": "Understanding Platinum Gold Spread Trades; Precious Metals",
+      "semantic_recovered": true,
+      "provenance_linked": true,
+      "status": "PASS",
+      "graph_targets": [
+        "general:assumption:correlation"
+      ],
+      "diagnosis": ""
+    },
+    {
+      "id": "F29",
+      "source": "CME-COURSE",
+      "scope": "GENERAL_CONTEXT",
+      "source_locator": "Spread Trading with Precious Metals",
+      "semantic_recovered": true,
+      "provenance_linked": true,
+      "status": "PASS",
+      "graph_targets": [
+        "general:market:globex_share"
+      ],
+      "diagnosis": ""
+    },
+    {
+      "id": "F30",
+      "source": "CME-COURSE",
+      "scope": "GENERAL_CONTEXT",
+      "source_locator": "Gold-Platinum Spread Trade, first paragraph",
+      "semantic_recovered": true,
+      "provenance_linked": true,
+      "status": "PASS",
+      "graph_targets": [
+        "general:use:pl:automotive",
+        "general:use:pl:jewelry",
+        "general:use:pl:investment"
+      ],
+      "diagnosis": ""
+    },
+    {
+      "id": "F31",
+      "source": "CME-COURSE",
+      "scope": "ALTERNATIVE_MACRO_REGIME_NOT_ENTRY_SIGNAL",
+      "source_locator": "Gold-Platinum Spread Trade, first paragraph",
+      "semantic_recovered": true,
+      "provenance_linked": true,
+      "status": "PASS",
+      "graph_targets": [
+        "general:macro:distress",
+        "general:macro:gold_demand",
+        "general:macro:gold_vs_pl"
+      ],
+      "diagnosis": ""
+    },
+    {
+      "id": "F32",
+      "source": "CME-COURSE",
+      "scope": "HISTORICAL_SOURCE_CLAIM",
+      "source_locator": "Gold-Platinum Spread Trade, final sentence preceding chart",
+      "semantic_recovered": true,
+      "provenance_linked": true,
+      "status": "PASS",
+      "graph_targets": [
+        "general:history:since2015"
+      ],
+      "diagnosis": ""
+    },
+    {
+      "id": "F33",
+      "source": "CME-COURSE",
+      "scope": "SOURCE_AUTHOR_BACKGROUND",
+      "source_locator": "Gold-Platinum Spread Trade, first paragraph",
+      "semantic_recovered": true,
+      "provenance_linked": true,
+      "status": "PASS",
+      "graph_targets": [
+        "general:metric:rarity_claim"
+      ],
+      "diagnosis": ""
+    },
+    {
+      "id": "F34",
+      "source": "CME-2017-ARTICLE",
+      "scope": "HISTORICAL_LIQUIDITY",
+      "source_locator": "Platinum-Gold Spread Trade contract comparison table",
+      "semantic_recovered": true,
+      "provenance_linked": true,
+      "status": "PASS",
+      "graph_targets": [
+        "general:market:2016_adv",
+        "general:market:metric:2016_gc_adv",
+        "general:market:metric:2016_pl_adv"
+      ],
+      "diagnosis": ""
+    },
+    {
+      "id": "F35",
+      "source": "CME-2017-ARTICLE",
+      "scope": "HISTORICAL_LIQUIDITY",
+      "source_locator": "Platinum-Gold Spread Trade contract comparison table",
+      "semantic_recovered": true,
+      "provenance_linked": true,
+      "status": "PASS",
+      "graph_targets": [
+        "general:market:2017_oi",
+        "general:market:metric:2017_gc_oi",
+        "general:market:metric:2017_pl_oi"
+      ],
+      "diagnosis": ""
+    },
+    {
+      "id": "F36",
+      "source": "CME-2017-ARTICLE",
+      "scope": "ALTERNATIVE_MACRO_REGIME",
+      "source_locator": "Platinum-Gold Spread Trade background",
+      "semantic_recovered": true,
+      "provenance_linked": true,
+      "status": "PASS",
+      "graph_targets": [
+        "general:macro:distress",
+        "general:macro:gold_demand",
+        "general:macro:gold_vs_pl"
+      ],
+      "diagnosis": ""
+    },
+    {
+      "id": "F37",
+      "source": "CME-COURSE",
+      "scope": "GENERAL_CONTEXT",
+      "source_locator": "Types of Spreads, intra-market paragraph",
+      "semantic_recovered": true,
+      "provenance_linked": true,
+      "status": "PASS",
+      "graph_targets": [
+        "general:calendar:CME_DIRECT"
+      ],
+      "diagnosis": ""
+    }
+  ],
+  "status": "SOURCE_FACT_COVERAGE_PASS_BLIND_PENDING"
+}
