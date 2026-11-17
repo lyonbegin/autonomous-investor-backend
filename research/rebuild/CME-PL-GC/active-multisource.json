@@ -1,0 +1,20 @@
+{
+  "case_family": "CME_PL_GC_TWO_OFFICIAL_HTML_SOURCES",
+  "active_graph": "round-6-expanded.graph.json",
+  "reconstruction_graph": "round-6-redacted-for-blind.json",
+  "reconstructed_output": "round-6-broad-graph-only-reconstruction.json",
+  "fact_check_report": "round-6-37-fact-comparison.json",
+  "selected_source_facts": {
+    "matched": 37,
+    "checked": 37
+  },
+  "full_exhaustive_html_source": false,
+  "independent_new_chatgpt_blind": false,
+  "actual_broker_trades_proven": false,
+  "state": "BLIND_PENDING_NOT_FULL_PASS",
+  "superseded_in_this_multisource_track": [
+    "round-4-dual-source.graph.json",
+    "round-5-rebuilt-complete.graph.json"
+  ],
+  "caveat": "Parallel legacy single-source graph track active.json left unchanged to avoid unrelated work collisions; both outcomes source-locked and source claims preserved."
+}
