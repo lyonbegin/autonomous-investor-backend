@@ -27,15 +27,21 @@ jobs:
         run: |
           set -euo pipefail
           if [[ "$CASE_ID" == "CME-PL-GC" ]]; then
-            src="research/rebuild/CME-PL-GC/round-5-graph-only-input.json"
+            dir="research/rebuild/CME-PL-GC"
           elif [[ "$CASE_ID" == "CHAN-PL-GC" ]]; then
-            src="research/rebuild/CHAN-PL-GC/round-3-risk-graph-only-input.json"
+            dir="research/rebuild/CHAN-PL-GC"
           else
             echo 'FAIL_UNKNOWN_CASE' >&2; exit 1
           fi
+          active="$dir/active.json"
+          test -s "$active"
+          basename="$(jq -er '.current_reconstruction_input' "$active")"
+          [[ "$basename" =~ ^[A-Za-z0-9_.-]+\.json$ ]] || { echo "FAIL_UNSAFE_INPUT_PATH" >&2; exit 1; }
+          src="$dir/$basename"
           test -s "$src"
-          jq -e '(.nodes|all(.[]; (.type!="SourceDocument") and (.type!="SourcePassage"))) and (.edges|type=="array")' "$src" >/dev/null
+          jq -e '(.nodes|all(.[]; ((.type // .canonical_type)!="SourceDocument") and ((.type // .canonical_type)!="SourcePassage"))) and (.edges|type=="array")' "$src" >/dev/null
           jq 'del(.graph_id,.id,.source_fact_register,.source,.provenance,.source_url) | .blind_task_id="ANON_FINANCIAL_CASE"' "$src" > BLIND_GRAPH.json
+          jq -e '.nodes|length>0' BLIND_GRAPH.json >/dev/null
           cp research/prompts/BLIND_REPLAY_ONLY_V1.md BLIND_PROMPT.md
           test -s BLIND_GRAPH.json && test -s BLIND_PROMPT.md
           echo '### 독립 ChatGPT 역재현 입력 생성' >> "$GITHUB_STEP_SUMMARY"
