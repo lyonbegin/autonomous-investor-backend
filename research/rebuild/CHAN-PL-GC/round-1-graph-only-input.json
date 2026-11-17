@@ -1,0 +1,909 @@
+{
+  "version": "1.0",
+  "graph_id": "CHAN-PL-GC-R1-GRAPH-ONLY",
+  "nodes": [
+    {
+      "id": "case",
+      "type": "TradeCase",
+      "fields": {
+        "source_kind": "AUTHOR_BLOG_WITH_PAPER_TRADE_BACKTEST_AND_FOLLOWUP",
+        "actual_exchange_fills_proven": false,
+        "analysis_scope": "2006 original + 2007 correction + author follow-up"
+      }
+    },
+    {
+      "id": "strategy",
+      "type": "TradingStrategy",
+      "fields": {
+        "type": "SEASONAL_INTERMARKET_FUTURES_SPREAD",
+        "cointegration_based": false,
+        "complete_auto_entry_signal": "NOT_DISCLOSED"
+      }
+    },
+    {
+      "id": "pair",
+      "type": "FuturesPair",
+      "fields": {
+        "legs": 2,
+        "asset_roots": [
+          "PL",
+          "GC"
+        ],
+        "root_spread": "PL_MINUS_GC",
+        "different_contract_months": true,
+        "different_commodity_markets": true
+      }
+    },
+    {
+      "id": "position",
+      "type": "TradePosition",
+      "fields": {
+        "position_kind": "LONG_2_PL_SHORT_1_GC",
+        "backtested": true,
+        "paper_traded_author_claim": true,
+        "exchange_fills_unverified": true
+      }
+    },
+    {
+      "id": "asset:pl",
+      "type": "UnderlyingCommodity",
+      "fields": {
+        "commodity": "PLATINUM",
+        "primary_use": "AUTOCATALYSTS",
+        "seasonality_relative_to_gold": "WEAKER"
+      }
+    },
+    {
+      "id": "asset:gc",
+      "type": "UnderlyingCommodity",
+      "fields": {
+        "commodity": "GOLD",
+        "primary_demand": "JEWELRY"
+      }
+    },
+    {
+      "id": "contract:pl",
+      "type": "FuturesContract",
+      "fields": {
+        "root": "PL",
+        "contract_month": "JULY",
+        "contract_year": null,
+        "quote_currency": "USD",
+        "quote_unit": "USD_PER_TROY_OZ"
+      }
+    },
+    {
+      "id": "spec:pl",
+      "type": "ContractSpecification",
+      "fields": {
+        "multiplier_value": 50,
+        "multiplier_unit": "TROY_OZ_PER_CONTRACT"
+      }
+    },
+    {
+      "id": "leg:pl",
+      "type": "TradeLeg",
+      "fields": {
+        "side": "LONG",
+        "contract_quantity": 2,
+        "status": "SOURCE_DECLARED_STRATEGY_TEMPLATE",
+        "entry_price": null,
+        "exit_price": null
+      }
+    },
+    {
+      "id": "action:entry:pl",
+      "type": "TradeAction",
+      "fields": {
+        "phase": "entry",
+        "action": "BUY",
+        "contract_quantity": 2,
+        "execution_status": "STRATEGY_RULE_NOT_CONFIRMED_FILL"
+      }
+    },
+    {
+      "id": "action:exit:pl",
+      "type": "TradeAction",
+      "fields": {
+        "phase": "exit",
+        "action": "SELL",
+        "contract_quantity": 2,
+        "execution_status": "STRATEGY_RULE_NOT_CONFIRMED_FILL"
+      }
+    },
+    {
+      "id": "contract:gc",
+      "type": "FuturesContract",
+      "fields": {
+        "root": "GC",
+        "contract_month": "JUNE",
+        "contract_year": null,
+        "quote_currency": "USD",
+        "quote_unit": "USD_PER_TROY_OZ"
+      }
+    },
+    {
+      "id": "spec:gc",
+      "type": "ContractSpecification",
+      "fields": {
+        "multiplier_value": 100,
+        "multiplier_unit": "TROY_OZ_PER_CONTRACT"
+      }
+    },
+    {
+      "id": "leg:gc",
+      "type": "TradeLeg",
+      "fields": {
+        "side": "SHORT",
+        "contract_quantity": 1,
+        "status": "SOURCE_DECLARED_STRATEGY_TEMPLATE",
+        "entry_price": null,
+        "exit_price": null
+      }
+    },
+    {
+      "id": "action:entry:gc",
+      "type": "TradeAction",
+      "fields": {
+        "phase": "entry",
+        "action": "SELL",
+        "contract_quantity": 1,
+        "execution_status": "STRATEGY_RULE_NOT_CONFIRMED_FILL"
+      }
+    },
+    {
+      "id": "action:exit:gc",
+      "type": "TradeAction",
+      "fields": {
+        "phase": "exit",
+        "action": "BUY",
+        "contract_quantity": 1,
+        "execution_status": "STRATEGY_RULE_NOT_CONFIRMED_FILL"
+      }
+    },
+    {
+      "id": "window:entry",
+      "type": "CalendarTradingWindow",
+      "fields": {
+        "month": "FEBRUARY",
+        "time_hint": "END_OF_MONTH",
+        "precision": "APPROXIMATE",
+        "day": null,
+        "year": "RECURRING"
+      }
+    },
+    {
+      "id": "window:exit",
+      "type": "CalendarTradingWindow",
+      "fields": {
+        "month": "APRIL",
+        "time_hint": "MID_MONTH",
+        "precision": "APPROXIMATE",
+        "day": null,
+        "year": "RECURRING"
+      }
+    },
+    {
+      "id": "rule:entry",
+      "type": "TradingRule",
+      "fields": {
+        "kind": "SEASONAL_ENTRY",
+        "exact_daily_trigger": "NOT_DISCLOSED",
+        "signal_type": "CALENDAR_APPROXIMATE"
+      }
+    },
+    {
+      "id": "rule:exit",
+      "type": "TradingRule",
+      "fields": {
+        "kind": "SEASONAL_EXIT",
+        "exact_daily_trigger": "NOT_DISCLOSED",
+        "signal_type": "CALENDAR_APPROXIMATE"
+      }
+    },
+    {
+      "id": "test:backtest",
+      "type": "BacktestStudy",
+      "fields": {
+        "author": "Ernie Chan",
+        "reported_start_year": 1995,
+        "end_year": "NOT_DISCLOSED",
+        "data_files_available": false,
+        "experiment_type": "AUTHOR_REPORTED"
+      }
+    },
+    {
+      "id": "test:paper2006",
+      "type": "PaperTradeStudy",
+      "fields": {
+        "year": 2006,
+        "author_claimed_success": true,
+        "raw_orders_available": false,
+        "trade_proof": "BLOG_AUTHOR_CLAIM_ONLY"
+      }
+    },
+    {
+      "id": "cohort:since1995",
+      "type": "ObservationWindow",
+      "fields": {
+        "start_year": 1995,
+        "end_year": null,
+        "role": "INITIAL_AUTHOR_RESULT_SET",
+        "comparison_cohort": "UNKNOWN_EXACT"
+      }
+    },
+    {
+      "id": "cohort:since2000",
+      "type": "ObservationWindow",
+      "fields": {
+        "start_year": 2000,
+        "end_year": null,
+        "role": "INTERIM_DRAWDOWN_COMMENT"
+      }
+    },
+    {
+      "id": "cohort:last7y2007",
+      "type": "ObservationWindow",
+      "fields": {
+        "reference_date": "2007-04-20",
+        "length_years": 7,
+        "role": "REVISED_HISTORIC_RESULT_SET"
+      }
+    },
+    {
+      "id": "metric:2006:avg_profit",
+      "type": "SourceReportedMetric",
+      "fields": {
+        "name": "avg_profit",
+        "value": 6600,
+        "unit": "USD",
+        "claim_scope": "SINCE_1995_AUTHOR_2006_REPORTED",
+        "status": "HISTORICAL_INITIAL_UNDER_AUTHOR_REVISED_CHART_CORRECTION"
+      }
+    },
+    {
+      "id": "metric:2006:best_profit",
+      "type": "SourceReportedMetric",
+      "fields": {
+        "name": "best_profit",
+        "value": 15400,
+        "unit": "USD",
+        "claim_scope": "SINCE_1995_AUTHOR_2006_REPORTED",
+        "status": "HISTORICAL_INITIAL_UNDER_AUTHOR_REVISED_CHART_CORRECTION"
+      }
+    },
+    {
+      "id": "metric:2006:worst_profit",
+      "type": "SourceReportedMetric",
+      "fields": {
+        "name": "worst_profit",
+        "value": -3810,
+        "unit": "USD",
+        "claim_scope": "SINCE_1995_AUTHOR_2006_REPORTED",
+        "status": "HISTORICAL_INITIAL_UNDER_AUTHOR_REVISED_CHART_CORRECTION"
+      }
+    },
+    {
+      "id": "metric:2007:avg_profit",
+      "type": "SourceReportedMetric",
+      "fields": {
+        "name": "avg_profit",
+        "value": 3064,
+        "unit": "USD",
+        "claim_scope": "LAST_SEVEN_YEARS_AS_OF_2007_04_20",
+        "status": "AUTHOR_REPORTED_CORRECTED"
+      }
+    },
+    {
+      "id": "metric:2007:best_profit",
+      "type": "SourceReportedMetric",
+      "fields": {
+        "name": "best_profit",
+        "value": 7320,
+        "unit": "USD",
+        "claim_scope": "LAST_SEVEN_YEARS_AS_OF_2007_04_20",
+        "status": "AUTHOR_REPORTED_CORRECTED"
+      }
+    },
+    {
+      "id": "metric:2007:worst_profit",
+      "type": "SourceReportedMetric",
+      "fields": {
+        "name": "worst_profit",
+        "value": -540,
+        "unit": "USD",
+        "claim_scope": "LAST_SEVEN_YEARS_AS_OF_2007_04_20",
+        "status": "AUTHOR_REPORTED_CORRECTED"
+      }
+    },
+    {
+      "id": "metric:2007:max_drawdown",
+      "type": "SourceReportedMetric",
+      "fields": {
+        "name": "max_drawdown",
+        "value": -4860,
+        "unit": "USD",
+        "claim_scope": "LAST_SEVEN_YEARS_AS_OF_2007_04_20",
+        "status": "AUTHOR_REPORTED_CORRECTED"
+      }
+    },
+    {
+      "id": "metric:2006:reported_margin",
+      "type": "SourceReportedMetric",
+      "fields": {
+        "metric": "INITIAL_EXCHANGE_MARGIN",
+        "value": 743,
+        "unit": "USD",
+        "not_maximum_risk": true
+      }
+    },
+    {
+      "id": "metric:2006:comment_dd",
+      "type": "SourceReportedMetric",
+      "fields": {
+        "metric": "MAX_INTERIM_DRAWDOWN",
+        "value": -10910,
+        "unit": "USD",
+        "cohort": "SINCE_2000",
+        "year_of_max": 2001
+      }
+    },
+    {
+      "id": "calc:cash_cushion",
+      "type": "CalculationExpression",
+      "fields": {
+        "operation": "ADD",
+        "expression": "initial exchange margin + absolute(max interim drawdown)",
+        "output_unit": "USD",
+        "qualifier": "AUTHOR_USES_TERM_MAXIMUM_MARGIN_REQUIREMENT"
+      }
+    },
+    {
+      "id": "metric:2006:comment_cash_cushion",
+      "type": "SourceReportedMetric",
+      "fields": {
+        "metric": "MAXIMUM_MARGIN_REQUIREMENT_AS_AUTHOR_USES_TERM",
+        "value": 11653,
+        "unit": "USD",
+        "not_broker_initial_margin": true
+      }
+    },
+    {
+      "id": "economic:festivals",
+      "type": "SeasonalEvent",
+      "fields": {
+        "event": "CHINESE_NEW_YEAR_AND_ASIAN_YEAR_END_FESTIVALS",
+        "locations": [
+          "CHINA",
+          "INDIA"
+        ],
+        "expected_seasonal_completion": "FEBRUARY"
+      }
+    },
+    {
+      "id": "economic:jewelry",
+      "type": "CommodityUseChannel",
+      "fields": {
+        "market": "GOLD_JEWELRY",
+        "demand_region": "ASIAN_MARKETS",
+        "underlying": "GOLD"
+      }
+    },
+    {
+      "id": "economic:gold_demand",
+      "type": "SeasonalDemandDriver",
+      "fields": {
+        "driver": "POST_FESTIVAL_GOLD_DELIVERY_DEMAND_EXHAUSTION",
+        "expected_direction": "DECREASE",
+        "source_attribution": "TOEPKE_AS_QUOTED_BY_CHAN"
+      }
+    },
+    {
+      "id": "economic:pl_use",
+      "type": "CommodityUseChannel",
+      "fields": {
+        "market": "AUTOMOTIVE_CATALYTIC_CONVERTERS",
+        "underlying": "PLATINUM",
+        "relative_seasonality": "WEAKER_THAN_GOLD_JEWELRY"
+      }
+    },
+    {
+      "id": "economic:relative",
+      "type": "RelativePriceExpectation",
+      "fields": {
+        "direction": "GOLD_DECLINES_RELATIVE_TO_PLATINUM",
+        "intended_spread_position": "LONG_PL_SHORT_GC",
+        "is_cointegration_reversion": false
+      }
+    },
+    {
+      "id": "model:exclusion",
+      "type": "StrategyModelExclusion",
+      "fields": {
+        "excluded": "COINTEGRATION_MEAN_REVERSION",
+        "author_comment_date": "2007-03-01",
+        "expected_relation": "SPREAD_DIVERGENCE",
+        "claim_status": "EXPLICIT_AUTHOR_CLARIFICATION"
+      }
+    },
+    {
+      "id": "2007:case",
+      "type": "TradeCase",
+      "fields": {
+        "example_kind": "2007_HYPOTHETICAL_COUNTERFACTUAL",
+        "actual_order_fills_confirmed": false
+      }
+    },
+    {
+      "id": "2007:event:entry",
+      "type": "TradeEvent",
+      "fields": {
+        "date": "2007-02-26",
+        "price_timing": "NEAR_MARKET_CLOSE",
+        "action": "OPEN_SAME_SEASONAL_SPREAD",
+        "actual_fills": false
+      }
+    },
+    {
+      "id": "2007:event:exit",
+      "type": "TradeEvent",
+      "fields": {
+        "date": "2007-04-19",
+        "price_timing": "NEAR_MARKET_CLOSE",
+        "action": "CLOSE_SAME_SEASONAL_SPREAD",
+        "actual_fills": false
+      }
+    },
+    {
+      "id": "2007:metric:profit",
+      "type": "SourceReportedMetric",
+      "fields": {
+        "name": "APPROX_HYPOTHETICAL_PNL",
+        "amount_usd": 6610,
+        "estimate": true,
+        "execution_proof": false
+      }
+    },
+    {
+      "id": "correction:plot",
+      "type": "PublicationCorrection",
+      "fields": {
+        "correction_date": "2007-04-20",
+        "author": "Ernie Chan",
+        "correction_scope": "PREVIOUS_HISTORICAL_PROFIT_CHART_PLOTTING_CALCULATION",
+        "affects_all_initial_values_identically": "UNVERIFIED",
+        "do_not_mix_different_sample_windows": true
+      }
+    },
+    {
+      "id": "calc:oz_pl",
+      "type": "CalculationExpression",
+      "fields": {
+        "operation": "MULTIPLY",
+        "formula": "2 contracts × 50 oz/contract",
+        "value": 100,
+        "unit": "TROY_OZ"
+      }
+    },
+    {
+      "id": "calc:oz_gc",
+      "type": "CalculationExpression",
+      "fields": {
+        "operation": "MULTIPLY",
+        "formula": "1 contract × 100 oz/contract",
+        "value": 100,
+        "unit": "TROY_OZ"
+      }
+    },
+    {
+      "id": "exposure:oz_balance",
+      "type": "HedgeQuantityBalance",
+      "fields": {
+        "pl_oz": 100,
+        "gc_oz": 100,
+        "balance_kind": "OZ_COUNT_ONLY",
+        "dollar_neutral": false,
+        "delta_neutral": "NOT_ESTABLISHED"
+      }
+    },
+    {
+      "id": "risk:not_dollar_neutral",
+      "type": "RelativeRiskExposure",
+      "fields": {
+        "is_dollar_neutral": false,
+        "dominant_leg": "PLATINUM_LONG",
+        "author_comparison": "ALMOST_ONE_PL_CONTRACT_OUTRIGHT_RISK",
+        "market_value_claim_author_reported": "NO_RAW_PRICE_DATA"
+      }
+    },
+    {
+      "id": "risk:dollar_neutral_alt",
+      "type": "HedgeAlternativeComparison",
+      "fields": {
+        "alternative": "DOLLAR_NEUTRAL_SPREAD_SIZING",
+        "author_reported_result": "LESS_PROFITABLE_HISTORICALLY_AND_IN_OWN_REAL_TRADING_TEST",
+        "comparable_series_not_available": true
+      }
+    },
+    {
+      "id": "attribution:toepke",
+      "type": "ResearchAttribution",
+      "fields": {
+        "author": "Jerry Toepke",
+        "article": "Give Seasonal Spreads Some Respect",
+        "publication": "SFO MAGAZINE",
+        "issue": "2006-01",
+        "verified_article_content": "NOT_ACQUIRED"
+      }
+    },
+    {
+      "id": "missing:raw_data",
+      "type": "InformationGap",
+      "fields": {
+        "fields": [
+          "historical_price_bars",
+          "individual_paper_trade_fills",
+          "paper_trade_order_prices",
+          "exact_2006_calendar_dates",
+          "commission_slippage",
+          "strategy_code"
+        ],
+        "status": "NOT_ACQUIRED_OR_NOT_DISLOSED",
+        "effect": "No full historical strategy execution replay"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "case",
+      "relation": "CASE_HAS_STRATEGY",
+      "to": "strategy"
+    },
+    {
+      "from": "strategy",
+      "relation": "STRATEGY_TRADES_PAIR",
+      "to": "pair"
+    },
+    {
+      "from": "case",
+      "relation": "CASE_HAS_POSITION",
+      "to": "position"
+    },
+    {
+      "from": "position",
+      "relation": "POSITION_HAS_LEG",
+      "to": "leg:pl"
+    },
+    {
+      "from": "pair",
+      "relation": "PAIR_HAS_LEG",
+      "to": "leg:pl"
+    },
+    {
+      "from": "leg:pl",
+      "relation": "LEG_HAS_CONTRACT",
+      "to": "contract:pl"
+    },
+    {
+      "from": "contract:pl",
+      "relation": "CONTRACT_HAS_SPEC",
+      "to": "spec:pl"
+    },
+    {
+      "from": "contract:pl",
+      "relation": "CONTRACT_UNDERLIES_COMMODITY",
+      "to": "asset:pl"
+    },
+    {
+      "from": "leg:pl",
+      "relation": "LEG_HAS_DECLARED_ACTION",
+      "to": "action:entry:pl"
+    },
+    {
+      "from": "leg:pl",
+      "relation": "LEG_HAS_DECLARED_ACTION",
+      "to": "action:exit:pl"
+    },
+    {
+      "from": "position",
+      "relation": "POSITION_HAS_LEG",
+      "to": "leg:gc"
+    },
+    {
+      "from": "pair",
+      "relation": "PAIR_HAS_LEG",
+      "to": "leg:gc"
+    },
+    {
+      "from": "leg:gc",
+      "relation": "LEG_HAS_CONTRACT",
+      "to": "contract:gc"
+    },
+    {
+      "from": "contract:gc",
+      "relation": "CONTRACT_HAS_SPEC",
+      "to": "spec:gc"
+    },
+    {
+      "from": "contract:gc",
+      "relation": "CONTRACT_UNDERLIES_COMMODITY",
+      "to": "asset:gc"
+    },
+    {
+      "from": "leg:gc",
+      "relation": "LEG_HAS_DECLARED_ACTION",
+      "to": "action:entry:gc"
+    },
+    {
+      "from": "leg:gc",
+      "relation": "LEG_HAS_DECLARED_ACTION",
+      "to": "action:exit:gc"
+    },
+    {
+      "from": "strategy",
+      "relation": "STRATEGY_HAS_ENTRY_RULE",
+      "to": "rule:entry"
+    },
+    {
+      "from": "strategy",
+      "relation": "STRATEGY_HAS_EXIT_RULE",
+      "to": "rule:exit"
+    },
+    {
+      "from": "rule:entry",
+      "relation": "RULE_HAS_CALENDAR_WINDOW",
+      "to": "window:entry"
+    },
+    {
+      "from": "rule:exit",
+      "relation": "RULE_HAS_CALENDAR_WINDOW",
+      "to": "window:exit"
+    },
+    {
+      "from": "rule:entry",
+      "relation": "RULE_DECLARES_ACTION",
+      "to": "action:entry:pl"
+    },
+    {
+      "from": "rule:exit",
+      "relation": "RULE_DECLARES_ACTION",
+      "to": "action:exit:pl"
+    },
+    {
+      "from": "rule:entry",
+      "relation": "RULE_DECLARES_ACTION",
+      "to": "action:entry:gc"
+    },
+    {
+      "from": "rule:exit",
+      "relation": "RULE_DECLARES_ACTION",
+      "to": "action:exit:gc"
+    },
+    {
+      "from": "case",
+      "relation": "CASE_HAS_BACKTEST",
+      "to": "test:backtest"
+    },
+    {
+      "from": "case",
+      "relation": "CASE_HAS_PAPER_TRADE_CLAIM",
+      "to": "test:paper2006"
+    },
+    {
+      "from": "test:backtest",
+      "relation": "BACKTEST_REPORTS_COHORT",
+      "to": "cohort:since1995"
+    },
+    {
+      "from": "cohort:since1995",
+      "relation": "COHORT_HAS_METRIC",
+      "to": "metric:2006:avg_profit"
+    },
+    {
+      "from": "cohort:since1995",
+      "relation": "COHORT_HAS_METRIC",
+      "to": "metric:2006:best_profit"
+    },
+    {
+      "from": "cohort:since1995",
+      "relation": "COHORT_HAS_METRIC",
+      "to": "metric:2006:worst_profit"
+    },
+    {
+      "from": "cohort:last7y2007",
+      "relation": "COHORT_HAS_METRIC",
+      "to": "metric:2007:avg_profit"
+    },
+    {
+      "from": "cohort:last7y2007",
+      "relation": "COHORT_HAS_METRIC",
+      "to": "metric:2007:best_profit"
+    },
+    {
+      "from": "cohort:last7y2007",
+      "relation": "COHORT_HAS_METRIC",
+      "to": "metric:2007:worst_profit"
+    },
+    {
+      "from": "cohort:last7y2007",
+      "relation": "COHORT_HAS_METRIC",
+      "to": "metric:2007:max_drawdown"
+    },
+    {
+      "from": "case",
+      "relation": "CASE_HAS_MARGIN_REPORT",
+      "to": "metric:2006:reported_margin"
+    },
+    {
+      "from": "cohort:since2000",
+      "relation": "COHORT_HAS_METRIC",
+      "to": "metric:2006:comment_dd"
+    },
+    {
+      "from": "case",
+      "relation": "CASE_HAS_RISK_COHORT",
+      "to": "cohort:since2000"
+    },
+    {
+      "from": "case",
+      "relation": "CASE_HAS_MARGIN_CALCULATION",
+      "to": "calc:cash_cushion"
+    },
+    {
+      "from": "calc:cash_cushion",
+      "relation": "CALCULATION_READS_METRIC",
+      "to": "metric:2006:reported_margin"
+    },
+    {
+      "from": "calc:cash_cushion",
+      "relation": "CALCULATION_READS_METRIC",
+      "to": "metric:2006:comment_dd"
+    },
+    {
+      "from": "calc:cash_cushion",
+      "relation": "CALCULATION_PRODUCES_METRIC",
+      "to": "metric:2006:comment_cash_cushion"
+    },
+    {
+      "from": "case",
+      "relation": "CASE_HAS_SEASONAL_EVENT",
+      "to": "economic:festivals"
+    },
+    {
+      "from": "economic:festivals",
+      "relation": "SEASONAL_EVENT_AFFECTS_USE_CHANNEL",
+      "to": "economic:jewelry"
+    },
+    {
+      "from": "economic:jewelry",
+      "relation": "USE_CHANNEL_DRIVES_DEMAND",
+      "to": "economic:gold_demand"
+    },
+    {
+      "from": "economic:gold_demand",
+      "relation": "DEMAND_DRIVER_TARGETS_COMMODITY",
+      "to": "asset:gc"
+    },
+    {
+      "from": "economic:gold_demand",
+      "relation": "DEMAND_EXPECTATION_SUPPORTS_RELATIVE_PRICE",
+      "to": "economic:relative"
+    },
+    {
+      "from": "economic:pl_use",
+      "relation": "CHANNEL_TARGETS_COMMODITY",
+      "to": "asset:pl"
+    },
+    {
+      "from": "economic:relative",
+      "relation": "RELATIVE_PRICE_EXPECTATION_SUPPORTS_PAIR",
+      "to": "pair"
+    },
+    {
+      "from": "case",
+      "relation": "CASE_HAS_COUNTERPART_HEDGE_USE",
+      "to": "economic:pl_use"
+    },
+    {
+      "from": "strategy",
+      "relation": "STRATEGY_EXCLUDES_MODEL",
+      "to": "model:exclusion"
+    },
+    {
+      "from": "case",
+      "relation": "CASE_HAS_RELATED_2007_HYPOTHETICAL_TRADE",
+      "to": "2007:case"
+    },
+    {
+      "from": "2007:case",
+      "relation": "CASE_HAS_TRADE_EVENT",
+      "to": "2007:event:entry"
+    },
+    {
+      "from": "2007:case",
+      "relation": "CASE_HAS_TRADE_EVENT",
+      "to": "2007:event:exit"
+    },
+    {
+      "from": "2007:case",
+      "relation": "CASE_HAS_REPORT_METRIC",
+      "to": "2007:metric:profit"
+    },
+    {
+      "from": "2007:case",
+      "relation": "HYPOTHETICAL_CASE_USES_STRATEGY",
+      "to": "strategy"
+    },
+    {
+      "from": "correction:plot",
+      "relation": "CORRECTION_HAS_REVISED_COHORT",
+      "to": "cohort:last7y2007"
+    },
+    {
+      "from": "correction:plot",
+      "relation": "CORRECTION_FLAGS_INITIAL_COHORT",
+      "to": "cohort:since1995"
+    },
+    {
+      "from": "case",
+      "relation": "CASE_HAS_PUBLICATION_CORRECTION",
+      "to": "correction:plot"
+    },
+    {
+      "from": "pair",
+      "relation": "PAIR_HAS_QUANTITY_BALANCE",
+      "to": "exposure:oz_balance"
+    },
+    {
+      "from": "leg:pl",
+      "relation": "LEG_HAS_OUNCE_CALC",
+      "to": "calc:oz_pl"
+    },
+    {
+      "from": "calc:oz_pl",
+      "relation": "CALC_READS_CONTRACT_SPEC",
+      "to": "spec:pl"
+    },
+    {
+      "from": "exposure:oz_balance",
+      "relation": "BALANCE_USES_OUNCE_CALC",
+      "to": "calc:oz_pl"
+    },
+    {
+      "from": "leg:gc",
+      "relation": "LEG_HAS_OUNCE_CALC",
+      "to": "calc:oz_gc"
+    },
+    {
+      "from": "calc:oz_gc",
+      "relation": "CALC_READS_CONTRACT_SPEC",
+      "to": "spec:gc"
+    },
+    {
+      "from": "exposure:oz_balance",
+      "relation": "BALANCE_USES_OUNCE_CALC",
+      "to": "calc:oz_gc"
+    },
+    {
+      "from": "pair",
+      "relation": "PAIR_HAS_RISK_EXPOSURE",
+      "to": "risk:not_dollar_neutral"
+    },
+    {
+      "from": "risk:not_dollar_neutral",
+      "relation": "EXPOSURE_HAS_ALTERNATIVE",
+      "to": "risk:dollar_neutral_alt"
+    },
+    {
+      "from": "case",
+      "relation": "CASE_CREDITS_STRATEGY_ORIGIN",
+      "to": "attribution:toepke"
+    },
+    {
+      "from": "case",
+      "relation": "CASE_HAS_INFORMATION_GAP",
+      "to": "missing:raw_data"
+    }
+  ],
+  "contains_primary_sources": false
+}
