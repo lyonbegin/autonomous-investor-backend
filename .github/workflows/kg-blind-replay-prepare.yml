@@ -1,0 +1,83 @@
+name: Knowledge Graph - Prepare Independent ChatGPT Blind Replay
+
+on:
+  workflow_dispatch:
+    inputs:
+      case_id:
+        description: Choose an independently reconstructible finance graph
+        required: true
+        type: choice
+        default: CME_PL_GC_MULTI_SOURCE
+        options:
+          - CME_PL_GC_MULTI_SOURCE
+          - CHAN_PL_GC_SEASONAL
+  push:
+    branches:
+      - feature/chatgpt-kg-research-orchestration-20261117
+    paths:
+      - .github/workflows/kg-blind-replay-prepare.yml
+      - research/prompts/INDEPENDENT_FINANCIAL_GRAPH_REPLAY.md
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kg-blind-replay-preparation
+  cancel-in-progress: false
+
+jobs:
+  build-blind-input:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    env:
+      CASE_ID: ${{ github.event_name == 'workflow_dispatch' && inputs.case_id || 'CME_PL_GC_MULTI_SOURCE' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select a redacted finance graph only
+        shell: bash
+        run: |
+          set -euo pipefail
+          case "$CASE_ID" in
+            CME_PL_GC_MULTI_SOURCE)
+              GRAPH='research/rebuild/CME-PL-GC/round-6-redacted-for-blind.json'
+              ;;
+            CHAN_PL_GC_SEASONAL)
+              GRAPH='research/rebuild/CHAN-SEASONAL-PL-GC/round-3-source-redacted.graph.json'
+              ;;
+            *)
+              echo 'FAIL_UNKNOWN_CASE' >&2
+              exit 1
+              ;;
+          esac
+          test -s "$GRAPH"
+          if jq -e '[.nodes[] | select(.type == "SourceDocument" or .type == "SourcePassage")] | length > 0' "$GRAPH" >/dev/null; then
+            echo 'FAIL_SOURCE_TEXT_OR_PASSAGE_IN_BLIND_INPUT' >&2
+            exit 1
+          fi
+          if jq -e '[.edges[] | select(.relation == "FACT_HAS_DOCUMENT_PASSAGE_EVIDENCE" or .relation == "FACT_HAS_AUTHOR_SOURCE_PASSAGE")] | length > 0' "$GRAPH" >/dev/null; then
+            echo 'FAIL_ORIGINAL_EVIDENCE_PATH_IN_BLIND_INPUT' >&2
+            exit 1
+          fi
+          jq -e '.nodes | length > 0' "$GRAPH" >/dev/null
+          cp "$GRAPH" CHATGPT_SOURCE_REDACTED_GRAPH.json
+          {
+            cat research/prompts/INDEPENDENT_FINANCIAL_GRAPH_REPLAY.md
+            printf '\n\n## 입력 그래프 JSON (해당 사례만)\n\n```json\n'
+            cat CHATGPT_SOURCE_REDACTED_GRAPH.json
+            printf '\n```\n'
+          } > CHATGPT_BLIND_TASK.md
+          {
+            echo '## 독립 ChatGPT 블라인드 역재현 작업 준비'
+            echo "- 대상: $CASE_ID"
+            echo '- 상태: **PREPARED_ONLY / NEW_CHAT_NOT_INVOKED**'
+            echo "- 그래프: $GRAPH"
+            echo '- 원문 본문·표·원문 근거 경로는 입력에서 제외'
+            echo '- 같은 대화에서 읽기만 하는 것은 독립 블라인드 합격으로 인정하지 않음'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: independent-chatgpt-blind-task
+          path: |
+            CHATGPT_BLIND_TASK.md
+            CHATGPT_SOURCE_REDACTED_GRAPH.json
+          retention-days: 30
