@@ -1,12 +1,12 @@
 # v8 · 실패 → 온톨로지 확장 → 그래프 수정 → 역재현 반복 기록
 
-**대상:** 첫 TradingView 원본 `02yfhjiz`(Complex Single Trade Strategy) 및 연관 연구 Vezeris/Kyrgos/Schinas(2018)의 EURUSD 실험 a/b/c.
+**최종 반영: v8.6 (총 여섯 차례 결손 수정).**\n\n**대상:** 첫 TradingView 원본 `02yfhjiz`(Complex Single Trade Strategy) 및 연관 연구 Vezeris/Kyrgos/Schinas(2018)의 EURUSD 실험 a/b/c.
 
 **원문:** https://www.tradingview.com/script/02yfhjiz-Complex-Single-Trade-Strategy/ · https://www.mdpi.com/1911-8074/11/3/56
 
 **가역성 판정:** **원문 전체/실행 코드 완전 가역성 NOT_VERIFIED.** 공개 설명 범위의 구조를 재복원할 수 있게 되었으나, Pine 전체 코드와 사용자 설정값이 없고 독립된 새 ChatGPT 블라인드 대화도 아직 실행되지 않았습니다.
 
-## TradingView 원본 · 5회 순차 수정
+## TradingView 원본 · 6회 순차 수정
 
 | 반복 | 원래 그래프에 없던 의미 | 추가/수정 사항 | 개선 후 그래프에서 따라갈 수 있는 사실 |
 |---|---|---|---|
@@ -14,9 +14,9 @@
 | 2 | 반대 신호의 IGNORE / CLOSE / CLOSE_AND_REVERSE를 상태 전환으로 복원할 수 없음 | PositionState, PositionTransitionSpec, 정책/상태/행동순서 관계 | 롱→무시/청산/숏전환, 숏→무시/청산/롱전환 |
 | 3 | 익절에 쓰인 '가격상승률'과 손익률이 혼용되고, 초기 트레일 손절의 cutoff→freeze 전환이 없음 | CalculationExpression + TP조건 관계, 손절 cutoff조건·정지 행동 | 4단계 분할익절의 입력 계산과 초기 stop-freeze 설명 |
 | 4 | 누락 속성의 정확한 위치를 그래프 관계로 찾기 어려움 | InformationGap 14개와 `GAP_BLOCKS_NODE_FIELD` | 무엇이 미추출/원문 설계상 미정인지 구별 |
-| 5 | 손절 3종이 단독 또는 동시 적용 가능한 정책임을 추적할 수 없음 | ConcurrentStopPolicy와 3종 손절 관계, 최초 신호 즉시 진입 속성 | 복합 손절 허용 구조와 최초 진입 시점 설명 |
+| 5 | 손절 3종이 단독 또는 동시 적용 가능한 정책임을 추적할 수 없음 | ConcurrentStopPolicy와 3종 손절 관계, 최초 신호 즉시 진입 속성 | 복합 손절 허용 구조와 최초 진입 시점 설명 |\n| 6 | 원문에 명시된 별도 두 신호 생성 스크립트와 연결이 없었음 | SourceDocument 2개 및 호환 신호 공급자 관계 2종 | 4개 규칙형 Simple, 7개 규칙/10개 논리형 Custom 연결 가능. 실제 설정된 신호원인지는 미확인 |
 
-기존 39노드·61관계 → **72노드·126관계**. Graph-only 경로 확인 중 중요한 관계를 제거하는 음성(오류주입) 검사 **8/8**에서 해당 복원 경로의 단절을 확인했습니다. 이 결과는 전체 가역성 합격을 뜻하지 않습니다.
+기존 39노드·61관계 → **76노드·133관계**. Graph-only 경로 확인 중 중요한 관계를 제거하는 음성(오류주입) 검사 **8/8**에서 해당 복원 경로의 단절을 확인했습니다. 이 결과는 전체 가역성 합격을 뜻하지 않습니다.
 
 ### 공개 TradingView 설명과 그래프에서 복원 가능한 주요 사실
 
@@ -51,7 +51,7 @@
 
 기존 604건의 추출 출현 이력을 보존하고, 고유 유형 468종에서 출발하여 v7 후보까지의 578종을 유지했습니다.
 
-v8 신규 후보 **노드 4종 / 속성 12종 / 관계 26종**. 모두 **PROPOSED, 정본 승인 전**이며 v7 명칭 중복 여부와 금융적 의미 중복·도메인 제약·과거 다섯 사례 회귀검증이 필요합니다. 승인 전 고유 유형 후보 합계는 **620종**이지만 원래 '604건 출현'과는 계산 단위가 다릅니다.
+v8 신규 후보 **노드 4종 / 속성 15종 / 관계 28종**. 모두 **PROPOSED, 정본 승인 전**이며 v7 명칭 중복 여부와 금융적 의미 중복·도메인 제약·과거 다섯 사례 회귀검증이 필요합니다. 승인 전 고유 유형 후보 합계는 **625종**이지만 원래 '604건 출현'과는 계산 단위가 다릅니다.
 
 상세 정의: `research/ontology/v8-gap-driven-delta-proposals.json`.
 복원 경로 결과: `research/reconstruction/TV-02yfhjiz-and-VEZERIS-2018.graph-traversal.v8.json`.
@@ -62,3 +62,10 @@ v8 신규 후보 **노드 4종 / 속성 12종 / 관계 26종**. 모두 **PROPOSE
 **새 TradingView 원본 한 건 → ChatGPT 1차 추세 전용 여부 판별 → ChatGPT 지정 검색처 직접 검색 → 실제 논문/예제 판별 → 기존 온톨로지로 그래프 구성 → 독립 새 대화에서 그래프만 받아 역재현 → 원문과 비교 → 누락된 노드·속성·관계 추가 → 그래프 재생성 → 재검증**을 원본별 반복합니다.
 
 **연동 제한:** HITEL Web2API 연구 작업 전송·응답 규약은 아직 받지 못했습니다. 현재 GitHub Actions는 연구 지시문 패키지 준비만 가능하며, 새 대화의 독립 ChatGPT 역재현은 자동화되지 않았습니다. 임의로 시스템 API 또는 기존 로그인의 계정 연결을 구현했다고 보고하지 않습니다.
+
+## 추가 원문 확인 (작성자가 명시한 관련 TradingView 스크립트)
+
+- [Simple Buy/Sell Indicator](https://www.tradingview.com/script/RsZi3CJ1-Simple-Buy-Sell-Indicator/): 최대 4개 규칙, 출력 1/0/-1.
+- [Custom Buy/Sell Indicator](https://www.tradingview.com/script/PZbgI2XG-Custom-Buy-Sell-Indicator/): 최대 7개 규칙, 논리 결합식 10종, 출력 1/0/-1.
+
+이는 첫 전략의 **사용 가능한 입력 신호원**이라는 공개 설명에 근거한 연결입니다. 실제 어떤 사용자가 이 스크립트를 설정했다는 뜻이 아닙니다. 공개 Pine 전체 코드 확보 및 실제 실행값 복원은 여전히 미확인입니다.
