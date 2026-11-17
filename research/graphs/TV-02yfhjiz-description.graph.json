@@ -116,7 +116,9 @@
       "properties": {
         "role": "ENTRY_LONG",
         "requires": "NO_OPEN_POSITION",
-        "same_direction_while_open": "IGNORE"
+        "same_direction_while_open": "IGNORE",
+        "first_valid_signal_timing": "OPEN_IMMEDIATELY_AS_DESCRIBED",
+        "pine_bar_execution_phase": "NOT_VERIFIED"
       }
     },
     {
@@ -125,7 +127,9 @@
       "properties": {
         "role": "ENTRY_SHORT",
         "requires": "NO_OPEN_POSITION",
-        "same_direction_while_open": "IGNORE"
+        "same_direction_while_open": "IGNORE",
+        "first_valid_signal_timing": "OPEN_IMMEDIATELY_AS_DESCRIBED",
+        "pine_bar_execution_phase": "NOT_VERIFIED"
       }
     },
     {
@@ -805,6 +809,33 @@
         "impact": "Cannot reproduce position reduction at TP tier 4.",
         "source_scope": "TRADINGVIEW_PUBLIC_DESCRIPTION",
         "resolution_requirement": "PINE_SOURCE_OR_RUNTIME_CONFIGURATION_WHEN_APPLICABLE"
+      }
+    },
+    {
+      "id": "tv01:policy:concurrent_stops",
+      "ontology_type": "N-144:ConcurrentStopPolicy",
+      "properties": {
+        "simultaneous_allowed": true,
+        "enabled_subset": "USER_CONFIGURATION_NOT_EXTRACTED",
+        "simultaneous_trigger_priority": "NOT_VERIFIED_FROM_PINE",
+        "user_can_combine_any_of": [
+          "REGULAR_STOP",
+          "INITIAL_TRAILING_STOP",
+          "TRAILING_STOP"
+        ],
+        "author_guidance_distinct_from_executable_constraint": true
+      }
+    },
+    {
+      "id": "tv01:gap:15",
+      "ontology_type": "N-143:InformationGap",
+      "properties": {
+        "target_node": "tv01:policy:concurrent_stops",
+        "field_path": "simultaneous_trigger_priority",
+        "kind": "NOT_EXTRACTED",
+        "impact": "Cannot know stop-order conflict execution priority from description alone",
+        "source_scope": "TRADINGVIEW_PUBLIC_DESCRIPTION",
+        "resolution_requirement": "FULL_PINE_SOURCE"
       }
     }
   ],
@@ -1493,6 +1524,43 @@
       "to": "tv01:a_tp4",
       "field_path": "reduction_value/unit",
       "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:strategy",
+      "relation": "PROPOSED:STRATEGY_HAS_STOP_COMBINATION_POLICY",
+      "to": "tv01:policy:concurrent_stops",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:policy:concurrent_stops",
+      "relation": "PROPOSED:STOP_POLICY_CONTAINS_RISK_RULE",
+      "to": "tv01:r_regular_stop",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:policy:concurrent_stops",
+      "relation": "PROPOSED:STOP_POLICY_CONTAINS_RISK_RULE",
+      "to": "tv01:r_initial_trail",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:policy:concurrent_stops",
+      "relation": "PROPOSED:STOP_POLICY_CONTAINS_RISK_RULE",
+      "to": "tv01:r_trail",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:policy:concurrent_stops",
+      "relation": "PROPOSED:POLICY_SUPPORTED_BY_ASSERTION",
+      "to": "tv01:e_stops",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:gap:15",
+      "relation": "PROPOSED:GAP_BLOCKS_NODE_FIELD",
+      "to": "tv01:policy:concurrent_stops",
+      "field_path": "simultaneous_trigger_priority",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
     }
   ],
   "known_gaps": [
@@ -1597,7 +1665,17 @@
         "failure_trace": "A reverse reader can traverse GAP_BLOCKS_NODE_FIELD to exact target node and unresolved field."
       },
       "verification": "GRAPH_TRACEABLE_GAPS_NOT_INDEPENDENT_BLIND_PASS"
+    },
+    {
+      "iteration": 5,
+      "missing_knowledge": "The description allows regular, initial trailing and regular trailing stops separately or together, but only individual stop rules were linked to the strategy. Immediate opening of the first valid signal was not recorded as timing.",
+      "correction": "Create ConcurrentStopPolicy with three separate risk-rule relations; add immediate entry-timing property; attach a priority-resolution gap to the policy.",
+      "restored_from_graph": {
+        "stop_combinations": "Any of the three stop rules may operate separately or concurrently; exact collision priority unavailable",
+        "first_signal": "When flat, the first valid buy/sell signal opens the matching position immediately (source description timing only, not verified Pine bar timing)."
+      },
+      "verification": "PUBLIC_DESCRIPTION_RECONSTRUCTABLE_FOR_THIS_STEP_NOT_FULL_PINE"
     }
   ],
-  "version": "TV-KG-ITERATIVE-v8.4"
+  "version": "TV-KG-ITERATIVE-v8.5"
 }
