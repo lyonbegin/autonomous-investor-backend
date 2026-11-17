@@ -1,0 +1,334 @@
+{
+  "reconstruction_type": "GRAPH_ONLY_SEMANTIC_TRAVERSAL",
+  "graph": "CHAN-PL-GC-R6-REDACTED",
+  "independent_new_chatgpt_conversation": false,
+  "source_documents_present": false,
+  "legs": [
+    {
+      "root": "PL",
+      "month": "JULY",
+      "side": "LONG",
+      "quantity": 2,
+      "ounces_per_contract": 50
+    },
+    {
+      "root": "GC",
+      "month": "JUNE",
+      "side": "SHORT",
+      "quantity": 1,
+      "ounces_per_contract": 100
+    }
+  ],
+  "entry": {
+    "month": "FEBRUARY",
+    "portion": "LATE",
+    "approximate": true,
+    "exact_date": null,
+    "year_parameter": "PER_YEAR"
+  },
+  "exit": {
+    "month": "APRIL",
+    "portion": "MID",
+    "approximate": true,
+    "exact_date": null,
+    "year_parameter": "PER_YEAR"
+  },
+  "paper_trade_author_claim": {
+    "kind": "AUTHOR_REPORTED_PAPER_TRADE",
+    "year": 2006,
+    "result_claim": "WORKED_AS_ADVERTISED",
+    "real_fills_documented": false,
+    "do_not_confuse_with_actual_broker_fill": true
+  },
+  "original_historical_metrics": {
+    "average": {
+      "metric_name": "AVERAGE_ANNUAL_PNL",
+      "value": 6600,
+      "currency": "USD",
+      "status": "SUPERSEDED_ORIGINAL",
+      "reporting_mode": "AUTHOR_REPORTED_NOT_RECALCULATED"
+    },
+    "best": {
+      "metric_name": "MAX_ANNUAL_PNL",
+      "value": 15400,
+      "currency": "USD",
+      "status": "SUPERSEDED_ORIGINAL",
+      "reporting_mode": "AUTHOR_REPORTED_NOT_RECALCULATED"
+    },
+    "worst": {
+      "metric_name": "MIN_ANNUAL_PNL",
+      "value": -3810,
+      "currency": "USD",
+      "status": "SUPERSEDED_ORIGINAL",
+      "reporting_mode": "AUTHOR_REPORTED_NOT_RECALCULATED"
+    },
+    "initial_margin": {
+      "metric_name": "HISTORICAL_REPORTED_INITIAL_MARGIN",
+      "value": 743,
+      "currency": "USD",
+      "status": "AUTHOR_REPORTED",
+      "reporting_mode": "AUTHOR_REPORTED_NOT_RECALCULATED"
+    }
+  },
+  "corrected_metrics": {
+    "average": {
+      "metric_name": "AVERAGE_ANNUAL_PNL",
+      "value": 3064,
+      "currency": "USD",
+      "status": "AUTHOR_CORRECTED",
+      "reporting_mode": "AUTHOR_REPORTED_NOT_RECALCULATED"
+    },
+    "best": {
+      "metric_name": "MAX_ANNUAL_PNL",
+      "value": 7320,
+      "currency": "USD",
+      "status": "AUTHOR_CORRECTED",
+      "reporting_mode": "AUTHOR_REPORTED_NOT_RECALCULATED"
+    },
+    "worst": {
+      "metric_name": "MIN_ANNUAL_PNL",
+      "value": -540,
+      "currency": "USD",
+      "status": "AUTHOR_CORRECTED",
+      "reporting_mode": "AUTHOR_REPORTED_NOT_RECALCULATED"
+    },
+    "new_max_drawdown": {
+      "metric_name": "MAX_INTRAPERIOD_DRAWDOWN",
+      "value": -4860,
+      "currency": "USD",
+      "status": "AUTHOR_CORRECTED",
+      "reporting_mode": "AUTHOR_REPORTED_NOT_RECALCULATED"
+    },
+    "old_max_drawdown": {
+      "metric_name": "MAX_INTRAPERIOD_DRAWDOWN",
+      "value": -10910,
+      "currency": "USD",
+      "status": "AUTHOR_COMMENT",
+      "reporting_mode": "AUTHOR_REPORTED_NOT_RECALCULATED"
+    },
+    "corrected_links": [
+      {
+        "old_id": "metric:orig_avg",
+        "new_id": "metric:new_avg"
+      },
+      {
+        "old_id": "metric:orig_best",
+        "new_id": "metric:new_best"
+      },
+      {
+        "old_id": "metric:orig_worst",
+        "new_id": "metric:new_worst"
+      }
+    ]
+  },
+  "margin_and_risk": {
+    "venue": [
+      {
+        "code": "NYMEX",
+        "role": "PLATINUM_CONTRACT_AND_AUTHOR_REPORTED_MARGIN_VENUE",
+        "current_margin_not_asserted": true
+      }
+    ],
+    "capital_calc": 11653,
+    "author_required_capital": 11653,
+    "annual_outcome": [
+      {
+        "period": "YEAR_2001",
+        "pnl_sign": "POSITIVE",
+        "amount_usd": null,
+        "source_version": "AUTHOR_2006_NOV_26_COMMENT"
+      }
+    ]
+  },
+  "economic_story": {
+    "festival": {
+      "event": "END_OF_CHINESE_NEW_YEAR_FESTIVAL_PERIOD",
+      "calendar_kind": "LUNISOLAR_SEASONAL",
+      "day_specific": "YEAR_DEPENDENT",
+      "exact_date": "NOT_DISCLOSED"
+    },
+    "gold_demand": {
+      "subject": "JEWELRY_GOLD_DEMAND",
+      "regions": [
+        "INDIA",
+        "CHINA"
+      ],
+      "direction_after_festivals": "DECLINE",
+      "source_grade": "AUTHOR_FUNDAMENTAL_HYPOTHESIS"
+    },
+    "platinum_auto": {
+      "commodity": "PLATINUM",
+      "industry": "AUTOMOBILE_CATALYTIC_CONVERTERS",
+      "economic_role": "INDUSTRIAL",
+      "seasonality_relative_to_gold": "WEAKER"
+    },
+    "relative_price": {
+      "base": "PLATINUM",
+      "counterpart": "GOLD",
+      "expected_direction": "PLATINUM_OUTPERFORMS_GOLD_AFTER_SEASONAL_GOLD_DEMAND_DECLINE",
+      "evidence_kind": "FUNDAMENTAL_EXPLANATION_NOT_BACKTEST_SIGNAL"
+    },
+    "spread_direction": {
+      "expected_change": "RELATIVE_PL_GC_DIVERGENCE_FAVORING_LONG_PL",
+      "is_cointegration_mean_reversion": false,
+      "point_quoted": "NONE"
+    }
+  },
+  "not_cointegrated": {
+    "model": "COINTEGRATION",
+    "applied": false,
+    "author_explanation": "EXPECT_SPREAD_TO_DIVERGE_NOT_CONVERGE",
+    "source_type": "EXPLICIT_AUTHOR_CLARIFICATION"
+  },
+  "ounce_neutral_but_not_dollar": {
+    "basis": "DOLLAR_NOTIONAL",
+    "comparison": "NOT_DOLLAR_NEUTRAL",
+    "author_derived": true,
+    "notional_input_quotes": "NOT_IN_MAIN_ARTICLE",
+    "independent_calculation_possible": false
+  },
+  "counterfactual": {
+    "baseline": "2PL_TO_1GC",
+    "alternative": "AUTHOR_DOLLAR_NEUTRAL_VARIANT",
+    "outcome": "DOLLAR_NEUTRAL_VARIANT_WAS_LESS_PROFITABLE",
+    "evidence": "AUTHOR_SAYS_HISTORICAL_BACKTEST_AND_OWN_REAL_TRADING_TEST",
+    "quantified_pnl_difference": null,
+    "actual_trade_fills": "NOT_AVAILABLE",
+    "not_statistically_reproduced": true
+  },
+  "attribution": [
+    {
+      "originator": "Jerry Toepke",
+      "work_title": "Give Seasonal Spreads Some Respect",
+      "publication": "Stocks, Futures and Options Magazine",
+      "publication_month": "2006-01",
+      "relationship": "CHAN_FIRST_READ_THIS_SEASONAL_TRADING_IDEA",
+      "primary_article_full_text_obtained": false,
+      "authors_research_adaptation": "ERNIE_CHAN_BACKTESTED_AND_PAPER_TRADED_IN_2006",
+      "source_is_author_SELF_REPORT": true
+    }
+  ],
+  "conditional_2007_scenario": {
+    "state": "IF_A_TRADER_HAD_ENTERED",
+    "entry_timing": "2007-02-26_NEAR_CLOSE",
+    "exit_timing": "2007-04-19_NEAR_CLOSE",
+    "actual_trade_confirmed": false,
+    "entry_quote": null,
+    "exit_quote": null
+  },
+  "reported_winning_years": {
+    "metric_name": "PROFITABLE_YEARS",
+    "profitable_years": 6,
+    "observation_years": 7,
+    "period": "LAST_7_YEARS_AS_OF_2006",
+    "specific_calendar_years": "NOT_DISCLOSED",
+    "source_role": "AUTHOR_2006_ORIGINAL_BACKTEST_CLAIM"
+  },
+  "author_market_value_quotes": {
+    "gold": {
+      "metric_name": "AUTHOR_QUOTED_LEG_MARKET_VALUE",
+      "one_contract_root": "GC",
+      "value": 6650,
+      "currency": "USD",
+      "reported_at": "2007-08-19",
+      "calculation_basis": "AMBIGUOUS_SCALE_NOT_REPRODUCIBLE",
+      "not_futures_notional_certified": true
+    },
+    "platinum": {
+      "metric_name": "AUTHOR_QUOTED_LEG_MARKET_VALUE",
+      "two_contract_root": "PL",
+      "value": 12260,
+      "currency": "USD",
+      "reported_at": "2007-08-19",
+      "calculation_basis": "AMBIGUOUS_SCALE_NOT_REPRODUCIBLE",
+      "not_futures_notional_certified": true
+    }
+  },
+  "author_research_tools": [
+    {
+      "software": "MATLAB",
+      "relationship": "USED_FOR_MOST_RESEARCH_BY_AUTHOR",
+      "specific_source_code": "NOT_PUBLISHED"
+    },
+    {
+      "software": "EXCEL",
+      "relationship": "ALTERNATIVE_MAY_SUFFICE_FOR_SIMPLE_SPREAD_MODELS",
+      "specific_workbook": "NOT_PUBLISHED"
+    }
+  ],
+  "reader_atr": {
+    "scope": {
+      "window": 504,
+      "unit": "DAYS_UNSPECIFIED",
+      "role": "READER_ATR_LOOKBACK_NOT_AUTHOR_BACKTEST_PARAMETER"
+    },
+    "metrics": [
+      {
+        "id": "reader:ATR:gc_quote",
+        "name": "gc_quote",
+        "root": "GC",
+        "value": 9.77,
+        "unit": "USD_PER_OZ",
+        "window": 504,
+        "reported_by": "READER_PABLO_2007-08-18",
+        "independently_validated": false,
+        "author_exact_ATR_confirmation": false
+      },
+      {
+        "id": "reader:ATR:pl_quote",
+        "name": "pl_quote",
+        "root": "PL",
+        "value": 17,
+        "unit": "USD_PER_OZ",
+        "window": 504,
+        "reported_by": "READER_PABLO_2007-08-18",
+        "independently_validated": false,
+        "author_exact_ATR_confirmation": false
+      },
+      {
+        "id": "reader:ATR:gc_dollar_move",
+        "name": "gc_dollar_move",
+        "root": "GC",
+        "value": 977,
+        "unit": "USD_PER_ONE_CONTRACT_ATR_PROXY",
+        "window": 504,
+        "reported_by": "READER_PABLO_2007-08-18",
+        "independently_validated": false,
+        "author_exact_ATR_confirmation": false
+      },
+      {
+        "id": "reader:ATR:pl_dollar_move",
+        "name": "pl_dollar_move",
+        "root": "PL",
+        "value": 850,
+        "unit": "USD_PER_ONE_CONTRACT_ATR_PROXY",
+        "window": 504,
+        "reported_by": "READER_PABLO_2007-08-18",
+        "independently_validated": false,
+        "author_exact_ATR_confirmation": false
+      }
+    ],
+    "comparison_single": {
+      "basis": "ONE_CONTRACT_504_DAY_ATR_USD_MOVE",
+      "gc_contract_one_atr_usd": 977,
+      "pl_contract_one_atr_usd": 850,
+      "ratio_pl_to_gc": 0.87,
+      "speaker": "READER_NOT_AUTHOR",
+      "source_status": "UNVALIDATED_READER_ESTIMATE"
+    },
+    "comparison_full_position": {
+      "basis": "TWO_PL_CONTRACTS_ONE_GC_CONTRACT_504_DAY_ATR_PROXY",
+      "pl_leg_estimated_move_usd": 1700,
+      "gc_leg_estimated_move_usd": 977,
+      "derived_ratio": 1.7400204708290685,
+      "origin": "ASSISTANT_ARITHMETIC_FROM_READER_UNVERIFIED_NUMBERS",
+      "risk_neutrality_result": "NOT_ATR_PROXY_BALANCED",
+      "not_a_validated_risk_model": true
+    }
+  },
+  "limitations": [
+    "Reader ATR not independently verified",
+    "Historical author quote denomination unclear",
+    "Primary-source complete coverage and independent LLM clean-room not certified"
+  ]
+}
