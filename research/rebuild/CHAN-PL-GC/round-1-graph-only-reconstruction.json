@@ -1,0 +1,356 @@
+{
+  "id": "CHAN-PL-GC-R1-GRAPH-ONLY-REPLAY",
+  "source_hidden": true,
+  "independent_fresh_llm_session": false,
+  "classification": "AUTHOR_BLOG_WITH_PAPER_TRADE_BACKTEST_AND_FOLLOWUP",
+  "actual_fills_confirmed": false,
+  "strategy": {
+    "type": "SEASONAL_INTERMARKET_FUTURES_SPREAD",
+    "cointegration_based": false,
+    "complete_auto_entry_signal": "NOT_DISCLOSED"
+  },
+  "pair": {
+    "legs": 2,
+    "asset_roots": [
+      "PL",
+      "GC"
+    ],
+    "root_spread": "PL_MINUS_GC",
+    "different_contract_months": true,
+    "different_commodity_markets": true
+  },
+  "legs": [
+    {
+      "root": "PL",
+      "month": "JULY",
+      "contract_year": null,
+      "direction": "LONG",
+      "quantity": 2,
+      "multiplier_oz": 50,
+      "entry_action": "BUY",
+      "exit_action": "SELL"
+    },
+    {
+      "root": "GC",
+      "month": "JUNE",
+      "contract_year": null,
+      "direction": "SHORT",
+      "quantity": 1,
+      "multiplier_oz": 100,
+      "entry_action": "SELL",
+      "exit_action": "BUY"
+    }
+  ],
+  "rules": [
+    {
+      "kind": "entry",
+      "rule": {
+        "id": "rule:entry",
+        "fields": {
+          "kind": "SEASONAL_ENTRY",
+          "exact_daily_trigger": "NOT_DISCLOSED",
+          "signal_type": "CALENDAR_APPROXIMATE"
+        }
+      },
+      "window": {
+        "month": "FEBRUARY",
+        "time_hint": "END_OF_MONTH",
+        "precision": "APPROXIMATE",
+        "day": null,
+        "year": "RECURRING"
+      },
+      "actions": [
+        "BUY",
+        "SELL"
+      ]
+    },
+    {
+      "kind": "exit",
+      "rule": {
+        "id": "rule:exit",
+        "fields": {
+          "kind": "SEASONAL_EXIT",
+          "exact_daily_trigger": "NOT_DISCLOSED",
+          "signal_type": "CALENDAR_APPROXIMATE"
+        }
+      },
+      "window": {
+        "month": "APRIL",
+        "time_hint": "MID_MONTH",
+        "precision": "APPROXIMATE",
+        "day": null,
+        "year": "RECURRING"
+      },
+      "actions": [
+        "SELL",
+        "BUY"
+      ]
+    }
+  ],
+  "research": {
+    "backtest": {
+      "author": "Ernie Chan",
+      "reported_start_year": 1995,
+      "end_year": "NOT_DISCLOSED",
+      "data_files_available": false,
+      "experiment_type": "AUTHOR_REPORTED"
+    },
+    "paper_trade": {
+      "year": 2006,
+      "author_claimed_success": true,
+      "raw_orders_available": false,
+      "trade_proof": "BLOG_AUTHOR_CLAIM_ONLY"
+    },
+    "initial": {
+      "scope": {
+        "start_year": 1995,
+        "end_year": null,
+        "role": "INITIAL_AUTHOR_RESULT_SET",
+        "comparison_cohort": "UNKNOWN_EXACT"
+      },
+      "metrics": [
+        {
+          "name": "avg_profit",
+          "value": 6600,
+          "unit": "USD",
+          "claim_scope": "SINCE_1995_AUTHOR_2006_REPORTED",
+          "status": "HISTORICAL_INITIAL_UNDER_AUTHOR_REVISED_CHART_CORRECTION"
+        },
+        {
+          "name": "best_profit",
+          "value": 15400,
+          "unit": "USD",
+          "claim_scope": "SINCE_1995_AUTHOR_2006_REPORTED",
+          "status": "HISTORICAL_INITIAL_UNDER_AUTHOR_REVISED_CHART_CORRECTION"
+        },
+        {
+          "name": "worst_profit",
+          "value": -3810,
+          "unit": "USD",
+          "claim_scope": "SINCE_1995_AUTHOR_2006_REPORTED",
+          "status": "HISTORICAL_INITIAL_UNDER_AUTHOR_REVISED_CHART_CORRECTION"
+        }
+      ]
+    },
+    "drawdown": {
+      "scope": {
+        "start_year": 2000,
+        "end_year": null,
+        "role": "INTERIM_DRAWDOWN_COMMENT"
+      },
+      "metrics": [
+        {
+          "metric": "MAX_INTERIM_DRAWDOWN",
+          "value": -10910,
+          "unit": "USD",
+          "cohort": "SINCE_2000",
+          "year_of_max": 2001
+        }
+      ]
+    },
+    "revised": {
+      "scope": {
+        "reference_date": "2007-04-20",
+        "length_years": 7,
+        "role": "REVISED_HISTORIC_RESULT_SET"
+      },
+      "metrics": [
+        {
+          "name": "avg_profit",
+          "value": 3064,
+          "unit": "USD",
+          "claim_scope": "LAST_SEVEN_YEARS_AS_OF_2007_04_20",
+          "status": "AUTHOR_REPORTED_CORRECTED"
+        },
+        {
+          "name": "best_profit",
+          "value": 7320,
+          "unit": "USD",
+          "claim_scope": "LAST_SEVEN_YEARS_AS_OF_2007_04_20",
+          "status": "AUTHOR_REPORTED_CORRECTED"
+        },
+        {
+          "name": "worst_profit",
+          "value": -540,
+          "unit": "USD",
+          "claim_scope": "LAST_SEVEN_YEARS_AS_OF_2007_04_20",
+          "status": "AUTHOR_REPORTED_CORRECTED"
+        },
+        {
+          "name": "max_drawdown",
+          "value": -4860,
+          "unit": "USD",
+          "claim_scope": "LAST_SEVEN_YEARS_AS_OF_2007_04_20",
+          "status": "AUTHOR_REPORTED_CORRECTED"
+        }
+      ]
+    }
+  },
+  "margin": {
+    "initial_usd": 743,
+    "comment_sources": [
+      {
+        "metric": "INITIAL_EXCHANGE_MARGIN",
+        "value": 743,
+        "unit": "USD",
+        "not_maximum_risk": true
+      },
+      {
+        "metric": "MAX_INTERIM_DRAWDOWN",
+        "value": -10910,
+        "unit": "USD",
+        "cohort": "SINCE_2000",
+        "year_of_max": 2001
+      }
+    ],
+    "calculated_required_cash_usd": 11653,
+    "reported_required_cash_usd": 11653
+  },
+  "economics": {
+    "seasonal_event": {
+      "event": "CHINESE_NEW_YEAR_AND_ASIAN_YEAR_END_FESTIVALS",
+      "locations": [
+        "CHINA",
+        "INDIA"
+      ],
+      "expected_seasonal_completion": "FEBRUARY"
+    },
+    "jewelry": {
+      "market": "GOLD_JEWELRY",
+      "demand_region": "ASIAN_MARKETS",
+      "underlying": "GOLD"
+    },
+    "gold_demand": {
+      "driver": "POST_FESTIVAL_GOLD_DELIVERY_DEMAND_EXHAUSTION",
+      "expected_direction": "DECREASE",
+      "source_attribution": "TOEPKE_AS_QUOTED_BY_CHAN"
+    },
+    "relative_price": {
+      "direction": "GOLD_DECLINES_RELATIVE_TO_PLATINUM",
+      "intended_spread_position": "LONG_PL_SHORT_GC",
+      "is_cointegration_reversion": false
+    },
+    "platinum_channel": {
+      "market": "AUTOMOTIVE_CATALYTIC_CONVERTERS",
+      "underlying": "PLATINUM",
+      "relative_seasonality": "WEAKER_THAN_GOLD_JEWELRY"
+    }
+  },
+  "explicit_model_exclusion": {
+    "excluded": "COINTEGRATION_MEAN_REVERSION",
+    "author_comment_date": "2007-03-01",
+    "expected_relation": "SPREAD_DIVERGENCE",
+    "claim_status": "EXPLICIT_AUTHOR_CLARIFICATION"
+  },
+  "related_2007_hypothetical": {
+    "case": {
+      "example_kind": "2007_HYPOTHETICAL_COUNTERFACTUAL",
+      "actual_order_fills_confirmed": false
+    },
+    "events": [
+      {
+        "date": "2007-02-26",
+        "price_timing": "NEAR_MARKET_CLOSE",
+        "action": "OPEN_SAME_SEASONAL_SPREAD",
+        "actual_fills": false
+      },
+      {
+        "date": "2007-04-19",
+        "price_timing": "NEAR_MARKET_CLOSE",
+        "action": "CLOSE_SAME_SEASONAL_SPREAD",
+        "actual_fills": false
+      }
+    ],
+    "profit": {
+      "name": "APPROX_HYPOTHETICAL_PNL",
+      "amount_usd": 6610,
+      "estimate": true,
+      "execution_proof": false
+    }
+  },
+  "correction": {
+    "correction": {
+      "correction_date": "2007-04-20",
+      "author": "Ernie Chan",
+      "correction_scope": "PREVIOUS_HISTORICAL_PROFIT_CHART_PLOTTING_CALCULATION",
+      "affects_all_initial_values_identically": "UNVERIFIED",
+      "do_not_mix_different_sample_windows": true
+    },
+    "initial_cohort": {
+      "start_year": 1995,
+      "end_year": null,
+      "role": "INITIAL_AUTHOR_RESULT_SET",
+      "comparison_cohort": "UNKNOWN_EXACT"
+    },
+    "revised_cohort": {
+      "reference_date": "2007-04-20",
+      "length_years": 7,
+      "role": "REVISED_HISTORIC_RESULT_SET"
+    }
+  },
+  "risk_and_balance": {
+    "quantity_balance": {
+      "pl_oz": 100,
+      "gc_oz": 100,
+      "balance_kind": "OZ_COUNT_ONLY",
+      "dollar_neutral": false,
+      "delta_neutral": "NOT_ESTABLISHED"
+    },
+    "ounce_formulas": [
+      {
+        "operation": "MULTIPLY",
+        "formula": "2 contracts × 50 oz/contract",
+        "value": 100,
+        "unit": "TROY_OZ"
+      },
+      {
+        "operation": "MULTIPLY",
+        "formula": "1 contract × 100 oz/contract",
+        "value": 100,
+        "unit": "TROY_OZ"
+      }
+    ],
+    "dollar_risk": {
+      "is_dollar_neutral": false,
+      "dominant_leg": "PLATINUM_LONG",
+      "author_comparison": "ALMOST_ONE_PL_CONTRACT_OUTRIGHT_RISK",
+      "market_value_claim_author_reported": "NO_RAW_PRICE_DATA"
+    },
+    "alternative_dollar_neutral_sizing": {
+      "alternative": "DOLLAR_NEUTRAL_SPREAD_SIZING",
+      "author_reported_result": "LESS_PROFITABLE_HISTORICALLY_AND_IN_OWN_REAL_TRADING_TEST",
+      "comparable_series_not_available": true
+    }
+  },
+  "attribution": {
+    "author": "Jerry Toepke",
+    "article": "Give Seasonal Spreads Some Respect",
+    "publication": "SFO MAGAZINE",
+    "issue": "2006-01",
+    "verified_article_content": "NOT_ACQUIRED"
+  },
+  "not_disclosed": {
+    "fields": [
+      "historical_price_bars",
+      "individual_paper_trade_fills",
+      "paper_trade_order_prices",
+      "exact_2006_calendar_dates",
+      "commission_slippage",
+      "strategy_code"
+    ],
+    "status": "NOT_ACQUIRED_OR_NOT_DISLOSED",
+    "effect": "No full historical strategy execution replay"
+  },
+  "checks": {
+    "two_legs": true,
+    "pl2gc1": true,
+    "balance_oz": {
+      "PL": 100,
+      "GC": 100
+    },
+    "margin_math": true,
+    "correction_not_overwritten": true,
+    "non_dollar_neutral": true,
+    "cointegration_excluded": true
+  }
+}
