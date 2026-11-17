@@ -488,6 +488,32 @@
       },
       "status": "PROPOSED_V8_NOT_APPROVED",
       "review_required": "Review source meaning, duplicates, cardinality and 5 prior research-case regression"
+    },
+    {
+      "id": "R-159",
+      "term": "STRATEGY_LISTS_COMPATIBLE_SIGNAL_SCRIPT",
+      "owner": "TradingStrategy",
+      "range": "SourceDocument",
+      "direction": "source→target",
+      "status": "PROPOSED_V8_NOT_APPROVED",
+      "example_edge": {
+        "source_id": "tv01:strategy",
+        "target_id": "tv01:source:simplebuy"
+      },
+      "safety_semantics": "compatibility edge only, never actual selected source unless separate user-run configuration proves it"
+    },
+    {
+      "id": "R-160",
+      "term": "INDICATOR_SCRIPT_CAN_PROVIDE_SIGNAL",
+      "owner": "SourceDocument",
+      "range": "TradingSignal",
+      "direction": "source→target",
+      "status": "PROPOSED_V8_NOT_APPROVED",
+      "example_edge": {
+        "source_id": "tv01:source:simplebuy",
+        "target_id": "tv01:signal"
+      },
+      "safety_semantics": "compatibility edge only, never actual selected source unless separate user-run configuration proves it"
     }
   ],
   "new_property_types": [
@@ -586,12 +612,36 @@
       "dtype": "enum FIRST_HIT|PRICE_WORST|SOURCE_DEFINED|NOT_VERIFIED",
       "reason": "Prevent treating concurrent stop collisions as settled when Pine implementation is not inspected",
       "status": "PROPOSED_V8_NOT_APPROVED"
+    },
+    {
+      "id": "P-319",
+      "owner": "SourceDocument",
+      "term": "max_input_rules",
+      "dtype": "nonnegative integer",
+      "reason": "Compare how many rules a compatible TradingView source can combine: 4 vs 7",
+      "status": "PROPOSED_V8_NOT_APPROVED"
+    },
+    {
+      "id": "P-320",
+      "owner": "SourceDocument",
+      "term": "logical_expression_modes_count",
+      "dtype": "nonnegative integer or null",
+      "reason": "Distinguish Custom indicator's ten logical expressions from Simple's rule count",
+      "status": "PROPOSED_V8_NOT_APPROVED"
+    },
+    {
+      "id": "P-321",
+      "owner": "SourceDocument",
+      "term": "actual_selected_as_input",
+      "dtype": "true|false|UNKNOWN",
+      "reason": "Prevent compatibility metadata from being mistaken for actual selected live signal source",
+      "status": "PROPOSED_V8_NOT_APPROVED"
     }
   ],
   "proposed_unique_types_after_v8": {
     "nodes": 144,
-    "properties": 318,
-    "relations": 158
+    "properties": 321,
+    "relations": 160
   },
   "merge_status": "REVIEW_REQUIRED",
   "assurance": "No completed blind AI replay yet; source reconstruction scope differs from runtime trade equivalence."
