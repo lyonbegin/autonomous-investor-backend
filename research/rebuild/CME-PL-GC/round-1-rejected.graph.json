@@ -1,0 +1,87 @@
+{
+  "graph_id": "CME-PL-GC-FRESH-R1",
+  "status": "REJECTED_AFTER_FIRST_REPLAY",
+  "source": "https://www.cmegroup.com/education/courses/understanding-futures-spreads/understanding-intermarket-spreads-platinum-and-gold",
+  "ontology_basis": "original604+v7",
+  "nodes": [
+    {
+      "id": "case",
+      "type": "TradeCase",
+      "props": {
+        "case_kind": "EDUCATIONAL_WORKED_EXAMPLE"
+      }
+    },
+    {
+      "id": "strategy",
+      "type": "TradingStrategy",
+      "props": {
+        "kind": "INTERMARKET_SPREAD"
+      }
+    },
+    {
+      "id": "pair",
+      "type": "FuturesPair",
+      "props": {
+        "assets": [
+          "PL",
+          "GC"
+        ]
+      }
+    },
+    {
+      "id": "pl",
+      "type": "TradeLeg",
+      "props": {
+        "side": "LONG",
+        "contracts": 2,
+        "entry_price": 988.4,
+        "exit_price": 1056.4
+      }
+    },
+    {
+      "id": "gc",
+      "type": "TradeLeg",
+      "props": {
+        "side": "SHORT",
+        "contracts": 1,
+        "entry_price": 1231.9,
+        "exit_price": 1244.2
+      }
+    },
+    {
+      "id": "pnl",
+      "type": "BacktestResult",
+      "props": {
+        "total_usd": 5570
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "case",
+      "relation": "CASE_USES_STRATEGY",
+      "to": "strategy"
+    },
+    {
+      "from": "strategy",
+      "relation": "STRATEGY_HAS_PAIR",
+      "to": "pair"
+    },
+    {
+      "from": "pair",
+      "relation": "PAIR_HAS_LEG",
+      "to": "pl"
+    },
+    {
+      "from": "pair",
+      "relation": "PAIR_HAS_LEG",
+      "to": "gc"
+    },
+    {
+      "from": "case",
+      "relation": "CASE_HAS_RESULT",
+      "to": "pnl"
+    }
+  ],
+  "note": "Deliberately faithful to the earlier overcompressed modeling pattern. Reconstructing the original from this graph loses contract multipliers, contract months, exit actions, source rationale, exact dates, leg notional figures, spread quotes and leg P&L. Do not patch this version in place; rebuild."
+}
