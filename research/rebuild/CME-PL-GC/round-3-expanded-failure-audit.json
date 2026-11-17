@@ -1,0 +1,68 @@
+{
+  "case_id": "CME-PL-GC",
+  "reconstruction_round": "R3",
+  "source_register": "source-facts-expanded-v2.json",
+  "original_15": "PASS_15_OF_15_LIMITED",
+  "new_facts_count": 11,
+  "checks": [
+    {
+      "fact_id": "F16",
+      "status": "PARTIAL",
+      "missing": "Platinum jewelry and investment roles not individually represented; gold safe haven in a single commodity role only."
+    },
+    {
+      "fact_id": "F17",
+      "status": "FAIL",
+      "missing": "Historic 2015-on gold premium and prior widening of negative PL-GC spread absent."
+    },
+    {
+      "fact_id": "F18",
+      "status": "FAIL",
+      "missing": "Economic distress / geopolitical uncertainty -> gold safe-haven demand -> relative price impact absent."
+    },
+    {
+      "fact_id": "F19",
+      "status": "PARTIAL",
+      "missing": "Pair intermarket is represented but comparison with calendar intra-market different-month spread omitted."
+    },
+    {
+      "fact_id": "F20",
+      "status": "FAIL",
+      "missing": "Legging risk and three named mitigations absent; source gives only general methods."
+    },
+    {
+      "fact_id": "F21",
+      "status": "PARTIAL",
+      "missing": "Spread relative-value strategy is represented but exposure-transformation/hedging claim not independent path."
+    },
+    {
+      "fact_id": "F22",
+      "status": "FAIL",
+      "missing": "Metal-price correlation and contrasting drivers absent, no disclosure of actual coefficient."
+    },
+    {
+      "fact_id": "F23",
+      "status": "PARTIAL",
+      "missing": "Margin reduction is represented, but relative volatility and qualified risk-adjusted return are absent."
+    },
+    {
+      "fact_id": "F24",
+      "status": "FAIL",
+      "missing": "Globex platform, >90% electronic share and almost-24h access absent."
+    },
+    {
+      "fact_id": "F25",
+      "status": "PARTIAL",
+      "missing": "Generic may margin-reduce is modeled; specific worked example WOULD be recognized as offset missing."
+    },
+    {
+      "fact_id": "F26",
+      "status": "PARTIAL",
+      "missing": "100oz balanced exposure stored as numeric field but cannot independently derive it from both leg quantities and multipliers along edges."
+    }
+  ],
+  "partial_or_fail": 11,
+  "full_26_fact_coverage": "FAIL",
+  "cause": "Expanded source audit reveals missing economic context, execution mechanics, hedging and relational calculation; R3 must be superseded by complete regenerated R4",
+  "next_action": "REBUILD_GRAPH_FROM_EXPANDED_SOURCE_FACTS"
+}
