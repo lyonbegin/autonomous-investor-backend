@@ -1,0 +1,868 @@
+{
+  "graph_id": "CHAN_R3_GRAPH_ONLY_INPUT",
+  "nodes": [
+    {
+      "id": "chan:case",
+      "type": "TradeCase",
+      "fields": {
+        "kind": "AUTHOR_DESCRIBED_SEASONAL_STRATEGY",
+        "source_date": "2006-11-24",
+        "actual_orders_independently_verified": false,
+        "has_author_reported_backtest": true,
+        "has_author_reported_2006_paper_trade": true
+      }
+    },
+    {
+      "id": "chan:strategy",
+      "type": "TradingStrategy",
+      "fields": {
+        "kind": "INTERMARKET_CROSS_DELIVERY_MONTH_SEASONAL_SPREAD",
+        "mode": "CALENDAR_WINDOW_ENTRY_AND_EXIT_NOT_PRICE_THRESHOLD",
+        "scenario_status": "AUTHOR_REPORTED_NOT_VERIFIED_EXECUTION"
+      }
+    },
+    {
+      "id": "chan:pair",
+      "type": "FuturesPair",
+      "fields": {
+        "roots": [
+          "PL",
+          "GC"
+        ],
+        "relative_exposure": "LONG_PLATINUM_SHORT_GOLD",
+        "intermarket": true,
+        "contract_months_differ": true,
+        "match_rule": "CONTRACTS_EQUALIZE_TROY_OUNCES_NOT_DOLLAR_NOTIONAL"
+      }
+    },
+    {
+      "id": "chan:position",
+      "type": "TradePosition",
+      "fields": {
+        "classification": "ABSTRACT_SPREAD_POSITION",
+        "actual_fill_prices": null,
+        "notional_dollar_neutral": false,
+        "matched_troy_oz_per_side": 100
+      }
+    },
+    {
+      "id": "chan:asset:pl",
+      "type": "Asset",
+      "fields": {
+        "asset_class": "FUTURES",
+        "underlying": "PLATINUM",
+        "root": "PL"
+      }
+    },
+    {
+      "id": "chan:contract:pl",
+      "type": "FuturesContract",
+      "fields": {
+        "root": "PL",
+        "contract_month": "JUL",
+        "contract_year": null,
+        "exchange": "NYMEX",
+        "symbol_precision": "ROOT_PLUS_MONTH_ONLY"
+      }
+    },
+    {
+      "id": "chan:spec:pl",
+      "type": "ContractSpecification",
+      "fields": {
+        "multiplier": 50,
+        "unit": "TROY_OZ_PER_CONTRACT",
+        "currency": "USD",
+        "published_contract_size": true
+      }
+    },
+    {
+      "id": "chan:leg:pl",
+      "type": "TradeLeg",
+      "fields": {
+        "side": "LONG",
+        "contracts": 2,
+        "notional_price": null,
+        "matched_physical_oz": 100,
+        "position_factor": 1
+      }
+    },
+    {
+      "id": "chan:asset:gc",
+      "type": "Asset",
+      "fields": {
+        "asset_class": "FUTURES",
+        "underlying": "GOLD",
+        "root": "GC"
+      }
+    },
+    {
+      "id": "chan:contract:gc",
+      "type": "FuturesContract",
+      "fields": {
+        "root": "GC",
+        "contract_month": "JUN",
+        "contract_year": null,
+        "exchange": "COMEX",
+        "symbol_precision": "ROOT_PLUS_MONTH_ONLY"
+      }
+    },
+    {
+      "id": "chan:spec:gc",
+      "type": "ContractSpecification",
+      "fields": {
+        "multiplier": 100,
+        "unit": "TROY_OZ_PER_CONTRACT",
+        "currency": "USD",
+        "published_contract_size": true
+      }
+    },
+    {
+      "id": "chan:leg:gc",
+      "type": "TradeLeg",
+      "fields": {
+        "side": "SHORT",
+        "contracts": 1,
+        "notional_price": null,
+        "matched_physical_oz": 100,
+        "position_factor": -1
+      }
+    },
+    {
+      "id": "chan:window:entry",
+      "type": "CalendarTradingWindow",
+      "fields": {
+        "relative_to_calendar": "END_OF_FEBRUARY",
+        "approximate": true,
+        "exact_day": null,
+        "recurring_annually": true
+      }
+    },
+    {
+      "id": "chan:window:exit",
+      "type": "CalendarTradingWindow",
+      "fields": {
+        "relative_to_calendar": "MID_APRIL",
+        "approximate": true,
+        "exact_day": null,
+        "recurring_annually": true
+      }
+    },
+    {
+      "id": "chan:rule:entry",
+      "type": "TradingRule",
+      "fields": {
+        "role": "SEASONAL_ENTRY",
+        "signal_logic": "WHEN_ANNUAL_ENTRY_WINDOW_ARRIVES",
+        "no_price_threshold": true
+      }
+    },
+    {
+      "id": "chan:rule:exit",
+      "type": "TradingRule",
+      "fields": {
+        "role": "SEASONAL_EXIT",
+        "signal_logic": "WHEN_ANNUAL_EXIT_WINDOW_ARRIVES",
+        "no_price_threshold": true
+      }
+    },
+    {
+      "id": "chan:action:buy_pl",
+      "type": "TradeAction",
+      "fields": {
+        "kind": "OPEN_LONG",
+        "root": "PL",
+        "contracts": 2,
+        "order_fill_proof": false
+      }
+    },
+    {
+      "id": "chan:action:sell_gc",
+      "type": "TradeAction",
+      "fields": {
+        "kind": "OPEN_SHORT",
+        "root": "GC",
+        "contracts": 1,
+        "order_fill_proof": false
+      }
+    },
+    {
+      "id": "chan:action:close_pl",
+      "type": "TradeAction",
+      "fields": {
+        "kind": "CLOSE_LONG",
+        "root": "PL",
+        "contracts": 2,
+        "order_fill_proof": false
+      }
+    },
+    {
+      "id": "chan:action:close_gc",
+      "type": "TradeAction",
+      "fields": {
+        "kind": "CLOSE_SHORT",
+        "root": "GC",
+        "contracts": 1,
+        "order_fill_proof": false
+      }
+    },
+    {
+      "id": "chan:causal:festival",
+      "type": "SeasonalDemandDriver",
+      "fields": {
+        "festival_season": "INDIA_CHINA_YEAR_END_AND_CHINESE_NEW_YEAR",
+        "time_end": "AFTER_CHINESE_NEW_YEAR_APPROX_FEBRUARY",
+        "observation_status": "AUTHOR_AND_REFERENCED_TOEPKE_EXPLANATION"
+      }
+    },
+    {
+      "id": "chan:causal:gold_jewelry",
+      "type": "CommodityUseChannel",
+      "fields": {
+        "underlying": "GOLD",
+        "demand_channel": "JEWELRY_CONSUMPTION",
+        "region": [
+          "INDIA",
+          "CHINA"
+        ]
+      }
+    },
+    {
+      "id": "chan:causal:gold_delivery_fade",
+      "type": "CommodityDemandExpectation",
+      "fields": {
+        "commodity": "GOLD",
+        "seasonal_pattern": "JEWELRY_DELIVERY_DEMAND_SEASONALLY_EXHAUSTED_AFTER_FESTIVALS",
+        "not_measured_series": true
+      }
+    },
+    {
+      "id": "chan:causal:platinum_industry",
+      "type": "CommodityUseChannel",
+      "fields": {
+        "underlying": "PLATINUM",
+        "demand_channel": "AUTOMOTIVE_CATALYTIC_CONVERTERS",
+        "seasonality": "WEAKER_THAN_JEWELRY_GOLD"
+      }
+    },
+    {
+      "id": "chan:causal:relative_spread",
+      "type": "SpreadDirectionExpectation",
+      "fields": {
+        "position": "LONG_PL_SHORT_GC",
+        "economic_logic": "PL_LONG_HEDGES_PART_OF_GOLD_MARKET_EXPOSURE_WHILE_GOLD_SEASONAL_DEMAND_EASES",
+        "mechanical_entry_signal": false
+      }
+    },
+    {
+      "id": "chan:metric:margin_original",
+      "type": "SourceReportedMetric",
+      "fields": {
+        "metric": "margin_original",
+        "value": 743,
+        "unit": "USD",
+        "source_status": "ORIGINAL_BLOG_CLAIM",
+        "year": null,
+        "not_current": true
+      }
+    },
+    {
+      "id": "chan:metric:mean_pnl",
+      "type": "SourceReportedMetric",
+      "fields": {
+        "metric": "mean_pnl",
+        "value": 6600,
+        "unit": "USD_PER_YEAR",
+        "source_status": "AUTHOR_BACKTEST_REPORTED",
+        "not_current": true,
+        "since_year": 1995,
+        "time_interpretation": "ANNUAL_MEAN_OVER_SERIES_SINCE_1995_NOT_SINGLE_YEAR"
+      }
+    },
+    {
+      "id": "chan:metric:best_pnl",
+      "type": "SourceReportedMetric",
+      "fields": {
+        "metric": "best_pnl",
+        "value": 15400,
+        "unit": "USD_PER_YEAR",
+        "source_status": "AUTHOR_BACKTEST_REPORTED",
+        "year": null,
+        "not_current": true
+      }
+    },
+    {
+      "id": "chan:metric:worst_pnl",
+      "type": "SourceReportedMetric",
+      "fields": {
+        "metric": "worst_pnl",
+        "value": -3810,
+        "unit": "USD_PER_YEAR",
+        "source_status": "AUTHOR_BACKTEST_REPORTED",
+        "year": null,
+        "not_current": true
+      }
+    },
+    {
+      "id": "chan:metric:max_dd_since2000",
+      "type": "SourceReportedMetric",
+      "fields": {
+        "metric": "max_dd_since2000",
+        "value": 10910,
+        "unit": "USD",
+        "source_status": "AUTHOR_2006_COMMENT",
+        "year": 2001,
+        "not_current": true,
+        "study_since_year": 2000,
+        "observed_year": 2001
+      }
+    },
+    {
+      "id": "chan:metric:max_capital_need",
+      "type": "SourceReportedMetric",
+      "fields": {
+        "metric": "max_capital_need",
+        "value": 11653,
+        "unit": "USD",
+        "source_status": "AUTHOR_2006_COMMENT",
+        "year": null,
+        "not_current": true
+      }
+    },
+    {
+      "id": "chan:metric:author_market_value_gc",
+      "type": "SourceReportedMetric",
+      "fields": {
+        "metric": "author_market_value_gc",
+        "value": 6650,
+        "unit": "USD",
+        "source_status": "AUTHOR_2007_COMMENT_AS_WRITTEN_SUSPECT_SCALE",
+        "year": null,
+        "not_current": true
+      }
+    },
+    {
+      "id": "chan:metric:author_market_value_2pl",
+      "type": "SourceReportedMetric",
+      "fields": {
+        "metric": "author_market_value_2pl",
+        "value": 12260,
+        "unit": "USD",
+        "source_status": "AUTHOR_2007_COMMENT_AS_WRITTEN_SUSPECT_SCALE",
+        "year": null,
+        "not_current": true
+      }
+    },
+    {
+      "id": "chan:calc:capital_requirement",
+      "type": "CalculationExpression",
+      "fields": {
+        "expression": "author_reported_margin + maximum_intra_trade_drawdown",
+        "inputs": [
+          "chan:metric:margin_original",
+          "chan:metric:max_dd_since2000"
+        ],
+        "target": "chan:metric:max_capital_need",
+        "output_unit": "USD",
+        "meaning": "HISTORICAL_EXTREME_FUNDING_NEED_NOT_EXCHANGE_MAINTENANCE_MARGIN"
+      }
+    },
+    {
+      "id": "chan:study:backtest",
+      "type": "ResearchProcedureStep",
+      "fields": {
+        "role": "AUTHOR_BACKTEST",
+        "year_start_reported": 1995,
+        "year_end": null,
+        "underlying_bars": "NOT_ATTACHED",
+        "author_says_success": true
+      }
+    },
+    {
+      "id": "chan:study:paper2006",
+      "type": "ResearchProcedureStep",
+      "fields": {
+        "role": "PAPER_TRADE",
+        "year": 2006,
+        "actual_broker_fills_verified": false,
+        "author_says_success": true
+      }
+    },
+    {
+      "id": "chan:claim:6of7",
+      "type": "EvidenceAssertion",
+      "fields": {
+        "content": "Profitable in all but one of the last seven years",
+        "metric_kind": "QUALITATIVE_ROLLING_7YR",
+        "exact_individual_years": null
+      }
+    },
+    {
+      "id": "chan:claim:physical_hedge",
+      "type": "EvidenceAssertion",
+      "fields": {
+        "claim": "2PL*50oz = 1GC*100oz",
+        "claim_kind": "SOURCE_STATED_HEDGE_BY_WEIGHT",
+        "not_dollar_neutral": true,
+        "not_volatility_neutral": true
+      }
+    },
+    {
+      "id": "chan:claim:dollar_neutrality",
+      "type": "EvidenceAssertion",
+      "fields": {
+        "claim": "Equal ounces do not make the position dollar neutral; long PL notional/risk dominates (author Aug 2007 comment)",
+        "claim_kind": "LATER_AUTHOR_RISK_QUALIFICATION"
+      }
+    },
+    {
+      "id": "chan:claim:outright_risk",
+      "type": "EvidenceAssertion",
+      "fields": {
+        "claim": "Risk approximates one outright PL futures contract according to author",
+        "claim_kind": "QUALITATIVE_AUTHOR_COMPARISON_NOT_COMPUTED_PORTFOLIO_VAR"
+      }
+    },
+    {
+      "id": "chan:claim:alt_strategy",
+      "type": "EvidenceAssertion",
+      "fields": {
+        "claim": "A dollar-neutral alternative was historically and in author's trading test less profitable",
+        "claim_kind": "AUTHOR_COMPARATIVE_ANECDOTE_NO_DATA",
+        "not_executable_configuration": true
+      }
+    },
+    {
+      "id": "chan:claim:paper_trading",
+      "type": "EvidenceAssertion",
+      "fields": {
+        "claim": "Author explicitly paper traded in 2006",
+        "claim_kind": "MAIN_ARTICLE_PERSONAL_REPORT"
+      }
+    },
+    {
+      "id": "chan:claim:real_test",
+      "type": "EvidenceAssertion",
+      "fields": {
+        "claim": "Author later refers to real trading test while comparing dollar-neutral alternative",
+        "claim_kind": "LATER_COMMENT_PERSONAL_REPORT",
+        "actual_fill_proof": false
+      }
+    },
+    {
+      "id": "chan:conflict:execution_status",
+      "type": "EvidenceConflict",
+      "fields": {
+        "kind": "AUTHOR_EXECUTION_TERM_SCOPE_UNRESOLVED",
+        "not_necessarily_direct_contradiction": true,
+        "resolution": "Do not infer author had confirmed live fills of the same 2006 paper-traded experiment"
+      }
+    },
+    {
+      "id": "chan:claim:author_values_warning",
+      "type": "EvidenceAssertion",
+      "fields": {
+        "claim": "Later author mentions GC $6,650 and 2PL $12,260 as market values; potential order-of-magnitude discrepancy given contract sizes",
+        "interpretation": "DO_NOT_CORRECT_NUMBERS_WITHOUT_ORIGINAL_PRICE_REFERENCE",
+        "status": "AUTHOR_QUOTE_WITH_SCALE_UNCERTAINTY"
+      }
+    },
+    {
+      "id": "chan:study:tools",
+      "type": "ResearchProcedureStep",
+      "fields": {
+        "method": "MATLAB_MOST_RESEARCH_AND_EXCEL_SUFFICIENT_FOR_SIMPLE_SPREAD",
+        "comment_date": "2007-08-18",
+        "programmatic_backtest_source_code": "NOT_AVAILABLE"
+      }
+    },
+    {
+      "id": "chan:gap:exact_data",
+      "type": "EvidenceAssertion",
+      "fields": {
+        "kind": "SOURCE_INFORMATION_NOT_DISCLOSED",
+        "missing": [
+          "EXACT_CALENDAR_DAYS",
+          "YEAR_BY_YEAR_FILLS",
+          "MARKET_DATA_SERIES",
+          "COMMISSION_SLIPPAGE",
+          "ACTUAL_BROKER_TRADE_LOG",
+          "EXACT_DOLLAR_NEUTRAL_ALTERNATIVE_RATIO"
+        ],
+        "source_not_applicable_to_actual_fill_reconstruction": true
+      }
+    },
+    {
+      "id": "chan:record:publication",
+      "type": "PublicationRecord",
+      "fields": {
+        "published_date": "2006-11-24",
+        "author": "Ernie Chan",
+        "work_kind": "AUTHOR_BLOG_POST",
+        "title": "Trading a platinum-gold seasonal spread",
+        "role": "SOURCE_BIBLIOGRAPHIC_METADATA_NOT_FINANCIAL_ANSWER"
+      }
+    },
+    {
+      "id": "chan:ref:toepke",
+      "type": "BibliographicReference",
+      "fields": {
+        "author": "Jerry Toepke",
+        "title": "Give Seasonal Spreads Some Respect",
+        "periodical": "Stocks, Futures and Options Magazine",
+        "issue_date": "2006-01",
+        "source_document_body_seen": false,
+        "reference_relation": "RESEARCH_IDEA_SOURCE"
+      }
+    },
+    {
+      "id": "chan:window:research_since1995",
+      "type": "TimeSeriesWindow",
+      "fields": {
+        "start_year": 1995,
+        "end_year": null,
+        "end_date_unknown": true,
+        "window_kind": "AUTHOR_ANNUAL_PERFORMANCE_SUMMARY"
+      }
+    },
+    {
+      "id": "chan:window:maxdd_since2000",
+      "type": "TimeSeriesWindow",
+      "fields": {
+        "start_year": 2000,
+        "end_year": null,
+        "end_date_unknown": true,
+        "window_kind": "AUTHOR_MAX_DRAWDOWN_LOOKBACK"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "chan:case",
+      "relation": "CASE_USES_STRATEGY",
+      "to": "chan:strategy"
+    },
+    {
+      "from": "chan:strategy",
+      "relation": "STRATEGY_USES_FUTURES_PAIR",
+      "to": "chan:pair"
+    },
+    {
+      "from": "chan:case",
+      "relation": "CASE_HAS_POSITION",
+      "to": "chan:position"
+    },
+    {
+      "from": "chan:position",
+      "relation": "POSITION_CONTAINS_LEG",
+      "to": "chan:leg:pl"
+    },
+    {
+      "from": "chan:leg:pl",
+      "relation": "LEG_TRADES_FUTURES_CONTRACT",
+      "to": "chan:contract:pl"
+    },
+    {
+      "from": "chan:contract:pl",
+      "relation": "CONTRACT_HAS_SPECIFICATION",
+      "to": "chan:spec:pl"
+    },
+    {
+      "from": "chan:contract:pl",
+      "relation": "CONTRACT_ROOTED_IN_ASSET",
+      "to": "chan:asset:pl"
+    },
+    {
+      "from": "chan:position",
+      "relation": "POSITION_CONTAINS_LEG",
+      "to": "chan:leg:gc"
+    },
+    {
+      "from": "chan:leg:gc",
+      "relation": "LEG_TRADES_FUTURES_CONTRACT",
+      "to": "chan:contract:gc"
+    },
+    {
+      "from": "chan:contract:gc",
+      "relation": "CONTRACT_HAS_SPECIFICATION",
+      "to": "chan:spec:gc"
+    },
+    {
+      "from": "chan:contract:gc",
+      "relation": "CONTRACT_ROOTED_IN_ASSET",
+      "to": "chan:asset:gc"
+    },
+    {
+      "from": "chan:strategy",
+      "relation": "STRATEGY_HAS_ENTRY_RULE",
+      "to": "chan:rule:entry"
+    },
+    {
+      "from": "chan:strategy",
+      "relation": "STRATEGY_HAS_EXIT_RULE",
+      "to": "chan:rule:exit"
+    },
+    {
+      "from": "chan:rule:entry",
+      "relation": "RULE_USES_CALENDAR_WINDOW",
+      "to": "chan:window:entry"
+    },
+    {
+      "from": "chan:rule:exit",
+      "relation": "RULE_USES_CALENDAR_WINDOW",
+      "to": "chan:window:exit"
+    },
+    {
+      "from": "chan:rule:entry",
+      "relation": "RULE_DECLARES_ACTION",
+      "to": "chan:action:buy_pl"
+    },
+    {
+      "from": "chan:rule:entry",
+      "relation": "RULE_DECLARES_ACTION",
+      "to": "chan:action:sell_gc"
+    },
+    {
+      "from": "chan:rule:exit",
+      "relation": "RULE_DECLARES_ACTION",
+      "to": "chan:action:close_pl"
+    },
+    {
+      "from": "chan:rule:exit",
+      "relation": "RULE_DECLARES_ACTION",
+      "to": "chan:action:close_gc"
+    },
+    {
+      "from": "chan:action:buy_pl",
+      "relation": "ACTION_APPLIES_TO_LEG",
+      "to": "chan:leg:pl"
+    },
+    {
+      "from": "chan:action:sell_gc",
+      "relation": "ACTION_APPLIES_TO_LEG",
+      "to": "chan:leg:gc"
+    },
+    {
+      "from": "chan:action:close_pl",
+      "relation": "ACTION_APPLIES_TO_LEG",
+      "to": "chan:leg:pl"
+    },
+    {
+      "from": "chan:action:close_gc",
+      "relation": "ACTION_APPLIES_TO_LEG",
+      "to": "chan:leg:gc"
+    },
+    {
+      "from": "chan:case",
+      "relation": "CASE_HAS_SEASONAL_DRIVER",
+      "to": "chan:causal:festival"
+    },
+    {
+      "from": "chan:causal:festival",
+      "relation": "FESTIVAL_CYCLE_AFFECTS_GOLD_USE",
+      "to": "chan:causal:gold_jewelry"
+    },
+    {
+      "from": "chan:causal:gold_jewelry",
+      "relation": "GOLD_USE_DRIVES_SEASONAL_DELIVERY",
+      "to": "chan:causal:gold_delivery_fade"
+    },
+    {
+      "from": "chan:causal:gold_delivery_fade",
+      "relation": "GOLD_SEASONAL_DEMAND_CONTRASTS_WITH_PLATINUM_USE",
+      "to": "chan:causal:platinum_industry"
+    },
+    {
+      "from": "chan:causal:platinum_industry",
+      "relation": "COMMODITY_SEASONAL_DIFFERENCE_SUPPORTS_SPREAD_EXPECTATION",
+      "to": "chan:causal:relative_spread"
+    },
+    {
+      "from": "chan:causal:relative_spread",
+      "relation": "SPREAD_EXPECTATION_TARGETS_PAIR",
+      "to": "chan:pair"
+    },
+    {
+      "from": "chan:case",
+      "relation": "CASE_REPORTS_METRIC",
+      "to": "chan:metric:margin_original"
+    },
+    {
+      "from": "chan:case",
+      "relation": "CASE_REPORTS_METRIC",
+      "to": "chan:metric:mean_pnl"
+    },
+    {
+      "from": "chan:case",
+      "relation": "CASE_REPORTS_METRIC",
+      "to": "chan:metric:best_pnl"
+    },
+    {
+      "from": "chan:case",
+      "relation": "CASE_REPORTS_METRIC",
+      "to": "chan:metric:worst_pnl"
+    },
+    {
+      "from": "chan:case",
+      "relation": "CASE_REPORTS_METRIC",
+      "to": "chan:metric:max_dd_since2000"
+    },
+    {
+      "from": "chan:case",
+      "relation": "CASE_REPORTS_METRIC",
+      "to": "chan:metric:max_capital_need"
+    },
+    {
+      "from": "chan:case",
+      "relation": "CASE_REPORTS_METRIC",
+      "to": "chan:metric:author_market_value_gc"
+    },
+    {
+      "from": "chan:case",
+      "relation": "CASE_REPORTS_METRIC",
+      "to": "chan:metric:author_market_value_2pl"
+    },
+    {
+      "from": "chan:calc:capital_requirement",
+      "relation": "CALCULATION_READS_INPUT",
+      "to": "chan:metric:margin_original"
+    },
+    {
+      "from": "chan:calc:capital_requirement",
+      "relation": "CALCULATION_READS_INPUT",
+      "to": "chan:metric:max_dd_since2000"
+    },
+    {
+      "from": "chan:calc:capital_requirement",
+      "relation": "CALCULATION_PRODUCES_METRIC",
+      "to": "chan:metric:max_capital_need"
+    },
+    {
+      "from": "chan:case",
+      "relation": "CASE_HAS_RESEARCH_STEP",
+      "to": "chan:study:backtest"
+    },
+    {
+      "from": "chan:case",
+      "relation": "CASE_HAS_RESEARCH_STEP",
+      "to": "chan:study:paper2006"
+    },
+    {
+      "from": "chan:case",
+      "relation": "CASE_HAS_ASSERTION",
+      "to": "chan:claim:6of7"
+    },
+    {
+      "from": "chan:case",
+      "relation": "CASE_HAS_ASSERTION",
+      "to": "chan:claim:physical_hedge"
+    },
+    {
+      "from": "chan:case",
+      "relation": "CASE_HAS_ASSERTION",
+      "to": "chan:claim:dollar_neutrality"
+    },
+    {
+      "from": "chan:case",
+      "relation": "CASE_HAS_ASSERTION",
+      "to": "chan:claim:outright_risk"
+    },
+    {
+      "from": "chan:case",
+      "relation": "CASE_HAS_ASSERTION",
+      "to": "chan:claim:alt_strategy"
+    },
+    {
+      "from": "chan:claim:physical_hedge",
+      "relation": "HEDGE_CLAIM_APPLIES_TO_PAIR",
+      "to": "chan:pair"
+    },
+    {
+      "from": "chan:claim:dollar_neutrality",
+      "relation": "NEUTRALITY_QUALIFICATION_OF",
+      "to": "chan:claim:physical_hedge"
+    },
+    {
+      "from": "chan:claim:outright_risk",
+      "relation": "RISK_ANALOGY_OF_POSITION",
+      "to": "chan:position"
+    },
+    {
+      "from": "chan:claim:alt_strategy",
+      "relation": "ALTERNATIVE_OF_SEASONAL_STRATEGY",
+      "to": "chan:strategy"
+    },
+    {
+      "from": "chan:conflict:execution_status",
+      "relation": "CONFLICT_CONTAINS_ASSERTION",
+      "to": "chan:claim:paper_trading"
+    },
+    {
+      "from": "chan:conflict:execution_status",
+      "relation": "CONFLICT_CONTAINS_ASSERTION",
+      "to": "chan:claim:real_test"
+    },
+    {
+      "from": "chan:case",
+      "relation": "CASE_HAS_EVIDENCE_CONFLICT",
+      "to": "chan:conflict:execution_status"
+    },
+    {
+      "from": "chan:case",
+      "relation": "CASE_HAS_ASSERTION",
+      "to": "chan:claim:author_values_warning"
+    },
+    {
+      "from": "chan:claim:author_values_warning",
+      "relation": "CLAIM_CITES_METRIC",
+      "to": "chan:metric:author_market_value_gc"
+    },
+    {
+      "from": "chan:claim:author_values_warning",
+      "relation": "CLAIM_CITES_METRIC",
+      "to": "chan:metric:author_market_value_2pl"
+    },
+    {
+      "from": "chan:case",
+      "relation": "CASE_HAS_RESEARCH_STEP",
+      "to": "chan:study:tools"
+    },
+    {
+      "from": "chan:case",
+      "relation": "CASE_HAS_ASSERTION",
+      "to": "chan:gap:exact_data"
+    },
+    {
+      "from": "chan:case",
+      "relation": "CASE_HAS_PUBLICATION_RECORD",
+      "to": "chan:record:publication"
+    },
+    {
+      "from": "chan:case",
+      "relation": "CASE_CITES_ORIGINATING_WORK",
+      "to": "chan:ref:toepke"
+    },
+    {
+      "from": "chan:study:backtest",
+      "relation": "STUDY_USES_TIME_WINDOW",
+      "to": "chan:window:research_since1995"
+    },
+    {
+      "from": "chan:metric:mean_pnl",
+      "relation": "SOURCE_METRIC_COVERS_TIME_WINDOW",
+      "to": "chan:window:research_since1995"
+    },
+    {
+      "from": "chan:metric:max_dd_since2000",
+      "relation": "SOURCE_METRIC_COVERS_TIME_WINDOW",
+      "to": "chan:window:maxdd_since2000"
+    },
+    {
+      "from": "chan:metric:max_capital_need",
+      "relation": "CAPITAL_NEED_USES_RISK_WINDOW",
+      "to": "chan:window:maxdd_since2000"
+    }
+  ],
+  "source_content_attached": false,
+  "author_claims_are_not_verified_trade_fills": true,
+  "independent_new_chatgpt_session_required": true
+}
