@@ -25,7 +25,7 @@
       "id": "paper:p_entry",
       "ontology_type": "N-120:SourcePassage",
       "properties": {
-        "locator": "§2.3.1; Appendix A, printed pp.62,76–77",
+        "locator": "§2.3.1 (PDF p5), Appendix A baseline pseudocode (PDF p18)",
         "covers": "MACD EMA formulas and baseline position switching"
       }
     },
@@ -33,7 +33,7 @@
       "id": "paper:p_setting",
       "ontology_type": "N-120:SourcePassage",
       "properties": {
-        "locator": "§2.4 and §2.4.1, printed pp.66–67",
+        "locator": "§2.4/§2.4.1 (PDF pp9–10)",
         "covers": "2017–2018 dates, nine assets, MT5, spreads, capital, leverage, sampling"
       }
     },
@@ -41,7 +41,7 @@
       "id": "paper:p_variants",
       "ontology_type": "N-120:SourcePassage",
       "properties": {
-        "locator": "§3.1, printed p.68",
+        "locator": "§3.1 (PDF p11)",
         "covers": "(a) default 12/26/9 no weekends, (b) selected params no weekends, (c) selected params with weekends"
       }
     },
@@ -49,7 +49,7 @@
       "id": "paper:p_params",
       "ontology_type": "N-120:SourcePassage",
       "properties": {
-        "locator": "Table 2 EURUSD row, printed p.68",
+        "locator": "Table 2 EURUSD row (PDF p11)",
         "covers": "selected MACD EURUSD 27/280/28"
       }
     },
@@ -57,7 +57,7 @@
       "id": "paper:p_metric",
       "ontology_type": "N-120:SourcePassage",
       "properties": {
-        "locator": "Appendix B Table A1 EURUSD row, printed p.78",
+        "locator": "Appendix B, Table A1 EURUSD row (PDF p21)",
         "covers": "gross profit, gross loss, net profit for experiments a/b/c"
       }
     },
@@ -65,7 +65,7 @@
       "id": "paper:p_extra",
       "ontology_type": "N-120:SourcePassage",
       "properties": {
-        "locator": "Appendix B Table A2 EURUSD row, printed p.78",
+        "locator": "Appendix B, Table A2 EURUSD row (PDF p21)",
         "covers": "drawdown and trades for experiments a/b/c"
       }
     },
