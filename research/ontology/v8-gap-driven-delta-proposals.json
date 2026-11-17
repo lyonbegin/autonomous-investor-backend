@@ -1,0 +1,544 @@
+{
+  "based_on": "604 occurrences (117 node+254 property+97 relation unique) plus v7 proposed additions 23+52+35",
+  "explanation": "The list contains new candidates confirmed absent by name from v7 catalog; IDs are reserved proposal IDs, not approved/production schema.",
+  "graph_ids": [
+    "TV-02yfhjiz-DESCRIPTION-KG-20261117",
+    "VEZERIS-2018-MACD-EURUSD-ABC-KG-20261117"
+  ],
+  "new_node_types": [
+    {
+      "id": "N-141",
+      "term": "PositionState",
+      "meaning": "State of a strategy's abstract position: FLAT, LONG, SHORT",
+      "needs_node_because": "State is independently referenced by entry preconditions and multiple opposite-signal transitions.",
+      "status": "PROPOSED_V8_NOT_APPROVED"
+    },
+    {
+      "id": "N-142",
+      "term": "PositionTransitionSpec",
+      "meaning": "A separately identifiable conditional position-state transition with ordered actions",
+      "needs_node_because": "Ignoring an opposite signal, closing, and close-then-reverse differ in state and order; a single text field loses this.",
+      "status": "PROPOSED_V8_NOT_APPROVED"
+    },
+    {
+      "id": "N-143",
+      "term": "InformationGap",
+      "meaning": "Evidence-linked missing information about a specific graph node field",
+      "needs_node_because": "Missing parameter/evidence must point to the exact node and field and carry whether it is not disclosed, not extracted, or not applicable.",
+      "status": "PROPOSED_V8_NOT_APPROVED"
+    }
+  ],
+  "new_relation_types": [
+    {
+      "id": "R-133",
+      "term": "CASE_DESCRIBES_STRATEGY",
+      "owner": "TradeCase",
+      "range": "TradingStrategy",
+      "direction": "source→target",
+      "example_edge": {
+        "case": "TV-02yfhjiz-DESCRIPTION-KG-20261117",
+        "source_id": "tv01:case",
+        "source_type": "TradeCase",
+        "target_id": "tv01:strategy",
+        "target_type": "TradingStrategy",
+        "direction": "source_to_target"
+      },
+      "observed_examples": 1,
+      "status": "PROPOSED_V8_NOT_APPROVED",
+      "review_required": "Compare against original 604 + v7 types, confirm cardinality, then rerun older case graphs."
+    },
+    {
+      "id": "R-134",
+      "term": "CONDITION_READS_SIGNAL",
+      "owner": "RuleCondition",
+      "range": "TradingSignal",
+      "direction": "source→target",
+      "example_edge": {
+        "case": "TV-02yfhjiz-DESCRIPTION-KG-20261117",
+        "source_id": "tv01:c_buy",
+        "source_type": "RuleCondition",
+        "target_id": "tv01:signal",
+        "target_type": "TradingSignal",
+        "direction": "source_to_target"
+      },
+      "observed_examples": 3,
+      "status": "PROPOSED_V8_NOT_APPROVED",
+      "review_required": "Compare against original 604 + v7 types, confirm cardinality, then rerun older case graphs."
+    },
+    {
+      "id": "R-135",
+      "term": "RISK_RULE_CAN_CLOSE_POSITION_BY_ACTION",
+      "owner": "RiskRule",
+      "range": "TradeAction",
+      "direction": "source→target",
+      "example_edge": {
+        "case": "TV-02yfhjiz-DESCRIPTION-KG-20261117",
+        "source_id": "tv01:r_regular_stop",
+        "source_type": "RiskRule",
+        "target_id": "tv01:a_close_long",
+        "target_type": "TradeAction",
+        "direction": "source_to_target"
+      },
+      "observed_examples": 3,
+      "status": "PROPOSED_V8_NOT_APPROVED",
+      "review_required": "Compare against original 604 + v7 types, confirm cardinality, then rerun older case graphs."
+    },
+    {
+      "id": "R-136",
+      "term": "CONDITION_READS_POSITION_METRIC",
+      "owner": "RuleCondition",
+      "range": "TradePosition",
+      "direction": "source→target",
+      "example_edge": {
+        "case": "TV-02yfhjiz-DESCRIPTION-KG-20261117",
+        "source_id": "tv01:c_tp1",
+        "source_type": "RuleCondition",
+        "target_id": "tv01:position",
+        "target_type": "TradePosition",
+        "direction": "source_to_target"
+      },
+      "observed_examples": 3,
+      "status": "PROPOSED_V8_NOT_APPROVED",
+      "review_required": "Compare against original 604 + v7 types, confirm cardinality, then rerun older case graphs."
+    },
+    {
+      "id": "R-137",
+      "term": "POLICY_CONTAINS_RULE",
+      "owner": "TradingRule",
+      "range": "TradingRule",
+      "direction": "source→target",
+      "example_edge": {
+        "case": "TV-02yfhjiz-DESCRIPTION-KG-20261117",
+        "source_id": "tv01:r_cancel",
+        "source_type": "TradingRule",
+        "target_id": "tv01:r_cancel_positive_closes_short",
+        "target_type": "TradingRule",
+        "direction": "source_to_target"
+      },
+      "observed_examples": 3,
+      "status": "PROPOSED_V8_NOT_APPROVED",
+      "review_required": "Compare against original 604 + v7 types, confirm cardinality, then rerun older case graphs."
+    },
+    {
+      "id": "R-138",
+      "term": "RULE_REQUIRES_POSITION_STATE",
+      "owner": "TradingRule",
+      "range": "PositionState",
+      "direction": "source→target",
+      "example_edge": {
+        "case": "TV-02yfhjiz-DESCRIPTION-KG-20261117",
+        "source_id": "tv01:r_opposite:long_to_short",
+        "source_type": "TradingRule",
+        "target_id": "tv01:state:LONG",
+        "target_type": "PositionState",
+        "direction": "source_to_target"
+      },
+      "observed_examples": 3,
+      "status": "PROPOSED_V8_NOT_APPROVED",
+      "review_required": "Compare against original 604 + v7 types, confirm cardinality, then rerun older case graphs."
+    },
+    {
+      "id": "R-139",
+      "term": "RULE_HAS_TRANSITION",
+      "owner": "TradingRule",
+      "range": "PositionTransitionSpec",
+      "direction": "source→target",
+      "example_edge": {
+        "case": "TV-02yfhjiz-DESCRIPTION-KG-20261117",
+        "source_id": "tv01:r_opposite:long_to_short",
+        "source_type": "TradingRule",
+        "target_id": "tv01:transition:long_to_short:IGNORE",
+        "target_type": "PositionTransitionSpec",
+        "direction": "source_to_target"
+      },
+      "observed_examples": 3,
+      "status": "PROPOSED_V8_NOT_APPROVED",
+      "review_required": "Compare against original 604 + v7 types, confirm cardinality, then rerun older case graphs."
+    },
+    {
+      "id": "R-140",
+      "term": "TRANSITION_FROM_STATE",
+      "owner": "PositionTransitionSpec",
+      "range": "PositionState",
+      "direction": "source→target",
+      "example_edge": {
+        "case": "TV-02yfhjiz-DESCRIPTION-KG-20261117",
+        "source_id": "tv01:transition:long_to_short:IGNORE",
+        "source_type": "PositionTransitionSpec",
+        "target_id": "tv01:state:LONG",
+        "target_type": "PositionState",
+        "direction": "source_to_target"
+      },
+      "observed_examples": 3,
+      "status": "PROPOSED_V8_NOT_APPROVED",
+      "review_required": "Compare against original 604 + v7 types, confirm cardinality, then rerun older case graphs."
+    },
+    {
+      "id": "R-141",
+      "term": "TRANSITION_TO_STATE",
+      "owner": "PositionTransitionSpec",
+      "range": "PositionState",
+      "direction": "source→target",
+      "example_edge": {
+        "case": "TV-02yfhjiz-DESCRIPTION-KG-20261117",
+        "source_id": "tv01:transition:long_to_short:IGNORE",
+        "source_type": "PositionTransitionSpec",
+        "target_id": "tv01:state:LONG",
+        "target_type": "PositionState",
+        "direction": "source_to_target"
+      },
+      "observed_examples": 3,
+      "status": "PROPOSED_V8_NOT_APPROVED",
+      "review_required": "Compare against original 604 + v7 types, confirm cardinality, then rerun older case graphs."
+    },
+    {
+      "id": "R-142",
+      "term": "TRANSITION_ORDERED_ACTION",
+      "owner": "PositionTransitionSpec",
+      "range": "TradeAction",
+      "direction": "source→target",
+      "example_edge": {
+        "case": "TV-02yfhjiz-DESCRIPTION-KG-20261117",
+        "source_id": "tv01:transition:long_to_short:CLOSE",
+        "source_type": "PositionTransitionSpec",
+        "target_id": "tv01:a_close_long",
+        "target_type": "TradeAction",
+        "direction": "source_to_target"
+      },
+      "observed_examples": 3,
+      "status": "PROPOSED_V8_NOT_APPROVED",
+      "review_required": "Compare against original 604 + v7 types, confirm cardinality, then rerun older case graphs."
+    },
+    {
+      "id": "R-143",
+      "term": "CALCULATION_READS_POSITION_PRICE_AND_SIDE",
+      "owner": "CalculationExpression",
+      "range": "TradePosition",
+      "direction": "source→target",
+      "example_edge": {
+        "case": "TV-02yfhjiz-DESCRIPTION-KG-20261117",
+        "source_id": "tv01:calc:direction_adjusted_price_gain_pct",
+        "source_type": "CalculationExpression",
+        "target_id": "tv01:position",
+        "target_type": "TradePosition",
+        "direction": "source_to_target"
+      },
+      "observed_examples": 1,
+      "status": "PROPOSED_V8_NOT_APPROVED",
+      "review_required": "Compare against original 604 + v7 types, confirm cardinality, then rerun older case graphs."
+    },
+    {
+      "id": "R-144",
+      "term": "ACTION_MODIFIES_RISK_RULE",
+      "owner": "TradeAction",
+      "range": "RiskRule",
+      "direction": "source→target",
+      "example_edge": {
+        "case": "TV-02yfhjiz-DESCRIPTION-KG-20261117",
+        "source_id": "tv01:action:freeze_initial_trailing_stop",
+        "source_type": "TradeAction",
+        "target_id": "tv01:r_initial_trail",
+        "target_type": "RiskRule",
+        "direction": "source_to_target"
+      },
+      "observed_examples": 1,
+      "status": "PROPOSED_V8_NOT_APPROVED",
+      "review_required": "Compare against original 604 + v7 types, confirm cardinality, then rerun older case graphs."
+    },
+    {
+      "id": "R-145",
+      "term": "RISK_RULE_MAY_TAKE_OVER_AFTER",
+      "owner": "RiskRule",
+      "range": "RiskRule",
+      "direction": "source→target",
+      "example_edge": {
+        "case": "TV-02yfhjiz-DESCRIPTION-KG-20261117",
+        "source_id": "tv01:r_trail",
+        "source_type": "RiskRule",
+        "target_id": "tv01:r_initial_trail",
+        "target_type": "RiskRule",
+        "direction": "source_to_target"
+      },
+      "observed_examples": 1,
+      "status": "PROPOSED_V8_NOT_APPROVED",
+      "review_required": "Compare against original 604 + v7 types, confirm cardinality, then rerun older case graphs."
+    },
+    {
+      "id": "R-146",
+      "term": "GAP_BLOCKS_NODE_FIELD",
+      "owner": "InformationGap",
+      "range": "TradingSignal",
+      "direction": "source→target",
+      "example_edge": {
+        "case": "TV-02yfhjiz-DESCRIPTION-KG-20261117",
+        "source_id": "tv01:gap:01",
+        "source_type": "InformationGap",
+        "target_id": "tv01:signal",
+        "target_type": "TradingSignal",
+        "direction": "source_to_target"
+      },
+      "observed_examples": 3,
+      "status": "PROPOSED_V8_NOT_APPROVED",
+      "review_required": "Compare against original 604 + v7 types, confirm cardinality, then rerun older case graphs."
+    },
+    {
+      "id": "R-147",
+      "term": "BACKTEST_STUDY_TESTS_ASSET",
+      "owner": "BacktestStudy",
+      "range": "Asset",
+      "direction": "source→target",
+      "example_edge": {
+        "case": "VEZERIS-2018-MACD-EURUSD-ABC-KG-20261117",
+        "source_id": "paper:backtest",
+        "source_type": "BacktestStudy",
+        "target_id": "paper:asset:EURUSD",
+        "target_type": "Asset",
+        "direction": "source_to_target"
+      },
+      "observed_examples": 1,
+      "status": "PROPOSED_V8_NOT_APPROVED",
+      "review_required": "Compare against original 604 + v7 types, confirm cardinality, then rerun older case graphs."
+    },
+    {
+      "id": "R-148",
+      "term": "CASE_EVALUATES_STRATEGY",
+      "owner": "TradeCase",
+      "range": "TradingStrategy",
+      "direction": "source→target",
+      "example_edge": {
+        "case": "VEZERIS-2018-MACD-EURUSD-ABC-KG-20261117",
+        "source_id": "paper:case:a",
+        "source_type": "TradeCase",
+        "target_id": "paper:strategy",
+        "target_type": "TradingStrategy",
+        "direction": "source_to_target"
+      },
+      "observed_examples": 3,
+      "status": "PROPOSED_V8_NOT_APPROVED",
+      "review_required": "Compare against original 604 + v7 types, confirm cardinality, then rerun older case graphs."
+    },
+    {
+      "id": "R-149",
+      "term": "CASE_USES_BACKTEST_STUDY",
+      "owner": "TradeCase",
+      "range": "BacktestStudy",
+      "direction": "source→target",
+      "example_edge": {
+        "case": "VEZERIS-2018-MACD-EURUSD-ABC-KG-20261117",
+        "source_id": "paper:case:a",
+        "source_type": "TradeCase",
+        "target_id": "paper:backtest",
+        "target_type": "BacktestStudy",
+        "direction": "source_to_target"
+      },
+      "observed_examples": 3,
+      "status": "PROPOSED_V8_NOT_APPROVED",
+      "review_required": "Compare against original 604 + v7 types, confirm cardinality, then rerun older case graphs."
+    },
+    {
+      "id": "R-150",
+      "term": "BACKTEST_RESULT_OF_CASE",
+      "owner": "BacktestResult",
+      "range": "TradeCase",
+      "direction": "source→target",
+      "example_edge": {
+        "case": "VEZERIS-2018-MACD-EURUSD-ABC-KG-20261117",
+        "source_id": "paper:result:a",
+        "source_type": "BacktestResult",
+        "target_id": "paper:case:a",
+        "target_type": "TradeCase",
+        "direction": "source_to_target"
+      },
+      "observed_examples": 3,
+      "status": "PROPOSED_V8_NOT_APPROVED",
+      "review_required": "Compare against original 604 + v7 types, confirm cardinality, then rerun older case graphs."
+    },
+    {
+      "id": "R-151",
+      "term": "BACKTEST_RESULT_HAS_METRIC",
+      "owner": "BacktestResult",
+      "range": "SourceReportedMetric",
+      "direction": "source→target",
+      "example_edge": {
+        "case": "VEZERIS-2018-MACD-EURUSD-ABC-KG-20261117",
+        "source_id": "paper:result:a",
+        "source_type": "BacktestResult",
+        "target_id": "paper:metric:a:gross_profit",
+        "target_type": "SourceReportedMetric",
+        "direction": "source_to_target"
+      },
+      "observed_examples": 3,
+      "status": "PROPOSED_V8_NOT_APPROVED",
+      "review_required": "Compare against original 604 + v7 types, confirm cardinality, then rerun older case graphs."
+    },
+    {
+      "id": "R-152",
+      "term": "CASE_APPLIES_TO_ASSET",
+      "owner": "TradeCase",
+      "range": "Asset",
+      "direction": "source→target",
+      "example_edge": {
+        "case": "VEZERIS-2018-MACD-EURUSD-ABC-KG-20261117",
+        "source_id": "paper:case:a",
+        "source_type": "TradeCase",
+        "target_id": "paper:asset:EURUSD",
+        "target_type": "Asset",
+        "direction": "source_to_target"
+      },
+      "observed_examples": 3,
+      "status": "PROPOSED_V8_NOT_APPROVED",
+      "review_required": "Compare against original 604 + v7 types, confirm cardinality, then rerun older case graphs."
+    },
+    {
+      "id": "R-153",
+      "term": "CASE_CONFIGURES_CALCULATION",
+      "owner": "TradeCase",
+      "range": "CalculationExpression",
+      "direction": "source→target",
+      "example_edge": {
+        "case": "VEZERIS-2018-MACD-EURUSD-ABC-KG-20261117",
+        "source_id": "paper:case:a",
+        "source_type": "TradeCase",
+        "target_id": "paper:macd",
+        "target_type": "CalculationExpression",
+        "direction": "source_to_target"
+      },
+      "observed_examples": 3,
+      "status": "PROPOSED_V8_NOT_APPROVED",
+      "review_required": "Compare against original 604 + v7 types, confirm cardinality, then rerun older case graphs."
+    },
+    {
+      "id": "R-154",
+      "term": "CASE_USES_INDICATOR_PARAMETER",
+      "owner": "TradeCase",
+      "range": "IndicatorParameter",
+      "direction": "source→target",
+      "example_edge": {
+        "case": "VEZERIS-2018-MACD-EURUSD-ABC-KG-20261117",
+        "source_id": "paper:case:a",
+        "source_type": "TradeCase",
+        "target_id": "paper:indicator_param:a:fast",
+        "target_type": "IndicatorParameter",
+        "direction": "source_to_target"
+      },
+      "observed_examples": 3,
+      "status": "PROPOSED_V8_NOT_APPROVED",
+      "review_required": "Compare against original 604 + v7 types, confirm cardinality, then rerun older case graphs."
+    },
+    {
+      "id": "R-155",
+      "term": "CASE_HAS_WEEKEND_POLICY",
+      "owner": "TradeCase",
+      "range": "TradingRule",
+      "direction": "source→target",
+      "example_edge": {
+        "case": "VEZERIS-2018-MACD-EURUSD-ABC-KG-20261117",
+        "source_id": "paper:case:a",
+        "source_type": "TradeCase",
+        "target_id": "paper:rule:close_before_weekend",
+        "target_type": "TradingRule",
+        "direction": "source_to_target"
+      },
+      "observed_examples": 3,
+      "status": "PROPOSED_V8_NOT_APPROVED",
+      "review_required": "Compare against original 604 + v7 types, confirm cardinality, then rerun older case graphs."
+    }
+  ],
+  "new_property_types": [
+    {
+      "id": "P-307",
+      "owner": "PositionTransitionSpec",
+      "term": "transition_mode",
+      "dtype": "enum IGNORE|CLOSE|CLOSE_AND_REVERSE",
+      "reason": "Different actual action paths",
+      "status": "PROPOSED_V8_NOT_APPROVED"
+    },
+    {
+      "id": "P-308",
+      "owner": "PositionTransitionSpec",
+      "term": "action_count",
+      "dtype": "nonnegative integer",
+      "reason": "No-action vs one- or two-action transitions",
+      "status": "PROPOSED_V8_NOT_APPROVED"
+    },
+    {
+      "id": "P-309",
+      "owner": "TransitionActionEdge",
+      "term": "sequence_index",
+      "dtype": "positive integer",
+      "reason": "Close-before-open ordering is essential",
+      "status": "PROPOSED_V8_NOT_APPROVED"
+    },
+    {
+      "id": "P-310",
+      "owner": "InformationGap",
+      "term": "target_node",
+      "dtype": "existing graph node ID",
+      "reason": "Target of missing fact",
+      "status": "PROPOSED_V8_NOT_APPROVED"
+    },
+    {
+      "id": "P-311",
+      "owner": "InformationGap",
+      "term": "field_path",
+      "dtype": "valid target property path",
+      "reason": "Locate exact blocked field",
+      "status": "PROPOSED_V8_NOT_APPROVED"
+    },
+    {
+      "id": "P-312",
+      "owner": "InformationGap",
+      "term": "kind",
+      "dtype": "NOT_EXTRACTED|NOT_DISCLOSED|NOT_APPLICABLE|CONFLICT|INPUT_INTENTIONALLY_UNSPECIFIED",
+      "reason": "Distinguish graph failure from missing source",
+      "status": "PROPOSED_V8_NOT_APPROVED"
+    },
+    {
+      "id": "P-313",
+      "owner": "RuleCondition",
+      "term": "comparator_source_status",
+      "dtype": "enum SOURCE_EXACT|TEXT_DERIVED|NOT_CONFIRMED",
+      "reason": "Never treat inferred >= as exact Pine execution",
+      "status": "PROPOSED_V8_NOT_APPROVED"
+    },
+    {
+      "id": "P-314",
+      "owner": "CalculationExpression",
+      "term": "expression_status",
+      "dtype": "enum SOURCE_EXACT|TEXT_DERIVED_NOT_PINE_VERIFIED|UNRESOLVED",
+      "reason": "Interpretation confidence",
+      "status": "PROPOSED_V8_NOT_APPROVED"
+    },
+    {
+      "id": "P-315",
+      "owner": "TradeAction",
+      "term": "reduction_unit",
+      "dtype": "enum FRACTION|PERCENT|CONTRACTS|SHARES|UNSPECIFIED",
+      "reason": "Partial TP reduction quantity must have a unit",
+      "status": "PROPOSED_V8_NOT_APPROVED"
+    },
+    {
+      "id": "P-316",
+      "owner": "TradingRule",
+      "term": "selected_mode",
+      "dtype": "enum IGNORE|CLOSE|CLOSE_AND_REVERSE|NOT_DISCLOSED",
+      "reason": "A supported option is not necessarily the selected option",
+      "status": "PROPOSED_V8_NOT_APPROVED"
+    },
+    {
+      "id": "P-317",
+      "owner": "TradingRule",
+      "term": "weekend_handling",
+      "dtype": "enum CLOSE_BEFORE_WEEKEND|HOLD_WEEKEND|NOT_DISCLOSED",
+      "reason": "Published experiments differ in weekend position treatment",
+      "status": "PROPOSED_V8_NOT_APPROVED"
+    }
+  ],
+  "proposed_unique_types_after_v8": {
+    "nodes": 143,
+    "properties": 317,
+    "relations": 155
+  },
+  "merge_status": "REVIEW_REQUIRED",
+  "assurance": "No completed blind AI replay yet; source reconstruction scope differs from runtime trade equivalence."
+}
