@@ -19,5 +19,8 @@
   "final_status": "BLIND_PENDING_NOT_FULL_PASS",
   "next_action": "New independent ChatGPT session must reconstruct from round-5-graph-only-input.json, without source facts, originals or prior conversation",
   "reconstruction_reader_iterations": 2,
-  "expanded_source_review": "26_ITEM_REGISTER_COMPARED_NOT_FULL_PAGE_EXHAUSTIVE"
+  "expanded_source_review": "26_ITEM_REGISTER_COMPARED_NOT_FULL_PAGE_EXHAUSTIVE",
+  "current_reconstruction_input": "round-5-graph-only-input.json",
+  "current_reconstruction_result": "round-5-graph-only-reconstruction-retry2.json",
+  "current_comparison": "round-5-source-comparison-retry2.json"
 }
