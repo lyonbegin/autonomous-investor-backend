@@ -1,0 +1,227 @@
+{
+  "id": "CHAN_R2_FINANCIAL_GRAPH_ONLY_REPLAY",
+  "source_original_loaded_for_this_action": false,
+  "new_independent_chatgpt_session": false,
+  "publication_date": null,
+  "classification": "AUTHOR_DESCRIBED_SEASONAL_STRATEGY",
+  "position": {
+    "legs": [
+      {
+        "side": "LONG",
+        "quantity": 2,
+        "month": "JUL",
+        "year": null,
+        "commodity_root": "PL",
+        "contract_multiplier_oz": 50,
+        "physical_ounces": 100
+      },
+      {
+        "side": "SHORT",
+        "quantity": 1,
+        "month": "JUN",
+        "year": null,
+        "commodity_root": "GC",
+        "contract_multiplier_oz": 100,
+        "physical_ounces": 100
+      }
+    ],
+    "balanced_ounces": true,
+    "not_dollar_neutral": true
+  },
+  "timing": {
+    "entry": {
+      "relative_to_calendar": "END_OF_FEBRUARY",
+      "approximate": true,
+      "exact_day": null,
+      "recurring_annually": true
+    },
+    "exit": {
+      "relative_to_calendar": "MID_APRIL",
+      "approximate": true,
+      "exact_day": null,
+      "recurring_annually": true
+    }
+  },
+  "economic_cause": [
+    {
+      "type": "SeasonalDemandDriver",
+      "festival_season": "INDIA_CHINA_YEAR_END_AND_CHINESE_NEW_YEAR",
+      "time_end": "AFTER_CHINESE_NEW_YEAR_APPROX_FEBRUARY",
+      "observation_status": "AUTHOR_AND_REFERENCED_TOEPKE_EXPLANATION"
+    },
+    {
+      "type": "CommodityUseChannel",
+      "underlying": "GOLD",
+      "demand_channel": "JEWELRY_CONSUMPTION",
+      "region": [
+        "INDIA",
+        "CHINA"
+      ]
+    },
+    {
+      "type": "CommodityDemandExpectation",
+      "commodity": "GOLD",
+      "seasonal_pattern": "JEWELRY_DELIVERY_DEMAND_SEASONALLY_EXHAUSTED_AFTER_FESTIVALS",
+      "not_measured_series": true
+    },
+    {
+      "type": "CommodityUseChannel",
+      "underlying": "PLATINUM",
+      "demand_channel": "AUTOMOTIVE_CATALYTIC_CONVERTERS",
+      "seasonality": "WEAKER_THAN_JEWELRY_GOLD"
+    },
+    {
+      "type": "SpreadDirectionExpectation",
+      "position": "LONG_PL_SHORT_GC",
+      "economic_logic": "PL_LONG_HEDGES_PART_OF_GOLD_MARKET_EXPOSURE_WHILE_GOLD_SEASONAL_DEMAND_EASES",
+      "mechanical_entry_signal": false
+    }
+  ],
+  "reported_metrics": {
+    "margin_original": {
+      "amount": 743,
+      "unit": "USD",
+      "year": null,
+      "kind": "ORIGINAL_BLOG_CLAIM"
+    },
+    "mean_pnl": {
+      "amount": 6600,
+      "unit": "USD_PER_YEAR",
+      "year": 1995,
+      "kind": "AUTHOR_BACKTEST_REPORTED"
+    },
+    "best_pnl": {
+      "amount": 15400,
+      "unit": "USD_PER_YEAR",
+      "year": null,
+      "kind": "AUTHOR_BACKTEST_REPORTED"
+    },
+    "worst_pnl": {
+      "amount": -3810,
+      "unit": "USD_PER_YEAR",
+      "year": null,
+      "kind": "AUTHOR_BACKTEST_REPORTED"
+    },
+    "max_dd_since2000": {
+      "amount": 10910,
+      "unit": "USD",
+      "year": 2001,
+      "kind": "AUTHOR_2006_COMMENT"
+    },
+    "max_capital_need": {
+      "amount": 11653,
+      "unit": "USD",
+      "year": null,
+      "kind": "AUTHOR_2006_COMMENT"
+    },
+    "author_market_value_gc": {
+      "amount": 6650,
+      "unit": "USD",
+      "year": null,
+      "kind": "AUTHOR_2007_COMMENT_AS_WRITTEN_SUSPECT_SCALE"
+    },
+    "author_market_value_2pl": {
+      "amount": 12260,
+      "unit": "USD",
+      "year": null,
+      "kind": "AUTHOR_2007_COMMENT_AS_WRITTEN_SUSPECT_SCALE"
+    }
+  },
+  "capital_need_recomputed_usd": 11653,
+  "procedure": [
+    {
+      "role": "AUTHOR_BACKTEST",
+      "year_start_reported": 1995,
+      "year_end": null,
+      "underlying_bars": "NOT_ATTACHED",
+      "author_says_success": true
+    },
+    {
+      "role": "PAPER_TRADE",
+      "year": 2006,
+      "actual_broker_fills_verified": false,
+      "author_says_success": true
+    },
+    {
+      "method": "MATLAB_MOST_RESEARCH_AND_EXCEL_SUFFICIENT_FOR_SIMPLE_SPREAD",
+      "programmatic_backtest_source_code": "NOT_AVAILABLE"
+    }
+  ],
+  "assertions": [
+    {
+      "content": "Profitable in all but one of the last seven years",
+      "metric_kind": "QUALITATIVE_ROLLING_7YR",
+      "exact_individual_years": null
+    },
+    {
+      "claim": "2PL*50oz = 1GC*100oz",
+      "claim_kind": "SOURCE_STATED_HEDGE_BY_WEIGHT",
+      "not_dollar_neutral": true,
+      "not_volatility_neutral": true
+    },
+    {
+      "claim": "Equal ounces do not make the position dollar neutral; long PL notional/risk dominates (author Aug 2007 comment)",
+      "claim_kind": "LATER_AUTHOR_RISK_QUALIFICATION"
+    },
+    {
+      "claim": "Risk approximates one outright PL futures contract according to author",
+      "claim_kind": "QUALITATIVE_AUTHOR_COMPARISON_NOT_COMPUTED_PORTFOLIO_VAR"
+    },
+    {
+      "claim": "A dollar-neutral alternative was historically and in author's trading test less profitable",
+      "claim_kind": "AUTHOR_COMPARATIVE_ANECDOTE_NO_DATA",
+      "not_executable_configuration": true
+    },
+    {
+      "claim": "Later author mentions GC $6,650 and 2PL $12,260 as market values; potential order-of-magnitude discrepancy given contract sizes",
+      "interpretation": "DO_NOT_CORRECT_NUMBERS_WITHOUT_ORIGINAL_PRICE_REFERENCE",
+      "status": "AUTHOR_QUOTE_WITH_SCALE_UNCERTAINTY"
+    },
+    {
+      "kind": "SOURCE_INFORMATION_NOT_DISCLOSED",
+      "missing": [
+        "EXACT_CALENDAR_DAYS",
+        "YEAR_BY_YEAR_FILLS",
+        "MARKET_DATA_SERIES",
+        "COMMISSION_SLIPPAGE",
+        "ACTUAL_BROKER_TRADE_LOG",
+        "EXACT_DOLLAR_NEUTRAL_ALTERNATIVE_RATIO"
+      ],
+      "source_not_applicable_to_actual_fill_reconstruction": true
+    }
+  ],
+  "author_claim_ambiguities": [
+    {
+      "category": "AUTHOR_EXECUTION_TERM_SCOPE_UNRESOLVED",
+      "claims": [
+        "Author explicitly paper traded in 2006",
+        "Author later refers to real trading test while comparing dollar-neutral alternative"
+      ]
+    }
+  ],
+  "referenced_prior_article_details": null,
+  "source_missing_information": {
+    "kind": "SOURCE_INFORMATION_NOT_DISCLOSED",
+    "missing": [
+      "EXACT_CALENDAR_DAYS",
+      "YEAR_BY_YEAR_FILLS",
+      "MARKET_DATA_SERIES",
+      "COMMISSION_SLIPPAGE",
+      "ACTUAL_BROKER_TRADE_LOG",
+      "EXACT_DOLLAR_NEUTRAL_ALTERNATIVE_RATIO"
+    ],
+    "source_not_applicable_to_actual_fill_reconstruction": true
+  },
+  "checks": {
+    "two_months_differ": true,
+    "balanced_oz_not_dollars": true,
+    "entry_exit_approximate": true,
+    "economic_chain": true,
+    "margin_and_drawdown_separate": true,
+    "author_capital_reconstructed": true,
+    "backtest_paper_distinct": true,
+    "author_correction_claims": true,
+    "author_real_paper_ambiguity": true
+  },
+  "status": "FINANCIAL_GRAPH_PATHS_RECOVERABLE_COMPARE_PENDING"
+}
