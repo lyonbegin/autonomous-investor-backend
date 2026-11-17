@@ -1,0 +1,190 @@
+{
+  "reconstruction_id": "CME_PL_GC_R4_GRAPH_ONLY_REPLAY",
+  "input_graph_id": "CME_PL_GC_R4_REDACTED",
+  "method": "READ_ONLY_SOURCE_REDACTED_GRAPH_TRAVERSAL_IN_EXISTING_SESSION",
+  "new_llm_session": false,
+  "uses_original_source": false,
+  "results": [
+    {
+      "case_id": "course:case",
+      "kind": "EDUCATIONAL_WORKED_EXAMPLE",
+      "year": null,
+      "dates": {
+        "entry": "03-02",
+        "exit": "03-30"
+      },
+      "factual_status": "HYPOTHETICAL_NOT_PROOF_OF_REAL_FILLS",
+      "legs": [
+        {
+          "position_direction": "LONG",
+          "qty": 2,
+          "contract": "PL",
+          "contract_month": "APR",
+          "contract_year": null,
+          "venue": "NYMEX",
+          "units_per_contract": 50,
+          "entry": {
+            "event": "entry",
+            "side": "BUY",
+            "price_usd_per_oz": 988.4
+          },
+          "exit": {
+            "event": "exit",
+            "side": "SELL",
+            "price_usd_per_oz": 1056.4
+          },
+          "pnl_usd": 6800
+        },
+        {
+          "position_direction": "SHORT",
+          "qty": 1,
+          "contract": "GC",
+          "contract_month": "APR",
+          "contract_year": null,
+          "venue": "COMEX",
+          "units_per_contract": 100,
+          "entry": {
+            "event": "entry",
+            "side": "SELL",
+            "price_usd_per_oz": 1231.9
+          },
+          "exit": {
+            "event": "exit",
+            "side": "BUY",
+            "price_usd_per_oz": 1244.2
+          },
+          "pnl_usd": -1230
+        }
+      ],
+      "quoted_spread": {
+        "entry": -243.5,
+        "exit": -187.8,
+        "change": 55.7
+      },
+      "calculated_pnl_usd": 5570,
+      "source_reported_pnl_usd": 5570,
+      "margin": {
+        "qualitative": "SPREAD_REQUIRES_LESS_MAINTENANCE_MARGIN",
+        "historical_policy": null,
+        "metrics": []
+      },
+      "intrinsic_conflicts": [],
+      "tests": {
+        "pnl_agrees": true,
+        "leg_count": true,
+        "year_disclosed_if_present": false,
+        "margin_numeric_preserved_if_present": false
+      }
+    },
+    {
+      "case_id": "article2017:case",
+      "kind": "EDUCATIONAL_WORKED_EXAMPLE",
+      "year": 2017,
+      "dates": {
+        "entry": "2017-03-02",
+        "exit": "2017-03-30"
+      },
+      "factual_status": "HYPOTHETICAL_NOT_PROOF_OF_REAL_FILLS",
+      "legs": [
+        {
+          "position_direction": "LONG",
+          "qty": 2,
+          "contract": "PLJ7",
+          "contract_month": "APR",
+          "contract_year": 2017,
+          "venue": "NYMEX",
+          "units_per_contract": 50,
+          "entry": {
+            "event": "entry",
+            "side": "BUY",
+            "price_usd_per_oz": 988.4
+          },
+          "exit": {
+            "event": "exit",
+            "side": "SELL",
+            "price_usd_per_oz": 971.4
+          },
+          "pnl_usd": -1700
+        },
+        {
+          "position_direction": "SHORT",
+          "qty": 1,
+          "contract": "GCJ7",
+          "contract_month": "APR",
+          "contract_year": 2017,
+          "venue": "COMEX",
+          "units_per_contract": 100,
+          "entry": {
+            "event": "entry",
+            "side": "SELL",
+            "price_usd_per_oz": 1231.9
+          },
+          "exit": {
+            "event": "exit",
+            "side": "BUY",
+            "price_usd_per_oz": 1233.6
+          },
+          "pnl_usd": -170
+        }
+      ],
+      "quoted_spread": {
+        "entry": -243.5,
+        "exit": -262.2,
+        "change": -18.7
+      },
+      "calculated_pnl_usd": -1870,
+      "source_reported_pnl_usd": -1870,
+      "margin": {
+        "qualitative": "SPREAD_REQUIRES_LESS_MAINTENANCE_MARGIN",
+        "historical_policy": {
+          "offset_percent": 58,
+          "eligible_ratio": "2_PL_TO_1_GC",
+          "applicability": "HISTORICAL_CME_MARGIN_CONDITION_AS_PUBLISHED",
+          "not_current_margin": true
+        },
+        "metrics": [
+          {
+            "value": 7450,
+            "metric": "GROSS_MAINTENANCE_MARGIN",
+            "role": "BEFORE"
+          },
+          {
+            "value": 3129,
+            "metric": "MARGIN_AFTER_OFFSET",
+            "role": "AFTER"
+          }
+        ]
+      },
+      "intrinsic_conflicts": [
+        {
+          "kind": "WITHIN_SOURCE_TABLE_VS_PROSE",
+          "issue": "GC price rose, contradicting both-metals-fell sentence",
+          "claims": [
+            "Both gold and platinum fell during this worked scenario",
+            "GC rose by USD 1.70/oz from 1231.90 to 1233.60"
+          ]
+        },
+        {
+          "kind": "TABLE_LABEL_CONTEXT_MISMATCH",
+          "issue": "GSR",
+          "claims": [
+            "Platinum/gold table uses label Liquidate GSR @"
+          ]
+        }
+      ],
+      "tests": {
+        "pnl_agrees": true,
+        "leg_count": true,
+        "year_disclosed_if_present": true,
+        "margin_numeric_preserved_if_present": true
+      }
+    }
+  ],
+  "inter_case_variants": {
+    "same_initial_quotes": true,
+    "different_exit_quotes": true,
+    "different_pnl": true,
+    "years_not_propagated": true
+  },
+  "overall": "PASS_FOR_DUAL_SCENARIO_STRUCTURE_NOT_INDEPENDENT_BLIND_OR_FULL_TEXT"
+}
