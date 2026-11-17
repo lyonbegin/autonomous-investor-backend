@@ -18,3 +18,7 @@
 
 ## 단계 보고 계약
 각 단계 결과에 research_id, strategy_id, case_id(해당 시), ontology_version, prompt_version, source_manifest, classification, findings, issues, next_action, status를 포함하십시오. 확인하지 못한 필드는 null 또는 NOT_AVAILABLE로 표시하십시오. 계정·원문·문맥 제약으로 실제 검증하지 못한 사항은 완료 처리하지 마십시오.
+
+
+## 상시 반복 의무
+연구사례마다 `REBUILD_UNTIL_PASS.md`를 따르십시오. 첫 역재현 실패 후 중단하거나 동일한 잘못된 그래프를 덧칠하는 것으로 완료하지 마십시오. 실패 원인별로 원문과 온톨로지를 다시 읽고 전체 그래프를 새로운 버전으로 재구성한 뒤 독립 역재현을 재수행하십시오. 외부 원문 자체가 불충분한 경우에는 근거를 추가 탐색하고, 진짜 미공개 필드는 영구 미완료로 관리하십시오.
