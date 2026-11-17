@@ -1,0 +1,58 @@
+{
+  "case": "CHAN-SEASONAL-PL-GC",
+  "baseline_source": "604기반_확장온톨로지_v7_5사례_역재현검증_20261116.zip / graphs/CHAN-SEASONAL-PL-GC.json",
+  "baseline_structure": {
+    "nodes": 119,
+    "edges": 287,
+    "original_source_exhaustive": false,
+    "source_comments_audited": false,
+    "independent_blind_replay": false
+  },
+  "source_checked": "2026-11-17 re-extracted blog and author comments",
+  "failures": [
+    {
+      "id": "CH16",
+      "kind": "EXTRACTION_MISSING",
+      "missing": "Author max drawdown $10,910 since 2000, in 2001",
+      "why": "Exact numeric value absent in old graph"
+    },
+    {
+      "id": "CH17",
+      "kind": "EXTRACTION_MISSING",
+      "missing": "Author maximum total capital requirement $11,653, concept different from exchange margin",
+      "why": "Exact number and reason absent"
+    },
+    {
+      "id": "CH18",
+      "kind": "MODELING_MISSING",
+      "missing": "Matched physical troy ounces is not dollar neutrality",
+      "why": "Dollar neutral exposure state absent"
+    },
+    {
+      "id": "CH19",
+      "kind": "SOURCE_PROVENANCE_MISSING",
+      "missing": "Later author valuation examples $6,650 GC and $12,260 two PL, potential scale anomaly",
+      "why": "Missing 2007 author comment and provenance"
+    },
+    {
+      "id": "CH20",
+      "kind": "RISK_REPRESENTATION_MISSING",
+      "missing": "Author argues risk like one outright PL",
+      "why": "Qualitative risk explanation absent"
+    },
+    {
+      "id": "CH21",
+      "kind": "ALTERNATIVE_UNTESTED",
+      "missing": "Dollar-neutral alternative performed worse in author's historical/reported trading test",
+      "why": "Alternative comparison and evidence status absent"
+    },
+    {
+      "id": "CH24",
+      "kind": "SOURCE_CLAIM_SCOPE_AMBIGUITY",
+      "missing": "Original 2006 paper trade vs later real trading test phrasing",
+      "why": "Author revisions and unresolved scope of execution missing"
+    }
+  ],
+  "decision": "DISCARD_V7_AS_ACTIVE_GRAPH_AND_REBUILD_SOURCE_GROUNDED",
+  "note": "Old graph is preserved in project ZIP as immutable audit source; do not mutate original."
+}
