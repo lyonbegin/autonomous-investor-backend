@@ -5,7 +5,7 @@
   "source_excluded_from_reconstruction_input": true,
   "full_original_source_fidelity": "NOT_CERTIFIED",
   "graph_versions": {
-    "tv": "TV-KG-ITERATIVE-v8.4",
+    "tv": "TV-KG-ITERATIVE-v8.5",
     "paper": "TV-KG-ITERATIVE-v8.1"
   },
   "tv": {
@@ -132,6 +132,35 @@
         "rule": "TRAILING_STOP",
         "cutoff_condition": [],
         "action": []
+      }
+    ],
+    "concurrent_stops": {
+      "policy": {
+        "simultaneous_allowed": true,
+        "enabled_subset": "USER_CONFIGURATION_NOT_EXTRACTED",
+        "simultaneous_trigger_priority": "NOT_VERIFIED_FROM_PINE",
+        "user_can_combine_any_of": [
+          "REGULAR_STOP",
+          "INITIAL_TRAILING_STOP",
+          "TRAILING_STOP"
+        ],
+        "author_guidance_distinct_from_executable_constraint": true
+      },
+      "risk_rule_links": [
+        "tv01:r_regular_stop",
+        "tv01:r_initial_trail",
+        "tv01:r_trail"
+      ],
+      "strategy_link": true
+    },
+    "first_signal_entry_rules": [
+      {
+        "rule_id": "tv01:r_enter_long",
+        "first_valid_signal_timing": "OPEN_IMMEDIATELY_AS_DESCRIBED"
+      },
+      {
+        "rule_id": "tv01:r_enter_short",
+        "first_valid_signal_timing": "OPEN_IMMEDIATELY_AS_DESCRIBED"
       }
     ]
   },
@@ -285,14 +314,16 @@
     "tv01_opposite_three_modes_each_direction": true,
     "tv01_four_tp_read_calculation": true,
     "paper_three_experiments_connected": true,
-    "paper_net_arithmetic_all": true
+    "paper_net_arithmetic_all": true,
+    "tv01_concurrent_stop_policy_reachable": true,
+    "tv01_first_entry_immediate": true
   },
   "integrity": {
     "tv": {
       "missing_endpoints": 0,
       "duplicate_triples": 0,
-      "nodes": 70,
-      "edges": 120
+      "nodes": 72,
+      "edges": 126
     },
     "paper": {
       "missing_endpoints": 0,
@@ -301,5 +332,11 @@
       "edges": 109
     }
   },
-  "verification_summary": "Only these graph paths are reconstructed. This is not a blind LLM in a separate conversation; no claim of fully reproduced original Pine implementation or author backtest."
+  "verification_summary": "Only these graph paths are reconstructed. This is not a blind LLM in a separate conversation; no claim of fully reproduced original Pine implementation or author backtest.",
+  "caveats": [
+    "All meaningful conclusions scoped to publicly visible source description and selected EURUSD experiments only",
+    "No independent fresh ChatGPT blind session was executed",
+    "The source Pine full code is not in the research dataset, so exact entry/order timing and user-configured TP/stop values cannot be certified",
+    "Graph-to-source comparison in this same ChatGPT work context is not a substitute for clean-room replay"
+  ]
 }
