@@ -1,0 +1,21 @@
+{
+  "case_id": "CHAN-PL-GC",
+  "graph": "round-1-source-versioned.graph.json",
+  "source_register": "source-facts-expanded-27.json",
+  "replay": "round-1-graph-only-reconstruction.json",
+  "first_25_case_facts": "STRUCTURALLY_RECONSTRUCTED_FOR_SELECTED_SCOPE",
+  "new_facts": [
+    {
+      "id": "F26",
+      "status": "FAIL",
+      "cause": "Author-quoted market value examples $6,650 GC and $12,260 for two PL contracts not represented as separate attributed assertion; dollar neutrality conclusion alone is insufficient."
+    },
+    {
+      "id": "F27",
+      "status": "FAIL",
+      "cause": "Reader-provided 504-day ATR × contract multipliers and 0.87 one-PL/one-GC ratio absent; must not attribute reader calculation to Chan or confuse with 2PL/1GC risk."
+    }
+  ],
+  "decision": "R1_SUPERSEDED_BUILD_NEW_R2_FULL_SNAPSHOT",
+  "check_limit": "This audit compares the initial 25 restored graph concepts plus two newly reviewed risk facts, not every archived blog comment."
+}
