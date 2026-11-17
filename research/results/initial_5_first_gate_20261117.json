@@ -1,0 +1,60 @@
+{
+  "research_batch": "TV-KG-20261117-SEED-01",
+  "tested_against": "PUBLIC_TRADINGVIEW_DESCRIPTION",
+  "reviewed_count": 5,
+  "full_pine_verified_count": 0,
+  "strict_gate_definition": "TREND_ONLY requires evidence that it is dedicated exclusively to single stock/crypto trend prediction; uncertain cases stay in research.",
+  "items": [
+    {
+      "strategy_id": "02yfhjiz",
+      "classification": "NEXT_RESEARCH",
+      "confidence": "HIGH_FOR_PUBLIC_DESCRIPTION",
+      "title": "Complex Single Trade Strategy",
+      "source": "https://www.tradingview.com/script/02yfhjiz-Complex-Single-Trade-Strategy/",
+      "reason": "Generic multi-asset external signal position manager with 3 stops and 4 staggered take-profits; not single stock/crypto trend-only.",
+      "pine_source_status": "NOT_OBTAINED",
+      "next_action": "RESEARCH"
+    },
+    {
+      "strategy_id": "03zgCMqx",
+      "classification": "NEXT_RESEARCH",
+      "confidence": "HIGH_FOR_PUBLIC_DESCRIPTION",
+      "title": "PROP_Scalper_V2 FINAL",
+      "source": "https://www.tradingview.com/script/03zgCMqx-PROP-Scalper-V2-FINAL/",
+      "reason": "XAUUSD/other active markets scalping; trend confirmation + ADX ATR, sessions and partial TP; not exclusively single stock/crypto trend.",
+      "pine_source_status": "NOT_OBTAINED",
+      "next_action": "RESEARCH"
+    },
+    {
+      "strategy_id": "04erUlJM",
+      "classification": "TREND_ONLY_CANDIDATE",
+      "confidence": "MEDIUM_PUBLIC_DESCRIPTION_ONLY",
+      "title": "LINK Above $12.20: Is $15 Back on the Table?",
+      "source": "https://tw.tradingview.com/script/04erUlJM-LINK-Above-12-20-Is-15-Back-on-the-Table/",
+      "reason": "Single LINK crypto breakout/trend thesis, SMA200/RSI14/MACD confirmation, 1.5% SL 3% TP. Pending actual Pine inspection and qualification of independent trade structure.",
+      "pine_source_status": "NOT_OBTAINED",
+      "next_action": "REVIEW_TREND_ONLY_NOT_FINAL"
+    },
+    {
+      "strategy_id": "06s9ohae",
+      "classification": "NEXT_RESEARCH",
+      "confidence": "HIGH_FOR_PUBLIC_DESCRIPTION",
+      "title": "FCPO Session-Based Momentum Scalper with ATR Volatility Filter",
+      "source": "https://www.tradingview.com/script/06s9ohae-FCPO-Session-Based-Momentum-Scalper-with-ATR-Volatility-Filter/",
+      "reason": "FCPO futures session/momentum scalper with ATR window, stop rules, EOD liquidation and monthly/daily circuit breakers; not stock/crypto-only.",
+      "pine_source_status": "NOT_OBTAINED",
+      "next_action": "RESEARCH"
+    },
+    {
+      "strategy_id": "06wt9GNj",
+      "classification": "NEXT_RESEARCH",
+      "confidence": "HIGH_FOR_PUBLIC_DESCRIPTION",
+      "title": "Stochastic RSI Strategy (with SMA and VWAP Filters)",
+      "source": "https://www.tradingview.com/script/06wt9GNj-Stochastic-RSI-Strategy-with-SMA-and-VWAP-Filters/",
+      "reason": "Asset-unspecified stochastic RSI crossover, SMA spread 9/21, VWAP gates, stop 20 ticks / profit 25 ticks; not demonstrated as single stock/crypto-only trend prediction.",
+      "pine_source_status": "NOT_OBTAINED",
+      "next_action": "RESEARCH"
+    }
+  ],
+  "status": "PUBLIC_DESCRIPTION_GATE_DONE_NOT_CODE_VALIDATED"
+}
