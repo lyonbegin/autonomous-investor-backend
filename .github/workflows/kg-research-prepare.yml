@@ -1,6 +1,12 @@
 name: TradingView KG - ChatGPT research task PREPARE ONLY
 
 on:
+  push:
+    branches:
+      - feature/chatgpt-kg-research-orchestration-20261117
+    paths:
+      - research/**
+      - .github/workflows/kg-research-prepare.yml
   workflow_dispatch:
     inputs:
       strategy_id:
@@ -24,7 +30,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Pick exactly one source from the seed queue
         env:
-          TV_ID: ${{ inputs.strategy_id }}
+          TV_ID: ${{ github.event_name == 'workflow_dispatch' && inputs.strategy_id || '02yfhjiz' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -55,7 +61,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
         with:
-          name: chatgpt-research-prepared-${{ inputs.strategy_id }}
+          name: chatgpt-research-prepared-${{ github.event_name == 'workflow_dispatch' && inputs.strategy_id || '02yfhjiz' }}
           path: |
             CHATGPT_RESEARCH_TASK.md
             selected-strategy.json
