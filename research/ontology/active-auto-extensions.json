@@ -1,0 +1,5112 @@
+{
+  "schema": "AUTO_ADOPTED_ONTOLOGY_OVERLAY_V1",
+  "role": "ACTIVE_RESEARCH_ONTOLOGY_OVERLAY_NONDESTRUCTIVE",
+  "baseline_policy": "Preserve all 604 original occurrence definitions and prior established identifiers; overlay adds/reuses observed graph definitions without overwriting baseline.",
+  "automatic_rule": "Once all registered source facts match and all graph-only financial nodes are reachable, the successful graph's node classes, owner-qualified property names and typed relationships are adopted in this versioned research overlay without a separate approval job.",
+  "evidence_limit": "Selected fact reconstruction/path traversal is not an independent new ChatGPT conversation, full original review, or actual trading PnL verification.",
+  "cases": [
+    {
+      "case_id": "CHAN-PL-GC",
+      "graph_file": "research/rebuild/CHAN-PL-GC/round-7-root-connected-20261117-graph-only-input.json",
+      "source_comparison_file": "research/rebuild/CHAN-PL-GC/round-7-root-connected-20261117-source-comparison-retry2.json",
+      "passed_registered_facts": 30,
+      "reached_financial_nodes": 70,
+      "total_financial_nodes": 70,
+      "relation_mutation_checks": {
+        "detected": 11,
+        "tested": 11
+      },
+      "auto_adopted_scope": "SOURCE_REGISTERED_FACTS_GRAPH_PATH_PASS",
+      "independent_chatgpt_blind": "NOT_ATTESTED_BY_THIS_SYNC",
+      "full_original_reproduction": "NOT_ATTESTED_BY_THIS_SYNC"
+    },
+    {
+      "case_id": "CME-PL-GC",
+      "graph_file": "research/rebuild/CME-PL-GC/round-5-graph-only-input.json",
+      "source_comparison_file": "research/rebuild/CME-PL-GC/round-5-source-comparison-retry2.json",
+      "passed_registered_facts": 26,
+      "reached_financial_nodes": 77,
+      "total_financial_nodes": 77,
+      "relation_mutation_checks": null,
+      "auto_adopted_scope": "SOURCE_REGISTERED_FACTS_GRAPH_PATH_PASS",
+      "independent_chatgpt_blind": "NOT_ATTESTED_BY_THIS_SYNC",
+      "full_original_reproduction": "NOT_ATTESTED_BY_THIS_SYNC"
+    }
+  ],
+  "node_types": [
+    {
+      "name": "AnnualOutcomeSign",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "example_nodes": [
+        "CHAN-PL-GC:outcome:year2001"
+      ]
+    },
+    {
+      "name": "Asset",
+      "case_ids": [
+        "CHAN-PL-GC",
+        "CME-PL-GC"
+      ],
+      "example_nodes": [
+        "CHAN-PL-GC:asset:GC",
+        "CHAN-PL-GC:asset:PL",
+        "CME-PL-GC:asset:gc"
+      ]
+    },
+    {
+      "name": "BacktestStudy",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "example_nodes": [
+        "CHAN-PL-GC:study:backtest"
+      ]
+    },
+    {
+      "name": "CalculationExpression",
+      "case_ids": [
+        "CHAN-PL-GC",
+        "CME-PL-GC"
+      ],
+      "example_nodes": [
+        "CHAN-PL-GC:calc:reader:GC",
+        "CHAN-PL-GC:calc:reader:PL",
+        "CHAN-PL-GC:capital:calc"
+      ]
+    },
+    {
+      "name": "CalendarTradingWindow",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "example_nodes": [
+        "CHAN-PL-GC:window:entry",
+        "CHAN-PL-GC:window:exit"
+      ]
+    },
+    {
+      "name": "CommodityDemandExpectation",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "example_nodes": [
+        "CME-PL-GC:demand:gold_safe_haven",
+        "CME-PL-GC:economic:pl_demand"
+      ]
+    },
+    {
+      "name": "CommodityPriceComovementClaim",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "example_nodes": [
+        "CME-PL-GC:correlation:metals"
+      ]
+    },
+    {
+      "name": "CommodityUseChannel",
+      "case_ids": [
+        "CHAN-PL-GC",
+        "CME-PL-GC"
+      ],
+      "example_nodes": [
+        "CHAN-PL-GC:commodity_use:platinum",
+        "CME-PL-GC:economic:channel:pl_auto_catalyst",
+        "CME-PL-GC:use:pl_investment"
+      ]
+    },
+    {
+      "name": "ConditionalTradeScenario",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "example_nodes": [
+        "CHAN-PL-GC:scenario:2007"
+      ]
+    },
+    {
+      "name": "ContractSpecification",
+      "case_ids": [
+        "CHAN-PL-GC",
+        "CME-PL-GC"
+      ],
+      "example_nodes": [
+        "CHAN-PL-GC:spec:GC",
+        "CHAN-PL-GC:spec:PL",
+        "CME-PL-GC:spec:gc"
+      ]
+    },
+    {
+      "name": "CounterfactualHedgeConstruction",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "example_nodes": [
+        "CHAN-PL-GC:counterfactual:dollar_neutral"
+      ]
+    },
+    {
+      "name": "CounterfactualPerformanceAssessment",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "example_nodes": [
+        "CHAN-PL-GC:comparison:relative_performance"
+      ]
+    },
+    {
+      "name": "EconomicEvent",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "example_nodes": [
+        "CME-PL-GC:economic:event:auto_sales",
+        "CME-PL-GC:macro:distress"
+      ]
+    },
+    {
+      "name": "EvidenceAssertion",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "example_nodes": [
+        "CHAN-PL-GC:activity:paper2006",
+        "CHAN-PL-GC:assertion:neutrality"
+      ]
+    },
+    {
+      "name": "EvidenceConflict",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "example_nodes": [
+        "CHAN-PL-GC:risk:drawdown_comparability"
+      ]
+    },
+    {
+      "name": "ExchangeMarginQuote",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "example_nodes": [
+        "CHAN-PL-GC:margin:historical_quote"
+      ]
+    },
+    {
+      "name": "ExchangeVenue",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "example_nodes": [
+        "CHAN-PL-GC:venue:NYMEX"
+      ]
+    },
+    {
+      "name": "ExecutionRisk",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "example_nodes": [
+        "CME-PL-GC:risk:legging"
+      ]
+    },
+    {
+      "name": "ExecutionRiskMitigation",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "example_nodes": [
+        "CME-PL-GC:mitigation:autospread",
+        "CME-PL-GC:mitigation:dedicated",
+        "CME-PL-GC:mitigation:liquid"
+      ]
+    },
+    {
+      "name": "ExposureBasisComparison",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "example_nodes": [
+        "CHAN-PL-GC:comparison:dollar",
+        "CHAN-PL-GC:comparison:ounce",
+        "CHAN-PL-GC:comparison:volrisk"
+      ]
+    },
+    {
+      "name": "ExposureMeasure",
+      "case_ids": [
+        "CHAN-PL-GC",
+        "CME-PL-GC"
+      ],
+      "example_nodes": [
+        "CHAN-PL-GC:exposure:GC",
+        "CHAN-PL-GC:exposure:PL",
+        "CME-PL-GC:quantity:underlying_oz:gc"
+      ]
+    },
+    {
+      "name": "FuturesContract",
+      "case_ids": [
+        "CHAN-PL-GC",
+        "CME-PL-GC"
+      ],
+      "example_nodes": [
+        "CHAN-PL-GC:contract:GC",
+        "CHAN-PL-GC:contract:PL",
+        "CME-PL-GC:contract:gc"
+      ]
+    },
+    {
+      "name": "FuturesPair",
+      "case_ids": [
+        "CHAN-PL-GC",
+        "CME-PL-GC"
+      ],
+      "example_nodes": [
+        "CHAN-PL-GC:pair",
+        "CME-PL-GC:pair"
+      ]
+    },
+    {
+      "name": "HistoricalPricePattern",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "example_nodes": [
+        "CME-PL-GC:history:regime_since_2015"
+      ]
+    },
+    {
+      "name": "MarginComparison",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "example_nodes": [
+        "CME-PL-GC:margin:comparison"
+      ]
+    },
+    {
+      "name": "MarginOffsetMechanism",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "example_nodes": [
+        "CME-PL-GC:margin:mechanism"
+      ]
+    },
+    {
+      "name": "MarginRecognitionScenario",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "example_nodes": [
+        "CME-PL-GC:margin:worked_case_identification"
+      ]
+    },
+    {
+      "name": "MeasurementScope",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "example_nodes": [
+        "CHAN-PL-GC:scope:2006dd",
+        "CHAN-PL-GC:scope:2007case",
+        "CHAN-PL-GC:scope:2007recent"
+      ]
+    },
+    {
+      "name": "ModelApplicabilityFinding",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "example_nodes": [
+        "CHAN-PL-GC:model:cointegration_exclusion"
+      ]
+    },
+    {
+      "name": "PathDependentRiskObservation",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "example_nodes": [
+        "CHAN-PL-GC:risk:interim"
+      ]
+    },
+    {
+      "name": "PriceObservation",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "example_nodes": [
+        "CME-PL-GC:price:gc:entry",
+        "CME-PL-GC:price:gc:exit",
+        "CME-PL-GC:price:pl:entry"
+      ]
+    },
+    {
+      "name": "PriorWorkAttribution",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "example_nodes": [
+        "CHAN-PL-GC:attribution:original_inspiration"
+      ]
+    },
+    {
+      "name": "RelativePriceExpectation",
+      "case_ids": [
+        "CHAN-PL-GC",
+        "CME-PL-GC"
+      ],
+      "example_nodes": [
+        "CHAN-PL-GC:relative_price",
+        "CME-PL-GC:economic:relative_price",
+        "CME-PL-GC:relative:gold_safehaven_price"
+      ]
+    },
+    {
+      "name": "ResearchSoftwareDisclosure",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "example_nodes": [
+        "CHAN-PL-GC:research:tool:EXCEL",
+        "CHAN-PL-GC:research:tool:MATLAB"
+      ]
+    },
+    {
+      "name": "SeasonalDemandDriver",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "example_nodes": [
+        "CHAN-PL-GC:demand:gold_jewelry"
+      ]
+    },
+    {
+      "name": "SeasonalEvent",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "example_nodes": [
+        "CHAN-PL-GC:event:cny_end"
+      ]
+    },
+    {
+      "name": "SourceCorrectionEvent",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "example_nodes": [
+        "CHAN-PL-GC:correction:2007"
+      ]
+    },
+    {
+      "name": "SourceReportedMetric",
+      "case_ids": [
+        "CHAN-PL-GC",
+        "CME-PL-GC"
+      ],
+      "example_nodes": [
+        "CHAN-PL-GC:metric:dd_2006",
+        "CHAN-PL-GC:metric:dd_2007",
+        "CHAN-PL-GC:metric:hypo_pnl"
+      ]
+    },
+    {
+      "name": "SpreadBenefitClaim",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "example_nodes": [
+        "CME-PL-GC:riskbenefit:lower_margin",
+        "CME-PL-GC:riskbenefit:reduced_volatility",
+        "CME-PL-GC:riskbenefit:risk_adjusted"
+      ]
+    },
+    {
+      "name": "SpreadDirectionExpectation",
+      "case_ids": [
+        "CHAN-PL-GC",
+        "CME-PL-GC"
+      ],
+      "example_nodes": [
+        "CHAN-PL-GC:spread_direction",
+        "CME-PL-GC:economic:spread_narrow"
+      ]
+    },
+    {
+      "name": "SpreadExposureTransformation",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "example_nodes": [
+        "CME-PL-GC:exposure:transformation"
+      ]
+    },
+    {
+      "name": "SpreadHistoricalPattern",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "example_nodes": [
+        "CME-PL-GC:history:negative_spread_widening"
+      ]
+    },
+    {
+      "name": "SpreadQuantityComparison",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "example_nodes": [
+        "CME-PL-GC:comparison:matched_oz"
+      ]
+    },
+    {
+      "name": "SpreadTaxonomy",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "example_nodes": [
+        "CME-PL-GC:classification:calendar",
+        "CME-PL-GC:classification:intermarket"
+      ]
+    },
+    {
+      "name": "TradeAction",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "example_nodes": [
+        "CME-PL-GC:act:gc:entry",
+        "CME-PL-GC:act:gc:exit",
+        "CME-PL-GC:act:pl:entry"
+      ]
+    },
+    {
+      "name": "TradeCase",
+      "case_ids": [
+        "CHAN-PL-GC",
+        "CME-PL-GC"
+      ],
+      "example_nodes": [
+        "CHAN-PL-GC:case",
+        "CME-PL-GC:case"
+      ]
+    },
+    {
+      "name": "TradeEvent",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "example_nodes": [
+        "CME-PL-GC:event:entry",
+        "CME-PL-GC:event:exit"
+      ]
+    },
+    {
+      "name": "TradeLeg",
+      "case_ids": [
+        "CHAN-PL-GC",
+        "CME-PL-GC"
+      ],
+      "example_nodes": [
+        "CHAN-PL-GC:leg:GC",
+        "CHAN-PL-GC:leg:PL",
+        "CME-PL-GC:leg:gc"
+      ]
+    },
+    {
+      "name": "TradePosition",
+      "case_ids": [
+        "CHAN-PL-GC",
+        "CME-PL-GC"
+      ],
+      "example_nodes": [
+        "CHAN-PL-GC:position",
+        "CME-PL-GC:position"
+      ]
+    },
+    {
+      "name": "TradingInfrastructure",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "example_nodes": [
+        "CME-PL-GC:venue:globex"
+      ]
+    },
+    {
+      "name": "TradingRule",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "example_nodes": [
+        "CHAN-PL-GC:rule:entry",
+        "CHAN-PL-GC:rule:exit"
+      ]
+    },
+    {
+      "name": "TradingStrategy",
+      "case_ids": [
+        "CHAN-PL-GC",
+        "CME-PL-GC"
+      ],
+      "example_nodes": [
+        "CHAN-PL-GC:strategy",
+        "CME-PL-GC:strategy"
+      ]
+    },
+    {
+      "name": "UnderlyingCommodity",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "example_nodes": [
+        "CME-PL-GC:commodity:gc",
+        "CME-PL-GC:commodity:pl"
+      ]
+    },
+    {
+      "name": "VolatilityProxyComparison",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "example_nodes": [
+        "CHAN-PL-GC:riskcomparison:reader_single_contract",
+        "CHAN-PL-GC:riskcomparison:twoPL_vs_oneGC"
+      ]
+    }
+  ],
+  "attribute_types": [
+    {
+      "owner_type": "AnnualOutcomeSign",
+      "name": "amount_usd",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "null"
+      ]
+    },
+    {
+      "owner_type": "AnnualOutcomeSign",
+      "name": "period",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "AnnualOutcomeSign",
+      "name": "pnl_sign",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "AnnualOutcomeSign",
+      "name": "source_version",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "Asset",
+      "name": "asset_class",
+      "case_ids": [
+        "CHAN-PL-GC",
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "Asset",
+      "name": "indicator_values_state",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "Asset",
+      "name": "primary_underlying",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "Asset",
+      "name": "root",
+      "case_ids": [
+        "CHAN-PL-GC",
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "Asset",
+      "name": "underlying",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "BacktestStudy",
+      "name": "author_reported",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "boolean"
+      ]
+    },
+    {
+      "owner_type": "BacktestStudy",
+      "name": "raw_price_bars_not_available",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "boolean"
+      ]
+    },
+    {
+      "owner_type": "BacktestStudy",
+      "name": "source_period_end",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "BacktestStudy",
+      "name": "source_period_start_claim",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "number"
+      ]
+    },
+    {
+      "owner_type": "CalculationExpression",
+      "name": "actual_delta_neutrality",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "boolean"
+      ]
+    },
+    {
+      "owner_type": "CalculationExpression",
+      "name": "computed_value",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "number"
+      ]
+    },
+    {
+      "owner_type": "CalculationExpression",
+      "name": "direction_factor",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "number"
+      ]
+    },
+    {
+      "owner_type": "CalculationExpression",
+      "name": "expression",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "CalculationExpression",
+      "name": "formula",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "CalculationExpression",
+      "name": "function",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "CalculationExpression",
+      "name": "input_paths",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "array"
+      ]
+    },
+    {
+      "owner_type": "CalculationExpression",
+      "name": "input_units",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "array"
+      ]
+    },
+    {
+      "owner_type": "CalculationExpression",
+      "name": "inputs",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "array"
+      ]
+    },
+    {
+      "owner_type": "CalculationExpression",
+      "name": "interpretation",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "CalculationExpression",
+      "name": "not_equivalent_to_usd_notional",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "boolean"
+      ]
+    },
+    {
+      "owner_type": "CalculationExpression",
+      "name": "notional_equivalence",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "boolean"
+      ]
+    },
+    {
+      "owner_type": "CalculationExpression",
+      "name": "op",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "CalculationExpression",
+      "name": "operation",
+      "case_ids": [
+        "CHAN-PL-GC",
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "CalculationExpression",
+      "name": "operator",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "CalculationExpression",
+      "name": "output_unit",
+      "case_ids": [
+        "CHAN-PL-GC",
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "CalculationExpression",
+      "name": "result",
+      "case_ids": [
+        "CHAN-PL-GC",
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "boolean",
+        "number"
+      ]
+    },
+    {
+      "owner_type": "CalculationExpression",
+      "name": "result_unit",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "CalculationExpression",
+      "name": "source_type",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "CalculationExpression",
+      "name": "unit",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "CalendarTradingWindow",
+      "name": "approximate",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "boolean"
+      ]
+    },
+    {
+      "owner_type": "CalendarTradingWindow",
+      "name": "exact_date",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "null"
+      ]
+    },
+    {
+      "owner_type": "CalendarTradingWindow",
+      "name": "month",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "CalendarTradingWindow",
+      "name": "portion",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "CalendarTradingWindow",
+      "name": "year_parameter",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "CommodityDemandExpectation",
+      "name": "cause",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "CommodityDemandExpectation",
+      "name": "commodity",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "CommodityDemandExpectation",
+      "name": "direction",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "CommodityDemandExpectation",
+      "name": "evidence_kind",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "CommodityDemandExpectation",
+      "name": "expected_direction",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "CommodityDemandExpectation",
+      "name": "uncertainty",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "CommodityPriceComovementClaim",
+      "name": "assets",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "array"
+      ]
+    },
+    {
+      "owner_type": "CommodityPriceComovementClaim",
+      "name": "claim",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "CommodityPriceComovementClaim",
+      "name": "claim_kind",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "CommodityPriceComovementClaim",
+      "name": "different_fundamentals",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "boolean"
+      ]
+    },
+    {
+      "owner_type": "CommodityPriceComovementClaim",
+      "name": "numeric_pearson_or_rank_correlation",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "null"
+      ]
+    },
+    {
+      "owner_type": "CommodityUseChannel",
+      "name": "commodity",
+      "case_ids": [
+        "CHAN-PL-GC",
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "CommodityUseChannel",
+      "name": "commodity_use",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "CommodityUseChannel",
+      "name": "consumer_industry",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "CommodityUseChannel",
+      "name": "demand_role",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "CommodityUseChannel",
+      "name": "economic_role",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "CommodityUseChannel",
+      "name": "industry",
+      "case_ids": [
+        "CHAN-PL-GC",
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "CommodityUseChannel",
+      "name": "observation_kind",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "CommodityUseChannel",
+      "name": "seasonality_relative_to_gold",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "CommodityUseChannel",
+      "name": "trade_case_specific",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "boolean"
+      ]
+    },
+    {
+      "owner_type": "ConditionalTradeScenario",
+      "name": "actual_trade_confirmed",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "boolean"
+      ]
+    },
+    {
+      "owner_type": "ConditionalTradeScenario",
+      "name": "entry_quote",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "null"
+      ]
+    },
+    {
+      "owner_type": "ConditionalTradeScenario",
+      "name": "entry_timing",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "ConditionalTradeScenario",
+      "name": "exit_quote",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "null"
+      ]
+    },
+    {
+      "owner_type": "ConditionalTradeScenario",
+      "name": "exit_timing",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "ConditionalTradeScenario",
+      "name": "state",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "ContractSpecification",
+      "name": "contract_multiplier_unit",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "ContractSpecification",
+      "name": "contract_multiplier_value",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "number"
+      ]
+    },
+    {
+      "owner_type": "ContractSpecification",
+      "name": "contract_quantity_unit",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "ContractSpecification",
+      "name": "currency",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "ContractSpecification",
+      "name": "multiplier",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "number"
+      ]
+    },
+    {
+      "owner_type": "ContractSpecification",
+      "name": "multiplier_unit",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "ContractSpecification",
+      "name": "quotation_unit",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "CounterfactualHedgeConstruction",
+      "name": "construction_goal",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "CounterfactualHedgeConstruction",
+      "name": "contract_ratio",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "CounterfactualHedgeConstruction",
+      "name": "executed_trades_independently_verified",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "boolean"
+      ]
+    },
+    {
+      "owner_type": "CounterfactualHedgeConstruction",
+      "name": "market_prices",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "CounterfactualHedgeConstruction",
+      "name": "proposed_to_compare_with",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "CounterfactualHedgeConstruction",
+      "name": "source_kind",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "CounterfactualPerformanceAssessment",
+      "name": "actual_trade_fills",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "CounterfactualPerformanceAssessment",
+      "name": "alternative",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "CounterfactualPerformanceAssessment",
+      "name": "baseline",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "CounterfactualPerformanceAssessment",
+      "name": "evidence",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "CounterfactualPerformanceAssessment",
+      "name": "not_statistically_reproduced",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "boolean"
+      ]
+    },
+    {
+      "owner_type": "CounterfactualPerformanceAssessment",
+      "name": "outcome",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "CounterfactualPerformanceAssessment",
+      "name": "quantified_pnl_difference",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "null"
+      ]
+    },
+    {
+      "owner_type": "EconomicEvent",
+      "name": "anticipated_direction",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "EconomicEvent",
+      "name": "event_kind",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "EconomicEvent",
+      "name": "horizon",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "EconomicEvent",
+      "name": "measured_observation",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "boolean"
+      ]
+    },
+    {
+      "owner_type": "EconomicEvent",
+      "name": "realized_this_trade",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "boolean"
+      ]
+    },
+    {
+      "owner_type": "EconomicEvent",
+      "name": "role",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "EconomicEvent",
+      "name": "subject",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "EvidenceAssertion",
+      "name": "claim",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "EvidenceAssertion",
+      "name": "do_not_confuse_with_actual_broker_fill",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "boolean"
+      ]
+    },
+    {
+      "owner_type": "EvidenceAssertion",
+      "name": "kind",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "EvidenceAssertion",
+      "name": "real_fills_documented",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "boolean"
+      ]
+    },
+    {
+      "owner_type": "EvidenceAssertion",
+      "name": "result_claim",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "EvidenceAssertion",
+      "name": "status",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "EvidenceAssertion",
+      "name": "year",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "number"
+      ]
+    },
+    {
+      "owner_type": "EvidenceConflict",
+      "name": "auto_reconcile",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "boolean"
+      ]
+    },
+    {
+      "owner_type": "EvidenceConflict",
+      "name": "conflict_kind",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "EvidenceConflict",
+      "name": "left_observation",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "EvidenceConflict",
+      "name": "right_observation",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "EvidenceConflict",
+      "name": "source_interpretation",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "ExchangeMarginQuote",
+      "name": "author_reported_not_independently_verified",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "boolean"
+      ]
+    },
+    {
+      "owner_type": "ExchangeMarginQuote",
+      "name": "contract_year",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "null"
+      ]
+    },
+    {
+      "owner_type": "ExchangeMarginQuote",
+      "name": "original_margin_usd",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "number"
+      ]
+    },
+    {
+      "owner_type": "ExchangeMarginQuote",
+      "name": "portfolio_definition",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "ExchangeMarginQuote",
+      "name": "quoted_exchange",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "ExchangeMarginQuote",
+      "name": "reported_date",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "ExchangeVenue",
+      "name": "code",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "ExchangeVenue",
+      "name": "current_margin_not_asserted",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "boolean"
+      ]
+    },
+    {
+      "owner_type": "ExchangeVenue",
+      "name": "role",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "ExecutionRisk",
+      "name": "context",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "ExecutionRisk",
+      "name": "present_in_specific_example",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "ExecutionRisk",
+      "name": "risk_kind",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "ExecutionRisk",
+      "name": "risk_not_same_as_loss",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "ExecutionRiskMitigation",
+      "name": "general_mitigation",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "boolean"
+      ]
+    },
+    {
+      "owner_type": "ExecutionRiskMitigation",
+      "name": "meaning",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "ExecutionRiskMitigation",
+      "name": "method",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "ExecutionRiskMitigation",
+      "name": "used_in_cme_worked_trade",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "ExposureBasisComparison",
+      "name": "author_comparison",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "ExposureBasisComparison",
+      "name": "author_derived",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "boolean"
+      ]
+    },
+    {
+      "owner_type": "ExposureBasisComparison",
+      "name": "basis",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "ExposureBasisComparison",
+      "name": "comparison",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "ExposureBasisComparison",
+      "name": "independent_calculation_possible",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "boolean"
+      ]
+    },
+    {
+      "owner_type": "ExposureBasisComparison",
+      "name": "independent_risk_model",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "boolean"
+      ]
+    },
+    {
+      "owner_type": "ExposureBasisComparison",
+      "name": "left_exposure_ounces",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "number"
+      ]
+    },
+    {
+      "owner_type": "ExposureBasisComparison",
+      "name": "notional_input_quotes",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "ExposureBasisComparison",
+      "name": "result",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "ExposureBasisComparison",
+      "name": "right_exposure_ounces",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "number"
+      ]
+    },
+    {
+      "owner_type": "ExposureBasisComparison",
+      "name": "source_kind",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "ExposureMeasure",
+      "name": "amount_troy_ounces",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "number"
+      ]
+    },
+    {
+      "owner_type": "ExposureMeasure",
+      "name": "asset",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "ExposureMeasure",
+      "name": "direction",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "ExposureMeasure",
+      "name": "equality_of_units_not_asset_identity",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "boolean"
+      ]
+    },
+    {
+      "owner_type": "ExposureMeasure",
+      "name": "expression",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "ExposureMeasure",
+      "name": "measure_kind",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "ExposureMeasure",
+      "name": "metric",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "ExposureMeasure",
+      "name": "not_a_dollar_exposure",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "boolean"
+      ]
+    },
+    {
+      "owner_type": "ExposureMeasure",
+      "name": "quantity",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "number"
+      ]
+    },
+    {
+      "owner_type": "ExposureMeasure",
+      "name": "underlying",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "ExposureMeasure",
+      "name": "unit",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "FuturesContract",
+      "name": "commodity",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "FuturesContract",
+      "name": "contract_month",
+      "case_ids": [
+        "CHAN-PL-GC",
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "FuturesContract",
+      "name": "contract_year",
+      "case_ids": [
+        "CHAN-PL-GC",
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "null"
+      ]
+    },
+    {
+      "owner_type": "FuturesContract",
+      "name": "root",
+      "case_ids": [
+        "CHAN-PL-GC",
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "FuturesContract",
+      "name": "venue",
+      "case_ids": [
+        "CHAN-PL-GC",
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "FuturesPair",
+      "name": "intermarket",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "boolean"
+      ]
+    },
+    {
+      "owner_type": "FuturesPair",
+      "name": "leg_execution_intent",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "FuturesPair",
+      "name": "legs_rebalanced_at_entry",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "boolean"
+      ]
+    },
+    {
+      "owner_type": "FuturesPair",
+      "name": "matched_oz_exposure",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "number"
+      ]
+    },
+    {
+      "owner_type": "FuturesPair",
+      "name": "no_trade_quote_values",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "boolean"
+      ]
+    },
+    {
+      "owner_type": "FuturesPair",
+      "name": "pair_kind",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "FuturesPair",
+      "name": "spread_definition",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "FuturesPair",
+      "name": "spread_interpretation",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "FuturesPair",
+      "name": "spread_numeric_formula",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "FuturesPair",
+      "name": "spread_unit",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "HistoricalPricePattern",
+      "name": "is_entry_rule",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "boolean"
+      ]
+    },
+    {
+      "owner_type": "HistoricalPricePattern",
+      "name": "period_end",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "HistoricalPricePattern",
+      "name": "qualifier",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "HistoricalPricePattern",
+      "name": "relationship",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "HistoricalPricePattern",
+      "name": "source_kind",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "HistoricalPricePattern",
+      "name": "start_year",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "number"
+      ]
+    },
+    {
+      "owner_type": "MarginComparison",
+      "name": "comparison_basis",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "MarginComparison",
+      "name": "conditional",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "boolean"
+      ]
+    },
+    {
+      "owner_type": "MarginComparison",
+      "name": "expected_relation",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "MarginComparison",
+      "name": "observed_discount",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "MarginOffsetMechanism",
+      "name": "clearing_context",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "MarginOffsetMechanism",
+      "name": "degree",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "MarginOffsetMechanism",
+      "name": "mechanism",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "MarginOffsetMechanism",
+      "name": "numeric_margin",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "null"
+      ]
+    },
+    {
+      "owner_type": "MarginRecognitionScenario",
+      "name": "case_kind",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "MarginRecognitionScenario",
+      "name": "clearing_agent",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "MarginRecognitionScenario",
+      "name": "executed_clearance_proven",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "boolean"
+      ]
+    },
+    {
+      "owner_type": "MarginRecognitionScenario",
+      "name": "margin_compared_to",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "MarginRecognitionScenario",
+      "name": "margin_relation",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "MarginRecognitionScenario",
+      "name": "numerical_discount",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "null"
+      ]
+    },
+    {
+      "owner_type": "MarginRecognitionScenario",
+      "name": "source_assertion_strength",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "MeasurementScope",
+      "name": "does_not_imply_actual_fills",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "boolean"
+      ]
+    },
+    {
+      "owner_type": "MeasurementScope",
+      "name": "event_year",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "number"
+      ]
+    },
+    {
+      "owner_type": "MeasurementScope",
+      "name": "method_not_verified",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "boolean"
+      ]
+    },
+    {
+      "owner_type": "MeasurementScope",
+      "name": "period",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "MeasurementScope",
+      "name": "role",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "MeasurementScope",
+      "name": "scope_kind",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "MeasurementScope",
+      "name": "source_context",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "MeasurementScope",
+      "name": "unit",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "MeasurementScope",
+      "name": "window",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "number"
+      ]
+    },
+    {
+      "owner_type": "MeasurementScope",
+      "name": "window_start_year",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "null"
+      ]
+    },
+    {
+      "owner_type": "ModelApplicabilityFinding",
+      "name": "applied",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "boolean"
+      ]
+    },
+    {
+      "owner_type": "ModelApplicabilityFinding",
+      "name": "author_explanation",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "ModelApplicabilityFinding",
+      "name": "model",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "ModelApplicabilityFinding",
+      "name": "source_type",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "PathDependentRiskObservation",
+      "name": "author_example_year",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "number"
+      ]
+    },
+    {
+      "owner_type": "PathDependentRiskObservation",
+      "name": "drawdown_value_id",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "PathDependentRiskObservation",
+      "name": "final_pnl_amount",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "null"
+      ]
+    },
+    {
+      "owner_type": "PathDependentRiskObservation",
+      "name": "final_pnl_sign",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "PathDependentRiskObservation",
+      "name": "kind",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "PathDependentRiskObservation",
+      "name": "source_grade",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "PriceObservation",
+      "name": "asset_symbol",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "PriceObservation",
+      "name": "price_usd_per_oz",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "number"
+      ]
+    },
+    {
+      "owner_type": "PriceObservation",
+      "name": "quote_unit",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "PriceObservation",
+      "name": "source_kind",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "PriorWorkAttribution",
+      "name": "authors_research_adaptation",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "PriorWorkAttribution",
+      "name": "originator",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "PriorWorkAttribution",
+      "name": "primary_article_full_text_obtained",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "boolean"
+      ]
+    },
+    {
+      "owner_type": "PriorWorkAttribution",
+      "name": "publication",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "PriorWorkAttribution",
+      "name": "publication_month",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "PriorWorkAttribution",
+      "name": "relationship",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "PriorWorkAttribution",
+      "name": "source_is_author_SELF_REPORT",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "boolean"
+      ]
+    },
+    {
+      "owner_type": "PriorWorkAttribution",
+      "name": "work_title",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "RelativePriceExpectation",
+      "name": "base",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "RelativePriceExpectation",
+      "name": "compared_with",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "RelativePriceExpectation",
+      "name": "conditional_on",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "RelativePriceExpectation",
+      "name": "counterpart",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "RelativePriceExpectation",
+      "name": "denominator_underlying",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "RelativePriceExpectation",
+      "name": "direction",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "RelativePriceExpectation",
+      "name": "evidence_kind",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "RelativePriceExpectation",
+      "name": "expected_direction",
+      "case_ids": [
+        "CHAN-PL-GC",
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "RelativePriceExpectation",
+      "name": "favored_commodity",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "RelativePriceExpectation",
+      "name": "is_trade_trigger",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "boolean"
+      ]
+    },
+    {
+      "owner_type": "RelativePriceExpectation",
+      "name": "numerator_underlying",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "ResearchSoftwareDisclosure",
+      "name": "relationship",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "ResearchSoftwareDisclosure",
+      "name": "software",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "ResearchSoftwareDisclosure",
+      "name": "specific_source_code",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "ResearchSoftwareDisclosure",
+      "name": "specific_workbook",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "SeasonalDemandDriver",
+      "name": "direction_after_festivals",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "SeasonalDemandDriver",
+      "name": "regions",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "array"
+      ]
+    },
+    {
+      "owner_type": "SeasonalDemandDriver",
+      "name": "source_grade",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "SeasonalDemandDriver",
+      "name": "subject",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "SeasonalEvent",
+      "name": "calendar_kind",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "SeasonalEvent",
+      "name": "day_specific",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "SeasonalEvent",
+      "name": "event",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "SeasonalEvent",
+      "name": "exact_date",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "SourceCorrectionEvent",
+      "name": "announcement_date",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "SourceCorrectionEvent",
+      "name": "author_explicit_error_acknowledgement",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "boolean"
+      ]
+    },
+    {
+      "owner_type": "SourceCorrectionEvent",
+      "name": "correction_of",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "SourceCorrectionEvent",
+      "name": "correction_vs_changed_window",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "SourceReportedMetric",
+      "name": "author_exact_ATR_confirmation",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "boolean"
+      ]
+    },
+    {
+      "owner_type": "SourceReportedMetric",
+      "name": "calculation_basis",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "SourceReportedMetric",
+      "name": "currency",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "SourceReportedMetric",
+      "name": "independently_validated",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "boolean"
+      ]
+    },
+    {
+      "owner_type": "SourceReportedMetric",
+      "name": "metric_name",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "SourceReportedMetric",
+      "name": "name",
+      "case_ids": [
+        "CHAN-PL-GC",
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "SourceReportedMetric",
+      "name": "not_futures_notional_certified",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "boolean"
+      ]
+    },
+    {
+      "owner_type": "SourceReportedMetric",
+      "name": "not_net_of_undisclosed_fees",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "boolean"
+      ]
+    },
+    {
+      "owner_type": "SourceReportedMetric",
+      "name": "observation_years",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "number"
+      ]
+    },
+    {
+      "owner_type": "SourceReportedMetric",
+      "name": "one_contract_root",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "SourceReportedMetric",
+      "name": "period",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "SourceReportedMetric",
+      "name": "profitable_years",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "number"
+      ]
+    },
+    {
+      "owner_type": "SourceReportedMetric",
+      "name": "reported_at",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "SourceReportedMetric",
+      "name": "reported_by",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "SourceReportedMetric",
+      "name": "reporting_mode",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "SourceReportedMetric",
+      "name": "result_class",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "SourceReportedMetric",
+      "name": "root",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "SourceReportedMetric",
+      "name": "sign_convention",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "SourceReportedMetric",
+      "name": "source_role",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "SourceReportedMetric",
+      "name": "specific_calendar_years",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "SourceReportedMetric",
+      "name": "stage",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "SourceReportedMetric",
+      "name": "status",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "SourceReportedMetric",
+      "name": "two_contract_root",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "SourceReportedMetric",
+      "name": "unit",
+      "case_ids": [
+        "CHAN-PL-GC",
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "SourceReportedMetric",
+      "name": "value",
+      "case_ids": [
+        "CHAN-PL-GC",
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "number"
+      ]
+    },
+    {
+      "owner_type": "SourceReportedMetric",
+      "name": "window",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "number"
+      ]
+    },
+    {
+      "owner_type": "SpreadBenefitClaim",
+      "name": "case_measured",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "boolean"
+      ]
+    },
+    {
+      "owner_type": "SpreadBenefitClaim",
+      "name": "kind",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "SpreadBenefitClaim",
+      "name": "quantified_value",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "null"
+      ]
+    },
+    {
+      "owner_type": "SpreadBenefitClaim",
+      "name": "strength",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "SpreadDirectionExpectation",
+      "name": "expected_change",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "SpreadDirectionExpectation",
+      "name": "future_change",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "SpreadDirectionExpectation",
+      "name": "initial_state",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "SpreadDirectionExpectation",
+      "name": "is_cointegration_mean_reversion",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "boolean"
+      ]
+    },
+    {
+      "owner_type": "SpreadDirectionExpectation",
+      "name": "point_quoted",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "SpreadDirectionExpectation",
+      "name": "scenario",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "SpreadDirectionExpectation",
+      "name": "spread_definition",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "SpreadExposureTransformation",
+      "name": "claim_kind",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "SpreadExposureTransformation",
+      "name": "from",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "SpreadExposureTransformation",
+      "name": "intrinsic_hedging",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "SpreadExposureTransformation",
+      "name": "risk_free",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "boolean"
+      ]
+    },
+    {
+      "owner_type": "SpreadExposureTransformation",
+      "name": "to",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "SpreadHistoricalPattern",
+      "name": "direction",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "SpreadHistoricalPattern",
+      "name": "measured_time_series",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "SpreadHistoricalPattern",
+      "name": "spread_definition",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "SpreadHistoricalPattern",
+      "name": "time_anchor",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "SpreadQuantityComparison",
+      "name": "economically_delta_neutral",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "SpreadQuantityComparison",
+      "name": "equal_in_troy_oz",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "boolean"
+      ]
+    },
+    {
+      "owner_type": "SpreadQuantityComparison",
+      "name": "gc_oz",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "number"
+      ]
+    },
+    {
+      "owner_type": "SpreadQuantityComparison",
+      "name": "metric",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "SpreadQuantityComparison",
+      "name": "nominal_usd_values_equal",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "boolean"
+      ]
+    },
+    {
+      "owner_type": "SpreadQuantityComparison",
+      "name": "pl_oz",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "number"
+      ]
+    },
+    {
+      "owner_type": "SpreadTaxonomy",
+      "name": "case_applies",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "boolean"
+      ]
+    },
+    {
+      "owner_type": "SpreadTaxonomy",
+      "name": "contrast_only",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "boolean"
+      ]
+    },
+    {
+      "owner_type": "SpreadTaxonomy",
+      "name": "definition",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "SpreadTaxonomy",
+      "name": "spread_class",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "TradeAction",
+      "name": "action_side",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "TradeAction",
+      "name": "contracts",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "number"
+      ]
+    },
+    {
+      "owner_type": "TradeAction",
+      "name": "execution_kind",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "TradeCase",
+      "name": "actual_order_execution",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "boolean"
+      ]
+    },
+    {
+      "owner_type": "TradeCase",
+      "name": "classification",
+      "case_ids": [
+        "CHAN-PL-GC",
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "TradeCase",
+      "name": "not_verified_broker_fills",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "boolean"
+      ]
+    },
+    {
+      "owner_type": "TradeCase",
+      "name": "source_versioning_required",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "boolean"
+      ]
+    },
+    {
+      "owner_type": "TradeCase",
+      "name": "unreported",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "array"
+      ]
+    },
+    {
+      "owner_type": "TradeEvent",
+      "name": "date_day",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "number"
+      ]
+    },
+    {
+      "owner_type": "TradeEvent",
+      "name": "date_month",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "number"
+      ]
+    },
+    {
+      "owner_type": "TradeEvent",
+      "name": "date_precision",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "TradeEvent",
+      "name": "event_kind",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "TradeEvent",
+      "name": "leg_actions_simultaneous",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "boolean"
+      ]
+    },
+    {
+      "owner_type": "TradeEvent",
+      "name": "year",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "null"
+      ]
+    },
+    {
+      "owner_type": "TradeLeg",
+      "name": "contract_quantity",
+      "case_ids": [
+        "CHAN-PL-GC",
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "number"
+      ]
+    },
+    {
+      "owner_type": "TradeLeg",
+      "name": "direction",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "TradeLeg",
+      "name": "position_direction_factor",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "number"
+      ]
+    },
+    {
+      "owner_type": "TradeLeg",
+      "name": "role",
+      "case_ids": [
+        "CHAN-PL-GC",
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "TradePosition",
+      "name": "actual_trade",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "boolean"
+      ]
+    },
+    {
+      "owner_type": "TradePosition",
+      "name": "contracts_per_leg",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "TradePosition",
+      "name": "kind",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "TradePosition",
+      "name": "position_kind",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "TradePosition",
+      "name": "position_role",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "TradingInfrastructure",
+      "name": "access_hours_claim",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "TradingInfrastructure",
+      "name": "asset_group",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "TradingInfrastructure",
+      "name": "electronic_trade_share_claim",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "TradingInfrastructure",
+      "name": "not_actual_execution_evidence",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "boolean"
+      ]
+    },
+    {
+      "owner_type": "TradingInfrastructure",
+      "name": "specific_example_route",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "TradingInfrastructure",
+      "name": "time_context",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "TradingInfrastructure",
+      "name": "venue",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "TradingRule",
+      "name": "kind",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "TradingRule",
+      "name": "price_level_signal",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "TradingRule",
+      "name": "trigger",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "TradingStrategy",
+      "name": "approach",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "TradingStrategy",
+      "name": "automated_entry_rule",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "TradingStrategy",
+      "name": "cointegration_strategy",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "boolean"
+      ]
+    },
+    {
+      "owner_type": "TradingStrategy",
+      "name": "name",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "TradingStrategy",
+      "name": "observed_trade_execution_not_verified",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "boolean"
+      ]
+    },
+    {
+      "owner_type": "TradingStrategy",
+      "name": "signal_family",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "TradingStrategy",
+      "name": "trade_instrument_type",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "UnderlyingCommodity",
+      "name": "commodity",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "UnderlyingCommodity",
+      "name": "industrial_use",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "UnderlyingCommodity",
+      "name": "role",
+      "case_ids": [
+        "CME-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "VolatilityProxyComparison",
+      "name": "basis",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "VolatilityProxyComparison",
+      "name": "derived_ratio",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "number"
+      ]
+    },
+    {
+      "owner_type": "VolatilityProxyComparison",
+      "name": "gc_contract_one_atr_usd",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "number"
+      ]
+    },
+    {
+      "owner_type": "VolatilityProxyComparison",
+      "name": "gc_leg_estimated_move_usd",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "number"
+      ]
+    },
+    {
+      "owner_type": "VolatilityProxyComparison",
+      "name": "not_a_validated_risk_model",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "boolean"
+      ]
+    },
+    {
+      "owner_type": "VolatilityProxyComparison",
+      "name": "origin",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "VolatilityProxyComparison",
+      "name": "pl_contract_one_atr_usd",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "number"
+      ]
+    },
+    {
+      "owner_type": "VolatilityProxyComparison",
+      "name": "pl_leg_estimated_move_usd",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "number"
+      ]
+    },
+    {
+      "owner_type": "VolatilityProxyComparison",
+      "name": "ratio_pl_to_gc",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "number"
+      ]
+    },
+    {
+      "owner_type": "VolatilityProxyComparison",
+      "name": "risk_neutrality_result",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "VolatilityProxyComparison",
+      "name": "source_status",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    },
+    {
+      "owner_type": "VolatilityProxyComparison",
+      "name": "speaker",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ],
+      "observed_json_types": [
+        "string"
+      ]
+    }
+  ],
+  "relation_types": [
+    {
+      "name": "ACTION_APPLIES_TO_LEG",
+      "domain": "TradeAction",
+      "range": "TradeLeg",
+      "case_ids": [
+        "CME-PL-GC"
+      ]
+    },
+    {
+      "name": "ACTION_HAS_NOTIONAL_CALCULATION",
+      "domain": "TradeAction",
+      "range": "CalculationExpression",
+      "case_ids": [
+        "CME-PL-GC"
+      ]
+    },
+    {
+      "name": "ACTION_USES_PRICE",
+      "domain": "TradeAction",
+      "range": "PriceObservation",
+      "case_ids": [
+        "CME-PL-GC"
+      ]
+    },
+    {
+      "name": "ALTERNATIVE_CONSTRUCTION_REFERENCES_POSITION",
+      "domain": "CounterfactualHedgeConstruction",
+      "range": "TradePosition",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ]
+    },
+    {
+      "name": "ASSERTION_SUPPORTED_BY_COMPARISON",
+      "domain": "EvidenceAssertion",
+      "range": "ExposureBasisComparison",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ]
+    },
+    {
+      "name": "ASSESSMENT_FOR_POSITION",
+      "domain": "VolatilityProxyComparison",
+      "range": "TradePosition",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ]
+    },
+    {
+      "name": "BACKTEST_REPORTS_WIN_FREQUENCY",
+      "domain": "BacktestStudy",
+      "range": "SourceReportedMetric",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ]
+    },
+    {
+      "name": "CALCULATION_PRODUCES_EXPOSURE_MEASURE",
+      "domain": "CalculationExpression",
+      "range": "ExposureMeasure",
+      "case_ids": [
+        "CME-PL-GC"
+      ]
+    },
+    {
+      "name": "CALCULATION_PRODUCES_METRIC",
+      "domain": "CalculationExpression",
+      "range": "SourceReportedMetric",
+      "case_ids": [
+        "CHAN-PL-GC",
+        "CME-PL-GC"
+      ]
+    },
+    {
+      "name": "CALCULATION_PRODUCES_QUANTITY_COMPARISON",
+      "domain": "CalculationExpression",
+      "range": "SpreadQuantityComparison",
+      "case_ids": [
+        "CME-PL-GC"
+      ]
+    },
+    {
+      "name": "CASE_HAS_ASSERTION",
+      "domain": "TradeCase",
+      "range": "EvidenceAssertion",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ]
+    },
+    {
+      "name": "CASE_HAS_BACKTEST_STUDY",
+      "domain": "TradeCase",
+      "range": "BacktestStudy",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ]
+    },
+    {
+      "name": "CASE_HAS_COUNTERFACTUAL_ASSESSMENT",
+      "domain": "TradeCase",
+      "range": "CounterfactualPerformanceAssessment",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ]
+    },
+    {
+      "name": "CASE_HAS_COUNTERFACTUAL_MACRO_CONTEXT",
+      "domain": "TradeCase",
+      "range": "EconomicEvent",
+      "case_ids": [
+        "CME-PL-GC"
+      ]
+    },
+    {
+      "name": "CASE_HAS_DRAWDOWN_SCOPE_CONFLICT_WARNING",
+      "domain": "TradeCase",
+      "range": "EvidenceConflict",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ]
+    },
+    {
+      "name": "CASE_HAS_ECONOMIC_EVENT",
+      "domain": "TradeCase",
+      "range": "EconomicEvent",
+      "case_ids": [
+        "CME-PL-GC"
+      ]
+    },
+    {
+      "name": "CASE_HAS_GENERAL_MARKET_CONTEXT",
+      "domain": "TradeCase",
+      "range": "CommodityPriceComovementClaim",
+      "case_ids": [
+        "CME-PL-GC"
+      ]
+    },
+    {
+      "name": "CASE_HAS_GENERAL_MARKET_CONTEXT",
+      "domain": "TradeCase",
+      "range": "TradingInfrastructure",
+      "case_ids": [
+        "CME-PL-GC"
+      ]
+    },
+    {
+      "name": "CASE_HAS_GROSS_PNL_CALCULATION",
+      "domain": "TradeCase",
+      "range": "CalculationExpression",
+      "case_ids": [
+        "CME-PL-GC"
+      ]
+    },
+    {
+      "name": "CASE_HAS_INTERIM_CAPITAL_BUFFER_CALCULATION",
+      "domain": "TradeCase",
+      "range": "CalculationExpression",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ]
+    },
+    {
+      "name": "CASE_HAS_MARGIN_MECHANISM",
+      "domain": "TradeCase",
+      "range": "MarginOffsetMechanism",
+      "case_ids": [
+        "CME-PL-GC"
+      ]
+    },
+    {
+      "name": "CASE_HAS_PATH_RISK",
+      "domain": "TradeCase",
+      "range": "PathDependentRiskObservation",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ]
+    },
+    {
+      "name": "CASE_HAS_POSITION",
+      "domain": "TradeCase",
+      "range": "TradePosition",
+      "case_ids": [
+        "CME-PL-GC"
+      ]
+    },
+    {
+      "name": "CASE_HAS_PUBLICATION_CORRECTION",
+      "domain": "TradeCase",
+      "range": "SourceCorrectionEvent",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ]
+    },
+    {
+      "name": "CASE_HAS_REPORT_METRIC",
+      "domain": "TradeCase",
+      "range": "SourceReportedMetric",
+      "case_ids": [
+        "CHAN-PL-GC",
+        "CME-PL-GC"
+      ]
+    },
+    {
+      "name": "CASE_HAS_TRADE_EVENT",
+      "domain": "TradeCase",
+      "range": "TradeEvent",
+      "case_ids": [
+        "CME-PL-GC"
+      ]
+    },
+    {
+      "name": "CASE_USES_STRATEGY",
+      "domain": "TradeCase",
+      "range": "TradingStrategy",
+      "case_ids": [
+        "CHAN-PL-GC",
+        "CME-PL-GC"
+      ]
+    },
+    {
+      "name": "CHANNEL_APPLIES_TO_UNDERLYING",
+      "domain": "CommodityUseChannel",
+      "range": "UnderlyingCommodity",
+      "case_ids": [
+        "CME-PL-GC"
+      ]
+    },
+    {
+      "name": "CHANNEL_IMPLIES_DEMAND_EXPECTATION",
+      "domain": "CommodityUseChannel",
+      "range": "CommodityDemandExpectation",
+      "case_ids": [
+        "CME-PL-GC"
+      ]
+    },
+    {
+      "name": "COMOVEMENT_CLAIM_CONNECTS_UNDERLYING",
+      "domain": "CommodityPriceComovementClaim",
+      "range": "UnderlyingCommodity",
+      "case_ids": [
+        "CME-PL-GC"
+      ]
+    },
+    {
+      "name": "COMPARISON_CITES_AUTHOR_VALUE",
+      "domain": "ExposureBasisComparison",
+      "range": "SourceReportedMetric",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ]
+    },
+    {
+      "name": "COMPARISON_LEFT_REFERENCE",
+      "domain": "ExposureBasisComparison",
+      "range": "ExposureMeasure",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ]
+    },
+    {
+      "name": "COMPARISON_LEFT_REFERENCE",
+      "domain": "ExposureBasisComparison",
+      "range": "TradeLeg",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ]
+    },
+    {
+      "name": "COMPARISON_READS_METRIC",
+      "domain": "VolatilityProxyComparison",
+      "range": "SourceReportedMetric",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ]
+    },
+    {
+      "name": "COMPARISON_REFERS_TO_FUTURES_PAIR",
+      "domain": "MarginComparison",
+      "range": "FuturesPair",
+      "case_ids": [
+        "CME-PL-GC"
+      ]
+    },
+    {
+      "name": "COMPARISON_RIGHT_REFERENCE",
+      "domain": "ExposureBasisComparison",
+      "range": "ExposureMeasure",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ]
+    },
+    {
+      "name": "COMPARISON_RIGHT_REFERENCE",
+      "domain": "ExposureBasisComparison",
+      "range": "TradeLeg",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ]
+    },
+    {
+      "name": "CONFLICT_LEFT_CLAIM",
+      "domain": "EvidenceConflict",
+      "range": "SourceReportedMetric",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ]
+    },
+    {
+      "name": "CONFLICT_RIGHT_CLAIM",
+      "domain": "EvidenceConflict",
+      "range": "SourceReportedMetric",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ]
+    },
+    {
+      "name": "CONTRACT_HAS_SPECIFICATION",
+      "domain": "FuturesContract",
+      "range": "ContractSpecification",
+      "case_ids": [
+        "CHAN-PL-GC",
+        "CME-PL-GC"
+      ]
+    },
+    {
+      "name": "CONTRACT_LISTED_AT_VENUE",
+      "domain": "FuturesContract",
+      "range": "ExchangeVenue",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ]
+    },
+    {
+      "name": "CONTRACT_ROOTED_IN_ASSET",
+      "domain": "FuturesContract",
+      "range": "Asset",
+      "case_ids": [
+        "CHAN-PL-GC",
+        "CME-PL-GC"
+      ]
+    },
+    {
+      "name": "CONTRASTS_WITH_SPREAD_CLASS",
+      "domain": "SpreadTaxonomy",
+      "range": "SpreadTaxonomy",
+      "case_ids": [
+        "CME-PL-GC"
+      ]
+    },
+    {
+      "name": "CORRECTION_REPLACES_METRIC",
+      "domain": "SourceCorrectionEvent",
+      "range": "SourceReportedMetric",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ]
+    },
+    {
+      "name": "CORRECTION_REPORTS_REVISED_COHORT_METRIC",
+      "domain": "SourceCorrectionEvent",
+      "range": "SourceReportedMetric",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ]
+    },
+    {
+      "name": "CORRECTS_PREVIOUS_METRIC",
+      "domain": "SourceReportedMetric",
+      "range": "SourceReportedMetric",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ]
+    },
+    {
+      "name": "DEMAND_DRIVER_AFFECTS_ASSET",
+      "domain": "SeasonalDemandDriver",
+      "range": "Asset",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ]
+    },
+    {
+      "name": "DEMAND_EXPECTATION_SUPPORTS_RELATIVE_PRICE",
+      "domain": "CommodityDemandExpectation",
+      "range": "RelativePriceExpectation",
+      "case_ids": [
+        "CME-PL-GC"
+      ]
+    },
+    {
+      "name": "DEMAND_EXPECTATION_SUPPORTS_RELATIVE_PRICE",
+      "domain": "SeasonalDemandDriver",
+      "range": "RelativePriceExpectation",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ]
+    },
+    {
+      "name": "DEMAND_EXPECTATION_TARGETS_UNDERLYING",
+      "domain": "CommodityDemandExpectation",
+      "range": "UnderlyingCommodity",
+      "case_ids": [
+        "CME-PL-GC"
+      ]
+    },
+    {
+      "name": "DERIVED_FROM_READER_SINGLE_CONTRACT_COMPARISON",
+      "domain": "VolatilityProxyComparison",
+      "range": "VolatilityProxyComparison",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ]
+    },
+    {
+      "name": "EVENT_EXPECTED_TO_INCREASE_DEMAND",
+      "domain": "EconomicEvent",
+      "range": "CommodityDemandExpectation",
+      "case_ids": [
+        "CME-PL-GC"
+      ]
+    },
+    {
+      "name": "EVENT_HAS_ACTION",
+      "domain": "TradeEvent",
+      "range": "TradeAction",
+      "case_ids": [
+        "CME-PL-GC"
+      ]
+    },
+    {
+      "name": "EVENT_SUPPORTS_COMMODITY_USE_CHANNEL",
+      "domain": "EconomicEvent",
+      "range": "CommodityUseChannel",
+      "case_ids": [
+        "CME-PL-GC"
+      ]
+    },
+    {
+      "name": "EXPECTATION_TARGETS_FUTURES_PAIR",
+      "domain": "SpreadDirectionExpectation",
+      "range": "FuturesPair",
+      "case_ids": [
+        "CHAN-PL-GC",
+        "CME-PL-GC"
+      ]
+    },
+    {
+      "name": "EXPOSURE_DERIVES_FROM_CONTRACT_SPEC",
+      "domain": "ExposureMeasure",
+      "range": "ContractSpecification",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ]
+    },
+    {
+      "name": "EXPRESSION_READS_ACTION",
+      "domain": "CalculationExpression",
+      "range": "TradeAction",
+      "case_ids": [
+        "CME-PL-GC"
+      ]
+    },
+    {
+      "name": "EXPRESSION_READS_ATR_ESTIMATE",
+      "domain": "CalculationExpression",
+      "range": "SourceReportedMetric",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ]
+    },
+    {
+      "name": "EXPRESSION_READS_CONTRACT_SPEC",
+      "domain": "CalculationExpression",
+      "range": "ContractSpecification",
+      "case_ids": [
+        "CHAN-PL-GC",
+        "CME-PL-GC"
+      ]
+    },
+    {
+      "name": "EXPRESSION_READS_EXPOSURE_MEASURE",
+      "domain": "CalculationExpression",
+      "range": "ExposureMeasure",
+      "case_ids": [
+        "CME-PL-GC"
+      ]
+    },
+    {
+      "name": "EXPRESSION_READS_LEG",
+      "domain": "CalculationExpression",
+      "range": "TradeLeg",
+      "case_ids": [
+        "CME-PL-GC"
+      ]
+    },
+    {
+      "name": "EXPRESSION_READS_MARGIN_QUOTE",
+      "domain": "CalculationExpression",
+      "range": "ExchangeMarginQuote",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ]
+    },
+    {
+      "name": "EXPRESSION_READS_MARGIN",
+      "domain": "CalculationExpression",
+      "range": "SourceReportedMetric",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ]
+    },
+    {
+      "name": "EXPRESSION_READS_MAX_DRAWDOWN",
+      "domain": "CalculationExpression",
+      "range": "SourceReportedMetric",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ]
+    },
+    {
+      "name": "EXPRESSION_READS_METRIC",
+      "domain": "CalculationExpression",
+      "range": "SourceReportedMetric",
+      "case_ids": [
+        "CME-PL-GC"
+      ]
+    },
+    {
+      "name": "EXPRESSION_READS_PRICE",
+      "domain": "CalculationExpression",
+      "range": "PriceObservation",
+      "case_ids": [
+        "CME-PL-GC"
+      ]
+    },
+    {
+      "name": "FUTURES_PAIR_CLASSIFIED_AS",
+      "domain": "FuturesPair",
+      "range": "SpreadTaxonomy",
+      "case_ids": [
+        "CME-PL-GC"
+      ]
+    },
+    {
+      "name": "HISTORICAL_REGIME_IMPLIED_SPREAD_PATTERN",
+      "domain": "HistoricalPricePattern",
+      "range": "SpreadHistoricalPattern",
+      "case_ids": [
+        "CME-PL-GC"
+      ]
+    },
+    {
+      "name": "INTERIM_RISK_OBSERVED_IN_METRIC",
+      "domain": "PathDependentRiskObservation",
+      "range": "SourceReportedMetric",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ]
+    },
+    {
+      "name": "LEG_HAS_EXPOSURE_CALCULATION",
+      "domain": "TradeLeg",
+      "range": "CalculationExpression",
+      "case_ids": [
+        "CME-PL-GC"
+      ]
+    },
+    {
+      "name": "LEG_HAS_MEASURED_EXPOSURE",
+      "domain": "TradeLeg",
+      "range": "ExposureMeasure",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ]
+    },
+    {
+      "name": "LEG_HAS_PNL_CALCULATION",
+      "domain": "TradeLeg",
+      "range": "CalculationExpression",
+      "case_ids": [
+        "CME-PL-GC"
+      ]
+    },
+    {
+      "name": "LEG_TRADES_FUTURES_CONTRACT",
+      "domain": "TradeLeg",
+      "range": "FuturesContract",
+      "case_ids": [
+        "CHAN-PL-GC",
+        "CME-PL-GC"
+      ]
+    },
+    {
+      "name": "MARGIN_MECHANISM_HAS_EXAMPLE_RECOGNITION",
+      "domain": "MarginOffsetMechanism",
+      "range": "MarginRecognitionScenario",
+      "case_ids": [
+        "CME-PL-GC"
+      ]
+    },
+    {
+      "name": "MARGIN_OFFSET_APPLIES_TO_POSITION",
+      "domain": "MarginOffsetMechanism",
+      "range": "TradePosition",
+      "case_ids": [
+        "CME-PL-GC"
+      ]
+    },
+    {
+      "name": "MARGIN_OFFSET_LEADS_TO_COMPARISON",
+      "domain": "MarginOffsetMechanism",
+      "range": "MarginComparison",
+      "case_ids": [
+        "CME-PL-GC"
+      ]
+    },
+    {
+      "name": "MARGIN_QUOTE_APPLIES_TO_POSITION",
+      "domain": "ExchangeMarginQuote",
+      "range": "TradePosition",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ]
+    },
+    {
+      "name": "MARGIN_QUOTE_ASSIGNED_TO_VENUE",
+      "domain": "ExchangeMarginQuote",
+      "range": "ExchangeVenue",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ]
+    },
+    {
+      "name": "MARGIN_QUOTE_MEASURES_METRIC",
+      "domain": "ExchangeMarginQuote",
+      "range": "SourceReportedMetric",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ]
+    },
+    {
+      "name": "MARGIN_RECOGNITION_DESCRIBES_POSITION",
+      "domain": "MarginRecognitionScenario",
+      "range": "TradePosition",
+      "case_ids": [
+        "CME-PL-GC"
+      ]
+    },
+    {
+      "name": "MATCHED_EXPOSURE_IS_COMPUTED_FROM",
+      "domain": "CalculationExpression",
+      "range": "CalculationExpression",
+      "case_ids": [
+        "CME-PL-GC"
+      ]
+    },
+    {
+      "name": "METRIC_HAS_MEASUREMENT_SCOPE",
+      "domain": "SourceReportedMetric",
+      "range": "MeasurementScope",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ]
+    },
+    {
+      "name": "NEUTRALITY_BASIS_MOTIVATES_ALTERNATIVE",
+      "domain": "ExposureBasisComparison",
+      "range": "CounterfactualHedgeConstruction",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ]
+    },
+    {
+      "name": "OUTCOME_RELATES_TO_STRATEGY",
+      "domain": "AnnualOutcomeSign",
+      "range": "TradingStrategy",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ]
+    },
+    {
+      "name": "PAIR_CONTAINS_LEG",
+      "domain": "FuturesPair",
+      "range": "TradeLeg",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ]
+    },
+    {
+      "name": "PAIR_HAS_EXPOSURE_COMPARISON",
+      "domain": "FuturesPair",
+      "range": "SpreadQuantityComparison",
+      "case_ids": [
+        "CME-PL-GC"
+      ]
+    },
+    {
+      "name": "PAIR_HAS_EXPOSURE_EQUALITY_TEST",
+      "domain": "FuturesPair",
+      "range": "CalculationExpression",
+      "case_ids": [
+        "CME-PL-GC"
+      ]
+    },
+    {
+      "name": "PAIR_HAS_HISTORICAL_SPREAD_PATTERN",
+      "domain": "FuturesPair",
+      "range": "SpreadHistoricalPattern",
+      "case_ids": [
+        "CME-PL-GC"
+      ]
+    },
+    {
+      "name": "PAIR_HAS_LEG",
+      "domain": "FuturesPair",
+      "range": "TradeLeg",
+      "case_ids": [
+        "CME-PL-GC"
+      ]
+    },
+    {
+      "name": "PAIR_HAS_SPREAD_CALCULATION",
+      "domain": "FuturesPair",
+      "range": "CalculationExpression",
+      "case_ids": [
+        "CME-PL-GC"
+      ]
+    },
+    {
+      "name": "PATH_RISK_CONTRASTS_WITH_ANNUAL_OUTCOME",
+      "domain": "PathDependentRiskObservation",
+      "range": "AnnualOutcomeSign",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ]
+    },
+    {
+      "name": "PERFORMANCE_ALTERNATIVE_CONSTRUCTION",
+      "domain": "CounterfactualPerformanceAssessment",
+      "range": "CounterfactualHedgeConstruction",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ]
+    },
+    {
+      "name": "PERFORMANCE_BASELINE_POSITION",
+      "domain": "CounterfactualPerformanceAssessment",
+      "range": "TradePosition",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ]
+    },
+    {
+      "name": "POSITION_CONTAINS_LEG",
+      "domain": "TradePosition",
+      "range": "TradeLeg",
+      "case_ids": [
+        "CHAN-PL-GC",
+        "CME-PL-GC"
+      ]
+    },
+    {
+      "name": "POSITION_EVALUATED_ON_BASIS",
+      "domain": "TradePosition",
+      "range": "ExposureBasisComparison",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ]
+    },
+    {
+      "name": "POSITION_HAS_READER_ATR_PROXY_CALCULATION",
+      "domain": "TradePosition",
+      "range": "CalculationExpression",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ]
+    },
+    {
+      "name": "READER_METRIC_APPLIES_TO_LEG",
+      "domain": "SourceReportedMetric",
+      "range": "TradeLeg",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ]
+    },
+    {
+      "name": "REFERENCES_UNDERLYING",
+      "domain": "Asset",
+      "range": "UnderlyingCommodity",
+      "case_ids": [
+        "CME-PL-GC"
+      ]
+    },
+    {
+      "name": "RELATIVE_PRICE_IMPLIES_SPREAD_DIRECTION",
+      "domain": "RelativePriceExpectation",
+      "range": "SpreadDirectionExpectation",
+      "case_ids": [
+        "CHAN-PL-GC",
+        "CME-PL-GC"
+      ]
+    },
+    {
+      "name": "RESEARCH_METHOD_USES_OR_MENTIONS_TOOL",
+      "domain": "BacktestStudy",
+      "range": "ResearchSoftwareDisclosure",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ]
+    },
+    {
+      "name": "RISK_MAY_BE_MITIGATED_BY",
+      "domain": "ExecutionRisk",
+      "range": "ExecutionRiskMitigation",
+      "case_ids": [
+        "CME-PL-GC"
+      ]
+    },
+    {
+      "name": "RULE_USES_CALENDAR_WINDOW",
+      "domain": "TradingRule",
+      "range": "CalendarTradingWindow",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ]
+    },
+    {
+      "name": "SCENARIO_HAS_RESULT",
+      "domain": "ConditionalTradeScenario",
+      "range": "SourceReportedMetric",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ]
+    },
+    {
+      "name": "SCENARIO_USES_STRATEGY",
+      "domain": "ConditionalTradeScenario",
+      "range": "TradingStrategy",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ]
+    },
+    {
+      "name": "SEASONAL_EVENT_REDUCES_DEMAND",
+      "domain": "SeasonalEvent",
+      "range": "SeasonalDemandDriver",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ]
+    },
+    {
+      "name": "SOURCE_QUOTE_DESCRIBES_LEG",
+      "domain": "SourceReportedMetric",
+      "range": "TradeLeg",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ]
+    },
+    {
+      "name": "SPREAD_CLASS_CAN_EXPOSE_RISK",
+      "domain": "SpreadTaxonomy",
+      "range": "ExecutionRisk",
+      "case_ids": [
+        "CME-PL-GC"
+      ]
+    },
+    {
+      "name": "SPREAD_HISTORY_DESCRIBES_PAIR",
+      "domain": "SpreadHistoricalPattern",
+      "range": "FuturesPair",
+      "case_ids": [
+        "CME-PL-GC"
+      ]
+    },
+    {
+      "name": "SPREAD_PAIR_HAS_QUALIFIED_BENEFIT",
+      "domain": "FuturesPair",
+      "range": "SpreadBenefitClaim",
+      "case_ids": [
+        "CME-PL-GC"
+      ]
+    },
+    {
+      "name": "SPREAD_PAIR_TRANSFORMS_EXPOSURE",
+      "domain": "FuturesPair",
+      "range": "SpreadExposureTransformation",
+      "case_ids": [
+        "CME-PL-GC"
+      ]
+    },
+    {
+      "name": "SPREAD_PATTERN_WITHIN_REGIME",
+      "domain": "SpreadHistoricalPattern",
+      "range": "HistoricalPricePattern",
+      "case_ids": [
+        "CME-PL-GC"
+      ]
+    },
+    {
+      "name": "STRATEGY_ATTRIBUTES_ORIGINAL_IDEA_TO",
+      "domain": "TradingStrategy",
+      "range": "PriorWorkAttribution",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ]
+    },
+    {
+      "name": "STRATEGY_CITES_COUNTERPART_INDUSTRIAL_USE",
+      "domain": "TradingStrategy",
+      "range": "CommodityUseChannel",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ]
+    },
+    {
+      "name": "STRATEGY_EXCLUDES_MODEL",
+      "domain": "TradingStrategy",
+      "range": "ModelApplicabilityFinding",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ]
+    },
+    {
+      "name": "STRATEGY_HAS_CONDITIONAL_SCENARIO",
+      "domain": "TradingStrategy",
+      "range": "ConditionalTradeScenario",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ]
+    },
+    {
+      "name": "STRATEGY_HAS_DEMAND_DRIVER",
+      "domain": "TradingStrategy",
+      "range": "SeasonalDemandDriver",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ]
+    },
+    {
+      "name": "STRATEGY_HAS_ENTRY_RULE",
+      "domain": "TradingStrategy",
+      "range": "TradingRule",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ]
+    },
+    {
+      "name": "STRATEGY_HAS_EXIT_RULE",
+      "domain": "TradingStrategy",
+      "range": "TradingRule",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ]
+    },
+    {
+      "name": "STRATEGY_HAS_FUNDAMENTAL_SEASONAL_EVENT",
+      "domain": "TradingStrategy",
+      "range": "SeasonalEvent",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ]
+    },
+    {
+      "name": "STRATEGY_HAS_POSITION_TEMPLATE",
+      "domain": "TradingStrategy",
+      "range": "TradePosition",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ]
+    },
+    {
+      "name": "STRATEGY_TRADES_FUTURES_PAIR",
+      "domain": "TradingStrategy",
+      "range": "FuturesPair",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ]
+    },
+    {
+      "name": "STRATEGY_USES_FUTURES_PAIR",
+      "domain": "TradingStrategy",
+      "range": "FuturesPair",
+      "case_ids": [
+        "CME-PL-GC"
+      ]
+    },
+    {
+      "name": "UNDERLYING_HAS_USE_CHANNEL",
+      "domain": "UnderlyingCommodity",
+      "range": "CommodityUseChannel",
+      "case_ids": [
+        "CME-PL-GC"
+      ]
+    },
+    {
+      "name": "USE_CHANNEL_APPLIES_TO_ASSET",
+      "domain": "CommodityUseChannel",
+      "range": "Asset",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ]
+    },
+    {
+      "name": "VOLATILITY_COMPARISON_HAS_READER_PROXY",
+      "domain": "ExposureBasisComparison",
+      "range": "VolatilityProxyComparison",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ]
+    },
+    {
+      "name": "WEAKER_SEASONALITY_SUPPORTS_RELATIVE_PRICE",
+      "domain": "CommodityUseChannel",
+      "range": "RelativePriceExpectation",
+      "case_ids": [
+        "CHAN-PL-GC"
+      ]
+    }
+  ],
+  "skipped_cases": [],
+  "summary": {
+    "auto_adopted_cases": 2,
+    "node_type_names": 54,
+    "owner_qualified_attribute_names": 348,
+    "typed_relation_signatures": 126,
+    "distinct_relation_names": 122
+  }
+}
