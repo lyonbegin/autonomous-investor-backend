@@ -1,0 +1,124 @@
+{
+  "case_id": "CME-PL-GC",
+  "graph_version": "R3",
+  "fact_scope": "15 SPECIFIC MATERIAL DISCLOSED SOURCE FACTS",
+  "facts_checked": 15,
+  "matched": 15,
+  "failed": 0,
+  "all_selected_source_facts_traversable": true,
+  "arithmetic_verified": true,
+  "comparison_type": "SOURCE_FACT_TO_GRAPH_ONLY_OUTPUT_CHECK; NOT AN INDEPENDENT FRESH CHATGPT SESSION",
+  "not_claimed": [
+    "full-page sentence-by-sentence exhaustiveness",
+    "actual transaction fills",
+    "code execution equivalence",
+    "independent clean-room LLM test"
+  ],
+  "rows": [
+    {
+      "fact_id": "F01",
+      "source_fact_class": "case_kind",
+      "source_location": "CME page, Gold-Platinum Spread Trade → P&L Example",
+      "recovered_from_graph": true,
+      "status": "MATCH"
+    },
+    {
+      "fact_id": "F02",
+      "source_fact_class": "spread_type",
+      "source_location": "CME page, Creating a Futures Spread / Types of Spreads",
+      "recovered_from_graph": true,
+      "status": "MATCH"
+    },
+    {
+      "fact_id": "F03",
+      "source_fact_class": "economic_hypothesis",
+      "source_location": "CME page, P&L Example introductory paragraph",
+      "recovered_from_graph": true,
+      "status": "MATCH"
+    },
+    {
+      "fact_id": "F04",
+      "source_fact_class": "entry_date",
+      "source_location": "CME page, P&L Example introductory paragraph",
+      "recovered_from_graph": true,
+      "status": "MATCH"
+    },
+    {
+      "fact_id": "F05",
+      "source_fact_class": "exit_date",
+      "source_location": "CME page, P&L Example closing paragraph",
+      "recovered_from_graph": true,
+      "status": "MATCH"
+    },
+    {
+      "fact_id": "F06",
+      "source_fact_class": "spec",
+      "source_location": "CME page, Gold-Platinum P&L example",
+      "recovered_from_graph": true,
+      "status": "MATCH"
+    },
+    {
+      "fact_id": "F07",
+      "source_fact_class": "spec",
+      "source_location": "CME page, Gold-Platinum P&L example and price spread chart context",
+      "recovered_from_graph": true,
+      "status": "MATCH"
+    },
+    {
+      "fact_id": "F08",
+      "source_fact_class": "trades",
+      "source_location": "CME page, entry/exit table",
+      "recovered_from_graph": true,
+      "status": "MATCH"
+    },
+    {
+      "fact_id": "F09",
+      "source_fact_class": "trades",
+      "source_location": "CME page, entry/exit table",
+      "recovered_from_graph": true,
+      "status": "MATCH"
+    },
+    {
+      "fact_id": "F10",
+      "source_fact_class": "notionals_usd",
+      "source_location": "CME page, entry/exit table",
+      "recovered_from_graph": true,
+      "status": "MATCH"
+    },
+    {
+      "fact_id": "F11",
+      "source_fact_class": "notionals_usd",
+      "source_location": "CME page, entry/exit table",
+      "recovered_from_graph": true,
+      "status": "MATCH"
+    },
+    {
+      "fact_id": "F12",
+      "source_fact_class": "price_per_oz",
+      "source_location": "CME page, entry/exit table",
+      "recovered_from_graph": true,
+      "status": "MATCH"
+    },
+    {
+      "fact_id": "F13",
+      "source_fact_class": "leg_and_total_usd",
+      "source_location": "CME page, P&L table",
+      "recovered_from_graph": true,
+      "status": "MATCH"
+    },
+    {
+      "fact_id": "F14",
+      "source_fact_class": "execution_semantics",
+      "source_location": "CME page, P&L worked example",
+      "recovered_from_graph": true,
+      "status": "MATCH"
+    },
+    {
+      "fact_id": "F15",
+      "source_fact_class": "general_qualifier",
+      "source_location": "CME page, Margin Offsets",
+      "recovered_from_graph": true,
+      "status": "MATCH"
+    }
+  ]
+}
