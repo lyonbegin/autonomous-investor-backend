@@ -1,0 +1,197 @@
+{
+  "id": "CME_R5_23_SOURCE_FACT_AUDIT",
+  "fact_count": 23,
+  "matched": 19,
+  "failed": 4,
+  "full_source_document_exhaustiveness": false,
+  "independent_fresh_chatgpt_blind_test": false,
+  "source_passage_provenance_all": true,
+  "financial_reconstruction_all": false,
+  "rows": [
+    {
+      "source": "CME-COURSE",
+      "fact_path": "case.kind",
+      "finance_recovered": true,
+      "source_passage_linked": true,
+      "decision": "PASS",
+      "reason": "source→graph→reconstruction match"
+    },
+    {
+      "source": "CME-COURSE",
+      "fact_path": "case.date.entry",
+      "finance_recovered": true,
+      "source_passage_linked": true,
+      "decision": "PASS",
+      "reason": "source→graph→reconstruction match"
+    },
+    {
+      "source": "CME-COURSE",
+      "fact_path": "case.date.exit",
+      "finance_recovered": true,
+      "source_passage_linked": true,
+      "decision": "PASS",
+      "reason": "source→graph→reconstruction match"
+    },
+    {
+      "source": "CME-COURSE",
+      "fact_path": "case.contract.pl",
+      "finance_recovered": false,
+      "source_passage_linked": true,
+      "decision": "FAIL",
+      "reason": "Financial reconstruction incomplete"
+    },
+    {
+      "source": "CME-COURSE",
+      "fact_path": "case.contract.gc",
+      "finance_recovered": false,
+      "source_passage_linked": true,
+      "decision": "FAIL",
+      "reason": "Financial reconstruction incomplete"
+    },
+    {
+      "source": "CME-COURSE",
+      "fact_path": "case.entry",
+      "finance_recovered": true,
+      "source_passage_linked": true,
+      "decision": "PASS",
+      "reason": "source→graph→reconstruction match"
+    },
+    {
+      "source": "CME-COURSE",
+      "fact_path": "case.exit",
+      "finance_recovered": true,
+      "source_passage_linked": true,
+      "decision": "PASS",
+      "reason": "source→graph→reconstruction match"
+    },
+    {
+      "source": "CME-COURSE",
+      "fact_path": "case.pnl",
+      "finance_recovered": true,
+      "source_passage_linked": true,
+      "decision": "PASS",
+      "reason": "source→graph→reconstruction match"
+    },
+    {
+      "source": "CME-COURSE",
+      "fact_path": "margin",
+      "finance_recovered": true,
+      "source_passage_linked": true,
+      "decision": "PASS",
+      "reason": "source→graph→reconstruction match"
+    },
+    {
+      "source": "CME-COURSE",
+      "fact_path": "driver",
+      "finance_recovered": true,
+      "source_passage_linked": true,
+      "decision": "PASS",
+      "reason": "source→graph→reconstruction match"
+    },
+    {
+      "source": "CME-2017-ARTICLE",
+      "fact_path": "case.kind",
+      "finance_recovered": true,
+      "source_passage_linked": true,
+      "decision": "PASS",
+      "reason": "source→graph→reconstruction match"
+    },
+    {
+      "source": "CME-2017-ARTICLE",
+      "fact_path": "case.date.entry",
+      "finance_recovered": true,
+      "source_passage_linked": true,
+      "decision": "PASS",
+      "reason": "source→graph→reconstruction match"
+    },
+    {
+      "source": "CME-2017-ARTICLE",
+      "fact_path": "case.date.exit",
+      "finance_recovered": true,
+      "source_passage_linked": true,
+      "decision": "PASS",
+      "reason": "source→graph→reconstruction match"
+    },
+    {
+      "source": "CME-2017-ARTICLE",
+      "fact_path": "case.contract.pl",
+      "finance_recovered": false,
+      "source_passage_linked": true,
+      "decision": "FAIL",
+      "reason": "Financial reconstruction incomplete"
+    },
+    {
+      "source": "CME-2017-ARTICLE",
+      "fact_path": "case.contract.gc",
+      "finance_recovered": false,
+      "source_passage_linked": true,
+      "decision": "FAIL",
+      "reason": "Financial reconstruction incomplete"
+    },
+    {
+      "source": "CME-2017-ARTICLE",
+      "fact_path": "case.entry",
+      "finance_recovered": true,
+      "source_passage_linked": true,
+      "decision": "PASS",
+      "reason": "source→graph→reconstruction match"
+    },
+    {
+      "source": "CME-2017-ARTICLE",
+      "fact_path": "case.exit",
+      "finance_recovered": true,
+      "source_passage_linked": true,
+      "decision": "PASS",
+      "reason": "source→graph→reconstruction match"
+    },
+    {
+      "source": "CME-2017-ARTICLE",
+      "fact_path": "case.pnl",
+      "finance_recovered": true,
+      "source_passage_linked": true,
+      "decision": "PASS",
+      "reason": "source→graph→reconstruction match"
+    },
+    {
+      "source": "CME-2017-ARTICLE",
+      "fact_path": "margin",
+      "finance_recovered": true,
+      "source_passage_linked": true,
+      "decision": "PASS",
+      "reason": "source→graph→reconstruction match"
+    },
+    {
+      "source": "CME-2017-ARTICLE",
+      "fact_path": "driver",
+      "finance_recovered": true,
+      "source_passage_linked": true,
+      "decision": "PASS",
+      "reason": "source→graph→reconstruction match"
+    },
+    {
+      "source": "CME-2017-ARTICLE",
+      "fact_path": "contradictory_narrative",
+      "finance_recovered": true,
+      "source_passage_linked": true,
+      "decision": "PASS",
+      "reason": "source→graph→reconstruction match"
+    },
+    {
+      "source": "CME-2017-ARTICLE",
+      "fact_path": "mislabel",
+      "finance_recovered": true,
+      "source_passage_linked": true,
+      "decision": "PASS",
+      "reason": "source→graph→reconstruction match"
+    },
+    {
+      "source": "CME-2017-ARTICLE",
+      "fact_path": "rounded_spread_change",
+      "finance_recovered": true,
+      "source_passage_linked": true,
+      "decision": "PASS",
+      "reason": "source→graph→reconstruction match"
+    }
+  ],
+  "stage": "REBUILD_REQUIRED"
+}
