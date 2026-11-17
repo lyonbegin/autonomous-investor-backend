@@ -837,6 +837,61 @@
         "source_scope": "TRADINGVIEW_PUBLIC_DESCRIPTION",
         "resolution_requirement": "FULL_PINE_SOURCE"
       }
+    },
+    {
+      "id": "tv01:source:simplebuy",
+      "ontology_type": "N-119:SourceDocument",
+      "properties": {
+        "title": "Simple Buy/Sell Indicator",
+        "author": "JustinTimeTunes",
+        "url": "https://www.tradingview.com/script/RsZi3CJ1-Simple-Buy-Sell-Indicator/",
+        "document_kind": "TRADINGVIEW_INDICATOR_SCRIPT",
+        "independent_script_id": "RsZi3CJ1",
+        "max_input_rules": 4,
+        "signal_output_map": {
+          "0": "NONE",
+          "1": "BUY",
+          "-1": "SELL"
+        },
+        "full_pine_status": "NOT_OBTAINED",
+        "actual_selected_as_input": false
+      }
+    },
+    {
+      "id": "tv01:source:custombuy",
+      "ontology_type": "N-119:SourceDocument",
+      "properties": {
+        "title": "Custom Buy/Sell Indicator",
+        "author": "JustinTimeTunes",
+        "url": "https://www.tradingview.com/script/PZbgI2XG-Custom-Buy-Sell-Indicator/",
+        "document_kind": "TRADINGVIEW_INDICATOR_SCRIPT",
+        "independent_script_id": "PZbgI2XG",
+        "max_input_rules": 7,
+        "logical_expression_modes_count": 10,
+        "signal_output_map": {
+          "0": "NONE",
+          "1": "BUY",
+          "-1": "SELL"
+        },
+        "full_pine_status": "NOT_OBTAINED",
+        "actual_selected_as_input": false
+      }
+    },
+    {
+      "id": "tv01:p_compatible_sources",
+      "ontology_type": "N-120:SourcePassage",
+      "properties": {
+        "locator": "Main TradingView strategy description line 50",
+        "text_scope": "Author names Simple and Custom Buy/Sell Indicators as possible signal inputs"
+      }
+    },
+    {
+      "id": "tv01:e_compatible_sources",
+      "ontology_type": "N-121:EvidenceAssertion",
+      "properties": {
+        "claim": "Two published TradingView indicators by same author are eligible signal producers; does not prove either was selected at runtime",
+        "claim_kind": "SOURCE_STATED_COMPATIBILITY_NOT_EXECUTION"
+      }
     }
   ],
   "edges": [
@@ -1561,6 +1616,49 @@
       "to": "tv01:policy:concurrent_stops",
       "field_path": "simultaneous_trigger_priority",
       "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:source",
+      "relation": "R-099:SOURCE_HAS_PASSAGE",
+      "to": "tv01:p_compatible_sources"
+    },
+    {
+      "from": "tv01:case",
+      "relation": "R-101:CASE_HAS_ASSERTION",
+      "to": "tv01:e_compatible_sources"
+    },
+    {
+      "from": "tv01:e_compatible_sources",
+      "relation": "R-100:ASSERTION_SUPPORTED_BY_PASSAGE",
+      "to": "tv01:p_compatible_sources"
+    },
+    {
+      "from": "tv01:strategy",
+      "relation": "PROPOSED:STRATEGY_LISTS_COMPATIBLE_SIGNAL_SCRIPT",
+      "to": "tv01:source:simplebuy",
+      "link_type": "POSSIBLE_INPUT_NOT_ACTUAL_CONFIGURATION",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:source:simplebuy",
+      "relation": "PROPOSED:INDICATOR_SCRIPT_CAN_PROVIDE_SIGNAL",
+      "to": "tv01:signal",
+      "link_type": "SOURCE_DECLARED_POTENTIAL_SIGNAL",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:strategy",
+      "relation": "PROPOSED:STRATEGY_LISTS_COMPATIBLE_SIGNAL_SCRIPT",
+      "to": "tv01:source:custombuy",
+      "link_type": "POSSIBLE_INPUT_NOT_ACTUAL_CONFIGURATION",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:source:custombuy",
+      "relation": "PROPOSED:INDICATOR_SCRIPT_CAN_PROVIDE_SIGNAL",
+      "to": "tv01:signal",
+      "link_type": "SOURCE_DECLARED_POTENTIAL_SIGNAL",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
     }
   ],
   "known_gaps": [
@@ -1675,7 +1773,21 @@
         "first_signal": "When flat, the first valid buy/sell signal opens the matching position immediately (source description timing only, not verified Pine bar timing)."
       },
       "verification": "PUBLIC_DESCRIPTION_RECONSTRUCTABLE_FOR_THIS_STEP_NOT_FULL_PINE"
+    },
+    {
+      "iteration": 6,
+      "missing_knowledge": "The source explicitly mentions two independently published Buy/Sell indicator scripts as possible input providers, but the graph had only an anonymous external TradingSignal. This lost cross-script metadata relations.",
+      "correction": "Add two SourceDocument nodes for the identified indicator scripts and provenance-correct compatibility edges to the TradingStrategy and generic TradingSignal.",
+      "restored_from_graph": {
+        "compatible_signal_scripts": [
+          "RsZi3CJ1 Simple Buy/Sell Indicator: max 4 rules",
+          "PZbgI2XG Custom Buy/Sell Indicator: max 7 rules and 10 logic modes"
+        ],
+        "signal_values": "1 BUY, 0 none, -1 SELL"
+      },
+      "unresolved": "Neither compatible indicator is proven to have been actually selected for any historical trade; full Pine code unextracted",
+      "verification": "CROSS_SCRIPT_SOURCE_RELATION_RECONSTRUCTABLE_NOT_ACTUAL_USED_SIGNAL"
     }
   ],
-  "version": "TV-KG-ITERATIVE-v8.5"
+  "version": "TV-KG-ITERATIVE-v8.6"
 }
