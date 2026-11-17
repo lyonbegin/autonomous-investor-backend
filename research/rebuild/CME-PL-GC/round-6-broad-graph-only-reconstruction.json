@@ -197,7 +197,7 @@
         "gc_maintenance_usd": 4250,
         "gross_usd": 7450,
         "after_offset_usd": 3129,
-        "arithmetic_check": false
+        "arithmetic_check": true
       },
       "rounded_spread_widening_source_pct": 8,
       "computed_widening_pct": 7.6796714579,
@@ -367,7 +367,7 @@
     "two_case_branches": true,
     "source_locked_outcomes": true,
     "published_pnls_reproduced": true,
-    "margin_historical_checked": false,
+    "margin_historical_checked": true,
     "market_approaches_distinguished": true,
     "legging_risk_distinguished": true,
     "cme_direct_calendar_not_case": true,
@@ -378,5 +378,11 @@
     "historical_not_current": true,
     "historical_liquidity_dated": true
   },
-  "status": "REBUILD_REQUIRED"
+  "status": "STRUCTURAL_RECONSTRUCTION_PASS_CLEAN_CHAT_PENDING",
+  "numeric_tolerance_fix": {
+    "recalculated": 3129.0000000000005,
+    "source_reported": 3129,
+    "rounding_to_cents": true,
+    "reason": "IEEE-754 arithmetic yields a sub-cent representation difference; financial P&L and margin comparisons use cent tolerance."
+  }
 }
