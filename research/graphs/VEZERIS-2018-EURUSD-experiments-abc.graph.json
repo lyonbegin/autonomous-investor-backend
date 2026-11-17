@@ -973,6 +973,114 @@
       "from": "paper:metric:c:trade_count",
       "relation": "R-131:RESULT_MEASURES_CASE",
       "to": "paper:case:c"
+    },
+    {
+      "from": "paper:result:a",
+      "relation": "PROPOSED:BACKTEST_RESULT_HAS_METRIC",
+      "to": "paper:metric:a:gross_profit",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "paper:result:a",
+      "relation": "PROPOSED:BACKTEST_RESULT_HAS_METRIC",
+      "to": "paper:metric:a:gross_loss",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "paper:result:a",
+      "relation": "PROPOSED:BACKTEST_RESULT_HAS_METRIC",
+      "to": "paper:metric:a:net_profit",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "paper:result:a",
+      "relation": "PROPOSED:BACKTEST_RESULT_HAS_METRIC",
+      "to": "paper:metric:a:drawdown_pct",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "paper:result:a",
+      "relation": "PROPOSED:BACKTEST_RESULT_HAS_METRIC",
+      "to": "paper:metric:a:trade_count",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "paper:case:a",
+      "relation": "PROPOSED:CASE_APPLIES_TO_ASSET",
+      "to": "paper:asset:EURUSD",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "paper:result:b",
+      "relation": "PROPOSED:BACKTEST_RESULT_HAS_METRIC",
+      "to": "paper:metric:b:gross_profit",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "paper:result:b",
+      "relation": "PROPOSED:BACKTEST_RESULT_HAS_METRIC",
+      "to": "paper:metric:b:gross_loss",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "paper:result:b",
+      "relation": "PROPOSED:BACKTEST_RESULT_HAS_METRIC",
+      "to": "paper:metric:b:net_profit",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "paper:result:b",
+      "relation": "PROPOSED:BACKTEST_RESULT_HAS_METRIC",
+      "to": "paper:metric:b:drawdown_pct",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "paper:result:b",
+      "relation": "PROPOSED:BACKTEST_RESULT_HAS_METRIC",
+      "to": "paper:metric:b:trade_count",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "paper:case:b",
+      "relation": "PROPOSED:CASE_APPLIES_TO_ASSET",
+      "to": "paper:asset:EURUSD",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "paper:result:c",
+      "relation": "PROPOSED:BACKTEST_RESULT_HAS_METRIC",
+      "to": "paper:metric:c:gross_profit",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "paper:result:c",
+      "relation": "PROPOSED:BACKTEST_RESULT_HAS_METRIC",
+      "to": "paper:metric:c:gross_loss",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "paper:result:c",
+      "relation": "PROPOSED:BACKTEST_RESULT_HAS_METRIC",
+      "to": "paper:metric:c:net_profit",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "paper:result:c",
+      "relation": "PROPOSED:BACKTEST_RESULT_HAS_METRIC",
+      "to": "paper:metric:c:drawdown_pct",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "paper:result:c",
+      "relation": "PROPOSED:BACKTEST_RESULT_HAS_METRIC",
+      "to": "paper:metric:c:trade_count",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "paper:case:c",
+      "relation": "PROPOSED:CASE_APPLIES_TO_ASSET",
+      "to": "paper:asset:EURUSD",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
     }
   ],
   "known_gaps": [
