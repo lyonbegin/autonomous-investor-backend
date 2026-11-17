@@ -621,6 +621,96 @@
       "from": "tv01:a_tp4",
       "relation": "R-113:ACTION_CHANGES_POSITION",
       "to": "tv01:position"
+    },
+    {
+      "from": "tv01:case",
+      "relation": "PROPOSED:CASE_DESCRIBES_STRATEGY",
+      "to": "tv01:strategy",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:c_buy",
+      "relation": "PROPOSED:CONDITION_READS_SIGNAL",
+      "to": "tv01:signal",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:c_sell",
+      "relation": "PROPOSED:CONDITION_READS_SIGNAL",
+      "to": "tv01:signal",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:c_cancel_positive",
+      "relation": "PROPOSED:CONDITION_READS_SIGNAL",
+      "to": "tv01:cancel",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:c_cancel_negative",
+      "relation": "PROPOSED:CONDITION_READS_SIGNAL",
+      "to": "tv01:cancel",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:r_regular_stop",
+      "relation": "PROPOSED:RISK_RULE_CAN_CLOSE_POSITION_BY_ACTION",
+      "to": "tv01:a_close_long",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:r_regular_stop",
+      "relation": "PROPOSED:RISK_RULE_CAN_CLOSE_POSITION_BY_ACTION",
+      "to": "tv01:a_close_short",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:r_initial_trail",
+      "relation": "PROPOSED:RISK_RULE_CAN_CLOSE_POSITION_BY_ACTION",
+      "to": "tv01:a_close_long",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:r_initial_trail",
+      "relation": "PROPOSED:RISK_RULE_CAN_CLOSE_POSITION_BY_ACTION",
+      "to": "tv01:a_close_short",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:r_trail",
+      "relation": "PROPOSED:RISK_RULE_CAN_CLOSE_POSITION_BY_ACTION",
+      "to": "tv01:a_close_long",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:r_trail",
+      "relation": "PROPOSED:RISK_RULE_CAN_CLOSE_POSITION_BY_ACTION",
+      "to": "tv01:a_close_short",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:c_tp1",
+      "relation": "PROPOSED:CONDITION_READS_POSITION_METRIC",
+      "to": "tv01:position",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:c_tp2",
+      "relation": "PROPOSED:CONDITION_READS_POSITION_METRIC",
+      "to": "tv01:position",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:c_tp3",
+      "relation": "PROPOSED:CONDITION_READS_POSITION_METRIC",
+      "to": "tv01:position",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:c_tp4",
+      "relation": "PROPOSED:CONDITION_READS_POSITION_METRIC",
+      "to": "tv01:position",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
     }
   ],
   "known_gaps": [
@@ -659,6 +749,12 @@
       "field": "actual_contract/asset",
       "cause": "GENERIC_STRATEGY_NOT_SPECIFIC_TRADE",
       "required_for": "concrete transaction reconstruction"
+    },
+    {
+      "target": "tv01:case -> tv01:strategy",
+      "field": "CASE_DESCRIBES_STRATEGY relation",
+      "cause": "V7_RELATION_NOT_DEFINED",
+      "required_for": "navigate source case to strategy without relying on IDs"
     }
   ],
   "status": "PARTIAL_KG_FROM_PUBLIC_DESCRIPTION",
