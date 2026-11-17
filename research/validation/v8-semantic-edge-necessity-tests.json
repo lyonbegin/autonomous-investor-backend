@@ -1,0 +1,114 @@
+{
+  "run": "2026-11-17-SPECIFIC-KG-EDGE-NECESSITY",
+  "method": "GRAPH_PATH_ESSENTIALITY_ONLY",
+  "claim_limit": "This does not demonstrate source-exhaustive or independent ChatGPT blind reconstruction.",
+  "cases": [
+    {
+      "id": "M1_CANCEL_RULE_LINK",
+      "graph": "tv",
+      "needed_semantics": "positive cancel must map to close short",
+      "removed_edge": {
+        "from": "tv01:r_cancel_positive_closes_short",
+        "relation": "R-112:RULE_DECLARES_ACTION",
+        "to": "tv01:a_close_short"
+      },
+      "baseline_reconstructable": true,
+      "after_removal_reconstructable": false,
+      "detected_missing_connection": true
+    },
+    {
+      "id": "M2_TRANSITION_LINK",
+      "graph": "tv",
+      "needed_semantics": "long->short reverse option",
+      "removed_edge": {
+        "from": "tv01:r_opposite:long_to_short",
+        "relation": "PROPOSED:RULE_HAS_TRANSITION",
+        "to": "tv01:transition:long_to_short:CLOSE_AND_REVERSE"
+      },
+      "baseline_reconstructable": true,
+      "after_removal_reconstructable": false,
+      "detected_missing_connection": true
+    },
+    {
+      "id": "M3_REVERSE_ACTION_ORDER",
+      "graph": "tv",
+      "needed_semantics": "must open short after close long",
+      "removed_edge": {
+        "from": "tv01:transition:long_to_short:CLOSE_AND_REVERSE",
+        "relation": "PROPOSED:TRANSITION_ORDERED_ACTION",
+        "to": "tv01:a_open_short"
+      },
+      "baseline_reconstructable": true,
+      "after_removal_reconstructable": false,
+      "detected_missing_connection": true
+    },
+    {
+      "id": "M4_TP_CALC",
+      "graph": "tv",
+      "needed_semantics": "TP threshold is percent gain in price",
+      "removed_edge": {
+        "from": "tv01:c_tp1",
+        "relation": "R-117:CONDITION_TESTS_CALCULATION",
+        "to": "tv01:calc:direction_adjusted_price_gain_pct"
+      },
+      "baseline_reconstructable": true,
+      "after_removal_reconstructable": false,
+      "detected_missing_connection": true
+    },
+    {
+      "id": "M5_STOP_CONCURRENT",
+      "graph": "tv",
+      "needed_semantics": "multiple stops can be used together",
+      "removed_edge": {
+        "from": "tv01:strategy",
+        "relation": "PROPOSED:STRATEGY_HAS_STOP_COMBINATION_POLICY",
+        "to": "tv01:policy:concurrent_stops"
+      },
+      "baseline_reconstructable": true,
+      "after_removal_reconstructable": false,
+      "detected_missing_connection": true
+    },
+    {
+      "id": "M6_MISSING_FIELD",
+      "graph": "tv",
+      "needed_semantics": "which field blocks source signal reconstruction",
+      "removed_edge": {
+        "from": "tv01:gap:01",
+        "relation": "PROPOSED:GAP_BLOCKS_NODE_FIELD",
+        "to": "tv01:signal"
+      },
+      "baseline_reconstructable": true,
+      "after_removal_reconstructable": false,
+      "detected_missing_connection": true
+    },
+    {
+      "id": "M7_PAPER_WEEKEND",
+      "graph": "paper",
+      "needed_semantics": "experiment c holds across weekend",
+      "removed_edge": {
+        "from": "paper:case:c",
+        "relation": "PROPOSED:CASE_HAS_WEEKEND_POLICY",
+        "to": "paper:rule:weekend_hold"
+      },
+      "baseline_reconstructable": true,
+      "after_removal_reconstructable": false,
+      "detected_missing_connection": true
+    },
+    {
+      "id": "M8_PAPER_PARAMETER",
+      "graph": "paper",
+      "needed_semantics": "experiment b selected slow EMA 280",
+      "removed_edge": {
+        "from": "paper:case:b",
+        "relation": "PROPOSED:CASE_USES_INDICATOR_PARAMETER",
+        "to": "paper:indicator_param:selected:slow"
+      },
+      "baseline_reconstructable": true,
+      "after_removal_reconstructable": false,
+      "detected_missing_connection": true
+    }
+  ],
+  "detected_count": 8,
+  "total": 8,
+  "all_detected": true
+}

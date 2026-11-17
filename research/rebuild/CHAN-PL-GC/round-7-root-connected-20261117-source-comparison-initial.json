@@ -1,0 +1,646 @@
+{
+  "case": "CHAN-PL-GC",
+  "version": "R7",
+  "comparison": "30_SELECTED_V3_FACTS_TO_NEW_R7_GRAPH_ONLY_RECONSTRUCTION",
+  "input": "round-7-root-connected-20261117-graph-only-input.json",
+  "reconstruction": "round-7-root-connected-20261117-graph-only-reconstruction.json",
+  "source_register": "source-facts-v3.json",
+  "selected_count": 30,
+  "matched": 29,
+  "failed": 1,
+  "rows": [
+    {
+      "fact_id": "C01",
+      "source_id": "S2006",
+      "source_predicate": "strategy_class",
+      "source_locator": "initial post, description",
+      "passed": true,
+      "graph_anchor": "strategy",
+      "root_path": [
+        {
+          "from": "case",
+          "relation": "CASE_USES_STRATEGY",
+          "to": "strategy"
+        }
+      ],
+      "failure_kind": "UNREACHABLE_NODE"
+    },
+    {
+      "fact_id": "C02",
+      "source_id": "S2006",
+      "source_predicate": "long_leg",
+      "source_locator": "initial post, strategy sentence",
+      "passed": true,
+      "graph_anchor": "leg:PL",
+      "root_path": [
+        {
+          "from": "case",
+          "relation": "CASE_USES_STRATEGY",
+          "to": "strategy"
+        },
+        {
+          "from": "strategy",
+          "relation": "STRATEGY_HAS_POSITION_TEMPLATE",
+          "to": "position"
+        },
+        {
+          "from": "position",
+          "relation": "POSITION_CONTAINS_LEG",
+          "to": "leg:PL"
+        }
+      ],
+      "failure_kind": "UNREACHABLE_NODE"
+    },
+    {
+      "fact_id": "C03",
+      "source_id": "S2006",
+      "source_predicate": "short_leg",
+      "source_locator": "initial post, strategy sentence",
+      "passed": true,
+      "graph_anchor": "leg:GC",
+      "root_path": [
+        {
+          "from": "case",
+          "relation": "CASE_USES_STRATEGY",
+          "to": "strategy"
+        },
+        {
+          "from": "strategy",
+          "relation": "STRATEGY_HAS_POSITION_TEMPLATE",
+          "to": "position"
+        },
+        {
+          "from": "position",
+          "relation": "POSITION_CONTAINS_LEG",
+          "to": "leg:GC"
+        }
+      ],
+      "failure_kind": "UNREACHABLE_NODE"
+    },
+    {
+      "fact_id": "C04",
+      "source_id": "S2006",
+      "source_predicate": "PL_contract_multiplier",
+      "source_locator": "initial post, contract sizes",
+      "passed": true,
+      "graph_anchor": "spec:PL",
+      "root_path": [
+        {
+          "from": "case",
+          "relation": "CASE_USES_STRATEGY",
+          "to": "strategy"
+        },
+        {
+          "from": "strategy",
+          "relation": "STRATEGY_HAS_POSITION_TEMPLATE",
+          "to": "position"
+        },
+        {
+          "from": "position",
+          "relation": "POSITION_HAS_READER_ATR_PROXY_CALCULATION",
+          "to": "calc:reader:PL"
+        },
+        {
+          "from": "calc:reader:PL",
+          "relation": "EXPRESSION_READS_CONTRACT_SPEC",
+          "to": "spec:PL"
+        }
+      ],
+      "failure_kind": "UNREACHABLE_NODE"
+    },
+    {
+      "fact_id": "C05",
+      "source_id": "S2006",
+      "source_predicate": "GC_contract_multiplier",
+      "source_locator": "initial post, contract sizes",
+      "passed": true,
+      "graph_anchor": "spec:GC",
+      "root_path": [
+        {
+          "from": "case",
+          "relation": "CASE_USES_STRATEGY",
+          "to": "strategy"
+        },
+        {
+          "from": "strategy",
+          "relation": "STRATEGY_HAS_POSITION_TEMPLATE",
+          "to": "position"
+        },
+        {
+          "from": "position",
+          "relation": "POSITION_HAS_READER_ATR_PROXY_CALCULATION",
+          "to": "calc:reader:GC"
+        },
+        {
+          "from": "calc:reader:GC",
+          "relation": "EXPRESSION_READS_CONTRACT_SPEC",
+          "to": "spec:GC"
+        }
+      ],
+      "failure_kind": "UNREACHABLE_NODE"
+    },
+    {
+      "fact_id": "C06",
+      "source_id": "S2006",
+      "source_predicate": "entry_window",
+      "source_locator": "around end of February",
+      "passed": true,
+      "graph_anchor": "window:entry",
+      "root_path": [
+        {
+          "from": "case",
+          "relation": "CASE_USES_STRATEGY",
+          "to": "strategy"
+        },
+        {
+          "from": "strategy",
+          "relation": "STRATEGY_HAS_ENTRY_RULE",
+          "to": "rule:entry"
+        },
+        {
+          "from": "rule:entry",
+          "relation": "RULE_USES_CALENDAR_WINDOW",
+          "to": "window:entry"
+        }
+      ],
+      "failure_kind": "UNREACHABLE_NODE"
+    },
+    {
+      "fact_id": "C07",
+      "source_id": "S2006",
+      "source_predicate": "exit_window",
+      "source_locator": "around mid-April",
+      "passed": true,
+      "graph_anchor": "window:exit",
+      "root_path": [
+        {
+          "from": "case",
+          "relation": "CASE_USES_STRATEGY",
+          "to": "strategy"
+        },
+        {
+          "from": "strategy",
+          "relation": "STRATEGY_HAS_EXIT_RULE",
+          "to": "rule:exit"
+        },
+        {
+          "from": "rule:exit",
+          "relation": "RULE_USES_CALENDAR_WINDOW",
+          "to": "window:exit"
+        }
+      ],
+      "failure_kind": "UNREACHABLE_NODE"
+    },
+    {
+      "fact_id": "C08",
+      "source_id": "S2006",
+      "source_predicate": "research_modes",
+      "source_locator": "initial post, testing paragraph",
+      "passed": true,
+      "graph_anchor": "activity:paper2006",
+      "root_path": [
+        {
+          "from": "case",
+          "relation": "CASE_HAS_ASSERTION",
+          "to": "activity:paper2006"
+        }
+      ],
+      "failure_kind": "UNREACHABLE_NODE"
+    },
+    {
+      "fact_id": "C09",
+      "source_id": "S2006",
+      "source_predicate": "gold_demand_driver",
+      "source_locator": "initial post, fundamental reason",
+      "passed": true,
+      "graph_anchor": "event:cny_end",
+      "root_path": [
+        {
+          "from": "case",
+          "relation": "CASE_USES_STRATEGY",
+          "to": "strategy"
+        },
+        {
+          "from": "strategy",
+          "relation": "STRATEGY_HAS_FUNDAMENTAL_SEASONAL_EVENT",
+          "to": "event:cny_end"
+        }
+      ],
+      "failure_kind": "UNREACHABLE_NODE"
+    },
+    {
+      "fact_id": "C10",
+      "source_id": "S2006",
+      "source_predicate": "platinum_hedge_rationale",
+      "source_locator": "initial post, fundamental reason",
+      "passed": true,
+      "graph_anchor": "commodity_use:platinum",
+      "root_path": [
+        {
+          "from": "case",
+          "relation": "CASE_USES_STRATEGY",
+          "to": "strategy"
+        },
+        {
+          "from": "strategy",
+          "relation": "STRATEGY_CITES_COUNTERPART_INDUSTRIAL_USE",
+          "to": "commodity_use:platinum"
+        }
+      ],
+      "failure_kind": "UNREACHABLE_NODE"
+    },
+    {
+      "fact_id": "C11",
+      "source_id": "S2006",
+      "source_predicate": "average_annual_pnl",
+      "source_locator": "initial post, average every year",
+      "passed": true,
+      "graph_anchor": "metric:orig_avg",
+      "root_path": [
+        {
+          "from": "case",
+          "relation": "CASE_HAS_REPORT_METRIC",
+          "to": "metric:orig_avg"
+        }
+      ],
+      "failure_kind": "UNREACHABLE_NODE"
+    },
+    {
+      "fact_id": "C12",
+      "source_id": "S2006",
+      "source_predicate": "best_year_pnl",
+      "source_locator": "initial post, best year",
+      "passed": true,
+      "graph_anchor": "metric:orig_best",
+      "root_path": [
+        {
+          "from": "case",
+          "relation": "CASE_HAS_REPORT_METRIC",
+          "to": "metric:orig_best"
+        }
+      ],
+      "failure_kind": "UNREACHABLE_NODE"
+    },
+    {
+      "fact_id": "C13",
+      "source_id": "S2006",
+      "source_predicate": "worst_year_pnl",
+      "source_locator": "initial post, worst year",
+      "passed": true,
+      "graph_anchor": "metric:orig_worst",
+      "root_path": [
+        {
+          "from": "case",
+          "relation": "CASE_HAS_REPORT_METRIC",
+          "to": "metric:orig_worst"
+        }
+      ],
+      "failure_kind": "UNREACHABLE_NODE"
+    },
+    {
+      "fact_id": "C14",
+      "source_id": "S2006",
+      "source_predicate": "exchange_margin",
+      "source_locator": "initial post, NYMEX margin",
+      "passed": true,
+      "graph_anchor": "margin:historical_quote",
+      "root_path": [
+        {
+          "from": "case",
+          "relation": "CASE_HAS_INTERIM_CAPITAL_BUFFER_CALCULATION",
+          "to": "capital:calc"
+        },
+        {
+          "from": "capital:calc",
+          "relation": "EXPRESSION_READS_MARGIN_QUOTE",
+          "to": "margin:historical_quote"
+        }
+      ],
+      "failure_kind": "UNREACHABLE_NODE"
+    },
+    {
+      "fact_id": "C15",
+      "source_id": "S2006RISK",
+      "source_predicate": "historical_max_drawdown",
+      "source_locator": "2006-11-26 author reply",
+      "passed": true,
+      "graph_anchor": "metric:dd_2006",
+      "root_path": [
+        {
+          "from": "case",
+          "relation": "CASE_HAS_REPORT_METRIC",
+          "to": "metric:dd_2006"
+        }
+      ],
+      "failure_kind": "UNREACHABLE_NODE"
+    },
+    {
+      "fact_id": "C16",
+      "source_id": "S2006RISK",
+      "source_predicate": "author_max_margin_to_survive_drawdown",
+      "source_locator": "2006-11-26 author reply",
+      "passed": true,
+      "graph_anchor": "capital:calc",
+      "root_path": [
+        {
+          "from": "case",
+          "relation": "CASE_HAS_INTERIM_CAPITAL_BUFFER_CALCULATION",
+          "to": "capital:calc"
+        }
+      ],
+      "failure_kind": "UNREACHABLE_NODE"
+    },
+    {
+      "fact_id": "C17",
+      "source_id": "S2007CORR",
+      "source_predicate": "corrected_average_pnl",
+      "source_locator": "2007-04-20 recap, correction",
+      "passed": true,
+      "graph_anchor": "metric:new_avg",
+      "root_path": [
+        {
+          "from": "case",
+          "relation": "CASE_HAS_REPORT_METRIC",
+          "to": "metric:new_avg"
+        }
+      ],
+      "failure_kind": "UNREACHABLE_NODE"
+    },
+    {
+      "fact_id": "C18",
+      "source_id": "S2007CORR",
+      "source_predicate": "corrected_best_pnl",
+      "source_locator": "2007-04-20 recap, correction",
+      "passed": true,
+      "graph_anchor": "metric:new_best",
+      "root_path": [
+        {
+          "from": "case",
+          "relation": "CASE_HAS_REPORT_METRIC",
+          "to": "metric:new_best"
+        }
+      ],
+      "failure_kind": "UNREACHABLE_NODE"
+    },
+    {
+      "fact_id": "C19",
+      "source_id": "S2007CORR",
+      "source_predicate": "corrected_worst_pnl",
+      "source_locator": "2007-04-20 recap, correction",
+      "passed": true,
+      "graph_anchor": "metric:new_worst",
+      "root_path": [
+        {
+          "from": "case",
+          "relation": "CASE_HAS_REPORT_METRIC",
+          "to": "metric:new_worst"
+        }
+      ],
+      "failure_kind": "UNREACHABLE_NODE"
+    },
+    {
+      "fact_id": "C20",
+      "source_id": "S2007CORR",
+      "source_predicate": "corrected_max_drawdown",
+      "source_locator": "2007-04-20 recap, drawdown",
+      "passed": true,
+      "graph_anchor": "risk:drawdown_comparability",
+      "root_path": [
+        {
+          "from": "case",
+          "relation": "CASE_HAS_DRAWDOWN_SCOPE_CONFLICT_WARNING",
+          "to": "risk:drawdown_comparability"
+        }
+      ],
+      "failure_kind": "UNREACHABLE_NODE"
+    },
+    {
+      "fact_id": "C21",
+      "source_id": "S2007CORR",
+      "source_predicate": "conditional_2007_result",
+      "source_locator": "2007-04-20 recap, if a trader had entered",
+      "passed": true,
+      "graph_anchor": "scenario:2007",
+      "root_path": [
+        {
+          "from": "case",
+          "relation": "CASE_USES_STRATEGY",
+          "to": "strategy"
+        },
+        {
+          "from": "strategy",
+          "relation": "STRATEGY_HAS_CONDITIONAL_SCENARIO",
+          "to": "scenario:2007"
+        }
+      ],
+      "failure_kind": "UNREACHABLE_NODE"
+    },
+    {
+      "fact_id": "C22",
+      "source_id": "S2007RISK",
+      "source_predicate": "hedge_neutrality",
+      "source_locator": "2007-08-19 author reply",
+      "passed": true,
+      "graph_anchor": "comparison:ounce",
+      "root_path": [
+        {
+          "from": "case",
+          "relation": "CASE_USES_STRATEGY",
+          "to": "strategy"
+        },
+        {
+          "from": "strategy",
+          "relation": "STRATEGY_HAS_POSITION_TEMPLATE",
+          "to": "position"
+        },
+        {
+          "from": "position",
+          "relation": "POSITION_EVALUATED_ON_BASIS",
+          "to": "comparison:ounce"
+        }
+      ],
+      "failure_kind": "UNREACHABLE_NODE"
+    },
+    {
+      "fact_id": "C23",
+      "source_id": "S2007RISK",
+      "source_predicate": "neutrality_risk_comment",
+      "source_locator": "2007-08-19 author reply",
+      "passed": true,
+      "graph_anchor": "comparison:volrisk",
+      "root_path": [
+        {
+          "from": "case",
+          "relation": "CASE_HAS_ASSERTION",
+          "to": "assertion:neutrality"
+        },
+        {
+          "from": "assertion:neutrality",
+          "relation": "ASSERTION_SUPPORTED_BY_COMPARISON",
+          "to": "comparison:volrisk"
+        }
+      ],
+      "failure_kind": "UNREACHABLE_NODE"
+    },
+    {
+      "fact_id": "C24",
+      "source_id": "S2007FEB",
+      "source_predicate": "not_cointegration",
+      "source_locator": "2007-03-01 author comment",
+      "passed": true,
+      "graph_anchor": "model:cointegration_exclusion",
+      "root_path": [
+        {
+          "from": "case",
+          "relation": "CASE_USES_STRATEGY",
+          "to": "strategy"
+        },
+        {
+          "from": "strategy",
+          "relation": "STRATEGY_EXCLUDES_MODEL",
+          "to": "model:cointegration_exclusion"
+        }
+      ],
+      "failure_kind": "UNREACHABLE_NODE"
+    },
+    {
+      "fact_id": "C25",
+      "source_id": "S2006",
+      "source_predicate": "intellectual_source",
+      "source_locator": "initial post, Further reading",
+      "passed": true,
+      "graph_anchor": "attribution:original_inspiration",
+      "root_path": [
+        {
+          "from": "case",
+          "relation": "CASE_USES_STRATEGY",
+          "to": "strategy"
+        },
+        {
+          "from": "strategy",
+          "relation": "STRATEGY_ATTRIBUTES_ORIGINAL_IDEA_TO",
+          "to": "attribution:original_inspiration"
+        }
+      ],
+      "failure_kind": "UNREACHABLE_NODE"
+    },
+    {
+      "fact_id": "C26",
+      "source_id": "S2006RISK",
+      "source_predicate": "interim_risk_qualification",
+      "source_locator": "2006-11-26 author reply",
+      "passed": false,
+      "graph_anchor": "risk:interim",
+      "root_path": [
+        {
+          "from": "case",
+          "relation": "CASE_HAS_PATH_RISK",
+          "to": "risk:interim"
+        }
+      ],
+      "failure_kind": "RECONSTRUCTION_OMITTED_OR_WRONG"
+    },
+    {
+      "fact_id": "C27",
+      "source_id": "S2006",
+      "source_predicate": "reported_win_frequency",
+      "source_locator": "2006-11-24 original paragraph",
+      "passed": true,
+      "graph_anchor": "winfreq:2006",
+      "root_path": [
+        {
+          "from": "case",
+          "relation": "CASE_HAS_BACKTEST_STUDY",
+          "to": "study:backtest"
+        },
+        {
+          "from": "study:backtest",
+          "relation": "BACKTEST_REPORTS_WIN_FREQUENCY",
+          "to": "winfreq:2006"
+        }
+      ],
+      "failure_kind": "UNREACHABLE_NODE"
+    },
+    {
+      "fact_id": "C28",
+      "source_id": "S2007RISK",
+      "source_predicate": "author_reported_leg_market_values",
+      "source_locator": "2007-08-19 author reply",
+      "passed": true,
+      "graph_anchor": "quote:oneGC",
+      "root_path": [
+        {
+          "from": "case",
+          "relation": "CASE_HAS_ASSERTION",
+          "to": "assertion:neutrality"
+        },
+        {
+          "from": "assertion:neutrality",
+          "relation": "ASSERTION_SUPPORTED_BY_COMPARISON",
+          "to": "comparison:dollar"
+        },
+        {
+          "from": "comparison:dollar",
+          "relation": "COMPARISON_CITES_AUTHOR_VALUE",
+          "to": "quote:oneGC"
+        }
+      ],
+      "failure_kind": "UNREACHABLE_NODE"
+    },
+    {
+      "fact_id": "C29",
+      "source_id": "S2007METHOD",
+      "source_predicate": "author_stated_research_tools",
+      "source_locator": "2007-08-18 author reply",
+      "passed": true,
+      "graph_anchor": "research:tool:MATLAB",
+      "root_path": [
+        {
+          "from": "case",
+          "relation": "CASE_HAS_BACKTEST_STUDY",
+          "to": "study:backtest"
+        },
+        {
+          "from": "study:backtest",
+          "relation": "RESEARCH_METHOD_USES_OR_MENTIONS_TOOL",
+          "to": "research:tool:MATLAB"
+        }
+      ],
+      "failure_kind": "UNREACHABLE_NODE"
+    },
+    {
+      "fact_id": "C30",
+      "source_id": "S2007READER",
+      "source_predicate": "reader_ATR_risk_comparison",
+      "source_locator": "2007-08-18 reader ATR calculation",
+      "passed": true,
+      "graph_anchor": "reader:ATR:gc_quote",
+      "root_path": [
+        {
+          "from": "case",
+          "relation": "CASE_USES_STRATEGY",
+          "to": "strategy"
+        },
+        {
+          "from": "strategy",
+          "relation": "STRATEGY_HAS_POSITION_TEMPLATE",
+          "to": "position"
+        },
+        {
+          "from": "position",
+          "relation": "POSITION_HAS_READER_ATR_PROXY_CALCULATION",
+          "to": "calc:reader:GC"
+        },
+        {
+          "from": "calc:reader:GC",
+          "relation": "EXPRESSION_READS_ATR_ESTIMATE",
+          "to": "reader:ATR:gc_quote"
+        }
+      ],
+      "failure_kind": "UNREACHABLE_NODE"
+    }
+  ],
+  "full_source_exhaustiveness": false,
+  "independent_new_chatgpt_session": false,
+  "verdict": "RECONSTRUCTION_RETRY_REQUIRED"
+}

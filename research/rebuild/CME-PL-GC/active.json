@@ -1,0 +1,35 @@
+{
+  "case_id": "CME-PL-GC",
+  "source": "https://www.cmegroup.com/education/courses/understanding-futures-spreads/understanding-intermarket-spreads-platinum-and-gold",
+  "current_graph": "round-5-rebuilt.graph.json",
+  "superseded_versions": [
+    "round-1-rejected.graph.json",
+    "round-2-rebuilt.graph.json",
+    "round-3-rebuilt.graph.json",
+    "round-4-rebuilt.graph.json"
+  ],
+  "selected_source_fact_recovery": {
+    "matched": 26,
+    "examined": 26,
+    "scope": "26 selected source assertions, incl. 1 derived troy-oz check",
+    "status": "SOURCE_FACT_COVERAGE_PASS"
+  },
+  "independent_clean_chatgpt_blind_replay": "PENDING",
+  "full_exhaustive_original_review": "NOT_DONE",
+  "final_status": "BLIND_PENDING_NOT_FULL_PASS",
+  "next_action": "New independent ChatGPT session must reconstruct from round-5-graph-only-input.json, without source facts, originals or prior conversation",
+  "reconstruction_reader_iterations": 2,
+  "expanded_source_review": "26_ITEM_REGISTER_COMPARED_NOT_FULL_PAGE_EXHAUSTIVE",
+  "current_reconstruction_input": "round-5-graph-only-input.json",
+  "current_reconstruction_result": "round-5-graph-only-reconstruction-retry2.json",
+  "current_comparison": "round-5-source-comparison-retry2.json",
+  "ontology_auto_adoption": {
+    "status": "AUTO_APPLIED_SOURCE_REGISTERED_FACT_RECONSTRUCTION",
+    "effective_overlay": "research/ontology/active-auto-extensions.json",
+    "synchronized_from": "current_reconstruction_input",
+    "separate_manual_approval_required": false,
+    "source_fact_pass_only": true,
+    "independent_chatgpt_blind_verification": "STILL_PENDING",
+    "baseline_604_definitions_preserved": true
+  }
+}

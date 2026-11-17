@@ -1,0 +1,181 @@
+{
+  "id": "CME_R6_BROAD_SCOPE_FACT_EXPANSION",
+  "baseline_fact_count": 23,
+  "added_fact_count": 14,
+  "total_selected_fact_count": 37,
+  "source_scopes": [
+    "CME course trading explanation and Gold-Platinum example",
+    "CME 2017 article Platinum-Gold section and contract market comparison table"
+  ],
+  "not_in_scope": [
+    "CME separate gold/silver PnL example",
+    "CME palladium separate example",
+    "source image charts' full unseen numeric time series"
+  ],
+  "facts": [
+    {
+      "id": "F24",
+      "source": "CME-COURSE",
+      "path": "market.relative_value_hedge",
+      "value": "Futures spread changes primary exposure from two outright movements to relative leg-price differential; not risk-free",
+      "locator": "Creating a Futures Spread, paras 1–2",
+      "scope": "GENERAL_CONTEXT"
+    },
+    {
+      "id": "F25",
+      "source": "CME-COURSE",
+      "path": "market.spread_taxonomy",
+      "value": {
+        "intermarket": "TWO_RELATED_FUTURES_MARKETS_SIMILAR_MATURITY",
+        "calendar": "SAME_FUTURES_MARKET_DIFFERENT_CONTRACT_MONTHS",
+        "case_type": "INTERMARKET"
+      },
+      "locator": "Types of Spreads",
+      "scope": "GENERAL_CONTEXT"
+    },
+    {
+      "id": "F26",
+      "source": "CME-COURSE",
+      "path": "market.legging_risk",
+      "value": {
+        "risk": "EXECUTION_LEGGING",
+        "case_occurrence": "NOT_REPORTED",
+        "applies_to": "INTERMARKET_SPREADS_POTENTIALLY"
+      },
+      "locator": "Types of Spreads, inter-market paragraph",
+      "scope": "GENERAL_CONTEXT"
+    },
+    {
+      "id": "F27",
+      "source": "CME-COURSE",
+      "path": "market.legging_mitigation",
+      "value": [
+        "DEDICATED_INTERMARKET_SPREAD_CONTRACT",
+        "LIQUID_UNDERLYING_CONTRACTS",
+        "AUTO_SPREADING_VENDOR_FUNCTION"
+      ],
+      "locator": "Types of Spreads, inter-market paragraph",
+      "scope": "GENERAL_CONTEXT"
+    },
+    {
+      "id": "F28",
+      "source": "CME-COURSE",
+      "path": "market.precious_metal_correlation",
+      "value": "Related precious metals may be correlated, with distinct commodity demand drivers. No numeric coefficient reported.",
+      "locator": "Understanding Platinum Gold Spread Trades; Precious Metals",
+      "scope": "GENERAL_CONTEXT"
+    },
+    {
+      "id": "F29",
+      "source": "CME-COURSE",
+      "path": "market.electronic_trading",
+      "value": {
+        "claim_share_percent_greater_than": 90,
+        "system": "CME_GLOBEX",
+        "source_scope": "GENERAL_PRECIOUS_METALS_CONTRACTS",
+        "historical_source_claim": true
+      },
+      "locator": "Spread Trading with Precious Metals",
+      "scope": "GENERAL_CONTEXT"
+    },
+    {
+      "id": "F30",
+      "source": "CME-COURSE",
+      "path": "commodity.platinum_uses",
+      "value": [
+        "AUTO_CATALYTIC_CONVERTER",
+        "JEWELRY",
+        "INVESTMENT_ASSET"
+      ],
+      "locator": "Gold-Platinum Spread Trade, first paragraph",
+      "scope": "GENERAL_CONTEXT"
+    },
+    {
+      "id": "F31",
+      "source": "CME-COURSE",
+      "path": "commodity.gold_safe_haven",
+      "value": {
+        "condition": "ECONOMIC_DISTRESS_OR_POLITICAL_UNCERTAINTY",
+        "driver": "SAFE_HAVEN_GOLD_DEMAND",
+        "implication": "GOLD_PRICE_CAN_EXCEED_PLATINUM"
+      },
+      "locator": "Gold-Platinum Spread Trade, first paragraph",
+      "scope": "ALTERNATIVE_MACRO_REGIME_NOT_ENTRY_SIGNAL"
+    },
+    {
+      "id": "F32",
+      "source": "CME-COURSE",
+      "path": "market.historical_gold_premium",
+      "value": {
+        "since_year": 2015,
+        "claim": "GOLD_PREMIUM_TO_PLATINUM_AND_SPREAD_WIDENING",
+        "contemporaneity": "SOURCE_TIME_CONTEXT_NOT_CURRENT"
+      },
+      "locator": "Gold-Platinum Spread Trade, final sentence preceding chart",
+      "scope": "HISTORICAL_SOURCE_CLAIM"
+    },
+    {
+      "id": "F33",
+      "source": "CME-COURSE",
+      "path": "commodity.relative_rarity_claim",
+      "value": {
+        "claim": "PLATINUM_ABOUT_15_TIMES_RARER_THAN_GOLD",
+        "independently_verified": false
+      },
+      "locator": "Gold-Platinum Spread Trade, first paragraph",
+      "scope": "SOURCE_AUTHOR_BACKGROUND"
+    },
+    {
+      "id": "F34",
+      "source": "CME-2017-ARTICLE",
+      "path": "market.2016_ADV",
+      "value": {
+        "year": 2016,
+        "gc": 228432,
+        "pl": 15849,
+        "unit": "LOTS_PER_TRADING_DAY"
+      },
+      "locator": "Platinum-Gold Spread Trade contract comparison table",
+      "scope": "HISTORICAL_LIQUIDITY"
+    },
+    {
+      "id": "F35",
+      "source": "CME-2017-ARTICLE",
+      "path": "market.2017_open_interest",
+      "value": {
+        "as_of": "2017-08-21",
+        "gc": 505829,
+        "pl": 71971,
+        "unit": "LOTS"
+      },
+      "locator": "Platinum-Gold Spread Trade contract comparison table",
+      "scope": "HISTORICAL_LIQUIDITY"
+    },
+    {
+      "id": "F36",
+      "source": "CME-2017-ARTICLE",
+      "path": "commodity.gold_safe_haven",
+      "value": {
+        "condition": "ECONOMIC_DISTRESS_OR_POLITICAL_UNCERTAINTY",
+        "driver": "SAFE_HAVEN_GOLD_DEMAND",
+        "is_actual_trade_driver": false
+      },
+      "locator": "Platinum-Gold Spread Trade background",
+      "scope": "ALTERNATIVE_MACRO_REGIME"
+    },
+    {
+      "id": "F37",
+      "source": "CME-COURSE",
+      "path": "market.calendar_spread_execution_contrast",
+      "value": {
+        "market": "CME_DIRECT",
+        "instrument": "DEDICATED_CALENDAR_SPREAD_MARKET",
+        "claim": "CAN_EXECUTE_CALENDAR_SPREAD_WITHOUT_LEGGING_RISK",
+        "note": "GENERAL_MARKET_FEATURE_NOT_PROVEN_USED_IN_CASE"
+      },
+      "locator": "Types of Spreads, intra-market paragraph",
+      "scope": "GENERAL_CONTEXT"
+    }
+  ],
+  "status": "AWAIT_GRAPH_REBUILD"
+}

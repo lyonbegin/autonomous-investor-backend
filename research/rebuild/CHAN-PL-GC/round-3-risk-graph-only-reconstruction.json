@@ -1,0 +1,354 @@
+{
+  "case_id": "CHAN-PL-GC",
+  "graph_input": "round-3-risk-graph-only-input.json",
+  "input_excluded_source_documents": true,
+  "independent_fresh_chatgpt_session": false,
+  "case_type": "AUTHOR_BLOG_WITH_PAPER_TRADE_BACKTEST_AND_FOLLOWUP",
+  "strategy": {
+    "type": "SEASONAL_INTERMARKET_FUTURES_SPREAD",
+    "cointegration_based": false,
+    "complete_auto_entry_signal": "NOT_DISCLOSED"
+  },
+  "legs": [
+    {
+      "root": "PL",
+      "month": "JULY",
+      "year": null,
+      "side": "LONG",
+      "count": 2,
+      "multiplier": 50,
+      "entry_action": "BUY",
+      "exit_action": "SELL"
+    },
+    {
+      "root": "GC",
+      "month": "JUNE",
+      "year": null,
+      "side": "SHORT",
+      "count": 1,
+      "multiplier": 100,
+      "entry_action": "SELL",
+      "exit_action": "BUY"
+    }
+  ],
+  "seasonal_entry_window": {
+    "month": "FEBRUARY",
+    "time_hint": "END_OF_MONTH",
+    "precision": "APPROXIMATE",
+    "day": null,
+    "year": "RECURRING"
+  },
+  "seasonal_exit_window": {
+    "month": "APRIL",
+    "time_hint": "MID_MONTH",
+    "precision": "APPROXIMATE",
+    "day": null,
+    "year": "RECURRING"
+  },
+  "original_backtest": {
+    "source_claim": {
+      "author": "Ernie Chan",
+      "reported_start_year": 1995,
+      "end_year": "NOT_DISCLOSED",
+      "data_files_available": false,
+      "experiment_type": "AUTHOR_REPORTED"
+    },
+    "cohort": {
+      "start_year": 1995,
+      "end_year": null,
+      "role": "INITIAL_AUTHOR_RESULT_SET",
+      "comparison_cohort": "UNKNOWN_EXACT"
+    },
+    "metrics": [
+      {
+        "name": "avg_profit",
+        "value": 6600,
+        "unit": "USD",
+        "claim_scope": "SINCE_1995_AUTHOR_2006_REPORTED",
+        "status": "HISTORICAL_INITIAL_UNDER_AUTHOR_REVISED_CHART_CORRECTION"
+      },
+      {
+        "name": "best_profit",
+        "value": 15400,
+        "unit": "USD",
+        "claim_scope": "SINCE_1995_AUTHOR_2006_REPORTED",
+        "status": "HISTORICAL_INITIAL_UNDER_AUTHOR_REVISED_CHART_CORRECTION"
+      },
+      {
+        "name": "worst_profit",
+        "value": -3810,
+        "unit": "USD",
+        "claim_scope": "SINCE_1995_AUTHOR_2006_REPORTED",
+        "status": "HISTORICAL_INITIAL_UNDER_AUTHOR_REVISED_CHART_CORRECTION"
+      }
+    ]
+  },
+  "author_2006_paper_trade": {
+    "year": 2006,
+    "author_claimed_success": true,
+    "raw_orders_available": false,
+    "trade_proof": "BLOG_AUTHOR_CLAIM_ONLY"
+  },
+  "interim_risk": {
+    "drawdown_source": [
+      {
+        "metric": "MAX_INTERIM_DRAWDOWN",
+        "value": -10910,
+        "unit": "USD",
+        "cohort": "SINCE_2000",
+        "year_of_max": 2001
+      }
+    ],
+    "base_margin": {
+      "metric": "INITIAL_EXCHANGE_MARGIN",
+      "value": 743,
+      "unit": "USD",
+      "not_maximum_risk": true
+    },
+    "capital_cushion": {
+      "metric": "MAXIMUM_MARGIN_REQUIREMENT_AS_AUTHOR_USES_TERM",
+      "value": 11653,
+      "unit": "USD",
+      "not_broker_initial_margin": true
+    },
+    "capital_calc": {
+      "operation": "ADD",
+      "expression": "initial exchange margin + absolute(max interim drawdown)",
+      "output_unit": "USD",
+      "qualifier": "AUTHOR_USES_TERM_MAXIMUM_MARGIN_REQUIREMENT"
+    }
+  },
+  "seasonal_economic_mechanism": {
+    "festival": {
+      "event": "CHINESE_NEW_YEAR_AND_ASIAN_YEAR_END_FESTIVALS",
+      "locations": [
+        "CHINA",
+        "INDIA"
+      ],
+      "expected_seasonal_completion": "FEBRUARY"
+    },
+    "gold_jewelry": {
+      "market": "GOLD_JEWELRY",
+      "demand_region": "ASIAN_MARKETS",
+      "underlying": "GOLD"
+    },
+    "demand": {
+      "driver": "POST_FESTIVAL_GOLD_DELIVERY_DEMAND_EXHAUSTION",
+      "expected_direction": "DECREASE",
+      "source_attribution": "TOEPKE_AS_QUOTED_BY_CHAN"
+    },
+    "relative": {
+      "direction": "GOLD_DECLINES_RELATIVE_TO_PLATINUM",
+      "intended_spread_position": "LONG_PL_SHORT_GC",
+      "is_cointegration_reversion": false
+    },
+    "platinum_industrial": {
+      "market": "AUTOMOTIVE_CATALYTIC_CONVERTERS",
+      "underlying": "PLATINUM",
+      "relative_seasonality": "WEAKER_THAN_GOLD_JEWELRY"
+    }
+  },
+  "explicit_model_exclusion": {
+    "excluded": "COINTEGRATION_MEAN_REVERSION",
+    "author_comment_date": "2007-03-01",
+    "expected_relation": "SPREAD_DIVERGENCE",
+    "claim_status": "EXPLICIT_AUTHOR_CLARIFICATION"
+  },
+  "conditional_2007": {
+    "events": [
+      {
+        "date": "2007-02-26",
+        "price_timing": "NEAR_MARKET_CLOSE",
+        "action": "OPEN_SAME_SEASONAL_SPREAD",
+        "actual_fills": false
+      },
+      {
+        "date": "2007-04-19",
+        "price_timing": "NEAR_MARKET_CLOSE",
+        "action": "CLOSE_SAME_SEASONAL_SPREAD",
+        "actual_fills": false
+      }
+    ],
+    "result": {
+      "name": "APPROX_HYPOTHETICAL_PNL",
+      "amount_usd": 6610,
+      "estimate": true,
+      "execution_proof": false
+    },
+    "scenario": {
+      "example_kind": "2007_HYPOTHETICAL_COUNTERFACTUAL",
+      "actual_order_fills_confirmed": false
+    }
+  },
+  "source_revision": {
+    "correction": {
+      "correction_date": "2007-04-20",
+      "author": "Ernie Chan",
+      "correction_scope": "PREVIOUS_HISTORICAL_PROFIT_CHART_PLOTTING_CALCULATION",
+      "affects_all_initial_values_identically": "UNVERIFIED",
+      "do_not_mix_different_sample_windows": true
+    },
+    "initial_cohort": {
+      "start_year": 1995,
+      "end_year": null,
+      "role": "INITIAL_AUTHOR_RESULT_SET",
+      "comparison_cohort": "UNKNOWN_EXACT"
+    },
+    "revised_cohort": {
+      "reference_date": "2007-04-20",
+      "length_years": 7,
+      "role": "REVISED_HISTORIC_RESULT_SET"
+    },
+    "revised_metrics": [
+      {
+        "name": "avg_profit",
+        "value": 3064,
+        "unit": "USD",
+        "claim_scope": "LAST_SEVEN_YEARS_AS_OF_2007_04_20",
+        "status": "AUTHOR_REPORTED_CORRECTED"
+      },
+      {
+        "name": "best_profit",
+        "value": 7320,
+        "unit": "USD",
+        "claim_scope": "LAST_SEVEN_YEARS_AS_OF_2007_04_20",
+        "status": "AUTHOR_REPORTED_CORRECTED"
+      },
+      {
+        "name": "worst_profit",
+        "value": -540,
+        "unit": "USD",
+        "claim_scope": "LAST_SEVEN_YEARS_AS_OF_2007_04_20",
+        "status": "AUTHOR_REPORTED_CORRECTED"
+      },
+      {
+        "name": "max_drawdown",
+        "value": -4860,
+        "unit": "USD",
+        "claim_scope": "LAST_SEVEN_YEARS_AS_OF_2007_04_20",
+        "status": "AUTHOR_REPORTED_CORRECTED"
+      }
+    ]
+  },
+  "hedge_risk": {
+    "ounce_balance": {
+      "pl_oz": 100,
+      "gc_oz": 100,
+      "balance_kind": "OZ_COUNT_ONLY",
+      "dollar_neutral": false,
+      "delta_neutral": "NOT_ESTABLISHED"
+    },
+    "not_dollar_neutral": {
+      "is_dollar_neutral": false,
+      "dominant_leg": "PLATINUM_LONG",
+      "author_comparison": "ALMOST_ONE_PL_CONTRACT_OUTRIGHT_RISK",
+      "market_value_claim_author_reported": "NO_RAW_PRICE_DATA"
+    },
+    "dollar_neutral_alternative": {
+      "alternative": "DOLLAR_NEUTRAL_SPREAD_SIZING",
+      "author_reported_result": "LESS_PROFITABLE_HISTORICALLY_AND_IN_OWN_REAL_TRADING_TEST",
+      "comparable_series_not_available": true
+    }
+  },
+  "original_attribution": {
+    "author": "Jerry Toepke",
+    "article": "Give Seasonal Spreads Some Respect",
+    "publication": "SFO MAGAZINE",
+    "issue": "2006-01",
+    "verified_article_content": "NOT_ACQUIRED"
+  },
+  "information_gap": {
+    "fields": [
+      "historical_price_bars",
+      "individual_paper_trade_fills",
+      "paper_trade_order_prices",
+      "exact_2006_calendar_dates",
+      "commission_slippage",
+      "strategy_code"
+    ],
+    "status": "NOT_ACQUIRED_OR_NOT_DISLOSED",
+    "effect": "No full historical strategy execution replay"
+  },
+  "author_quoted_notional_examples": {
+    "quote_date": "2007-08-19",
+    "speaker": "Ernie Chan",
+    "gold_one_contract_usd_quoted": 6650,
+    "platinum_two_contracts_usd_quoted": 12260,
+    "comparison_direction": "PLATINUM_LONG_LARGER_THAN_GOLD_SHORT",
+    "dollar_neutral": false,
+    "quote_scale_verified_against_market": false,
+    "do_not_assert_historical_exchange_notional": true
+  },
+  "commenter_atr_risk": {
+    "assumption": {
+      "speaker": "Pablo (reader comment)",
+      "date": "2007-08-18",
+      "lookback_days": 504,
+      "price_data_source": "NOT_PROVIDED",
+      "method": "ATR_PER_UNIT × CONTRACT_MULTIPLIER",
+      "research_status": "READER_ESTIMATE_NOT_INDEPENDENTLY_DATA_VERIFIED"
+    },
+    "parameters": [
+      {
+        "asset": "GOLD",
+        "indicator": "ATR",
+        "window_days": 504,
+        "reported_value_usd_per_oz": 9.77,
+        "reported_by": "PABLO_COMMENT"
+      },
+      {
+        "asset": "PLATINUM",
+        "indicator": "ATR",
+        "window_days": 504,
+        "reported_value_usd_per_oz": 17,
+        "reported_by": "PABLO_COMMENT"
+      }
+    ],
+    "reported_contract_measures": [
+      {
+        "asset": "GOLD",
+        "contract_count": 1,
+        "atr_dollars_per_contract": 977,
+        "calculation": "9.77 × 100",
+        "source_kind": "READER_DERIVED"
+      },
+      {
+        "asset": "PLATINUM",
+        "contract_count": 1,
+        "atr_dollars_per_contract": 850,
+        "calculation": "17.00 × 50",
+        "source_kind": "READER_DERIVED"
+      },
+      {
+        "asset": "PLATINUM",
+        "contract_count": 2,
+        "atr_dollars_for_two_contracts": 1700,
+        "calculation": "17.00 × 50 × 2",
+        "source_kind": "RESEARCH_DERIVED_FROM_COMMENTER_INPUTS"
+      }
+    ],
+    "comparison": {
+      "numerator": "ONE_PLATINUM_CONTRACT_ATR_DOLLARS",
+      "denominator": "ONE_GOLD_CONTRACT_ATR_DOLLARS",
+      "ratio_approx": 0.87,
+      "ratio_source": "PABLO_COMMENTER",
+      "two_pl_to_one_gc_unadjusted_ratio_approx": 1.74,
+      "source_misinterpretation_warning": "0.87 IS NOT THE ACTUAL TWO_PLATINUM_CONTRACTS_VERSUS_ONE_GOLD_CONTRACT_ATR_DOLLAR_RATIO",
+      "not_full_spread_volatility": "COVARIANCE_MISSING"
+    },
+    "calculated_from_graph_only": {
+      "gold_one_contract": 977,
+      "pl_one_contract": 850,
+      "pl_two_contracts": 1700
+    },
+    "single_PL_to_GC_ratio": 0.8700102354145343,
+    "two_PL_to_GC_ratio": 1.7400204708290685
+  },
+  "quality": {
+    "source_comment_is_not_author_response": true,
+    "author_quote_not_validated_as_full_notional": true,
+    "annual_result_cohorts_separate": true,
+    "corrected_stats_retained": true,
+    "manual_strategy_not_cointegration": true
+  }
+}

@@ -1,0 +1,475 @@
+{
+  "graph": "CHAN-PL-GC-R5-REDACTED",
+  "source_documents_seen": 0,
+  "independent_chatgpt_conversation": false,
+  "strategy": {
+    "name": "PL/GC seasonal intermarket spread",
+    "signal_family": "ECONOMIC_CALENDAR",
+    "cointegration_strategy": false,
+    "observed_trade_execution_not_verified": true
+  },
+  "legs": [
+    {
+      "root": "PL",
+      "month": "JULY",
+      "direction": "LONG",
+      "contract_qty": 2,
+      "contract_multiplier": 50,
+      "exposure_oz": 100
+    },
+    {
+      "root": "GC",
+      "month": "JUNE",
+      "direction": "SHORT",
+      "contract_qty": 1,
+      "contract_multiplier": 100,
+      "exposure_oz": 100
+    }
+  ],
+  "calendar_rules": {
+    "entry": {
+      "month": "FEBRUARY",
+      "portion": "LATE",
+      "approximate": true,
+      "exact_date": null,
+      "year_parameter": "PER_YEAR"
+    },
+    "exit": {
+      "month": "APRIL",
+      "portion": "MID",
+      "approximate": true,
+      "exact_date": null,
+      "year_parameter": "PER_YEAR"
+    }
+  },
+  "research_evidence": {
+    "backtest": {
+      "author_reported": true,
+      "source_period_start_claim": 1995,
+      "source_period_end": "NOT_PRECISELY_DISCLOSED",
+      "raw_price_bars_not_available": true
+    },
+    "papertrade2006": {
+      "kind": "AUTHOR_REPORTED_PAPER_TRADE",
+      "year": 2006,
+      "result_claim": "WORKED_AS_ADVERTISED",
+      "real_fills_documented": false,
+      "do_not_confuse_with_actual_broker_fill": true
+    }
+  },
+  "economic_graph": [
+    {
+      "event": {
+        "event": "END_OF_CHINESE_NEW_YEAR_FESTIVAL_PERIOD",
+        "calendar_kind": "LUNISOLAR_SEASONAL",
+        "day_specific": "YEAR_DEPENDENT",
+        "exact_date": "NOT_DISCLOSED"
+      },
+      "demand": {
+        "subject": "JEWELRY_GOLD_DEMAND",
+        "regions": [
+          "INDIA",
+          "CHINA"
+        ],
+        "direction_after_festivals": "DECLINE",
+        "source_grade": "AUTHOR_FUNDAMENTAL_HYPOTHESIS"
+      },
+      "event_to_demand": true
+    },
+    {
+      "commodity_use": {
+        "commodity": "PLATINUM",
+        "industry": "AUTOMOBILE_CATALYTIC_CONVERTERS",
+        "economic_role": "INDUSTRIAL",
+        "seasonality_relative_to_gold": "WEAKER"
+      },
+      "relative_price": {
+        "base": "PLATINUM",
+        "counterpart": "GOLD",
+        "expected_direction": "PLATINUM_OUTPERFORMS_GOLD_AFTER_SEASONAL_GOLD_DEMAND_DECLINE",
+        "evidence_kind": "FUNDAMENTAL_EXPLANATION_NOT_BACKTEST_SIGNAL"
+      },
+      "platinum_use_to_relative_price": true
+    },
+    {
+      "spread_expectation": {
+        "expected_change": "RELATIVE_PL_GC_DIVERGENCE_FAVORING_LONG_PL",
+        "is_cointegration_mean_reversion": false,
+        "point_quoted": "NONE"
+      },
+      "relative_price_to_spread": true
+    }
+  ],
+  "reported_performance": [
+    {
+      "id": "metric:orig_avg",
+      "metric_name": "AVERAGE_ANNUAL_PNL",
+      "value": 6600,
+      "currency": "USD",
+      "status": "SUPERSEDED_ORIGINAL",
+      "reporting_mode": "AUTHOR_REPORTED_NOT_RECALCULATED",
+      "scope": {
+        "period": "SINCE_1995_AS_CLAIMED_IN_2006",
+        "scope_kind": "INITIAL_SOURCE_REPORTED_BACKTEST",
+        "method_not_verified": true
+      }
+    },
+    {
+      "id": "metric:orig_best",
+      "metric_name": "MAX_ANNUAL_PNL",
+      "value": 15400,
+      "currency": "USD",
+      "status": "SUPERSEDED_ORIGINAL",
+      "reporting_mode": "AUTHOR_REPORTED_NOT_RECALCULATED",
+      "scope": {
+        "period": "SINCE_1995_AS_CLAIMED_IN_2006",
+        "scope_kind": "INITIAL_SOURCE_REPORTED_BACKTEST",
+        "method_not_verified": true
+      }
+    },
+    {
+      "id": "metric:orig_worst",
+      "metric_name": "MIN_ANNUAL_PNL",
+      "value": -3810,
+      "currency": "USD",
+      "status": "SUPERSEDED_ORIGINAL",
+      "reporting_mode": "AUTHOR_REPORTED_NOT_RECALCULATED",
+      "scope": {
+        "period": "SINCE_1995_AS_CLAIMED_IN_2006",
+        "scope_kind": "INITIAL_SOURCE_REPORTED_BACKTEST",
+        "method_not_verified": true
+      }
+    },
+    {
+      "id": "metric:margin_initial",
+      "metric_name": "HISTORICAL_REPORTED_INITIAL_MARGIN",
+      "value": 743,
+      "currency": "USD",
+      "status": "AUTHOR_REPORTED",
+      "reporting_mode": "AUTHOR_REPORTED_NOT_RECALCULATED",
+      "scope": {
+        "period": "SINCE_1995_AS_CLAIMED_IN_2006",
+        "scope_kind": "INITIAL_SOURCE_REPORTED_BACKTEST",
+        "method_not_verified": true
+      }
+    },
+    {
+      "id": "metric:dd_2006",
+      "metric_name": "MAX_INTRAPERIOD_DRAWDOWN",
+      "value": -10910,
+      "currency": "USD",
+      "status": "AUTHOR_COMMENT",
+      "reporting_mode": "AUTHOR_REPORTED_NOT_RECALCULATED",
+      "scope": {
+        "period": "SINCE_2000",
+        "event_year": 2001,
+        "source_context": "2006-11-26 AUTHOR_COMMENT",
+        "method_not_verified": true
+      }
+    },
+    {
+      "id": "metric:required_capital",
+      "metric_name": "MAX_CAPITAL_REQUIREMENT_INCLUDING_DRAWDOWN",
+      "value": 11653,
+      "currency": "USD",
+      "status": "AUTHOR_COMMENT",
+      "reporting_mode": "AUTHOR_REPORTED_NOT_RECALCULATED",
+      "scope": {
+        "period": "SINCE_2000",
+        "event_year": 2001,
+        "source_context": "2006-11-26 AUTHOR_COMMENT",
+        "method_not_verified": true
+      }
+    },
+    {
+      "id": "metric:new_avg",
+      "metric_name": "AVERAGE_ANNUAL_PNL",
+      "value": 3064,
+      "currency": "USD",
+      "status": "AUTHOR_CORRECTED",
+      "reporting_mode": "AUTHOR_REPORTED_NOT_RECALCULATED",
+      "scope": {
+        "period": "LAST_SEVEN_YEARS_AS_OF_2007_APRIL",
+        "scope_kind": "AUTHOR_CORRECTED_GRAPH",
+        "method_not_verified": true,
+        "window_start_year": null
+      }
+    },
+    {
+      "id": "metric:new_best",
+      "metric_name": "MAX_ANNUAL_PNL",
+      "value": 7320,
+      "currency": "USD",
+      "status": "AUTHOR_CORRECTED",
+      "reporting_mode": "AUTHOR_REPORTED_NOT_RECALCULATED",
+      "scope": {
+        "period": "LAST_SEVEN_YEARS_AS_OF_2007_APRIL",
+        "scope_kind": "AUTHOR_CORRECTED_GRAPH",
+        "method_not_verified": true,
+        "window_start_year": null
+      }
+    },
+    {
+      "id": "metric:new_worst",
+      "metric_name": "MIN_ANNUAL_PNL",
+      "value": -540,
+      "currency": "USD",
+      "status": "AUTHOR_CORRECTED",
+      "reporting_mode": "AUTHOR_REPORTED_NOT_RECALCULATED",
+      "scope": {
+        "period": "LAST_SEVEN_YEARS_AS_OF_2007_APRIL",
+        "scope_kind": "AUTHOR_CORRECTED_GRAPH",
+        "method_not_verified": true,
+        "window_start_year": null
+      }
+    },
+    {
+      "id": "metric:dd_2007",
+      "metric_name": "MAX_INTRAPERIOD_DRAWDOWN",
+      "value": -4860,
+      "currency": "USD",
+      "status": "AUTHOR_CORRECTED",
+      "reporting_mode": "AUTHOR_REPORTED_NOT_RECALCULATED",
+      "scope": {
+        "period": "LAST_SEVEN_YEARS_AS_OF_2007_APRIL",
+        "scope_kind": "AUTHOR_CORRECTED_GRAPH",
+        "method_not_verified": true,
+        "window_start_year": null
+      }
+    },
+    {
+      "id": "metric:hypo_pnl",
+      "metric_name": "TRADE_GROSS_PNL_APPROX",
+      "value": 6610,
+      "currency": "USD",
+      "status": "CONDITIONAL_SCENARIO_NOT_EXECUTION",
+      "reporting_mode": "AUTHOR_REPORTED_NOT_RECALCULATED",
+      "scope": {
+        "period": "2007-02-26_NEAR_CLOSE_TO_2007-04-19_NEAR_CLOSE",
+        "scope_kind": "IF_TRADED_HYPOTHETICAL",
+        "does_not_imply_actual_fills": true
+      }
+    }
+  ],
+  "performance_corrections": [
+    {
+      "original": "metric:orig_avg",
+      "revision": "metric:new_avg",
+      "old_value": 6600,
+      "new_value": 3064,
+      "original_scope": {
+        "period": "SINCE_1995_AS_CLAIMED_IN_2006",
+        "scope_kind": "INITIAL_SOURCE_REPORTED_BACKTEST",
+        "method_not_verified": true
+      },
+      "revision_scope": {
+        "period": "LAST_SEVEN_YEARS_AS_OF_2007_APRIL",
+        "scope_kind": "AUTHOR_CORRECTED_GRAPH",
+        "method_not_verified": true,
+        "window_start_year": null
+      }
+    },
+    {
+      "original": "metric:orig_best",
+      "revision": "metric:new_best",
+      "old_value": 15400,
+      "new_value": 7320,
+      "original_scope": {
+        "period": "SINCE_1995_AS_CLAIMED_IN_2006",
+        "scope_kind": "INITIAL_SOURCE_REPORTED_BACKTEST",
+        "method_not_verified": true
+      },
+      "revision_scope": {
+        "period": "LAST_SEVEN_YEARS_AS_OF_2007_APRIL",
+        "scope_kind": "AUTHOR_CORRECTED_GRAPH",
+        "method_not_verified": true,
+        "window_start_year": null
+      }
+    },
+    {
+      "original": "metric:orig_worst",
+      "revision": "metric:new_worst",
+      "old_value": -3810,
+      "new_value": -540,
+      "original_scope": {
+        "period": "SINCE_1995_AS_CLAIMED_IN_2006",
+        "scope_kind": "INITIAL_SOURCE_REPORTED_BACKTEST",
+        "method_not_verified": true
+      },
+      "revision_scope": {
+        "period": "LAST_SEVEN_YEARS_AS_OF_2007_APRIL",
+        "scope_kind": "AUTHOR_CORRECTED_GRAPH",
+        "method_not_verified": true,
+        "window_start_year": null
+      }
+    }
+  ],
+  "risk_and_margin": {
+    "nymeX_quote": {
+      "reported_date": "2006-11-24",
+      "quoted_exchange": "NYMEX",
+      "original_margin_usd": 743,
+      "portfolio_definition": "2 JUL PL LONG + 1 JUN GC SHORT",
+      "contract_year": null,
+      "author_reported_not_independently_verified": true
+    },
+    "linked_exchange": {
+      "code": "NYMEX",
+      "role": "PLATINUM_CONTRACT_AND_AUTHOR_REPORTED_MARGIN_VENUE",
+      "current_margin_not_asserted": true
+    },
+    "capital_calc": {
+      "operator": "ADD",
+      "formula": "reported_initial_margin + abs(maximum_interim_drawdown)",
+      "input_units": [
+        "USD",
+        "USD"
+      ],
+      "output_unit": "USD",
+      "interpretation": "AUTHOR_STATED_CAPITAL_BUFFER_NOT_EXCHANGE_INITIAL_MARGIN"
+    },
+    "capital_computed_usd": 11653,
+    "capital_reported_usd": 11653,
+    "drawdown_versions": {
+      "left": {
+        "metric_name": "MAX_INTRAPERIOD_DRAWDOWN",
+        "value": -10910,
+        "currency": "USD",
+        "status": "AUTHOR_COMMENT",
+        "reporting_mode": "AUTHOR_REPORTED_NOT_RECALCULATED"
+      },
+      "right": {
+        "metric_name": "MAX_INTRAPERIOD_DRAWDOWN",
+        "value": -4860,
+        "currency": "USD",
+        "status": "AUTHOR_CORRECTED",
+        "reporting_mode": "AUTHOR_REPORTED_NOT_RECALCULATED"
+      },
+      "policy": {
+        "left_observation": "metric:dd_2006",
+        "right_observation": "metric:dd_2007",
+        "conflict_kind": "DISTINCT_PUBLICATION_AND_MEASUREMENT_WINDOW_OR_CORRECTED_METHOD",
+        "auto_reconcile": false,
+        "source_interpretation": "NOT_ENOUGH_TO_PROVE_SAME_PERIOD_AND_MEASURE"
+      }
+    },
+    "interim_risk": {
+      "kind": "INTERIM_DRAWDOWN_WITH_POSITIVE_END_OF_YEAR_RESULT",
+      "author_example_year": 2001,
+      "drawdown_value_id": "metric:dd_2006",
+      "final_pnl_amount": null,
+      "final_pnl_sign": "POSITIVE",
+      "source_grade": "AUTHOR_COMMENT_NO_ACCOUNT_FILLS"
+    },
+    "end_year_outcome": {
+      "period": "YEAR_2001",
+      "pnl_sign": "POSITIVE",
+      "amount_usd": null,
+      "source_version": "AUTHOR_2006_NOV_26_COMMENT"
+    }
+  },
+  "neutrality_assessment": [
+    {
+      "id": "comparison:ounce",
+      "basis": "TROY_OUNCES_PER_SIDE",
+      "conclusion": {
+        "basis": "TROY_OUNCES_PER_SIDE",
+        "left_exposure_ounces": 100,
+        "right_exposure_ounces": 100,
+        "result": "EQUAL_QUANTITY_NOT_EQUAL_VALUE",
+        "source_kind": "DERIVED_FROM_CONTRACT_SIZES"
+      },
+      "links_left": true,
+      "links_right": true
+    },
+    {
+      "id": "comparison:dollar",
+      "basis": "DOLLAR_NOTIONAL",
+      "conclusion": {
+        "basis": "DOLLAR_NOTIONAL",
+        "comparison": "NOT_DOLLAR_NEUTRAL",
+        "author_derived": true,
+        "notional_input_quotes": "NOT_IN_MAIN_ARTICLE",
+        "independent_calculation_possible": false
+      },
+      "links_left": true,
+      "links_right": true
+    },
+    {
+      "id": "comparison:volrisk",
+      "basis": "DOLLAR_VOLATILITY_RISK",
+      "conclusion": {
+        "basis": "DOLLAR_VOLATILITY_RISK",
+        "comparison": "NOT_SHOWN_NEUTRAL",
+        "author_comparison": "ALMOST_ONE_PLATINUM_FUTURES_CONTRACT_OUTRIGHT_RISK",
+        "independent_risk_model": false
+      },
+      "links_left": true,
+      "links_right": true
+    }
+  ],
+  "alternative_hedge": {
+    "definition": {
+      "construction_goal": "DOLLAR_NEUTRAL_SPREAD",
+      "proposed_to_compare_with": "2PL_TO_1GC_OUNCE_MATCHED",
+      "contract_ratio": "NOT_DISCLOSED",
+      "market_prices": "NOT_DISCLOSED",
+      "executed_trades_independently_verified": false,
+      "source_kind": "AUTHOR_DISCUSSION_OF_ALTERNATIVE"
+    },
+    "author_comparison": {
+      "baseline": "2PL_TO_1GC",
+      "alternative": "AUTHOR_DOLLAR_NEUTRAL_VARIANT",
+      "outcome": "DOLLAR_NEUTRAL_VARIANT_WAS_LESS_PROFITABLE",
+      "evidence": "AUTHOR_SAYS_HISTORICAL_BACKTEST_AND_OWN_REAL_TRADING_TEST",
+      "quantified_pnl_difference": null,
+      "actual_trade_fills": "NOT_AVAILABLE",
+      "not_statistically_reproduced": true
+    }
+  },
+  "scenario_if_traded": {
+    "state": "IF_A_TRADER_HAD_ENTERED",
+    "entry_timing": "2007-02-26_NEAR_CLOSE",
+    "exit_timing": "2007-04-19_NEAR_CLOSE",
+    "actual_trade_confirmed": false,
+    "entry_quote": null,
+    "exit_quote": null
+  },
+  "not_cointegration": {
+    "model": "COINTEGRATION",
+    "applied": false,
+    "author_explanation": "EXPECT_SPREAD_TO_DIVERGE_NOT_CONVERGE",
+    "source_type": "EXPLICIT_AUTHOR_CLARIFICATION"
+  },
+  "prior_work_attribution": [
+    {
+      "originator": "Jerry Toepke",
+      "work_title": "Give Seasonal Spreads Some Respect",
+      "publication": "Stocks, Futures and Options Magazine",
+      "publication_month": "2006-01",
+      "relationship": "CHAN_FIRST_READ_THIS_SEASONAL_TRADING_IDEA",
+      "primary_article_full_text_obtained": false,
+      "authors_research_adaptation": "ERNIE_CHAN_BACKTESTED_AND_PAPER_TRADED_IN_2006",
+      "source_is_author_SELF_REPORT": true
+    }
+  ],
+  "limits": {
+    "historical_price_bars": false,
+    "actual_fills": false,
+    "exact_default_pnl_start": false,
+    "author_original_followup_date_precision": "POST_DATE"
+  },
+  "checks": {
+    "leg_count": true,
+    "ounce_sizes": [
+      100,
+      100
+    ],
+    "corrections": 3,
+    "scoped_metric_count": 11,
+    "capital_arithmetic": true,
+    "economic_graph_complete": true,
+    "attribution_survived_source_redaction": true,
+    "no_source_documents": true
+  }
+}

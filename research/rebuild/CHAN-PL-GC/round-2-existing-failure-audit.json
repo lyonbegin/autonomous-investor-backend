@@ -1,0 +1,37 @@
+{
+  "case": "CHAN-PL-GC",
+  "existing_file": "round-2-rebuilt.graph.json",
+  "note": "Found existing R2 file on branch; original left untouched. This audit does not infer who created it.",
+  "nodes": 40,
+  "edges": 57,
+  "comparison_register": "source-facts-expanded-27.json",
+  "missing_or_undermodelled": [
+    {
+      "fact": "F10",
+      "class": "ECONOMIC_STRUCTURE",
+      "cause": "Gold jewelry demand, Asian festivals and post-Lunar-New-Year decline are in one seasonal_reason node without traversable cause/use/demand/relative price chain."
+    },
+    {
+      "fact": "F20",
+      "class": "RISK_MODEL",
+      "cause": "Not-dollar-neutral and almost-one-PL outright risk recorded in one neutrality text node instead of exposure model."
+    },
+    {
+      "fact": "F26",
+      "class": "AUTHOR_QUOTE_PROVENANCE",
+      "cause": "Exact separately attributed author quoted market values $6650 and $12260 absent from graph."
+    },
+    {
+      "fact": "F27",
+      "class": "READER_QUOTE_PROVENANCE",
+      "cause": "504-day ATR and single PL vs GC ratio calculations absent; commenter and author claims not separated."
+    },
+    {
+      "fact": "F24",
+      "class": "COHORT_PROVENANCE",
+      "cause": "Old since-1995 and new last-7-years and since-2000 risk scopes must be independently relational, not only metric values."
+    }
+  ],
+  "source_complete": false,
+  "next_action": "NEW_FULL_REBUILD_WITH_VERSION_R3"
+}

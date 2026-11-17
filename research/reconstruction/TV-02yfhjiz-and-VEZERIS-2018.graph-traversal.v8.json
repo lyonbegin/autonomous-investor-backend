@@ -1,0 +1,361 @@
+{
+  "run_id": "TV-KG-ITERATIVE-20261117-01",
+  "method": "GRAPH_ONLY_TRAVERSAL_AND_ASSISTANT_REASONING_IN_SAME_CONVERSATION",
+  "independent_blind_chatgpt": false,
+  "source_excluded_from_reconstruction_input": true,
+  "full_original_source_fidelity": "NOT_CERTIFIED",
+  "graph_versions": {
+    "tv": "TV-KG-ITERATIVE-v8.6",
+    "paper": "TV-KG-ITERATIVE-v8.1"
+  },
+  "tv": {
+    "cancel": [
+      {
+        "rule_id": "tv01:r_cancel_positive_closes_short",
+        "signal_operator": ">",
+        "signal_threshold": 0,
+        "action": "CLOSE_SHORT",
+        "relation_complete": true
+      },
+      {
+        "rule_id": "tv01:r_cancel_negative_closes_long",
+        "signal_operator": "<",
+        "signal_threshold": 0,
+        "action": "CLOSE_LONG",
+        "relation_complete": true
+      }
+    ],
+    "opposite": [
+      {
+        "rule_id": "tv01:r_opposite:long_to_short",
+        "mode_transitions": [
+          {
+            "mode": "IGNORE",
+            "from_state": "LONG",
+            "to_state": "LONG",
+            "actions": []
+          },
+          {
+            "mode": "CLOSE",
+            "from_state": "LONG",
+            "to_state": "FLAT",
+            "actions": [
+              "CLOSE_LONG"
+            ]
+          },
+          {
+            "mode": "CLOSE_AND_REVERSE",
+            "from_state": "LONG",
+            "to_state": "SHORT",
+            "actions": [
+              "CLOSE_LONG",
+              "OPEN_SHORT"
+            ]
+          }
+        ]
+      },
+      {
+        "rule_id": "tv01:r_opposite:short_to_long",
+        "mode_transitions": [
+          {
+            "mode": "IGNORE",
+            "from_state": "SHORT",
+            "to_state": "SHORT",
+            "actions": []
+          },
+          {
+            "mode": "CLOSE",
+            "from_state": "SHORT",
+            "to_state": "FLAT",
+            "actions": [
+              "CLOSE_SHORT"
+            ]
+          },
+          {
+            "mode": "CLOSE_AND_REVERSE",
+            "from_state": "SHORT",
+            "to_state": "LONG",
+            "actions": [
+              "CLOSE_SHORT",
+              "OPEN_LONG"
+            ]
+          }
+        ]
+      }
+    ],
+    "take_profit": [
+      {
+        "tier": 1,
+        "price_gain_calculation_ref": "tv01:calc:direction_adjusted_price_gain_pct",
+        "threshold": null,
+        "quantity_reduction_value": null,
+        "action": "REDUCE_POSITION"
+      },
+      {
+        "tier": 2,
+        "price_gain_calculation_ref": "tv01:calc:direction_adjusted_price_gain_pct",
+        "threshold": null,
+        "quantity_reduction_value": null,
+        "action": "REDUCE_POSITION"
+      },
+      {
+        "tier": 3,
+        "price_gain_calculation_ref": "tv01:calc:direction_adjusted_price_gain_pct",
+        "threshold": null,
+        "quantity_reduction_value": null,
+        "action": "REDUCE_POSITION"
+      },
+      {
+        "tier": 4,
+        "price_gain_calculation_ref": "tv01:calc:direction_adjusted_price_gain_pct",
+        "threshold": null,
+        "quantity_reduction_value": null,
+        "action": "REDUCE_POSITION"
+      }
+    ],
+    "stops": [
+      {
+        "rule": "REGULAR_STOP",
+        "cutoff_condition": [],
+        "action": []
+      },
+      {
+        "rule": "INITIAL_TRAILING_STOP",
+        "cutoff_condition": [
+          "INITIAL_TRAILING_STOP_CUTOFF"
+        ],
+        "action": [
+          "FREEZE_STOP_PRICE_AT_CUTOFF"
+        ]
+      },
+      {
+        "rule": "TRAILING_STOP",
+        "cutoff_condition": [],
+        "action": []
+      }
+    ],
+    "concurrent_stops": {
+      "policy": {
+        "simultaneous_allowed": true,
+        "enabled_subset": "USER_CONFIGURATION_NOT_EXTRACTED",
+        "simultaneous_trigger_priority": "NOT_VERIFIED_FROM_PINE",
+        "user_can_combine_any_of": [
+          "REGULAR_STOP",
+          "INITIAL_TRAILING_STOP",
+          "TRAILING_STOP"
+        ],
+        "author_guidance_distinct_from_executable_constraint": true
+      },
+      "risk_rule_links": [
+        "tv01:r_regular_stop",
+        "tv01:r_initial_trail",
+        "tv01:r_trail"
+      ],
+      "strategy_link": true
+    },
+    "first_signal_entry_rules": [
+      {
+        "rule_id": "tv01:r_enter_long",
+        "first_valid_signal_timing": "OPEN_IMMEDIATELY_AS_DESCRIBED"
+      },
+      {
+        "rule_id": "tv01:r_enter_short",
+        "first_valid_signal_timing": "OPEN_IMMEDIATELY_AS_DESCRIBED"
+      }
+    ],
+    "compatible_scripts": [
+      {
+        "id": "tv01:source:simplebuy",
+        "url": "https://www.tradingview.com/script/RsZi3CJ1-Simple-Buy-Sell-Indicator/",
+        "max_rules": 4,
+        "logic_modes": null,
+        "actual_selected_as_input": false,
+        "links_to_signal": true
+      },
+      {
+        "id": "tv01:source:custombuy",
+        "url": "https://www.tradingview.com/script/PZbgI2XG-Custom-Buy-Sell-Indicator/",
+        "max_rules": 7,
+        "logic_modes": 10,
+        "actual_selected_as_input": false,
+        "links_to_signal": true
+      }
+    ]
+  },
+  "paper": {
+    "experiments": [
+      {
+        "experiment": "a",
+        "instrument": "EURUSD",
+        "macd_parameters": [
+          {
+            "role": "P_FAST",
+            "value": 12
+          },
+          {
+            "role": "P_SLOW",
+            "value": 26
+          },
+          {
+            "role": "P_SIGNAL",
+            "value": 9
+          }
+        ],
+        "weekend_policy": "CLOSE_ALL_OPEN_POSITIONS_BEFORE_WEEKEND",
+        "reported_metrics": [
+          {
+            "metric": "gross_profit",
+            "value": 45671.48,
+            "unit": "USD"
+          },
+          {
+            "metric": "gross_loss",
+            "value": -52901.34,
+            "unit": "USD"
+          },
+          {
+            "metric": "net_profit",
+            "value": -7229.86,
+            "unit": "USD"
+          },
+          {
+            "metric": "drawdown_pct",
+            "value": 82.51,
+            "unit": "percent"
+          },
+          {
+            "metric": "trade_count",
+            "value": 243,
+            "unit": "count"
+          }
+        ],
+        "net_profit_arithmetic_match": true
+      },
+      {
+        "experiment": "b",
+        "instrument": "EURUSD",
+        "macd_parameters": [
+          {
+            "role": "P_FAST",
+            "value": 27
+          },
+          {
+            "role": "P_SLOW",
+            "value": 280
+          },
+          {
+            "role": "P_SIGNAL",
+            "value": 28
+          }
+        ],
+        "weekend_policy": "CLOSE_ALL_OPEN_POSITIONS_BEFORE_WEEKEND",
+        "reported_metrics": [
+          {
+            "metric": "gross_profit",
+            "value": 36106.59,
+            "unit": "USD"
+          },
+          {
+            "metric": "gross_loss",
+            "value": -31757.62,
+            "unit": "USD"
+          },
+          {
+            "metric": "net_profit",
+            "value": 4348.97,
+            "unit": "USD"
+          },
+          {
+            "metric": "drawdown_pct",
+            "value": 47.95,
+            "unit": "percent"
+          },
+          {
+            "metric": "trade_count",
+            "value": 81,
+            "unit": "count"
+          }
+        ],
+        "net_profit_arithmetic_match": true
+      },
+      {
+        "experiment": "c",
+        "instrument": "EURUSD",
+        "macd_parameters": [
+          {
+            "role": "P_FAST",
+            "value": 27
+          },
+          {
+            "role": "P_SLOW",
+            "value": 280
+          },
+          {
+            "role": "P_SIGNAL",
+            "value": 28
+          }
+        ],
+        "weekend_policy": "LEAVE_EXISTING_POSITION_OPEN_OVER_WEEKEND",
+        "reported_metrics": [
+          {
+            "metric": "gross_profit",
+            "value": 32522.98,
+            "unit": "USD"
+          },
+          {
+            "metric": "gross_loss",
+            "value": -27630.16,
+            "unit": "USD"
+          },
+          {
+            "metric": "net_profit",
+            "value": 4892.82,
+            "unit": "USD"
+          },
+          {
+            "metric": "drawdown_pct",
+            "value": 42.18,
+            "unit": "percent"
+          },
+          {
+            "metric": "trade_count",
+            "value": 60,
+            "unit": "count"
+          }
+        ],
+        "net_profit_arithmetic_match": true
+      }
+    ]
+  },
+  "path_checks": {
+    "tv01_cancel_mapping_valid": true,
+    "tv01_opposite_three_modes_each_direction": true,
+    "tv01_four_tp_read_calculation": true,
+    "paper_three_experiments_connected": true,
+    "paper_net_arithmetic_all": true,
+    "tv01_concurrent_stop_policy_reachable": true,
+    "tv01_first_entry_immediate": true,
+    "tv_source_signal_scripts_provenance_only": true
+  },
+  "integrity": {
+    "tv": {
+      "missing_endpoints": 0,
+      "duplicate_triples": 0,
+      "nodes": 76,
+      "edges": 133
+    },
+    "paper": {
+      "missing_endpoints": 0,
+      "duplicate_triples": 0,
+      "nodes": 54,
+      "edges": 109
+    }
+  },
+  "verification_summary": "Only these graph paths are reconstructed. This is not a blind LLM in a separate conversation; no claim of fully reproduced original Pine implementation or author backtest.",
+  "caveats": [
+    "All meaningful conclusions scoped to publicly visible source description and selected EURUSD experiments only",
+    "No independent fresh ChatGPT blind session was executed",
+    "The source Pine full code is not in the research dataset, so exact entry/order timing and user-configured TP/stop values cannot be certified",
+    "Graph-to-source comparison in this same ChatGPT work context is not a substitute for clean-room replay"
+  ]
+}

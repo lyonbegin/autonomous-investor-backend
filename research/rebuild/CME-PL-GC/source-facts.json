@@ -1,0 +1,164 @@
+{
+  "id": "CME-PL-GC-ORIGINAL-FACT-REGISTER",
+  "source_url": "https://www.cmegroup.com/education/courses/understanding-futures-spreads/understanding-intermarket-spreads-platinum-and-gold",
+  "scope": "CME published educational spread example, NOT executed transaction",
+  "status": "SOURCE_AUDITED_DISCLOSED_FACTS",
+  "audit_limit": "All 15 explicitly selected core statements, not a claim about every word on the CME page",
+  "facts": [
+    {
+      "id": "F01",
+      "subject": "case",
+      "predicate": "case_kind",
+      "value": "EDUCATIONAL_WORKED_EXAMPLE",
+      "evidence": "CME page, Gold-Platinum Spread Trade → P&L Example"
+    },
+    {
+      "id": "F02",
+      "subject": "case",
+      "predicate": "spread_type",
+      "value": "INTERMARKET_FUTURES_RELATIVE_VALUE",
+      "evidence": "CME page, Creating a Futures Spread / Types of Spreads"
+    },
+    {
+      "id": "F03",
+      "subject": "driver",
+      "predicate": "economic_hypothesis",
+      "value": "Higher automobile sales raise platinum demand; platinum price expected to outperform gold, narrowing the negative PL minus GC spread",
+      "evidence": "CME page, P&L Example introductory paragraph"
+    },
+    {
+      "id": "F04",
+      "subject": "trade",
+      "predicate": "entry_date",
+      "value": "March 2; year not disclosed",
+      "evidence": "CME page, P&L Example introductory paragraph"
+    },
+    {
+      "id": "F05",
+      "subject": "trade",
+      "predicate": "exit_date",
+      "value": "March 30; year not disclosed",
+      "evidence": "CME page, P&L Example closing paragraph"
+    },
+    {
+      "id": "F06",
+      "subject": "pl_contract",
+      "predicate": "spec",
+      "value": {
+        "underlying": "Platinum",
+        "market": "NYMEX",
+        "contract_month": "APR",
+        "multiplier_oz_per_contract": 50
+      },
+      "evidence": "CME page, Gold-Platinum P&L example"
+    },
+    {
+      "id": "F07",
+      "subject": "gc_contract",
+      "predicate": "spec",
+      "value": {
+        "underlying": "Gold",
+        "market": "COMEX",
+        "contract_month": "APR",
+        "multiplier_oz_per_contract": 100
+      },
+      "evidence": "CME page, Gold-Platinum P&L example and price spread chart context"
+    },
+    {
+      "id": "F08",
+      "subject": "pl_leg",
+      "predicate": "trades",
+      "value": {
+        "entry_side": "BUY",
+        "exit_side": "SELL",
+        "contracts": 2,
+        "entry_price_usd_per_oz": 988.4,
+        "exit_price_usd_per_oz": 1056.4
+      },
+      "evidence": "CME page, entry/exit table"
+    },
+    {
+      "id": "F09",
+      "subject": "gc_leg",
+      "predicate": "trades",
+      "value": {
+        "entry_side": "SELL",
+        "exit_side": "BUY",
+        "contracts": 1,
+        "entry_price_usd_per_oz": 1231.9,
+        "exit_price_usd_per_oz": 1244.2
+      },
+      "evidence": "CME page, entry/exit table"
+    },
+    {
+      "id": "F10",
+      "subject": "pl_leg",
+      "predicate": "notionals_usd",
+      "value": {
+        "entry": 98840,
+        "exit": 105640
+      },
+      "evidence": "CME page, entry/exit table"
+    },
+    {
+      "id": "F11",
+      "subject": "gc_leg",
+      "predicate": "notionals_usd",
+      "value": {
+        "entry": 123190,
+        "exit": 124420
+      },
+      "evidence": "CME page, entry/exit table"
+    },
+    {
+      "id": "F12",
+      "subject": "spread",
+      "predicate": "price_per_oz",
+      "value": {
+        "entry": -243.5,
+        "exit": -187.8,
+        "spread_change": 55.7,
+        "spread_sign_definition": "PL minus GC"
+      },
+      "evidence": "CME page, entry/exit table"
+    },
+    {
+      "id": "F13",
+      "subject": "pnl",
+      "predicate": "leg_and_total_usd",
+      "value": {
+        "pl": 6800,
+        "gc": -1230,
+        "total": 5570,
+        "calculation": "quantity × multiplier × (exit minus entry) × side sign"
+      },
+      "evidence": "CME page, P&L table"
+    },
+    {
+      "id": "F14",
+      "subject": "case",
+      "predicate": "execution_semantics",
+      "value": {
+        "entry_legs_simultaneous": true,
+        "exit_legs_simultaneous": true,
+        "reported_fills_actual": false
+      },
+      "evidence": "CME page, P&L worked example"
+    },
+    {
+      "id": "F15",
+      "subject": "margin",
+      "predicate": "general_qualifier",
+      "value": "Offset may reduce margin relative to outright positions; no numerical margin for this example",
+      "evidence": "CME page, Margin Offsets"
+    }
+  ],
+  "uncertainties": [
+    "trade year",
+    "actual historical fills",
+    "commission/slippage",
+    "precise calendar expiry",
+    "entry trigger indicator",
+    "numerical margin"
+  ]
+}

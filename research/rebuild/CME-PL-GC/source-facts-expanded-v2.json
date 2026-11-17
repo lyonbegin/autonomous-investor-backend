@@ -1,0 +1,347 @@
+{
+  "id": "CME-PL-GC-EXPANDED-FACTS-V2",
+  "source_url": "https://www.cmegroup.com/education/courses/understanding-futures-spreads/understanding-intermarket-spreads-platinum-and-gold",
+  "scope": "F01-F15 original worked-example accounting; F16-F25 source background and risk; F26 derived exposure check, all with provenance",
+  "status": "EXPLICIT_EXAMPLE_AND_RELEVANT_BACKGROUND_SEPARATED",
+  "audit_limit": "All 15 explicitly selected core statements, not a claim about every word on the CME page",
+  "facts": [
+    {
+      "id": "F01",
+      "subject": "case",
+      "predicate": "case_kind",
+      "value": "EDUCATIONAL_WORKED_EXAMPLE",
+      "evidence": "CME page, Gold-Platinum Spread Trade → P&L Example",
+      "evidence_exact_page_location": "lines 60-74",
+      "source_section": "CME article, published text"
+    },
+    {
+      "id": "F02",
+      "subject": "case",
+      "predicate": "spread_type",
+      "value": "INTERMARKET_FUTURES_RELATIVE_VALUE",
+      "evidence": "CME page, Creating a Futures Spread / Types of Spreads",
+      "evidence_exact_page_location": "lines 32-39;60-63",
+      "source_section": "CME article, published text"
+    },
+    {
+      "id": "F03",
+      "subject": "driver",
+      "predicate": "economic_hypothesis",
+      "value": "Higher automobile sales raise platinum demand; platinum price expected to outperform gold, narrowing the negative PL minus GC spread",
+      "evidence": "CME page, P&L Example introductory paragraph",
+      "evidence_exact_page_location": "lines 52-54;62-63",
+      "source_section": "CME article, published text"
+    },
+    {
+      "id": "F04",
+      "subject": "trade",
+      "predicate": "entry_date",
+      "value": "March 2; year not disclosed",
+      "evidence": "CME page, P&L Example introductory paragraph",
+      "evidence_exact_page_location": "lines 60-63",
+      "source_section": "CME article, published text"
+    },
+    {
+      "id": "F05",
+      "subject": "trade",
+      "predicate": "exit_date",
+      "value": "March 30; year not disclosed",
+      "evidence": "CME page, P&L Example closing paragraph",
+      "evidence_exact_page_location": "lines 65-70",
+      "source_section": "CME article, published text"
+    },
+    {
+      "id": "F06",
+      "subject": "pl_contract",
+      "predicate": "spec",
+      "value": {
+        "underlying": "Platinum",
+        "market": "NYMEX",
+        "contract_month": "APR",
+        "multiplier_oz_per_contract": 50
+      },
+      "evidence": "CME page, Gold-Platinum P&L example",
+      "evidence_exact_page_location": "lines 60-63;67-70",
+      "source_section": "CME article, published text"
+    },
+    {
+      "id": "F07",
+      "subject": "gc_contract",
+      "predicate": "spec",
+      "value": {
+        "underlying": "Gold",
+        "market": "COMEX",
+        "contract_month": "APR",
+        "multiplier_oz_per_contract": 100
+      },
+      "evidence": "CME page, Gold-Platinum P&L example and price spread chart context",
+      "evidence_exact_page_location": "lines 60-63;67-70",
+      "source_section": "CME article, published text"
+    },
+    {
+      "id": "F08",
+      "subject": "pl_leg",
+      "predicate": "trades",
+      "value": {
+        "entry_side": "BUY",
+        "exit_side": "SELL",
+        "contracts": 2,
+        "entry_price_usd_per_oz": 988.4,
+        "exit_price_usd_per_oz": 1056.4
+      },
+      "evidence": "CME page, entry/exit table",
+      "evidence_exact_page_location": "lines 62;67-70",
+      "source_section": "CME article, published text"
+    },
+    {
+      "id": "F09",
+      "subject": "gc_leg",
+      "predicate": "trades",
+      "value": {
+        "entry_side": "SELL",
+        "exit_side": "BUY",
+        "contracts": 1,
+        "entry_price_usd_per_oz": 1231.9,
+        "exit_price_usd_per_oz": 1244.2
+      },
+      "evidence": "CME page, entry/exit table",
+      "evidence_exact_page_location": "lines 62;67-70",
+      "source_section": "CME article, published text"
+    },
+    {
+      "id": "F10",
+      "subject": "pl_leg",
+      "predicate": "notionals_usd",
+      "value": {
+        "entry": 98840,
+        "exit": 105640
+      },
+      "evidence": "CME page, entry/exit table",
+      "evidence_exact_page_location": "lines 62-63;69-70",
+      "source_section": "CME article, published text"
+    },
+    {
+      "id": "F11",
+      "subject": "gc_leg",
+      "predicate": "notionals_usd",
+      "value": {
+        "entry": 123190,
+        "exit": 124420
+      },
+      "evidence": "CME page, entry/exit table",
+      "evidence_exact_page_location": "lines 62-63;69-70",
+      "source_section": "CME article, published text"
+    },
+    {
+      "id": "F12",
+      "subject": "spread",
+      "predicate": "price_per_oz",
+      "value": {
+        "entry": -243.5,
+        "exit": -187.8,
+        "spread_change": 55.7,
+        "spread_sign_definition": "PL minus GC"
+      },
+      "evidence": "CME page, entry/exit table",
+      "evidence_exact_page_location": "lines 63;68-70",
+      "source_section": "CME article, published text"
+    },
+    {
+      "id": "F13",
+      "subject": "pnl",
+      "predicate": "leg_and_total_usd",
+      "value": {
+        "pl": 6800,
+        "gc": -1230,
+        "total": 5570,
+        "calculation": "quantity × multiplier × (exit minus entry) × side sign"
+      },
+      "evidence": "CME page, P&L table",
+      "evidence_exact_page_location": "lines 69-74",
+      "source_section": "CME article, published text"
+    },
+    {
+      "id": "F14",
+      "subject": "case",
+      "predicate": "execution_semantics",
+      "value": {
+        "entry_legs_simultaneous": true,
+        "exit_legs_simultaneous": true,
+        "reported_fills_actual": false
+      },
+      "evidence": "CME page, P&L worked example",
+      "evidence_exact_page_location": "lines 62;65-70",
+      "source_section": "CME article, published text"
+    },
+    {
+      "id": "F15",
+      "subject": "margin",
+      "predicate": "general_qualifier",
+      "value": "Offset may reduce margin relative to outright positions; no numerical margin for this example",
+      "evidence": "CME page, Margin Offsets",
+      "evidence_exact_page_location": "lines 75-79",
+      "source_section": "CME article, published text"
+    },
+    {
+      "id": "F16",
+      "subject": "platinum_gold",
+      "predicate": "different_commodity_demand_roles",
+      "value": {
+        "platinum": [
+          "PRECIOUS_METAL",
+          "INDUSTRIAL_AUTOCATALYST",
+          "JEWELRY",
+          "INVESTMENT"
+        ],
+        "gold": [
+          "PRECIOUS_METAL",
+          "SAFE_HAVEN_IN_STRESS"
+        ]
+      },
+      "evidence": "CME official article, Gold-Platinum Spread Trade, lines 50-54",
+      "scope": "BACKGROUND_CONTEXT"
+    },
+    {
+      "id": "F17",
+      "subject": "market_regime",
+      "predicate": "historical_gold_premium_since_2015",
+      "value": {
+        "since_year": 2015,
+        "condition": "GOLD_PRICE_HIGHER_THAN_PLATINUM",
+        "negative_pl_minus_gc_spread": "WIDENED",
+        "temporal_qualifier": "AS_DESCRIBED_BY_SOURCE",
+        "not_a_trade_entry_trigger": true
+      },
+      "evidence": "CME article Gold-Platinum Spread Trade line 54",
+      "scope": "BACKGROUND_CONTEXT"
+    },
+    {
+      "id": "F18",
+      "subject": "market_regime",
+      "predicate": "macro_stress_gold_demand",
+      "value": {
+        "market_condition": "ECONOMIC_DISTRESS_OR_POLITICAL_UNCERTAINTY",
+        "demand_driver": "GOLD_SAFE_HAVEN_DEMAND",
+        "effect": "GOLD_RELATIVE_PRICE_SUPPORT"
+      },
+      "evidence": "CME article Gold-Platinum Spread Trade line 53",
+      "scope": "HYPOTHESIS_NOT_OBSERVED_TRADE"
+    },
+    {
+      "id": "F19",
+      "subject": "spread_classification",
+      "predicate": "intramarket_vs_intermarket",
+      "value": {
+        "intramarket": "same futures market, different contract months",
+        "intermarket": "related separate futures markets, similar maturities",
+        "case": "INTERMARKET"
+      },
+      "evidence": "CME article Types of Spreads lines 35-39",
+      "scope": "INSTRUMENT_CLASSIFICATION"
+    },
+    {
+      "id": "F20",
+      "subject": "spread_execution",
+      "predicate": "legging_risk",
+      "value": {
+        "risk": "INTERMARKET_SPREAD_MAY_HAVE_LEGGING_RISK",
+        "mitigations": [
+          "DEDICATED_INTERMARKET_SPREAD_CONTRACT",
+          "LIQUID_UNDERLYING_CONTRACTS",
+          "AUTOSPREADING_VENDOR_SCREEN"
+        ],
+        "example_executed_by_dedicated_spread_contract": "NOT_DISCLOSED"
+      },
+      "evidence": "CME article Types of Spreads line 39",
+      "scope": "GENERAL_EXECUTION_RISK_NOT_SPECIFIC_FILL"
+    },
+    {
+      "id": "F21",
+      "subject": "spread",
+      "predicate": "relative_value_hedging_purpose",
+      "value": {
+        "offsetting_futures_legs": true,
+        "risk_exposure": "RELATIVE_PRICE_DIFFERENTIAL_NOT_TWO_INDEPENDENT_OUTRIGHT_BETS",
+        "not_risk_free": true
+      },
+      "evidence": "CME article Creating a Futures Spread lines 30-34",
+      "scope": "GENERAL_MECHANISM"
+    },
+    {
+      "id": "F22",
+      "subject": "precious_metals",
+      "predicate": "correlated_but_different_drivers",
+      "value": {
+        "tend_to_correlate": true,
+        "underlying_economic_links": true,
+        "distinct_fundamental_drivers": true,
+        "no_correlation_coefficient_in_source": true
+      },
+      "evidence": "CME article introduction lines 27-29; Spread Trading with Precious Metals line 47",
+      "scope": "GENERAL_CONTEXT"
+    },
+    {
+      "id": "F23",
+      "subject": "spread_risk",
+      "predicate": "risk_benefits_as_source_claim",
+      "value": {
+        "may_reduce_volatility": true,
+        "may_reduce_margin": true,
+        "risk_adjusted_returns": "POTENTIALLY_SUPERIOR_NOT_GUARANTEED",
+        "example_numeric_risk_statistics": "NOT_DISCLOSED"
+      },
+      "evidence": "CME article introductory lines 27-29; Benefits of Spread Trading lines 40-44",
+      "scope": "GENERAL_CONTEXT_NOT_BACKTEST_RESULT"
+    },
+    {
+      "id": "F24",
+      "subject": "execution_infrastructure",
+      "predicate": "electronic_trading_context",
+      "value": {
+        "platform": "CME_GLOBEX",
+        "electronically_traded_share": "OVER_90_PERCENT_PRECIOUS_METAL_FUTURES",
+        "trading_access": "VIRTUALLY_24_HOURS",
+        "actual_case_order_route": "NOT_DISCLOSED"
+      },
+      "evidence": "CME article Spread Trading with Precious Metals lines 45-49",
+      "scope": "VENUE_BACKGROUND_NOT_EXAMPLE_ORDER"
+    },
+    {
+      "id": "F25",
+      "subject": "margin",
+      "predicate": "example_offset_specific_claim",
+      "value": {
+        "scanning_agent": "CME_CLEARING",
+        "portfolio_offset_match": "SOURCE_SAYS_WOULD_HAVE_BEEN_IDENTIFIED",
+        "relative_margin": "LESS_THAN_TWO_OUTRIGHT_POSITIONS",
+        "numeric_margin": "NOT_DISCLOSED",
+        "not_general_guarantee": true
+      },
+      "evidence": "CME article Margin Offsets lines 75-79",
+      "scope": "CASE_SPECIFIC_QUALITATIVE"
+    },
+    {
+      "id": "F26",
+      "subject": "spread",
+      "predicate": "matched_troy_ounce_exposure",
+      "value": {
+        "pl_quantity_oz": 100,
+        "gc_quantity_oz": 100,
+        "quantity_matching": "EQUAL_OUNCE_EXPOSURE",
+        "notional_matching": false,
+        "construction": "DERIVED_FROM_2*50_AND_1*100_NOT_STANDALONE_SOURCE_SENTENCE"
+      },
+      "evidence": "Derived from CME worked example line 62 and notional amounts line 63",
+      "scope": "DERIVED_NOT_DIRECTLY_REPORTED"
+    }
+  ],
+  "uncertainties": [
+    "trade year",
+    "actual historical fills",
+    "commission/slippage",
+    "precise calendar expiry",
+    "entry trigger indicator",
+    "numerical margin"
+  ],
+  "additional_facts_not_traded_as_fills": true
+}

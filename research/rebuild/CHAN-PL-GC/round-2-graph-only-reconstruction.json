@@ -1,0 +1,200 @@
+{
+  "graph_id": "CHAN-PL-GC-R2-GRAPH-ONLY",
+  "source_visible": false,
+  "independent_new_chat_session": false,
+  "legs": [
+    {
+      "direction": "LONG",
+      "contracts": 2,
+      "root": "PL",
+      "delivery_month": "JULY",
+      "contract_multiplier": 50,
+      "unit": "TROY_OZ_PER_CONTRACT"
+    },
+    {
+      "direction": "SHORT",
+      "contracts": 1,
+      "root": "GC",
+      "delivery_month": "JUNE",
+      "contract_multiplier": 100,
+      "unit": "TROY_OZ_PER_CONTRACT"
+    }
+  ],
+  "entry": {
+    "month": "FEBRUARY",
+    "portion": "LATE",
+    "exact_day": null,
+    "precision": "APPROXIMATE"
+  },
+  "exit": {
+    "month": "APRIL",
+    "portion": "MID",
+    "exact_day": null,
+    "precision": "APPROXIMATE"
+  },
+  "original_and_corrected_metrics": [
+    {
+      "id": "metric:old:avg",
+      "metric": "average_pnl",
+      "value": 6600,
+      "currency": "USD",
+      "period_description": "SINCE_1995",
+      "status": "ORIGINAL_SUPERSEDED",
+      "record_type": "PERFORMANCE"
+    },
+    {
+      "id": "metric:old:best",
+      "metric": "best_pnl",
+      "value": 15400,
+      "currency": "USD",
+      "period_description": "UNSPECIFIED_ORIGINAL",
+      "status": "ORIGINAL_SUPERSEDED",
+      "record_type": "PERFORMANCE"
+    },
+    {
+      "id": "metric:old:worst",
+      "metric": "worst_pnl",
+      "value": -3810,
+      "currency": "USD",
+      "period_description": "UNSPECIFIED_ORIGINAL",
+      "status": "ORIGINAL_SUPERSEDED",
+      "record_type": "PERFORMANCE"
+    },
+    {
+      "id": "metric:margin:base",
+      "metric": "initial_margin_requirement",
+      "value": 743,
+      "currency": "USD",
+      "period_description": "NYMEX_IN_2006",
+      "status": "HISTORICAL_AUTHOR_REPORT",
+      "record_type": "MARGIN"
+    },
+    {
+      "id": "metric:old:dd",
+      "metric": "maximum_drawdown",
+      "value": -10910,
+      "currency": "USD",
+      "period_description": "SINCE_2000_REACHED_IN_2001",
+      "status": "AUTHOR_COMMENT",
+      "record_type": "RISK"
+    },
+    {
+      "id": "metric:risk:required_capital",
+      "metric": "required_capital_including_drawdown",
+      "value": 11653,
+      "currency": "USD",
+      "period_description": "SINCE_2000_REACHED_IN_2001",
+      "status": "AUTHOR_COMMENT",
+      "record_type": "RISK"
+    },
+    {
+      "id": "metric:new:avg",
+      "metric": "average_pnl",
+      "value": 3064,
+      "currency": "USD",
+      "period_description": "LAST_7Y_AS_OF_2007",
+      "status": "CORRECTED_AUTHOR_REPORT",
+      "record_type": "PERFORMANCE"
+    },
+    {
+      "id": "metric:new:best",
+      "metric": "best_pnl",
+      "value": 7320,
+      "currency": "USD",
+      "period_description": "LAST_7Y_AS_OF_2007",
+      "status": "CORRECTED_AUTHOR_REPORT",
+      "record_type": "PERFORMANCE"
+    },
+    {
+      "id": "metric:new:worst",
+      "metric": "worst_pnl",
+      "value": -540,
+      "currency": "USD",
+      "period_description": "LAST_7Y_AS_OF_2007",
+      "status": "CORRECTED_AUTHOR_REPORT",
+      "record_type": "PERFORMANCE"
+    },
+    {
+      "id": "metric:new:dd",
+      "metric": "maximum_drawdown",
+      "value": -4860,
+      "currency": "USD",
+      "period_description": "LAST_7Y_AS_OF_2007",
+      "status": "CORRECTED_AUTHOR_REPORT",
+      "record_type": "RISK"
+    },
+    {
+      "id": "metric:hypo07:pnl",
+      "metric": "hypothetical_pnl",
+      "value": 6610,
+      "currency": "USD",
+      "period_description": "2007_FEB26_APR19",
+      "status": "HYPOTHETICAL_NOT_FILLED",
+      "record_type": "PERFORMANCE"
+    }
+  ],
+  "revision_links": [
+    {
+      "old": 6600,
+      "new": 3064
+    },
+    {
+      "old": 15400,
+      "new": 7320
+    },
+    {
+      "old": -3810,
+      "new": -540
+    }
+  ],
+  "initial_margin_usd": 743,
+  "conditional_2007_scenario": {
+    "condition": "IF_TRADED",
+    "start": "2007-02-26_NEAR_CLOSE",
+    "end": "2007-04-19_NEAR_CLOSE",
+    "actual_execution": false
+  },
+  "graph_only_checks": {
+    "legs": true,
+    "corrected_metrics_three": true,
+    "source_nodes_leaked": false,
+    "seasonality_structured": false,
+    "risk_neutrality_structured": false,
+    "capital_derivation_structured": false
+  },
+  "failures": [
+    {
+      "area": "ECONOMIC_CAUSATION",
+      "reason": "Seasonal demand explanation remains only one EvidenceAssertion text; there is no event -> gold jewelry demand -> relative price -> spread direction chain.",
+      "source_facts": [
+        "C09",
+        "C10"
+      ]
+    },
+    {
+      "area": "RISK_NEUTRALITY",
+      "reason": "Ounce matching and dollar/volatility neutrality are not independent graph measures; source opinion is collapsed into one EvidenceAssertion.",
+      "source_facts": [
+        "C22",
+        "C23"
+      ]
+    },
+    {
+      "area": "MARGIN_TO_RISK_CAPITAL",
+      "reason": "$11,653 quoted capital is stored but there is no node/edge for additive $743 initial margin plus $10,910 drawdown or type distinction.",
+      "source_facts": [
+        "C16"
+      ]
+    },
+    {
+      "area": "MEASUREMENT_COMPARABILITY",
+      "reason": "2006 comment $10,910 and 2007 corrected $4,860 maximum drawdown are source metrics with period-description strings only; measurement windows and author contradiction status cannot be traversed.",
+      "source_facts": [
+        "C15",
+        "C20"
+      ]
+    }
+  ],
+  "verdict": "REBUILD_REQUIRED",
+  "note": "Financial-semantic graph traversal here avoids source registry; final independent LLM replay remains unavailable."
+}

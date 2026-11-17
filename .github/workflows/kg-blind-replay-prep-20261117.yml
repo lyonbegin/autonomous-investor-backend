@@ -1,0 +1,57 @@
+name: KG Blind ChatGPT Replay - Prepare Separate Session Input
+
+on:
+  workflow_dispatch:
+    inputs:
+      case_id:
+        description: Case graph to package for separate ChatGPT session
+        required: true
+        type: choice
+        options:
+          - CME-PL-GC
+          - CHAN-PL-GC
+
+permissions:
+  contents: read
+
+jobs:
+  package-independent-replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare exactly one source-free graph
+        env:
+          CASE_ID: ${{ inputs.case_id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$CASE_ID" == "CME-PL-GC" ]]; then
+            dir="research/rebuild/CME-PL-GC"
+          elif [[ "$CASE_ID" == "CHAN-PL-GC" ]]; then
+            dir="research/rebuild/CHAN-PL-GC"
+          else
+            echo 'FAIL_UNKNOWN_CASE' >&2; exit 1
+          fi
+          active="$dir/active.json"
+          test -s "$active"
+          basename="$(jq -er '.current_reconstruction_input' "$active")"
+          [[ "$basename" =~ ^[A-Za-z0-9_.-]+\.json$ ]] || { echo "FAIL_UNSAFE_INPUT_PATH" >&2; exit 1; }
+          src="$dir/$basename"
+          test -s "$src"
+          jq -e '(.nodes|all(.[]; ((.type // .canonical_type)!="SourceDocument") and ((.type // .canonical_type)!="SourcePassage"))) and (.edges|type=="array")' "$src" >/dev/null
+          jq 'del(.graph_id,.id,.source_fact_register,.source,.provenance,.source_url) | .blind_task_id="ANON_FINANCIAL_CASE"' "$src" > BLIND_GRAPH.json
+          jq -e '.nodes|length>0' BLIND_GRAPH.json >/dev/null
+          cp research/prompts/BLIND_REPLAY_ONLY_V1.md BLIND_PROMPT.md
+          test -s BLIND_GRAPH.json && test -s BLIND_PROMPT.md
+          echo '### 독립 ChatGPT 역재현 입력 생성' >> "$GITHUB_STEP_SUMMARY"
+          echo '- 상태: **PREPARED_ONLY** (ChatGPT 호출 미실행)' >> "$GITHUB_STEP_SUMMARY"
+          echo '- 입력: 원문·정답·기존 분석 대화를 제외한 지식그래프 JSON' >> "$GITHUB_STEP_SUMMARY"
+          echo '- 다음 작업: 서로 다른 **새 ChatGPT 대화**로 파일을 전달한 후 독립 응답 수신' >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: blind-chatgpt-replay-${{ inputs.case_id }}
+          path: |
+            BLIND_GRAPH.json
+            BLIND_PROMPT.md
+          retention-days: 30

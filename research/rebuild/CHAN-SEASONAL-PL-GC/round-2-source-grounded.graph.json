@@ -1,0 +1,1205 @@
+{
+  "id": "CHAN_R2_SEASONAL_AUTHOR_EVIDENCE_REBUILD",
+  "version": "R2_FULL_REBUILD_FROM_AUTHOR_MAIN_AND_COMMENT_EXCERPTS",
+  "basis": "604 original + v7 proposals with further typed causal and source relations",
+  "nodes": [
+    {
+      "id": "chan:case",
+      "type": "TradeCase",
+      "fields": {
+        "kind": "AUTHOR_DESCRIBED_SEASONAL_STRATEGY",
+        "source_date": "2006-11-24",
+        "actual_orders_independently_verified": false,
+        "has_author_reported_backtest": true,
+        "has_author_reported_2006_paper_trade": true
+      }
+    },
+    {
+      "id": "chan:source",
+      "type": "SourceDocument",
+      "fields": {
+        "url": "https://epchan.blogspot.com/2006/11/trading-platinum-gold-seasonal-spread.html",
+        "author": "Ernie Chan",
+        "published": "2006-11-24",
+        "type": "AUTHOR_BLOG_WITH_AUTHOR_COMMENTS",
+        "full_author_comment_access": "SEARCH_INDEXED_EXCERPT_DIRECT_PAGE_429"
+      }
+    },
+    {
+      "id": "chan:passage:main",
+      "type": "SourcePassage",
+      "fields": {
+        "locator": "2006-11-24 main post: strategy contracts, timing and hedging quantities",
+        "publisher": "SOURCE_AND_AUTHOR_COMMENT",
+        "raw_text_not_copied": true
+      }
+    },
+    {
+      "id": "chan:passage:performance",
+      "type": "SourcePassage",
+      "fields": {
+        "locator": "2006-11-24 main post: profit distribution and $743 reported margin",
+        "publisher": "SOURCE_AND_AUTHOR_COMMENT",
+        "raw_text_not_copied": true
+      }
+    },
+    {
+      "id": "chan:passage:fundamental",
+      "type": "SourcePassage",
+      "fields": {
+        "locator": "2006-11-24 main post: gold festival jewelry demand / platinum catalyst demand",
+        "publisher": "SOURCE_AND_AUTHOR_COMMENT",
+        "raw_text_not_copied": true
+      }
+    },
+    {
+      "id": "chan:passage:ref",
+      "type": "SourcePassage",
+      "fields": {
+        "locator": "2006-11-24 main post: Jerry Toepke / SFO January 2006 reference",
+        "publisher": "SOURCE_AND_AUTHOR_COMMENT",
+        "raw_text_not_copied": true
+      }
+    },
+    {
+      "id": "chan:passage:risk2006",
+      "type": "SourcePassage",
+      "fields": {
+        "locator": "2006-11-26 Ernie Chan comment: max drawdown and capital requirement",
+        "publisher": "SOURCE_AND_AUTHOR_COMMENT",
+        "raw_text_not_copied": true
+      }
+    },
+    {
+      "id": "chan:passage:methods2007",
+      "type": "SourcePassage",
+      "fields": {
+        "locator": "2007-08-18 Ernie Chan reply: Matlab research / Excel possible",
+        "publisher": "SOURCE_AND_AUTHOR_COMMENT",
+        "raw_text_not_copied": true
+      }
+    },
+    {
+      "id": "chan:passage:neutrality2007",
+      "type": "SourcePassage",
+      "fields": {
+        "locator": "2007-08-19 Ernie Chan reply: dollar neutrality, market values, outright risk and alternative",
+        "publisher": "SOURCE_AND_AUTHOR_COMMENT",
+        "raw_text_not_copied": true
+      }
+    },
+    {
+      "id": "chan:strategy",
+      "type": "TradingStrategy",
+      "fields": {
+        "kind": "INTERMARKET_CROSS_DELIVERY_MONTH_SEASONAL_SPREAD",
+        "mode": "CALENDAR_WINDOW_ENTRY_AND_EXIT_NOT_PRICE_THRESHOLD",
+        "scenario_status": "AUTHOR_REPORTED_NOT_VERIFIED_EXECUTION"
+      }
+    },
+    {
+      "id": "chan:pair",
+      "type": "FuturesPair",
+      "fields": {
+        "roots": [
+          "PL",
+          "GC"
+        ],
+        "relative_exposure": "LONG_PLATINUM_SHORT_GOLD",
+        "intermarket": true,
+        "contract_months_differ": true,
+        "match_rule": "CONTRACTS_EQUALIZE_TROY_OUNCES_NOT_DOLLAR_NOTIONAL"
+      }
+    },
+    {
+      "id": "chan:position",
+      "type": "TradePosition",
+      "fields": {
+        "classification": "ABSTRACT_SPREAD_POSITION",
+        "actual_fill_prices": null,
+        "notional_dollar_neutral": false,
+        "matched_troy_oz_per_side": 100
+      }
+    },
+    {
+      "id": "chan:asset:pl",
+      "type": "Asset",
+      "fields": {
+        "asset_class": "FUTURES",
+        "underlying": "PLATINUM",
+        "root": "PL"
+      }
+    },
+    {
+      "id": "chan:contract:pl",
+      "type": "FuturesContract",
+      "fields": {
+        "root": "PL",
+        "contract_month": "JUL",
+        "contract_year": null,
+        "exchange": "NYMEX",
+        "symbol_precision": "ROOT_PLUS_MONTH_ONLY"
+      }
+    },
+    {
+      "id": "chan:spec:pl",
+      "type": "ContractSpecification",
+      "fields": {
+        "multiplier": 50,
+        "unit": "TROY_OZ_PER_CONTRACT",
+        "currency": "USD",
+        "published_contract_size": true
+      }
+    },
+    {
+      "id": "chan:leg:pl",
+      "type": "TradeLeg",
+      "fields": {
+        "side": "LONG",
+        "contracts": 2,
+        "notional_price": null,
+        "matched_physical_oz": 100,
+        "position_factor": 1
+      }
+    },
+    {
+      "id": "chan:asset:gc",
+      "type": "Asset",
+      "fields": {
+        "asset_class": "FUTURES",
+        "underlying": "GOLD",
+        "root": "GC"
+      }
+    },
+    {
+      "id": "chan:contract:gc",
+      "type": "FuturesContract",
+      "fields": {
+        "root": "GC",
+        "contract_month": "JUN",
+        "contract_year": null,
+        "exchange": "COMEX",
+        "symbol_precision": "ROOT_PLUS_MONTH_ONLY"
+      }
+    },
+    {
+      "id": "chan:spec:gc",
+      "type": "ContractSpecification",
+      "fields": {
+        "multiplier": 100,
+        "unit": "TROY_OZ_PER_CONTRACT",
+        "currency": "USD",
+        "published_contract_size": true
+      }
+    },
+    {
+      "id": "chan:leg:gc",
+      "type": "TradeLeg",
+      "fields": {
+        "side": "SHORT",
+        "contracts": 1,
+        "notional_price": null,
+        "matched_physical_oz": 100,
+        "position_factor": -1
+      }
+    },
+    {
+      "id": "chan:window:entry",
+      "type": "CalendarTradingWindow",
+      "fields": {
+        "relative_to_calendar": "END_OF_FEBRUARY",
+        "approximate": true,
+        "exact_day": null,
+        "recurring_annually": true
+      }
+    },
+    {
+      "id": "chan:window:exit",
+      "type": "CalendarTradingWindow",
+      "fields": {
+        "relative_to_calendar": "MID_APRIL",
+        "approximate": true,
+        "exact_day": null,
+        "recurring_annually": true
+      }
+    },
+    {
+      "id": "chan:rule:entry",
+      "type": "TradingRule",
+      "fields": {
+        "role": "SEASONAL_ENTRY",
+        "signal_logic": "WHEN_ANNUAL_ENTRY_WINDOW_ARRIVES",
+        "no_price_threshold": true
+      }
+    },
+    {
+      "id": "chan:rule:exit",
+      "type": "TradingRule",
+      "fields": {
+        "role": "SEASONAL_EXIT",
+        "signal_logic": "WHEN_ANNUAL_EXIT_WINDOW_ARRIVES",
+        "no_price_threshold": true
+      }
+    },
+    {
+      "id": "chan:action:buy_pl",
+      "type": "TradeAction",
+      "fields": {
+        "kind": "OPEN_LONG",
+        "root": "PL",
+        "contracts": 2,
+        "order_fill_proof": false
+      }
+    },
+    {
+      "id": "chan:action:sell_gc",
+      "type": "TradeAction",
+      "fields": {
+        "kind": "OPEN_SHORT",
+        "root": "GC",
+        "contracts": 1,
+        "order_fill_proof": false
+      }
+    },
+    {
+      "id": "chan:action:close_pl",
+      "type": "TradeAction",
+      "fields": {
+        "kind": "CLOSE_LONG",
+        "root": "PL",
+        "contracts": 2,
+        "order_fill_proof": false
+      }
+    },
+    {
+      "id": "chan:action:close_gc",
+      "type": "TradeAction",
+      "fields": {
+        "kind": "CLOSE_SHORT",
+        "root": "GC",
+        "contracts": 1,
+        "order_fill_proof": false
+      }
+    },
+    {
+      "id": "chan:causal:festival",
+      "type": "SeasonalDemandDriver",
+      "fields": {
+        "festival_season": "INDIA_CHINA_YEAR_END_AND_CHINESE_NEW_YEAR",
+        "time_end": "AFTER_CHINESE_NEW_YEAR_APPROX_FEBRUARY",
+        "observation_status": "AUTHOR_AND_REFERENCED_TOEPKE_EXPLANATION"
+      }
+    },
+    {
+      "id": "chan:causal:gold_jewelry",
+      "type": "CommodityUseChannel",
+      "fields": {
+        "underlying": "GOLD",
+        "demand_channel": "JEWELRY_CONSUMPTION",
+        "region": [
+          "INDIA",
+          "CHINA"
+        ]
+      }
+    },
+    {
+      "id": "chan:causal:gold_delivery_fade",
+      "type": "CommodityDemandExpectation",
+      "fields": {
+        "commodity": "GOLD",
+        "seasonal_pattern": "JEWELRY_DELIVERY_DEMAND_SEASONALLY_EXHAUSTED_AFTER_FESTIVALS",
+        "not_measured_series": true
+      }
+    },
+    {
+      "id": "chan:causal:platinum_industry",
+      "type": "CommodityUseChannel",
+      "fields": {
+        "underlying": "PLATINUM",
+        "demand_channel": "AUTOMOTIVE_CATALYTIC_CONVERTERS",
+        "seasonality": "WEAKER_THAN_JEWELRY_GOLD"
+      }
+    },
+    {
+      "id": "chan:causal:relative_spread",
+      "type": "SpreadDirectionExpectation",
+      "fields": {
+        "position": "LONG_PL_SHORT_GC",
+        "economic_logic": "PL_LONG_HEDGES_PART_OF_GOLD_MARKET_EXPOSURE_WHILE_GOLD_SEASONAL_DEMAND_EASES",
+        "mechanical_entry_signal": false
+      }
+    },
+    {
+      "id": "chan:metric:margin_original",
+      "type": "SourceReportedMetric",
+      "fields": {
+        "metric": "margin_original",
+        "value": 743,
+        "unit": "USD",
+        "source_status": "ORIGINAL_BLOG_CLAIM",
+        "year": null,
+        "not_current": true
+      }
+    },
+    {
+      "id": "chan:metric:mean_pnl",
+      "type": "SourceReportedMetric",
+      "fields": {
+        "metric": "mean_pnl",
+        "value": 6600,
+        "unit": "USD_PER_YEAR",
+        "source_status": "AUTHOR_BACKTEST_REPORTED",
+        "year": 1995,
+        "not_current": true
+      }
+    },
+    {
+      "id": "chan:metric:best_pnl",
+      "type": "SourceReportedMetric",
+      "fields": {
+        "metric": "best_pnl",
+        "value": 15400,
+        "unit": "USD_PER_YEAR",
+        "source_status": "AUTHOR_BACKTEST_REPORTED",
+        "year": null,
+        "not_current": true
+      }
+    },
+    {
+      "id": "chan:metric:worst_pnl",
+      "type": "SourceReportedMetric",
+      "fields": {
+        "metric": "worst_pnl",
+        "value": -3810,
+        "unit": "USD_PER_YEAR",
+        "source_status": "AUTHOR_BACKTEST_REPORTED",
+        "year": null,
+        "not_current": true
+      }
+    },
+    {
+      "id": "chan:metric:max_dd_since2000",
+      "type": "SourceReportedMetric",
+      "fields": {
+        "metric": "max_dd_since2000",
+        "value": 10910,
+        "unit": "USD",
+        "source_status": "AUTHOR_2006_COMMENT",
+        "year": 2001,
+        "not_current": true
+      }
+    },
+    {
+      "id": "chan:metric:max_capital_need",
+      "type": "SourceReportedMetric",
+      "fields": {
+        "metric": "max_capital_need",
+        "value": 11653,
+        "unit": "USD",
+        "source_status": "AUTHOR_2006_COMMENT",
+        "year": null,
+        "not_current": true
+      }
+    },
+    {
+      "id": "chan:metric:author_market_value_gc",
+      "type": "SourceReportedMetric",
+      "fields": {
+        "metric": "author_market_value_gc",
+        "value": 6650,
+        "unit": "USD",
+        "source_status": "AUTHOR_2007_COMMENT_AS_WRITTEN_SUSPECT_SCALE",
+        "year": null,
+        "not_current": true
+      }
+    },
+    {
+      "id": "chan:metric:author_market_value_2pl",
+      "type": "SourceReportedMetric",
+      "fields": {
+        "metric": "author_market_value_2pl",
+        "value": 12260,
+        "unit": "USD",
+        "source_status": "AUTHOR_2007_COMMENT_AS_WRITTEN_SUSPECT_SCALE",
+        "year": null,
+        "not_current": true
+      }
+    },
+    {
+      "id": "chan:calc:capital_requirement",
+      "type": "CalculationExpression",
+      "fields": {
+        "expression": "author_reported_margin + maximum_intra_trade_drawdown",
+        "inputs": [
+          "chan:metric:margin_original",
+          "chan:metric:max_dd_since2000"
+        ],
+        "target": "chan:metric:max_capital_need",
+        "output_unit": "USD",
+        "meaning": "HISTORICAL_EXTREME_FUNDING_NEED_NOT_EXCHANGE_MAINTENANCE_MARGIN"
+      }
+    },
+    {
+      "id": "chan:study:backtest",
+      "type": "ResearchProcedureStep",
+      "fields": {
+        "role": "AUTHOR_BACKTEST",
+        "year_start_reported": 1995,
+        "year_end": null,
+        "underlying_bars": "NOT_ATTACHED",
+        "author_says_success": true
+      }
+    },
+    {
+      "id": "chan:study:paper2006",
+      "type": "ResearchProcedureStep",
+      "fields": {
+        "role": "PAPER_TRADE",
+        "year": 2006,
+        "actual_broker_fills_verified": false,
+        "author_says_success": true
+      }
+    },
+    {
+      "id": "chan:claim:6of7",
+      "type": "EvidenceAssertion",
+      "fields": {
+        "content": "Profitable in all but one of the last seven years",
+        "metric_kind": "QUALITATIVE_ROLLING_7YR",
+        "exact_individual_years": null
+      }
+    },
+    {
+      "id": "chan:research:citation",
+      "type": "SourceDocument",
+      "fields": {
+        "title": "Give Seasonal Spreads Some Respect",
+        "author": "Jerry Toepke",
+        "publication": "Stocks, Futures and Options Magazine",
+        "publication_issue": "2006-01",
+        "content_access": "NOT_RETRIEVED",
+        "role": "CITED_ORIGIN_NOT_SECOND_HAND_VERIFIED"
+      }
+    },
+    {
+      "id": "chan:claim:physical_hedge",
+      "type": "EvidenceAssertion",
+      "fields": {
+        "claim": "2PL*50oz = 1GC*100oz",
+        "claim_kind": "SOURCE_STATED_HEDGE_BY_WEIGHT",
+        "not_dollar_neutral": true,
+        "not_volatility_neutral": true
+      }
+    },
+    {
+      "id": "chan:claim:dollar_neutrality",
+      "type": "EvidenceAssertion",
+      "fields": {
+        "claim": "Equal ounces do not make the position dollar neutral; long PL notional/risk dominates (author Aug 2007 comment)",
+        "claim_kind": "LATER_AUTHOR_RISK_QUALIFICATION"
+      }
+    },
+    {
+      "id": "chan:claim:outright_risk",
+      "type": "EvidenceAssertion",
+      "fields": {
+        "claim": "Risk approximates one outright PL futures contract according to author",
+        "claim_kind": "QUALITATIVE_AUTHOR_COMPARISON_NOT_COMPUTED_PORTFOLIO_VAR"
+      }
+    },
+    {
+      "id": "chan:claim:alt_strategy",
+      "type": "EvidenceAssertion",
+      "fields": {
+        "claim": "A dollar-neutral alternative was historically and in author's trading test less profitable",
+        "claim_kind": "AUTHOR_COMPARATIVE_ANECDOTE_NO_DATA",
+        "not_executable_configuration": true
+      }
+    },
+    {
+      "id": "chan:claim:paper_trading",
+      "type": "EvidenceAssertion",
+      "fields": {
+        "claim": "Author explicitly paper traded in 2006",
+        "claim_kind": "MAIN_ARTICLE_PERSONAL_REPORT"
+      }
+    },
+    {
+      "id": "chan:claim:real_test",
+      "type": "EvidenceAssertion",
+      "fields": {
+        "claim": "Author later refers to real trading test while comparing dollar-neutral alternative",
+        "claim_kind": "LATER_COMMENT_PERSONAL_REPORT",
+        "actual_fill_proof": false
+      }
+    },
+    {
+      "id": "chan:conflict:execution_status",
+      "type": "EvidenceConflict",
+      "fields": {
+        "kind": "AUTHOR_EXECUTION_TERM_SCOPE_UNRESOLVED",
+        "not_necessarily_direct_contradiction": true,
+        "resolution": "Do not infer author had confirmed live fills of the same 2006 paper-traded experiment"
+      }
+    },
+    {
+      "id": "chan:claim:author_values_warning",
+      "type": "EvidenceAssertion",
+      "fields": {
+        "claim": "Later author mentions GC $6,650 and 2PL $12,260 as market values; potential order-of-magnitude discrepancy given contract sizes",
+        "interpretation": "DO_NOT_CORRECT_NUMBERS_WITHOUT_ORIGINAL_PRICE_REFERENCE",
+        "status": "AUTHOR_QUOTE_WITH_SCALE_UNCERTAINTY"
+      }
+    },
+    {
+      "id": "chan:study:tools",
+      "type": "ResearchProcedureStep",
+      "fields": {
+        "method": "MATLAB_MOST_RESEARCH_AND_EXCEL_SUFFICIENT_FOR_SIMPLE_SPREAD",
+        "comment_date": "2007-08-18",
+        "programmatic_backtest_source_code": "NOT_AVAILABLE"
+      }
+    },
+    {
+      "id": "chan:gap:exact_data",
+      "type": "EvidenceAssertion",
+      "fields": {
+        "kind": "SOURCE_INFORMATION_NOT_DISCLOSED",
+        "missing": [
+          "EXACT_CALENDAR_DAYS",
+          "YEAR_BY_YEAR_FILLS",
+          "MARKET_DATA_SERIES",
+          "COMMISSION_SLIPPAGE",
+          "ACTUAL_BROKER_TRADE_LOG",
+          "EXACT_DOLLAR_NEUTRAL_ALTERNATIVE_RATIO"
+        ],
+        "source_not_applicable_to_actual_fill_reconstruction": true
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "chan:source",
+      "relation": "SOURCE_HAS_PASSAGE",
+      "to": "chan:passage:main"
+    },
+    {
+      "from": "chan:source",
+      "relation": "SOURCE_HAS_PASSAGE",
+      "to": "chan:passage:performance"
+    },
+    {
+      "from": "chan:source",
+      "relation": "SOURCE_HAS_PASSAGE",
+      "to": "chan:passage:fundamental"
+    },
+    {
+      "from": "chan:source",
+      "relation": "SOURCE_HAS_PASSAGE",
+      "to": "chan:passage:ref"
+    },
+    {
+      "from": "chan:source",
+      "relation": "SOURCE_HAS_PASSAGE",
+      "to": "chan:passage:risk2006"
+    },
+    {
+      "from": "chan:source",
+      "relation": "SOURCE_HAS_PASSAGE",
+      "to": "chan:passage:methods2007"
+    },
+    {
+      "from": "chan:source",
+      "relation": "SOURCE_HAS_PASSAGE",
+      "to": "chan:passage:neutrality2007"
+    },
+    {
+      "from": "chan:case",
+      "relation": "CASE_DERIVED_FROM_SOURCE",
+      "to": "chan:source"
+    },
+    {
+      "from": "chan:case",
+      "relation": "CASE_USES_STRATEGY",
+      "to": "chan:strategy"
+    },
+    {
+      "from": "chan:strategy",
+      "relation": "STRATEGY_USES_FUTURES_PAIR",
+      "to": "chan:pair"
+    },
+    {
+      "from": "chan:case",
+      "relation": "CASE_HAS_POSITION",
+      "to": "chan:position"
+    },
+    {
+      "from": "chan:position",
+      "relation": "POSITION_CONTAINS_LEG",
+      "to": "chan:leg:pl"
+    },
+    {
+      "from": "chan:leg:pl",
+      "relation": "LEG_TRADES_FUTURES_CONTRACT",
+      "to": "chan:contract:pl"
+    },
+    {
+      "from": "chan:contract:pl",
+      "relation": "CONTRACT_HAS_SPECIFICATION",
+      "to": "chan:spec:pl"
+    },
+    {
+      "from": "chan:contract:pl",
+      "relation": "CONTRACT_ROOTED_IN_ASSET",
+      "to": "chan:asset:pl"
+    },
+    {
+      "from": "chan:position",
+      "relation": "POSITION_CONTAINS_LEG",
+      "to": "chan:leg:gc"
+    },
+    {
+      "from": "chan:leg:gc",
+      "relation": "LEG_TRADES_FUTURES_CONTRACT",
+      "to": "chan:contract:gc"
+    },
+    {
+      "from": "chan:contract:gc",
+      "relation": "CONTRACT_HAS_SPECIFICATION",
+      "to": "chan:spec:gc"
+    },
+    {
+      "from": "chan:contract:gc",
+      "relation": "CONTRACT_ROOTED_IN_ASSET",
+      "to": "chan:asset:gc"
+    },
+    {
+      "from": "chan:strategy",
+      "relation": "STRATEGY_HAS_ENTRY_RULE",
+      "to": "chan:rule:entry"
+    },
+    {
+      "from": "chan:strategy",
+      "relation": "STRATEGY_HAS_EXIT_RULE",
+      "to": "chan:rule:exit"
+    },
+    {
+      "from": "chan:rule:entry",
+      "relation": "RULE_USES_CALENDAR_WINDOW",
+      "to": "chan:window:entry"
+    },
+    {
+      "from": "chan:rule:exit",
+      "relation": "RULE_USES_CALENDAR_WINDOW",
+      "to": "chan:window:exit"
+    },
+    {
+      "from": "chan:rule:entry",
+      "relation": "RULE_DECLARES_ACTION",
+      "to": "chan:action:buy_pl"
+    },
+    {
+      "from": "chan:rule:entry",
+      "relation": "RULE_DECLARES_ACTION",
+      "to": "chan:action:sell_gc"
+    },
+    {
+      "from": "chan:rule:exit",
+      "relation": "RULE_DECLARES_ACTION",
+      "to": "chan:action:close_pl"
+    },
+    {
+      "from": "chan:rule:exit",
+      "relation": "RULE_DECLARES_ACTION",
+      "to": "chan:action:close_gc"
+    },
+    {
+      "from": "chan:action:buy_pl",
+      "relation": "ACTION_APPLIES_TO_LEG",
+      "to": "chan:leg:pl"
+    },
+    {
+      "from": "chan:action:sell_gc",
+      "relation": "ACTION_APPLIES_TO_LEG",
+      "to": "chan:leg:gc"
+    },
+    {
+      "from": "chan:action:close_pl",
+      "relation": "ACTION_APPLIES_TO_LEG",
+      "to": "chan:leg:pl"
+    },
+    {
+      "from": "chan:action:close_gc",
+      "relation": "ACTION_APPLIES_TO_LEG",
+      "to": "chan:leg:gc"
+    },
+    {
+      "from": "chan:case",
+      "relation": "CASE_HAS_SEASONAL_DRIVER",
+      "to": "chan:causal:festival"
+    },
+    {
+      "from": "chan:causal:festival",
+      "relation": "FESTIVAL_CYCLE_AFFECTS_GOLD_USE",
+      "to": "chan:causal:gold_jewelry"
+    },
+    {
+      "from": "chan:causal:gold_jewelry",
+      "relation": "GOLD_USE_DRIVES_SEASONAL_DELIVERY",
+      "to": "chan:causal:gold_delivery_fade"
+    },
+    {
+      "from": "chan:causal:gold_delivery_fade",
+      "relation": "GOLD_SEASONAL_DEMAND_CONTRASTS_WITH_PLATINUM_USE",
+      "to": "chan:causal:platinum_industry"
+    },
+    {
+      "from": "chan:causal:platinum_industry",
+      "relation": "COMMODITY_SEASONAL_DIFFERENCE_SUPPORTS_SPREAD_EXPECTATION",
+      "to": "chan:causal:relative_spread"
+    },
+    {
+      "from": "chan:causal:relative_spread",
+      "relation": "SPREAD_EXPECTATION_TARGETS_PAIR",
+      "to": "chan:pair"
+    },
+    {
+      "from": "chan:case",
+      "relation": "CASE_REPORTS_METRIC",
+      "to": "chan:metric:margin_original"
+    },
+    {
+      "from": "chan:case",
+      "relation": "CASE_REPORTS_METRIC",
+      "to": "chan:metric:mean_pnl"
+    },
+    {
+      "from": "chan:case",
+      "relation": "CASE_REPORTS_METRIC",
+      "to": "chan:metric:best_pnl"
+    },
+    {
+      "from": "chan:case",
+      "relation": "CASE_REPORTS_METRIC",
+      "to": "chan:metric:worst_pnl"
+    },
+    {
+      "from": "chan:case",
+      "relation": "CASE_REPORTS_METRIC",
+      "to": "chan:metric:max_dd_since2000"
+    },
+    {
+      "from": "chan:case",
+      "relation": "CASE_REPORTS_METRIC",
+      "to": "chan:metric:max_capital_need"
+    },
+    {
+      "from": "chan:case",
+      "relation": "CASE_REPORTS_METRIC",
+      "to": "chan:metric:author_market_value_gc"
+    },
+    {
+      "from": "chan:case",
+      "relation": "CASE_REPORTS_METRIC",
+      "to": "chan:metric:author_market_value_2pl"
+    },
+    {
+      "from": "chan:calc:capital_requirement",
+      "relation": "CALCULATION_READS_INPUT",
+      "to": "chan:metric:margin_original"
+    },
+    {
+      "from": "chan:calc:capital_requirement",
+      "relation": "CALCULATION_READS_INPUT",
+      "to": "chan:metric:max_dd_since2000"
+    },
+    {
+      "from": "chan:calc:capital_requirement",
+      "relation": "CALCULATION_PRODUCES_METRIC",
+      "to": "chan:metric:max_capital_need"
+    },
+    {
+      "from": "chan:case",
+      "relation": "CASE_HAS_RESEARCH_STEP",
+      "to": "chan:study:backtest"
+    },
+    {
+      "from": "chan:case",
+      "relation": "CASE_HAS_RESEARCH_STEP",
+      "to": "chan:study:paper2006"
+    },
+    {
+      "from": "chan:case",
+      "relation": "CASE_HAS_ASSERTION",
+      "to": "chan:claim:6of7"
+    },
+    {
+      "from": "chan:source",
+      "relation": "SOURCE_CITES_RESEARCH_DOCUMENT",
+      "to": "chan:research:citation"
+    },
+    {
+      "from": "chan:case",
+      "relation": "CASE_HAS_ASSERTION",
+      "to": "chan:claim:physical_hedge"
+    },
+    {
+      "from": "chan:case",
+      "relation": "CASE_HAS_ASSERTION",
+      "to": "chan:claim:dollar_neutrality"
+    },
+    {
+      "from": "chan:case",
+      "relation": "CASE_HAS_ASSERTION",
+      "to": "chan:claim:outright_risk"
+    },
+    {
+      "from": "chan:case",
+      "relation": "CASE_HAS_ASSERTION",
+      "to": "chan:claim:alt_strategy"
+    },
+    {
+      "from": "chan:claim:physical_hedge",
+      "relation": "HEDGE_CLAIM_APPLIES_TO_PAIR",
+      "to": "chan:pair"
+    },
+    {
+      "from": "chan:claim:dollar_neutrality",
+      "relation": "NEUTRALITY_QUALIFICATION_OF",
+      "to": "chan:claim:physical_hedge"
+    },
+    {
+      "from": "chan:claim:outright_risk",
+      "relation": "RISK_ANALOGY_OF_POSITION",
+      "to": "chan:position"
+    },
+    {
+      "from": "chan:claim:alt_strategy",
+      "relation": "ALTERNATIVE_OF_SEASONAL_STRATEGY",
+      "to": "chan:strategy"
+    },
+    {
+      "from": "chan:conflict:execution_status",
+      "relation": "CONFLICT_CONTAINS_ASSERTION",
+      "to": "chan:claim:paper_trading"
+    },
+    {
+      "from": "chan:conflict:execution_status",
+      "relation": "CONFLICT_CONTAINS_ASSERTION",
+      "to": "chan:claim:real_test"
+    },
+    {
+      "from": "chan:case",
+      "relation": "CASE_HAS_EVIDENCE_CONFLICT",
+      "to": "chan:conflict:execution_status"
+    },
+    {
+      "from": "chan:case",
+      "relation": "CASE_HAS_ASSERTION",
+      "to": "chan:claim:author_values_warning"
+    },
+    {
+      "from": "chan:claim:author_values_warning",
+      "relation": "CLAIM_CITES_METRIC",
+      "to": "chan:metric:author_market_value_gc"
+    },
+    {
+      "from": "chan:claim:author_values_warning",
+      "relation": "CLAIM_CITES_METRIC",
+      "to": "chan:metric:author_market_value_2pl"
+    },
+    {
+      "from": "chan:case",
+      "relation": "CASE_HAS_RESEARCH_STEP",
+      "to": "chan:study:tools"
+    },
+    {
+      "from": "chan:case",
+      "relation": "CASE_HAS_ASSERTION",
+      "to": "chan:gap:exact_data"
+    },
+    {
+      "from": "chan:case",
+      "relation": "FACT_HAS_AUTHOR_SOURCE_PASSAGE",
+      "to": "chan:passage:main",
+      "fact_id": "CH01"
+    },
+    {
+      "from": "chan:leg:pl",
+      "relation": "FACT_HAS_AUTHOR_SOURCE_PASSAGE",
+      "to": "chan:passage:main",
+      "fact_id": "CH02"
+    },
+    {
+      "from": "chan:leg:gc",
+      "relation": "FACT_HAS_AUTHOR_SOURCE_PASSAGE",
+      "to": "chan:passage:main",
+      "fact_id": "CH02"
+    },
+    {
+      "from": "chan:window:entry",
+      "relation": "FACT_HAS_AUTHOR_SOURCE_PASSAGE",
+      "to": "chan:passage:main",
+      "fact_id": "CH03"
+    },
+    {
+      "from": "chan:window:exit",
+      "relation": "FACT_HAS_AUTHOR_SOURCE_PASSAGE",
+      "to": "chan:passage:main",
+      "fact_id": "CH04"
+    },
+    {
+      "from": "chan:spec:pl",
+      "relation": "FACT_HAS_AUTHOR_SOURCE_PASSAGE",
+      "to": "chan:passage:main",
+      "fact_id": "CH05"
+    },
+    {
+      "from": "chan:spec:gc",
+      "relation": "FACT_HAS_AUTHOR_SOURCE_PASSAGE",
+      "to": "chan:passage:main",
+      "fact_id": "CH05"
+    },
+    {
+      "from": "chan:position",
+      "relation": "FACT_HAS_AUTHOR_SOURCE_PASSAGE",
+      "to": "chan:passage:neutrality2007",
+      "fact_id": "CH06"
+    },
+    {
+      "from": "chan:claim:physical_hedge",
+      "relation": "FACT_HAS_AUTHOR_SOURCE_PASSAGE",
+      "to": "chan:passage:neutrality2007",
+      "fact_id": "CH06"
+    },
+    {
+      "from": "chan:claim:dollar_neutrality",
+      "relation": "FACT_HAS_AUTHOR_SOURCE_PASSAGE",
+      "to": "chan:passage:neutrality2007",
+      "fact_id": "CH06"
+    },
+    {
+      "from": "chan:claim:6of7",
+      "relation": "FACT_HAS_AUTHOR_SOURCE_PASSAGE",
+      "to": "chan:passage:main",
+      "fact_id": "CH07"
+    },
+    {
+      "from": "chan:metric:mean_pnl",
+      "relation": "FACT_HAS_AUTHOR_SOURCE_PASSAGE",
+      "to": "chan:passage:performance",
+      "fact_id": "CH08"
+    },
+    {
+      "from": "chan:metric:best_pnl",
+      "relation": "FACT_HAS_AUTHOR_SOURCE_PASSAGE",
+      "to": "chan:passage:performance",
+      "fact_id": "CH09"
+    },
+    {
+      "from": "chan:metric:worst_pnl",
+      "relation": "FACT_HAS_AUTHOR_SOURCE_PASSAGE",
+      "to": "chan:passage:performance",
+      "fact_id": "CH10"
+    },
+    {
+      "from": "chan:metric:margin_original",
+      "relation": "FACT_HAS_AUTHOR_SOURCE_PASSAGE",
+      "to": "chan:passage:performance",
+      "fact_id": "CH11"
+    },
+    {
+      "from": "chan:study:backtest",
+      "relation": "FACT_HAS_AUTHOR_SOURCE_PASSAGE",
+      "to": "chan:passage:main",
+      "fact_id": "CH12"
+    },
+    {
+      "from": "chan:study:paper2006",
+      "relation": "FACT_HAS_AUTHOR_SOURCE_PASSAGE",
+      "to": "chan:passage:main",
+      "fact_id": "CH12"
+    },
+    {
+      "from": "chan:causal:festival",
+      "relation": "FACT_HAS_AUTHOR_SOURCE_PASSAGE",
+      "to": "chan:passage:fundamental",
+      "fact_id": "CH13"
+    },
+    {
+      "from": "chan:causal:gold_delivery_fade",
+      "relation": "FACT_HAS_AUTHOR_SOURCE_PASSAGE",
+      "to": "chan:passage:fundamental",
+      "fact_id": "CH13"
+    },
+    {
+      "from": "chan:causal:platinum_industry",
+      "relation": "FACT_HAS_AUTHOR_SOURCE_PASSAGE",
+      "to": "chan:passage:fundamental",
+      "fact_id": "CH14"
+    },
+    {
+      "from": "chan:research:citation",
+      "relation": "FACT_HAS_AUTHOR_SOURCE_PASSAGE",
+      "to": "chan:passage:ref",
+      "fact_id": "CH15"
+    },
+    {
+      "from": "chan:metric:max_dd_since2000",
+      "relation": "FACT_HAS_AUTHOR_SOURCE_PASSAGE",
+      "to": "chan:passage:risk2006",
+      "fact_id": "CH16"
+    },
+    {
+      "from": "chan:calc:capital_requirement",
+      "relation": "FACT_HAS_AUTHOR_SOURCE_PASSAGE",
+      "to": "chan:passage:risk2006",
+      "fact_id": "CH17"
+    },
+    {
+      "from": "chan:metric:max_capital_need",
+      "relation": "FACT_HAS_AUTHOR_SOURCE_PASSAGE",
+      "to": "chan:passage:risk2006",
+      "fact_id": "CH17"
+    },
+    {
+      "from": "chan:claim:dollar_neutrality",
+      "relation": "FACT_HAS_AUTHOR_SOURCE_PASSAGE",
+      "to": "chan:passage:neutrality2007",
+      "fact_id": "CH18"
+    },
+    {
+      "from": "chan:metric:author_market_value_gc",
+      "relation": "FACT_HAS_AUTHOR_SOURCE_PASSAGE",
+      "to": "chan:passage:neutrality2007",
+      "fact_id": "CH19"
+    },
+    {
+      "from": "chan:metric:author_market_value_2pl",
+      "relation": "FACT_HAS_AUTHOR_SOURCE_PASSAGE",
+      "to": "chan:passage:neutrality2007",
+      "fact_id": "CH19"
+    },
+    {
+      "from": "chan:claim:author_values_warning",
+      "relation": "FACT_HAS_AUTHOR_SOURCE_PASSAGE",
+      "to": "chan:passage:neutrality2007",
+      "fact_id": "CH19"
+    },
+    {
+      "from": "chan:claim:outright_risk",
+      "relation": "FACT_HAS_AUTHOR_SOURCE_PASSAGE",
+      "to": "chan:passage:neutrality2007",
+      "fact_id": "CH20"
+    },
+    {
+      "from": "chan:claim:alt_strategy",
+      "relation": "FACT_HAS_AUTHOR_SOURCE_PASSAGE",
+      "to": "chan:passage:neutrality2007",
+      "fact_id": "CH21"
+    },
+    {
+      "from": "chan:study:tools",
+      "relation": "FACT_HAS_AUTHOR_SOURCE_PASSAGE",
+      "to": "chan:passage:methods2007",
+      "fact_id": "CH22"
+    },
+    {
+      "from": "chan:gap:exact_data",
+      "relation": "FACT_HAS_AUTHOR_SOURCE_PASSAGE",
+      "to": "chan:passage:main",
+      "fact_id": "CH23"
+    },
+    {
+      "from": "chan:conflict:execution_status",
+      "relation": "FACT_HAS_AUTHOR_SOURCE_PASSAGE",
+      "to": "chan:passage:neutrality2007",
+      "fact_id": "CH24"
+    }
+  ],
+  "evidence_index": {
+    "CH01": [
+      "chan:case"
+    ],
+    "CH02": [
+      "chan:leg:pl",
+      "chan:leg:gc"
+    ],
+    "CH03": [
+      "chan:window:entry"
+    ],
+    "CH04": [
+      "chan:window:exit"
+    ],
+    "CH05": [
+      "chan:spec:pl",
+      "chan:spec:gc"
+    ],
+    "CH06": [
+      "chan:position",
+      "chan:claim:physical_hedge",
+      "chan:claim:dollar_neutrality"
+    ],
+    "CH07": [
+      "chan:claim:6of7"
+    ],
+    "CH08": [
+      "chan:metric:mean_pnl"
+    ],
+    "CH09": [
+      "chan:metric:best_pnl"
+    ],
+    "CH10": [
+      "chan:metric:worst_pnl"
+    ],
+    "CH11": [
+      "chan:metric:margin_original"
+    ],
+    "CH12": [
+      "chan:study:backtest",
+      "chan:study:paper2006"
+    ],
+    "CH13": [
+      "chan:causal:festival",
+      "chan:causal:gold_delivery_fade"
+    ],
+    "CH14": [
+      "chan:causal:platinum_industry"
+    ],
+    "CH15": [
+      "chan:research:citation"
+    ],
+    "CH16": [
+      "chan:metric:max_dd_since2000"
+    ],
+    "CH17": [
+      "chan:calc:capital_requirement",
+      "chan:metric:max_capital_need"
+    ],
+    "CH18": [
+      "chan:claim:dollar_neutrality"
+    ],
+    "CH19": [
+      "chan:metric:author_market_value_gc",
+      "chan:metric:author_market_value_2pl",
+      "chan:claim:author_values_warning"
+    ],
+    "CH20": [
+      "chan:claim:outright_risk"
+    ],
+    "CH21": [
+      "chan:claim:alt_strategy"
+    ],
+    "CH22": [
+      "chan:study:tools"
+    ],
+    "CH23": [
+      "chan:gap:exact_data"
+    ],
+    "CH24": [
+      "chan:conflict:execution_status"
+    ]
+  },
+  "source_interpretation": "Author claims, not independently reconstructed broker fills",
+  "status": "AWAIT_SOURCE_REDACTED_REPLAY"
+}

@@ -1,0 +1,199 @@
+{
+  "id": "CHAN_SEASONAL_ORIGINAL_AND_AUTHOR_COMMENTS",
+  "source": {
+    "title": "Trading a platinum-gold seasonal spread",
+    "url": "https://epchan.blogspot.com/2006/11/trading-platinum-gold-seasonal-spread.html",
+    "author": "Ernie Chan",
+    "published": "2006-11-24",
+    "read_method": "Search indexed exact source with full author comment excerpts; direct page open returned HTTP 429 in current environment",
+    "source_type": "AUTHOR_BLOG_WITH_SUBSEQUENT_AUTHOR_COMMENTS"
+  },
+  "facts": [
+    {
+      "id": "CH01",
+      "path": "publication.date",
+      "value": "2006-11-24",
+      "source_location": "Main blog by Ernie Chan"
+    },
+    {
+      "id": "CH02",
+      "path": "trade.legs",
+      "value": {
+        "long": "2 July PL futures",
+        "short": "1 June GC futures"
+      },
+      "source_location": "Main article strategy paragraph"
+    },
+    {
+      "id": "CH03",
+      "path": "trade.entry_window",
+      "value": "AROUND_END_OF_FEBRUARY",
+      "source_location": "Main article strategy paragraph"
+    },
+    {
+      "id": "CH04",
+      "path": "trade.exit_window",
+      "value": "AROUND_MID_APRIL",
+      "source_location": "Main article strategy paragraph"
+    },
+    {
+      "id": "CH05",
+      "path": "contracts.multiplier",
+      "value": {
+        "PL": 50,
+        "GC": 100,
+        "unit": "TROY_OZ_PER_CONTRACT"
+      },
+      "source_location": "Main article strategy paragraph"
+    },
+    {
+      "id": "CH06",
+      "path": "trade.hedge_ratio",
+      "value": {
+        "contract_ratio": "2PL:1GC",
+        "matched_ounces_per_side": 100,
+        "not_dollar_neutral": true
+      },
+      "source_location": "Main article and Aug 19 2007 comment"
+    },
+    {
+      "id": "CH07",
+      "path": "performance.recent_consistency",
+      "value": "PROFITABLE_ALL_BUT_ONE_OF_LAST_SEVEN_YEARS",
+      "source_location": "Main article first paragraph"
+    },
+    {
+      "id": "CH08",
+      "path": "performance.annual_mean_usd",
+      "value": {
+        "value": 6600,
+        "since_year": 1995
+      },
+      "source_location": "Main article P/L paragraph"
+    },
+    {
+      "id": "CH09",
+      "path": "performance.best_annual_usd",
+      "value": 15400,
+      "source_location": "Main article P/L paragraph"
+    },
+    {
+      "id": "CH10",
+      "path": "performance.worst_annual_usd",
+      "value": -3810,
+      "source_location": "Main article P/L paragraph"
+    },
+    {
+      "id": "CH11",
+      "path": "risk.initial_margin_author_reported_usd",
+      "value": 743,
+      "source_location": "Main article margin paragraph"
+    },
+    {
+      "id": "CH12",
+      "path": "research.backtest_and_paper_trade",
+      "value": {
+        "backtest_reported": "WORKED",
+        "paper_trade_year": 2006,
+        "paper_trade_reported": "WORKED",
+        "independent_fill_evidence": false
+      },
+      "source_location": "Main article test paragraph"
+    },
+    {
+      "id": "CH13",
+      "path": "fundamental.gold_demand_seasonality",
+      "value": "Gold jewelry delivery demand in India/China around celebrations ending Chinese New Year in Feb, then seasonal exhaustion",
+      "source_location": "Main article fundamental paragraph"
+    },
+    {
+      "id": "CH14",
+      "path": "fundamental.platinum_weak_seasonality",
+      "value": "Platinum catalytic-converter industrial demand has weaker seasonality; hedge for gold",
+      "source_location": "Main article fundamental paragraph"
+    },
+    {
+      "id": "CH15",
+      "path": "prior_inspiration",
+      "value": "Jerry Toepke, Give Seasonal Spreads Some Respect, SFO magazine Jan 2006; cited but not retrieved",
+      "source_location": "Main article further reading"
+    },
+    {
+      "id": "CH16",
+      "path": "risk.max_drawdown_author_comment",
+      "value": {
+        "value": 10910,
+        "currency": "USD",
+        "observed_year": 2001,
+        "study_since_year": 2000
+      },
+      "source_location": "Ernie Chan comment November 26, 2006"
+    },
+    {
+      "id": "CH17",
+      "path": "risk.max_liquidity_requirement_author_comment",
+      "value": {
+        "value": 11653,
+        "currency": "USD",
+        "arithmetic": "743+10910",
+        "kind": "HISTORICAL_MAX_EQUITY_BUFFER_NOT_SIMPLY_EXCHANGE_MARGIN"
+      },
+      "source_location": "Ernie Chan comment November 26, 2006"
+    },
+    {
+      "id": "CH18",
+      "path": "risk.dollar_neutrality_correction",
+      "value": "Equalizing physical ounces is not dollar neutrality; PL side has larger dollar exposure",
+      "source_location": "Ernie Chan reply August 19, 2007"
+    },
+    {
+      "id": "CH19",
+      "path": "risk.author_market_value_numbers",
+      "value": {
+        "GC": 6650,
+        "PL_two_contracts": 12260,
+        "currency": "USD",
+        "source_status": "AS_WRITTEN_POTENTIAL_SCALE_INCONSISTENCY"
+      },
+      "source_location": "Ernie Chan reply August 19, 2007"
+    },
+    {
+      "id": "CH20",
+      "path": "risk.author_out_right_exposure_analogy",
+      "value": "Resulting dollar risk nearly equivalent to owning one PL futures outright (author qualitative assessment)",
+      "source_location": "Ernie Chan reply August 19, 2007"
+    },
+    {
+      "id": "CH21",
+      "path": "alternative.dollar_neutral_trade_report",
+      "value": "Author says dollar-neutral alternative performed much worse historically and in his trading test; no supporting trade-level data attached",
+      "source_location": "Ernie Chan reply August 19, 2007"
+    },
+    {
+      "id": "CH22",
+      "path": "methods.software",
+      "value": "Matlab used for most research; Excel may suffice for simple spreads",
+      "source_location": "Ernie Chan comment August 18, 2007"
+    },
+    {
+      "id": "CH23",
+      "path": "source.undisclosed_execution_parameters",
+      "value": "Exact entry day, exit day, fill times, per-year price bars, fees and trade log not disclosed",
+      "source_location": "Main article and comment archive"
+    },
+    {
+      "id": "CH24",
+      "path": "source.execution_claim_discrepancy",
+      "value": "Original explicitly says 2006 paper trade; later author refers to real trading test. Actual account fill proof not supplied.",
+      "source_location": "Main article versus August 19, 2007 author reply"
+    }
+  ],
+  "strict_interpretation": [
+    "Not a verified executed order history",
+    "Margin 743 is original article's reported margin, not max drawdown or necessarily current requirement",
+    "Author comment liquidity 11653 is distinct from exchange margin and calculated as margin + drawdown",
+    "Dollar value figures in 2007 reply are recorded as written and not corrected by guess",
+    "No precise dates, fills or model code invented"
+  ],
+  "status": "SOURCE_FACTS_EXTRACTED_REBUILD_REQUIRED"
+}

@@ -1,0 +1,694 @@
+{
+  "graph_id": "CHAN-PL-GC-R2-20261117",
+  "version": "R2-CORE-SOURCE-REVISION",
+  "source_baseline": "604 original + v7; new types only as candidates",
+  "nodes": [
+    {
+      "id": "case",
+      "canonical_type": "TradeCase",
+      "properties": {
+        "case_kind": "AUTHOR_DESCRIBED_STRATEGY_AND_RESEARCH",
+        "real_fills_supplied": false
+      }
+    },
+    {
+      "id": "strategy",
+      "canonical_type": "TradingStrategy",
+      "properties": {
+        "kind": "INTERMARKET_SEASONAL_PL_GC",
+        "trade_basis": "SEASONAL_CALENDAR_NOT_COINTEGRATION"
+      }
+    },
+    {
+      "id": "position",
+      "canonical_type": "TradePosition",
+      "properties": {
+        "kind": "LONG_PL_SHORT_GC",
+        "contract_ratio": "2:1"
+      }
+    },
+    {
+      "id": "asset:PL",
+      "canonical_type": "Asset",
+      "properties": {
+        "asset_class": "FUTURES",
+        "root": "PL",
+        "underlying": "PLATINUM"
+      }
+    },
+    {
+      "id": "contract:PL",
+      "canonical_type": "FuturesContract",
+      "properties": {
+        "root": "PL",
+        "delivery_month": "JULY",
+        "delivery_year": null
+      }
+    },
+    {
+      "id": "spec:PL",
+      "canonical_type": "ContractSpecification",
+      "properties": {
+        "contract_multiplier": 50,
+        "multiplier_unit": "TROY_OZ_PER_CONTRACT"
+      }
+    },
+    {
+      "id": "leg:PL",
+      "canonical_type": "TradeLeg",
+      "properties": {
+        "direction": "LONG",
+        "contracts": 2
+      }
+    },
+    {
+      "id": "asset:GC",
+      "canonical_type": "Asset",
+      "properties": {
+        "asset_class": "FUTURES",
+        "root": "GC",
+        "underlying": "GOLD"
+      }
+    },
+    {
+      "id": "contract:GC",
+      "canonical_type": "FuturesContract",
+      "properties": {
+        "root": "GC",
+        "delivery_month": "JUNE",
+        "delivery_year": null
+      }
+    },
+    {
+      "id": "spec:GC",
+      "canonical_type": "ContractSpecification",
+      "properties": {
+        "contract_multiplier": 100,
+        "multiplier_unit": "TROY_OZ_PER_CONTRACT"
+      }
+    },
+    {
+      "id": "leg:GC",
+      "canonical_type": "TradeLeg",
+      "properties": {
+        "direction": "SHORT",
+        "contracts": 1
+      }
+    },
+    {
+      "id": "entry_window",
+      "canonical_type": "CalendarTradingWindow",
+      "properties": {
+        "month": "FEBRUARY",
+        "portion": "LATE",
+        "exact_day": null,
+        "precision": "APPROXIMATE"
+      }
+    },
+    {
+      "id": "exit_window",
+      "canonical_type": "CalendarTradingWindow",
+      "properties": {
+        "month": "APRIL",
+        "portion": "MID",
+        "exact_day": null,
+        "precision": "APPROXIMATE"
+      }
+    },
+    {
+      "id": "entry_rule",
+      "canonical_type": "TradingRule",
+      "properties": {
+        "kind": "CALENDAR_SEASONAL_ENTRY",
+        "price_signal": "NOT_DISCLOSED"
+      }
+    },
+    {
+      "id": "exit_rule",
+      "canonical_type": "TradingRule",
+      "properties": {
+        "kind": "CALENDAR_SEASONAL_EXIT",
+        "price_signal": "NOT_DISCLOSED"
+      }
+    },
+    {
+      "id": "seasonal_reason",
+      "canonical_type": "EvidenceAssertion",
+      "properties": {
+        "claim": "Asian jewelry festivals end after Chinese New Year; gold delivery demand becomes exhausted, while industrial platinum seasonality is weaker; platinum hedges gold",
+        "grade": "AUTHOR_INTERPRETATION",
+        "embedded_causality_not_decomposed": true
+      }
+    },
+    {
+      "id": "study:backtest",
+      "canonical_type": "BacktestStudy",
+      "properties": {
+        "author_stated": true,
+        "starting_year_author_text": 1995,
+        "raw_bars_supplied": false
+      }
+    },
+    {
+      "id": "study:paper2006",
+      "canonical_type": "EvidenceAssertion",
+      "properties": {
+        "claim": "Author says he paper-traded 2PL/1GC seasonal spread in 2006 and it worked",
+        "actual_fill_records_supplied": false
+      }
+    },
+    {
+      "id": "src:orig",
+      "canonical_type": "SourceDocument",
+      "properties": {
+        "publication_date": "2006-11-24",
+        "source_kind": "AUTHOR_INITIAL_POST",
+        "url": "https://epchan.blogspot.com/2006/11/trading-platinum-gold-seasonal-spread.html"
+      }
+    },
+    {
+      "id": "src:risk06",
+      "canonical_type": "SourceDocument",
+      "properties": {
+        "publication_date": "2006-11-26",
+        "source_kind": "AUTHOR_COMMENT",
+        "url": "https://epchan.blogspot.com/2006/11/trading-platinum-gold-seasonal-spread.html"
+      }
+    },
+    {
+      "id": "src:coin07",
+      "canonical_type": "SourceDocument",
+      "properties": {
+        "publication_date": "2007-03-01",
+        "source_kind": "AUTHOR_COMMENT",
+        "url": "https://epchan.blogspot.com/2007/02/platinum-gold-spread-revisited.html?m=1"
+      }
+    },
+    {
+      "id": "src:correct07",
+      "canonical_type": "SourceDocument",
+      "properties": {
+        "publication_date": "2007-04-20",
+        "source_kind": "AUTHOR_CORRECTION",
+        "url": "https://epchan.blogspot.com/2007/04/recap-platinum-gold-spread-trade.html?m=1"
+      }
+    },
+    {
+      "id": "src:risk07",
+      "canonical_type": "SourceDocument",
+      "properties": {
+        "publication_date": "2007-08-19",
+        "source_kind": "AUTHOR_COMMENT",
+        "url": "https://epchan.blogspot.com/2006/11/trading-platinum-gold-seasonal-spread.html"
+      }
+    },
+    {
+      "id": "metric:old:avg",
+      "canonical_type": "SourceReportedMetric",
+      "properties": {
+        "metric": "average_pnl",
+        "value": 6600,
+        "currency": "USD",
+        "period_description": "SINCE_1995",
+        "status": "ORIGINAL_SUPERSEDED",
+        "record_type": "PERFORMANCE"
+      }
+    },
+    {
+      "id": "metric:old:best",
+      "canonical_type": "SourceReportedMetric",
+      "properties": {
+        "metric": "best_pnl",
+        "value": 15400,
+        "currency": "USD",
+        "period_description": "UNSPECIFIED_ORIGINAL",
+        "status": "ORIGINAL_SUPERSEDED",
+        "record_type": "PERFORMANCE"
+      }
+    },
+    {
+      "id": "metric:old:worst",
+      "canonical_type": "SourceReportedMetric",
+      "properties": {
+        "metric": "worst_pnl",
+        "value": -3810,
+        "currency": "USD",
+        "period_description": "UNSPECIFIED_ORIGINAL",
+        "status": "ORIGINAL_SUPERSEDED",
+        "record_type": "PERFORMANCE"
+      }
+    },
+    {
+      "id": "metric:margin:base",
+      "canonical_type": "SourceReportedMetric",
+      "properties": {
+        "metric": "initial_margin_requirement",
+        "value": 743,
+        "currency": "USD",
+        "period_description": "NYMEX_IN_2006",
+        "status": "HISTORICAL_AUTHOR_REPORT",
+        "record_type": "MARGIN"
+      }
+    },
+    {
+      "id": "metric:old:dd",
+      "canonical_type": "SourceReportedMetric",
+      "properties": {
+        "metric": "maximum_drawdown",
+        "value": -10910,
+        "currency": "USD",
+        "period_description": "SINCE_2000_REACHED_IN_2001",
+        "status": "AUTHOR_COMMENT",
+        "record_type": "RISK"
+      }
+    },
+    {
+      "id": "metric:risk:required_capital",
+      "canonical_type": "SourceReportedMetric",
+      "properties": {
+        "metric": "required_capital_including_drawdown",
+        "value": 11653,
+        "currency": "USD",
+        "period_description": "SINCE_2000_REACHED_IN_2001",
+        "status": "AUTHOR_COMMENT",
+        "record_type": "RISK"
+      }
+    },
+    {
+      "id": "metric:new:avg",
+      "canonical_type": "SourceReportedMetric",
+      "properties": {
+        "metric": "average_pnl",
+        "value": 3064,
+        "currency": "USD",
+        "period_description": "LAST_7Y_AS_OF_2007",
+        "status": "CORRECTED_AUTHOR_REPORT",
+        "record_type": "PERFORMANCE"
+      }
+    },
+    {
+      "id": "metric:new:best",
+      "canonical_type": "SourceReportedMetric",
+      "properties": {
+        "metric": "best_pnl",
+        "value": 7320,
+        "currency": "USD",
+        "period_description": "LAST_7Y_AS_OF_2007",
+        "status": "CORRECTED_AUTHOR_REPORT",
+        "record_type": "PERFORMANCE"
+      }
+    },
+    {
+      "id": "metric:new:worst",
+      "canonical_type": "SourceReportedMetric",
+      "properties": {
+        "metric": "worst_pnl",
+        "value": -540,
+        "currency": "USD",
+        "period_description": "LAST_7Y_AS_OF_2007",
+        "status": "CORRECTED_AUTHOR_REPORT",
+        "record_type": "PERFORMANCE"
+      }
+    },
+    {
+      "id": "metric:new:dd",
+      "canonical_type": "SourceReportedMetric",
+      "properties": {
+        "metric": "maximum_drawdown",
+        "value": -4860,
+        "currency": "USD",
+        "period_description": "LAST_7Y_AS_OF_2007",
+        "status": "CORRECTED_AUTHOR_REPORT",
+        "record_type": "RISK"
+      }
+    },
+    {
+      "id": "metric:hypo07:pnl",
+      "canonical_type": "SourceReportedMetric",
+      "properties": {
+        "metric": "hypothetical_pnl",
+        "value": 6610,
+        "currency": "USD",
+        "period_description": "2007_FEB26_APR19",
+        "status": "HYPOTHETICAL_NOT_FILLED",
+        "record_type": "PERFORMANCE"
+      }
+    },
+    {
+      "id": "correction:apr07",
+      "canonical_type": "SourceCorrectionEvent",
+      "properties": {
+        "publication_date": "2007-04-20",
+        "error_type": "HISTORICAL_PROFIT_GRAPH_CALCULATION",
+        "author_acknowledged": true,
+        "applies_to": "INITIAL_PERFORMANCE_VALUES"
+      }
+    },
+    {
+      "id": "hypothetical:2007",
+      "canonical_type": "ConditionalTradeScenario",
+      "properties": {
+        "condition": "IF_TRADED",
+        "start": "2007-02-26_NEAR_CLOSE",
+        "end": "2007-04-19_NEAR_CLOSE",
+        "actual_execution": false
+      }
+    },
+    {
+      "id": "cointegration:negative",
+      "canonical_type": "EvidenceAssertion",
+      "properties": {
+        "claim": "Author explicitly says strategy NOT based on cointegration and expects spread divergence",
+        "source_date": "2007-03-01"
+      }
+    },
+    {
+      "id": "neutrality",
+      "canonical_type": "EvidenceAssertion",
+      "properties": {
+        "claim": "100 troy oz PL vs 100 troy oz GC matched units, but not dollar neutral; dollar risk almost outright platinum",
+        "source_date": "2007-08-19",
+        "risk_exposure_not_separately_modeled": true
+      }
+    },
+    {
+      "id": "provenance:toepke",
+      "canonical_type": "EvidenceAssertion",
+      "properties": {
+        "claim": "Original seasonal trade credited to Jerry Toepke, SFO Magazine January 2006",
+        "document_retrieved": false
+      }
+    },
+    {
+      "id": "risk:interim",
+      "canonical_type": "EvidenceAssertion",
+      "properties": {
+        "claim": "High interim drawdown can coexist with positive annual final P&L",
+        "author_note": true
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "position",
+      "relation": "POSITION_CONTAINS_LEG",
+      "to": "leg:PL"
+    },
+    {
+      "from": "leg:PL",
+      "relation": "LEG_TRADES_FUTURES_CONTRACT",
+      "to": "contract:PL"
+    },
+    {
+      "from": "contract:PL",
+      "relation": "CONTRACT_HAS_SPECIFICATION",
+      "to": "spec:PL"
+    },
+    {
+      "from": "contract:PL",
+      "relation": "CONTRACT_ROOTED_IN_ASSET",
+      "to": "asset:PL"
+    },
+    {
+      "from": "position",
+      "relation": "POSITION_CONTAINS_LEG",
+      "to": "leg:GC"
+    },
+    {
+      "from": "leg:GC",
+      "relation": "LEG_TRADES_FUTURES_CONTRACT",
+      "to": "contract:GC"
+    },
+    {
+      "from": "contract:GC",
+      "relation": "CONTRACT_HAS_SPECIFICATION",
+      "to": "spec:GC"
+    },
+    {
+      "from": "contract:GC",
+      "relation": "CONTRACT_ROOTED_IN_ASSET",
+      "to": "asset:GC"
+    },
+    {
+      "from": "case",
+      "relation": "CASE_USES_STRATEGY",
+      "to": "strategy"
+    },
+    {
+      "from": "case",
+      "relation": "CASE_HAS_POSITION",
+      "to": "position"
+    },
+    {
+      "from": "strategy",
+      "relation": "STRATEGY_HAS_ENTRY_RULE",
+      "to": "entry_rule"
+    },
+    {
+      "from": "strategy",
+      "relation": "STRATEGY_HAS_EXIT_RULE",
+      "to": "exit_rule"
+    },
+    {
+      "from": "entry_rule",
+      "relation": "RULE_USES_CALENDAR_WINDOW",
+      "to": "entry_window"
+    },
+    {
+      "from": "exit_rule",
+      "relation": "RULE_USES_CALENDAR_WINDOW",
+      "to": "exit_window"
+    },
+    {
+      "from": "case",
+      "relation": "CASE_HAS_ASSERTION",
+      "to": "seasonal_reason"
+    },
+    {
+      "from": "case",
+      "relation": "CASE_HAS_STUDY",
+      "to": "study:backtest"
+    },
+    {
+      "from": "case",
+      "relation": "CASE_HAS_ASSERTION",
+      "to": "study:paper2006"
+    },
+    {
+      "from": "case",
+      "relation": "CASE_DERIVED_FROM_SOURCE",
+      "to": "src:orig"
+    },
+    {
+      "from": "case",
+      "relation": "CASE_DERIVED_FROM_SOURCE",
+      "to": "src:risk06"
+    },
+    {
+      "from": "case",
+      "relation": "CASE_DERIVED_FROM_SOURCE",
+      "to": "src:coin07"
+    },
+    {
+      "from": "case",
+      "relation": "CASE_DERIVED_FROM_SOURCE",
+      "to": "src:correct07"
+    },
+    {
+      "from": "case",
+      "relation": "CASE_DERIVED_FROM_SOURCE",
+      "to": "src:risk07"
+    },
+    {
+      "from": "src:orig",
+      "relation": "SOURCE_REPORTS_RESULT",
+      "to": "metric:old:avg"
+    },
+    {
+      "from": "case",
+      "relation": "CASE_HAS_REPORT_METRIC",
+      "to": "metric:old:avg"
+    },
+    {
+      "from": "src:orig",
+      "relation": "SOURCE_REPORTS_RESULT",
+      "to": "metric:old:best"
+    },
+    {
+      "from": "case",
+      "relation": "CASE_HAS_REPORT_METRIC",
+      "to": "metric:old:best"
+    },
+    {
+      "from": "src:orig",
+      "relation": "SOURCE_REPORTS_RESULT",
+      "to": "metric:old:worst"
+    },
+    {
+      "from": "case",
+      "relation": "CASE_HAS_REPORT_METRIC",
+      "to": "metric:old:worst"
+    },
+    {
+      "from": "src:orig",
+      "relation": "SOURCE_REPORTS_RESULT",
+      "to": "metric:margin:base"
+    },
+    {
+      "from": "case",
+      "relation": "CASE_HAS_REPORT_METRIC",
+      "to": "metric:margin:base"
+    },
+    {
+      "from": "src:risk06",
+      "relation": "SOURCE_REPORTS_RESULT",
+      "to": "metric:old:dd"
+    },
+    {
+      "from": "case",
+      "relation": "CASE_HAS_REPORT_METRIC",
+      "to": "metric:old:dd"
+    },
+    {
+      "from": "src:risk06",
+      "relation": "SOURCE_REPORTS_RESULT",
+      "to": "metric:risk:required_capital"
+    },
+    {
+      "from": "case",
+      "relation": "CASE_HAS_REPORT_METRIC",
+      "to": "metric:risk:required_capital"
+    },
+    {
+      "from": "src:correct07",
+      "relation": "SOURCE_REPORTS_RESULT",
+      "to": "metric:new:avg"
+    },
+    {
+      "from": "case",
+      "relation": "CASE_HAS_REPORT_METRIC",
+      "to": "metric:new:avg"
+    },
+    {
+      "from": "src:correct07",
+      "relation": "SOURCE_REPORTS_RESULT",
+      "to": "metric:new:best"
+    },
+    {
+      "from": "case",
+      "relation": "CASE_HAS_REPORT_METRIC",
+      "to": "metric:new:best"
+    },
+    {
+      "from": "src:correct07",
+      "relation": "SOURCE_REPORTS_RESULT",
+      "to": "metric:new:worst"
+    },
+    {
+      "from": "case",
+      "relation": "CASE_HAS_REPORT_METRIC",
+      "to": "metric:new:worst"
+    },
+    {
+      "from": "src:correct07",
+      "relation": "SOURCE_REPORTS_RESULT",
+      "to": "metric:new:dd"
+    },
+    {
+      "from": "case",
+      "relation": "CASE_HAS_REPORT_METRIC",
+      "to": "metric:new:dd"
+    },
+    {
+      "from": "src:correct07",
+      "relation": "SOURCE_REPORTS_RESULT",
+      "to": "metric:hypo07:pnl"
+    },
+    {
+      "from": "case",
+      "relation": "CASE_HAS_REPORT_METRIC",
+      "to": "metric:hypo07:pnl"
+    },
+    {
+      "from": "correction:apr07",
+      "relation": "CORRECTION_DOCUMENTED_BY_SOURCE",
+      "to": "src:correct07"
+    },
+    {
+      "from": "metric:new:avg",
+      "relation": "CORRECTS_PREVIOUS_METRIC",
+      "to": "metric:old:avg",
+      "kind": "SOURCE_CORRECTION",
+      "not_same_sample_guaranteed": true
+    },
+    {
+      "from": "metric:new:best",
+      "relation": "CORRECTS_PREVIOUS_METRIC",
+      "to": "metric:old:best",
+      "kind": "SOURCE_CORRECTION",
+      "not_same_sample_guaranteed": true
+    },
+    {
+      "from": "metric:new:worst",
+      "relation": "CORRECTS_PREVIOUS_METRIC",
+      "to": "metric:old:worst",
+      "kind": "SOURCE_CORRECTION",
+      "not_same_sample_guaranteed": true
+    },
+    {
+      "from": "hypothetical:2007",
+      "relation": "SCENARIO_REPORTS_METRIC",
+      "to": "metric:hypo07:pnl"
+    },
+    {
+      "from": "hypothetical:2007",
+      "relation": "SCENARIO_USES_STRATEGY",
+      "to": "strategy"
+    },
+    {
+      "from": "case",
+      "relation": "CASE_HAS_ASSERTION",
+      "to": "cointegration:negative"
+    },
+    {
+      "from": "src:coin07",
+      "relation": "SOURCE_REPORTS_ASSERTION",
+      "to": "cointegration:negative"
+    },
+    {
+      "from": "case",
+      "relation": "CASE_HAS_ASSERTION",
+      "to": "neutrality"
+    },
+    {
+      "from": "src:risk07",
+      "relation": "SOURCE_REPORTS_ASSERTION",
+      "to": "neutrality"
+    },
+    {
+      "from": "case",
+      "relation": "CASE_HAS_ASSERTION",
+      "to": "provenance:toepke"
+    },
+    {
+      "from": "case",
+      "relation": "CASE_HAS_ASSERTION",
+      "to": "risk:interim"
+    },
+    {
+      "from": "src:risk06",
+      "relation": "SOURCE_REPORTS_ASSERTION",
+      "to": "risk:interim"
+    }
+  ],
+  "status": "READY_FOR_GRAPH_ONLY_RECONSTRUCTION",
+  "replay_should_redact": [
+    "SourceDocument",
+    "SourcePassage"
+  ],
+  "known_modeling_issues_to_check": [
+    "Economic causal chain not decomposed",
+    "Ounce equality vs dollar-risk differential expressed only in prose",
+    "Metric observation/scope fields not independently linked"
+  ]
+}

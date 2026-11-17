@@ -1,0 +1,64 @@
+{
+  "case_id": "CHAN-PL-GC",
+  "graph_version": "R6",
+  "graph_only": "round-6-graph-only-input.json",
+  "source_fact_comparison": "30/30 PASSED SELECTED SOURCE FACTS",
+  "reachability": "FAIL",
+  "financial_nodes": 70,
+  "reachable_from_case": 60,
+  "unreachable_nodes": [
+    {
+      "node_id": "event:cny_end",
+      "canonical_type": "SeasonalEvent",
+      "reason": "No directed path from case root using financial semantic edges"
+    },
+    {
+      "node_id": "commodity_use:platinum",
+      "canonical_type": "CommodityUseChannel",
+      "reason": "No directed path from case root using financial semantic edges"
+    },
+    {
+      "node_id": "correction:2007",
+      "canonical_type": "SourceCorrectionEvent",
+      "reason": "No directed path from case root using financial semantic edges"
+    },
+    {
+      "node_id": "risk:drawdown_comparability",
+      "canonical_type": "EvidenceConflict",
+      "reason": "No directed path from case root using financial semantic edges"
+    },
+    {
+      "node_id": "capital:calc",
+      "canonical_type": "CalculationExpression",
+      "reason": "No directed path from case root using financial semantic edges"
+    },
+    {
+      "node_id": "margin:historical_quote",
+      "canonical_type": "ExchangeMarginQuote",
+      "reason": "No directed path from case root using financial semantic edges"
+    },
+    {
+      "node_id": "reader:ATR:gc_quote",
+      "canonical_type": "SourceReportedMetric",
+      "reason": "No directed path from case root using financial semantic edges"
+    },
+    {
+      "node_id": "reader:ATR:pl_quote",
+      "canonical_type": "SourceReportedMetric",
+      "reason": "No directed path from case root using financial semantic edges"
+    },
+    {
+      "node_id": "calc:reader:GC",
+      "canonical_type": "CalculationExpression",
+      "reason": "No directed path from case root using financial semantic edges"
+    },
+    {
+      "node_id": "calc:reader:PL",
+      "canonical_type": "CalculationExpression",
+      "reason": "No directed path from case root using financial semantic edges"
+    }
+  ],
+  "decision": "R6_SUPERSEDED_BY_NEW_COMPLETE_GRAPH_R7",
+  "interpretation": "Source facts may be globally discoverable from node IDs yet fail navigable source-independent semantic graph reconstruction. 30/30 is not full graph reversibility.",
+  "independent_new_chatgpt_session": false
+}

@@ -1,0 +1,65 @@
+{
+  "case": "CHAN-PL-GC",
+  "input_graph": "round-3-risk-graph-only-input.json",
+  "test_class": "SELECTED_SEMANTIC_MUTATIONS_NOT_SOURCE_EXHAUSTIVE",
+  "tested": 8,
+  "detected": 8,
+  "rows": [
+    {
+      "id": "M1_SEASONAL_WINDOW_EDGE",
+      "meaning": "late-February entry loses rule link",
+      "baseline_constraint_ok": true,
+      "mutated_constraint_ok": false,
+      "failure_detected": true
+    },
+    {
+      "id": "M2_COINT_EXCLUSION",
+      "meaning": "not-cointegration interpretation becomes unreachable",
+      "baseline_constraint_ok": true,
+      "mutated_constraint_ok": false,
+      "failure_detected": true
+    },
+    {
+      "id": "M3_SEASONAL_GOLD_CHANNEL",
+      "meaning": "fundamental gold-jewelry festival driver broken",
+      "baseline_constraint_ok": true,
+      "mutated_constraint_ok": false,
+      "failure_detected": true
+    },
+    {
+      "id": "M4_REVISED_COHORT",
+      "meaning": "revised Apr 2007 results no longer follow publication correction",
+      "baseline_constraint_ok": true,
+      "mutated_constraint_ok": false,
+      "failure_detected": true
+    },
+    {
+      "id": "M5_MARGIN_DRAWDOWN",
+      "meaning": "$11,653 cannot be re-derived as $743 plus $10,910",
+      "baseline_constraint_ok": true,
+      "mutated_constraint_ok": false,
+      "failure_detected": true
+    },
+    {
+      "id": "M6_RISK_COMMENTER_PROVENANCE",
+      "meaning": "reader ATR figure falsely promoted to author quote",
+      "baseline_constraint_ok": true,
+      "mutated_constraint_ok": false,
+      "failure_detected": true
+    },
+    {
+      "id": "M7_CONTRACT_MULTIPLIER",
+      "meaning": "GC troy-oz multiplier corrupts 2PL/1GC contract balance",
+      "baseline_constraint_ok": true,
+      "mutated_constraint_ok": false,
+      "failure_detected": true
+    },
+    {
+      "id": "M8_AUTHOR_RISK_QUOTE",
+      "meaning": "separate author market-value risk evidence no longer reachable",
+      "baseline_constraint_ok": true,
+      "mutated_constraint_ok": false,
+      "failure_detected": true
+    }
+  ]
+}

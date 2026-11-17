@@ -1,0 +1,238 @@
+{
+  "baseline": "Original 604 occurrences; 117 node, 254 property, 97 relation unique types; 23/52/35 proposed v7 additions. Do not call these candidates approved.",
+  "version": "TV-KG-EXT-PROPOSAL-20261117",
+  "status": "REVIEW_REQUIRED_NOT_MERGED",
+  "candidates": [
+    {
+      "id": "X-REL-001",
+      "term": "CASE_DESCRIBES_STRATEGY",
+      "from_type": "TradeCase",
+      "to_type": "TradingStrategy",
+      "missing_semantic_reason": "Original TradingView describes a strategy specification; without this edge the case cannot navigate to the definition.",
+      "evidence_case": "TV-02yfhjiz",
+      "example_edge": {
+        "from": "tv01:case",
+        "to": "tv01:strategy"
+      },
+      "pre_merge_tests": [
+        "compare existing relations by domain/range and meaning",
+        "check independent reconstruction effect",
+        "run regression against existing five baseline cases"
+      ],
+      "status": "PROPOSED"
+    },
+    {
+      "id": "X-REL-002",
+      "term": "CONDITION_READS_SIGNAL",
+      "from_type": "RuleCondition",
+      "to_type": "TradingSignal",
+      "missing_semantic_reason": "Buy/sell and optional cancel signals are named objects, not untyped string values in RuleCondition.",
+      "evidence_case": "TV-02yfhjiz",
+      "example_edge": {
+        "from": "tv01:c_buy",
+        "to": "tv01:signal"
+      },
+      "pre_merge_tests": [
+        "compare existing relations by domain/range and meaning",
+        "check independent reconstruction effect",
+        "run regression against existing five baseline cases"
+      ],
+      "status": "PROPOSED"
+    },
+    {
+      "id": "X-REL-003",
+      "term": "RISK_RULE_CAN_CLOSE_POSITION_BY_ACTION",
+      "from_type": "RiskRule",
+      "to_type": "TradeAction",
+      "missing_semantic_reason": "A stop is not merely USES_RISK_RULE; it must be related to the close action on an existing position.",
+      "evidence_case": "TV-02yfhjiz",
+      "example_edge": {
+        "from": "tv01:r_initial_trail",
+        "to": "tv01:a_close_long"
+      },
+      "pre_merge_tests": [
+        "compare existing relations by domain/range and meaning",
+        "check independent reconstruction effect",
+        "run regression against existing five baseline cases"
+      ],
+      "status": "PROPOSED"
+    },
+    {
+      "id": "X-REL-004",
+      "term": "CONDITION_READS_POSITION_METRIC",
+      "from_type": "RuleCondition",
+      "to_type": "TradePosition",
+      "missing_semantic_reason": "Each of four TP percentages must test the same position's unrealized gain, avoiding free-text formula.",
+      "evidence_case": "TV-02yfhjiz",
+      "example_edge": {
+        "from": "tv01:c_tp1",
+        "to": "tv01:position"
+      },
+      "pre_merge_tests": [
+        "compare existing relations by domain/range and meaning",
+        "check independent reconstruction effect",
+        "run regression against existing five baseline cases"
+      ],
+      "status": "PROPOSED"
+    },
+    {
+      "id": "X-REL-005",
+      "term": "BACKTEST_STUDY_TESTS_ASSET",
+      "from_type": "BacktestStudy",
+      "to_type": "Asset",
+      "missing_semantic_reason": "Source's study identifies EURUSD within nine tested assets; needed to navigate from study to specific instrument.",
+      "evidence_case": "VEZERIS-2018",
+      "example_edge": {
+        "from": "paper:backtest",
+        "to": "paper:asset:EURUSD"
+      },
+      "pre_merge_tests": [
+        "compare existing relations by domain/range and meaning",
+        "check independent reconstruction effect",
+        "run regression against existing five baseline cases"
+      ],
+      "status": "PROPOSED"
+    },
+    {
+      "id": "X-REL-006",
+      "term": "CASE_EVALUATES_STRATEGY",
+      "from_type": "TradeCase",
+      "to_type": "TradingStrategy",
+      "missing_semantic_reason": "Published experiment variants a/b/c evaluate the same underlying simple MACD strategy, not three distinct strategy definitions.",
+      "evidence_case": "VEZERIS-2018",
+      "example_edge": {
+        "from": "paper:case:a",
+        "to": "paper:strategy"
+      },
+      "pre_merge_tests": [
+        "compare existing relations by domain/range and meaning",
+        "check independent reconstruction effect",
+        "run regression against existing five baseline cases"
+      ],
+      "status": "PROPOSED"
+    },
+    {
+      "id": "X-REL-007",
+      "term": "CASE_USES_BACKTEST_STUDY",
+      "from_type": "TradeCase",
+      "to_type": "BacktestStudy",
+      "missing_semantic_reason": "A case must inherit tested dates, data source, platform, costs and simulation method from a given study.",
+      "evidence_case": "VEZERIS-2018",
+      "example_edge": {
+        "from": "paper:case:a",
+        "to": "paper:backtest"
+      },
+      "pre_merge_tests": [
+        "compare existing relations by domain/range and meaning",
+        "check independent reconstruction effect",
+        "run regression against existing five baseline cases"
+      ],
+      "status": "PROPOSED"
+    },
+    {
+      "id": "X-REL-008",
+      "term": "BACKTEST_RESULT_OF_CASE",
+      "from_type": "BacktestResult",
+      "to_type": "TradeCase",
+      "missing_semantic_reason": "Prevent EURUSD experiment a results from mixing with b and c.",
+      "evidence_case": "VEZERIS-2018",
+      "example_edge": {
+        "from": "paper:result:a",
+        "to": "paper:case:a"
+      },
+      "pre_merge_tests": [
+        "compare existing relations by domain/range and meaning",
+        "check independent reconstruction effect",
+        "run regression against existing five baseline cases"
+      ],
+      "status": "PROPOSED"
+    },
+    {
+      "id": "X-REL-009",
+      "term": "BACKTEST_RESULT_HAS_METRIC",
+      "from_type": "BacktestResult",
+      "to_type": "SourceReportedMetric",
+      "missing_semantic_reason": "Expose gross gains, losses, net, drawdown and trade count as separately citable facts, not a generic results string.",
+      "evidence_case": "VEZERIS-2018",
+      "example_edge": {
+        "from": "paper:result:a",
+        "to": "paper:metric:a:net_profit"
+      },
+      "pre_merge_tests": [
+        "compare existing relations by domain/range and meaning",
+        "check independent reconstruction effect",
+        "run regression against existing five baseline cases"
+      ],
+      "status": "PROPOSED"
+    },
+    {
+      "id": "X-REL-010",
+      "term": "CASE_APPLIES_TO_ASSET",
+      "from_type": "TradeCase",
+      "to_type": "Asset",
+      "missing_semantic_reason": "Backtest variant applies to EURUSD; asset type and its 90 indicator property policy should be traceable.",
+      "evidence_case": "VEZERIS-2018",
+      "example_edge": {
+        "from": "paper:case:a",
+        "to": "paper:asset:EURUSD"
+      },
+      "pre_merge_tests": [
+        "compare existing relations by domain/range and meaning",
+        "check independent reconstruction effect",
+        "run regression against existing five baseline cases"
+      ],
+      "status": "PROPOSED"
+    }
+  ],
+  "new_node_candidates": [],
+  "new_property_candidates": [
+    {
+      "term": "TradePosition.max_concurrent",
+      "domain": "TradePosition",
+      "dtype": "integer>=1",
+      "reason": "exactly one simultaneous position constraint",
+      "source": "TradingView 02yfhjiz description",
+      "status": "PROPOSED_SUBJECT_TO_BASELINE_DUPLICATE_CHECK"
+    },
+    {
+      "term": "TradingRule.opposite_signal_policy",
+      "domain": "TradingRule",
+      "dtype": "enum IGNORE|CLOSE|CLOSE_AND_REVERSE",
+      "reason": "can change transaction behavior on opposite signal",
+      "source": "TradingView 02yfhjiz description",
+      "status": "PROPOSED_SUBJECT_TO_BASELINE_DUPLICATE_CHECK"
+    },
+    {
+      "term": "TradingRule.take_profit_tier",
+      "domain": "TradingRule",
+      "dtype": "positive integer",
+      "reason": "four distinct tier identities",
+      "source": "TradingView 02yfhjiz description",
+      "status": "PROPOSED_SUBJECT_TO_BASELINE_DUPLICATE_CHECK"
+    },
+    {
+      "term": "TradeAction.reduction_fraction",
+      "domain": "TradeAction",
+      "dtype": "decimal [0,1] or unresolved",
+      "reason": "partial exit quantity per tier",
+      "source": "TradingView 02yfhjiz description",
+      "status": "PROPOSED_SUBJECT_TO_BASELINE_DUPLICATE_CHECK"
+    },
+    {
+      "term": "BacktestStudy.simulated_tick_mode",
+      "domain": "BacktestStudy",
+      "dtype": "enum EVERY_TICK|OHLC|OPEN|UNKNOWN",
+      "reason": "indicator time frame and execution simulation are distinct",
+      "source": "Vezeris 2018 §2.4.1",
+      "status": "PROPOSED_SUBJECT_TO_BASELINE_DUPLICATE_CHECK"
+    },
+    {
+      "term": "SourceReportedMetric.source_result_kind",
+      "domain": "SourceReportedMetric",
+      "dtype": "enum AUTHOR_REPORTED|RECOMPUTED|REAL_FILL",
+      "reason": "avoid backtest report being treated as executed trade",
+      "source": "Vezeris 2018 Appendix B",
+      "status": "PROPOSED_SUBJECT_TO_BASELINE_DUPLICATE_CHECK"
+    }
+  ]
+}

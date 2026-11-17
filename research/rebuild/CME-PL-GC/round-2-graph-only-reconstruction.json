@@ -1,0 +1,177 @@
+{
+  "graph_id": "CME-PL-GC-R2-REBUILT",
+  "reconstruction_scope": "GRAPH_ONLY_FINANCE_EDGES_AND_NODE_FIELDS",
+  "graph_used": "research/rebuild/CME-PL-GC/round-2-rebuilt.graph.json",
+  "source_registry_read_for_this_step": false,
+  "case_kind": "EDUCATIONAL_WORKED_EXAMPLE",
+  "strategy_type": "INTERMARKET_RELATIVE_VALUE_SPREAD",
+  "spread_definition": "PL price minus GC price",
+  "events": [
+    {
+      "date_month": 3,
+      "date_day": 2,
+      "year": null,
+      "date_precision": "MONTH_DAY_ONLY",
+      "event_kind": "OPEN_SPREAD",
+      "leg_actions_simultaneous": true
+    },
+    {
+      "date_month": 3,
+      "date_day": 30,
+      "year": null,
+      "date_precision": "MONTH_DAY_ONLY",
+      "event_kind": "CLOSE_SPREAD",
+      "leg_actions_simultaneous": true
+    }
+  ],
+  "legs": [
+    {
+      "side": "LONG",
+      "contracts": 2,
+      "contract": {
+        "root": "PL",
+        "contract_month": "APR",
+        "contract_year": null,
+        "venue": "NYMEX",
+        "commodity": "PLATINUM"
+      },
+      "contract_spec": {
+        "contract_multiplier_value": 50,
+        "contract_multiplier_unit": "TROY_OZ_PER_CONTRACT",
+        "quotation_unit": "USD_PER_TROY_OZ",
+        "currency": "USD"
+      },
+      "actions": [
+        {
+          "id": "act:pl:entry",
+          "action_side": "BUY",
+          "contracts": 2,
+          "execution_kind": "EDUCATIONAL_TABLE_EXAMPLE",
+          "price": {
+            "price_usd_per_oz": 988.4,
+            "asset_symbol": "PL",
+            "quote_unit": "USD/troy_oz",
+            "source_kind": "EXAMPLE_PRICE"
+          }
+        },
+        {
+          "id": "act:pl:exit",
+          "action_side": "SELL",
+          "contracts": 2,
+          "execution_kind": "EDUCATIONAL_TABLE_EXAMPLE",
+          "price": {
+            "price_usd_per_oz": 1056.4,
+            "asset_symbol": "PL",
+            "quote_unit": "USD/troy_oz",
+            "source_kind": "EXAMPLE_PRICE"
+          }
+        }
+      ],
+      "reported_pnl": {
+        "name": "LEG_GROSS_PNL",
+        "unit": "USD",
+        "value": 6800,
+        "result_class": "AUTHOR_EDUCATIONAL_EXAMPLE"
+      }
+    },
+    {
+      "side": "SHORT",
+      "contracts": 1,
+      "contract": {
+        "root": "GC",
+        "contract_month": "APR",
+        "contract_year": null,
+        "venue": "COMEX",
+        "commodity": "GOLD"
+      },
+      "contract_spec": {
+        "contract_multiplier_value": 100,
+        "contract_multiplier_unit": "TROY_OZ_PER_CONTRACT",
+        "quotation_unit": "USD_PER_TROY_OZ",
+        "currency": "USD"
+      },
+      "actions": [
+        {
+          "id": "act:gc:entry",
+          "action_side": "SELL",
+          "contracts": 1,
+          "execution_kind": "EDUCATIONAL_TABLE_EXAMPLE",
+          "price": {
+            "price_usd_per_oz": 1231.9,
+            "asset_symbol": "GC",
+            "quote_unit": "USD/troy_oz",
+            "source_kind": "EXAMPLE_PRICE"
+          }
+        },
+        {
+          "id": "act:gc:exit",
+          "action_side": "BUY",
+          "contracts": 1,
+          "execution_kind": "EDUCATIONAL_TABLE_EXAMPLE",
+          "price": {
+            "price_usd_per_oz": 1244.2,
+            "asset_symbol": "GC",
+            "quote_unit": "USD/troy_oz",
+            "source_kind": "EXAMPLE_PRICE"
+          }
+        }
+      ],
+      "reported_pnl": {
+        "name": "LEG_GROSS_PNL",
+        "unit": "USD",
+        "value": -1230,
+        "result_class": "AUTHOR_EDUCATIONAL_EXAMPLE"
+      }
+    }
+  ],
+  "spread_at_entry": {
+    "name": "PL_MINUS_GC_SPREAD",
+    "unit": "USD/troy_oz",
+    "value": -243.5,
+    "stage": "ENTRY"
+  },
+  "spread_at_exit": {
+    "name": "PL_MINUS_GC_SPREAD",
+    "unit": "USD/troy_oz",
+    "value": -187.8,
+    "stage": "EXIT"
+  },
+  "spread_change": {
+    "name": "SPREAD_NARROWING",
+    "unit": "USD/troy_oz",
+    "value": 55.7,
+    "stage": "NET"
+  },
+  "gross_result": {
+    "name": "GROSS_SPREAD_PNL",
+    "unit": "USD",
+    "value": 5570,
+    "not_net_of_undisclosed_fees": true
+  },
+  "economic_rationale_text_only": {
+    "kind": "AUTOMOTIVE_PLATINUM_DEMAND",
+    "basis": "higher car sales increases industrial platinum demand",
+    "expectation": "platinum outperforms gold and negative PL-GC spread narrows",
+    "is_systematic_signal": false
+  },
+  "margin_qualitative_text_only": [
+    {
+      "kind": "MARGIN_OFFSET",
+      "claim_grade": "QUALITATIVE_ONLY",
+      "comparison": "spreads may have lower margin than outright positions",
+      "actual_margin_amount": null
+    }
+  ],
+  "reconstruction_failures": [
+    {
+      "fact": "F03",
+      "cause": "Demand cause, platinum commodity impact and relative spread expectation are packed into one EconomicHypothesis free-text property, not traversable causal graph"
+    },
+    {
+      "fact": "F15",
+      "cause": "Qualitative margin offset is a single EvidenceAssertion text node; no margin mechanism, target portfolio or baseline comparison relationship"
+    }
+  ],
+  "round_result": "FAIL_SEMANTIC_GRANULARITY_REBUILD_REQUIRED",
+  "independent_chatgpt_session": false
+}

@@ -1,0 +1,193 @@
+{
+  "case_id": "CME-PL-GC",
+  "round": "R5",
+  "facts_checked": 26,
+  "passed": 25,
+  "failed": 1,
+  "rows": [
+    {
+      "fact": "F01",
+      "scope": "EXAMPLE",
+      "passed": true,
+      "source": "CME page, Gold-Platinum Spread Trade → P&L Example",
+      "diagnosis": "OK"
+    },
+    {
+      "fact": "F02",
+      "scope": "EXAMPLE",
+      "passed": true,
+      "source": "CME page, Creating a Futures Spread / Types of Spreads",
+      "diagnosis": "OK"
+    },
+    {
+      "fact": "F03",
+      "scope": "EXAMPLE",
+      "passed": true,
+      "source": "CME page, P&L Example introductory paragraph",
+      "diagnosis": "OK"
+    },
+    {
+      "fact": "F04",
+      "scope": "EXAMPLE",
+      "passed": true,
+      "source": "CME page, P&L Example introductory paragraph",
+      "diagnosis": "OK"
+    },
+    {
+      "fact": "F05",
+      "scope": "EXAMPLE",
+      "passed": true,
+      "source": "CME page, P&L Example closing paragraph",
+      "diagnosis": "OK"
+    },
+    {
+      "fact": "F06",
+      "scope": "EXAMPLE",
+      "passed": true,
+      "source": "CME page, Gold-Platinum P&L example",
+      "diagnosis": "OK"
+    },
+    {
+      "fact": "F07",
+      "scope": "EXAMPLE",
+      "passed": true,
+      "source": "CME page, Gold-Platinum P&L example and price spread chart context",
+      "diagnosis": "OK"
+    },
+    {
+      "fact": "F08",
+      "scope": "EXAMPLE",
+      "passed": true,
+      "source": "CME page, entry/exit table",
+      "diagnosis": "OK"
+    },
+    {
+      "fact": "F09",
+      "scope": "EXAMPLE",
+      "passed": true,
+      "source": "CME page, entry/exit table",
+      "diagnosis": "OK"
+    },
+    {
+      "fact": "F10",
+      "scope": "EXAMPLE",
+      "passed": true,
+      "source": "CME page, entry/exit table",
+      "diagnosis": "OK"
+    },
+    {
+      "fact": "F11",
+      "scope": "EXAMPLE",
+      "passed": true,
+      "source": "CME page, entry/exit table",
+      "diagnosis": "OK"
+    },
+    {
+      "fact": "F12",
+      "scope": "EXAMPLE",
+      "passed": true,
+      "source": "CME page, entry/exit table",
+      "diagnosis": "OK"
+    },
+    {
+      "fact": "F13",
+      "scope": "EXAMPLE",
+      "passed": true,
+      "source": "CME page, P&L table",
+      "diagnosis": "OK"
+    },
+    {
+      "fact": "F14",
+      "scope": "EXAMPLE",
+      "passed": true,
+      "source": "CME page, P&L worked example",
+      "diagnosis": "OK"
+    },
+    {
+      "fact": "F15",
+      "scope": "EXAMPLE",
+      "passed": true,
+      "source": "CME page, Margin Offsets",
+      "diagnosis": "OK"
+    },
+    {
+      "fact": "F16",
+      "scope": "BACKGROUND_CONTEXT",
+      "passed": false,
+      "source": "CME official article, Gold-Platinum Spread Trade, lines 50-54",
+      "diagnosis": "GRAPH_OR_READER_DEFECT_REQUIRES_ISOLATION"
+    },
+    {
+      "fact": "F17",
+      "scope": "BACKGROUND_CONTEXT",
+      "passed": true,
+      "source": "CME article Gold-Platinum Spread Trade line 54",
+      "diagnosis": "OK"
+    },
+    {
+      "fact": "F18",
+      "scope": "HYPOTHESIS_NOT_OBSERVED_TRADE",
+      "passed": true,
+      "source": "CME article Gold-Platinum Spread Trade line 53",
+      "diagnosis": "OK"
+    },
+    {
+      "fact": "F19",
+      "scope": "INSTRUMENT_CLASSIFICATION",
+      "passed": true,
+      "source": "CME article Types of Spreads lines 35-39",
+      "diagnosis": "OK"
+    },
+    {
+      "fact": "F20",
+      "scope": "GENERAL_EXECUTION_RISK_NOT_SPECIFIC_FILL",
+      "passed": true,
+      "source": "CME article Types of Spreads line 39",
+      "diagnosis": "OK"
+    },
+    {
+      "fact": "F21",
+      "scope": "GENERAL_MECHANISM",
+      "passed": true,
+      "source": "CME article Creating a Futures Spread lines 30-34",
+      "diagnosis": "OK"
+    },
+    {
+      "fact": "F22",
+      "scope": "GENERAL_CONTEXT",
+      "passed": true,
+      "source": "CME article introduction lines 27-29; Spread Trading with Precious Metals line 47",
+      "diagnosis": "OK"
+    },
+    {
+      "fact": "F23",
+      "scope": "GENERAL_CONTEXT_NOT_BACKTEST_RESULT",
+      "passed": true,
+      "source": "CME article introductory lines 27-29; Benefits of Spread Trading lines 40-44",
+      "diagnosis": "OK"
+    },
+    {
+      "fact": "F24",
+      "scope": "VENUE_BACKGROUND_NOT_EXAMPLE_ORDER",
+      "passed": true,
+      "source": "CME article Spread Trading with Precious Metals lines 45-49",
+      "diagnosis": "OK"
+    },
+    {
+      "fact": "F25",
+      "scope": "CASE_SPECIFIC_QUALITATIVE",
+      "passed": true,
+      "source": "CME article Margin Offsets lines 75-79",
+      "diagnosis": "OK"
+    },
+    {
+      "fact": "F26",
+      "scope": "DERIVED_NOT_DIRECTLY_REPORTED",
+      "passed": true,
+      "source": "Derived from CME worked example line 62 and notional amounts line 63",
+      "diagnosis": "OK"
+    }
+  ],
+  "final_status": "FAIL_RECONSTRUCTION_INCOMPLETE",
+  "replay_session_independent": false
+}

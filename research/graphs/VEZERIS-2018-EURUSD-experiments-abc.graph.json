@@ -1,0 +1,1388 @@
+{
+  "graph_id": "VEZERIS-2018-MACD-EURUSD-ABC-KG-20261117",
+  "scope": "EURUSD experiments (a),(b),(c) only; not the whole paper and not the TradingView strategy",
+  "ontology_basis": "604_BASELINE_PLUS_V7",
+  "graph_type": "PUBLISHED_SPECIFIED_BACKTEST_EXPERIMENTS",
+  "source": "https://www.mdpi.com/1911-8074/11/3/56/pdf",
+  "nodes": [
+    {
+      "id": "paper:source",
+      "ontology_type": "N-119:SourceDocument",
+      "properties": {
+        "title": "Take Profit and Stop Loss Trading Strategies Comparison in Combination with an MACD Trading System",
+        "authors": [
+          "Dimitrios Vezeris",
+          "Themistoklis Kyrgos",
+          "Christos Schinas"
+        ],
+        "published": "2018-09-19",
+        "doi": "10.3390/jrfm11030056",
+        "url": "https://www.mdpi.com/1911-8074/11/3/56/pdf",
+        "genre": "ACADEMIC_RESEARCH"
+      }
+    },
+    {
+      "id": "paper:p_entry",
+      "ontology_type": "N-120:SourcePassage",
+      "properties": {
+        "locator": "§2.3.1 (PDF p5), Appendix A baseline pseudocode (PDF p18)",
+        "covers": "MACD EMA formulas and baseline position switching"
+      }
+    },
+    {
+      "id": "paper:p_setting",
+      "ontology_type": "N-120:SourcePassage",
+      "properties": {
+        "locator": "§2.4/§2.4.1 (PDF pp9–10)",
+        "covers": "2017–2018 dates, nine assets, MT5, spreads, capital, leverage, sampling"
+      }
+    },
+    {
+      "id": "paper:p_variants",
+      "ontology_type": "N-120:SourcePassage",
+      "properties": {
+        "locator": "§3.1 (PDF p11)",
+        "covers": "(a) default 12/26/9 no weekends, (b) selected params no weekends, (c) selected params with weekends"
+      }
+    },
+    {
+      "id": "paper:p_params",
+      "ontology_type": "N-120:SourcePassage",
+      "properties": {
+        "locator": "Table 2 EURUSD row (PDF p11)",
+        "covers": "selected MACD EURUSD 27/280/28"
+      }
+    },
+    {
+      "id": "paper:p_metric",
+      "ontology_type": "N-120:SourcePassage",
+      "properties": {
+        "locator": "Appendix B, Table A1 EURUSD row (PDF p21)",
+        "covers": "gross profit, gross loss, net profit for experiments a/b/c"
+      }
+    },
+    {
+      "id": "paper:p_extra",
+      "ontology_type": "N-120:SourcePassage",
+      "properties": {
+        "locator": "Appendix B, Table A2 EURUSD row (PDF p21)",
+        "covers": "drawdown and trades for experiments a/b/c"
+      }
+    },
+    {
+      "id": "paper:strategy",
+      "ontology_type": "N-110:TradingStrategy",
+      "properties": {
+        "name": "Simple MACD Expert Advisor",
+        "signal_rule": "MACD crosses signal => close opposite/open new direction",
+        "stop_loss_extension": "NONE_FOR_A_B_C",
+        "take_profit_extension": "NONE_FOR_A_B_C"
+      }
+    },
+    {
+      "id": "paper:backtest",
+      "ontology_type": "N-006:BacktestStudy",
+      "properties": {
+        "platform": "MetaTrader 5",
+        "asset_scope": "FOREX / EURUSD selected row",
+        "timeframe": "1h",
+        "price_simulation": "EVERY_TICK",
+        "data_vendors": [
+          "FXTM",
+          "GEBINVEST",
+          "OctaFX"
+        ],
+        "start_date": "2017-09-03",
+        "end_date": "2018-02-24",
+        "initial_capital": {
+          "amount": 10000,
+          "currency": "USD"
+        },
+        "leverage": "1:100",
+        "risk_per_new_position_fraction": 0.2,
+        "broker_spread_pips_eurusd": 0.4,
+        "transaction_cost_handling": "INCLUDED_IN_GROSS_LOSSES"
+      }
+    },
+    {
+      "id": "paper:asset:EURUSD",
+      "ontology_type": "N-002:Asset",
+      "properties": {
+        "category": "FOREX",
+        "symbol": "EURUSD",
+        "base_currency": "EUR",
+        "quote_currency": "USD",
+        "indicator_attributes": {
+          "AI-001": null,
+          "AI-002": null,
+          "AI-003": null,
+          "AI-004": null,
+          "AI-005": null,
+          "AI-006": null,
+          "AI-007": null,
+          "AI-008": null,
+          "AI-009": null,
+          "AI-010": null,
+          "AI-011": null,
+          "AI-012": null,
+          "AI-013": null,
+          "AI-014": null,
+          "AI-015": null,
+          "AI-016": null,
+          "AI-017": null,
+          "AI-018": null,
+          "AI-019": null,
+          "AI-020": null,
+          "AI-021": null,
+          "AI-022": null,
+          "AI-023": null,
+          "AI-024": null,
+          "AI-025": null,
+          "AI-026": null,
+          "AI-027": null,
+          "AI-028": null,
+          "AI-029": null,
+          "AI-030": null,
+          "AI-031": null,
+          "AI-032": null,
+          "AI-033": null,
+          "AI-034": null,
+          "AI-035": null,
+          "AI-036": null,
+          "AI-037": null,
+          "AI-038": null,
+          "AI-039": null,
+          "AI-040": null,
+          "AI-041": null,
+          "AI-042": null,
+          "AI-043": null,
+          "AI-044": null,
+          "AI-045": null,
+          "AI-046": null,
+          "AI-047": null,
+          "AI-048": null,
+          "AI-049": null,
+          "AI-050": null,
+          "AI-051": null,
+          "AI-052": null,
+          "AI-053": null,
+          "AI-054": null,
+          "AI-055": null,
+          "AI-056": null,
+          "AI-057": null,
+          "AI-058": null,
+          "AI-059": null,
+          "AI-060": null,
+          "AI-061": null,
+          "AI-062": null,
+          "AI-063": null,
+          "AI-064": null,
+          "AI-065": null,
+          "AI-066": null,
+          "AI-067": null,
+          "AI-068": null,
+          "AI-069": null,
+          "AI-070": null,
+          "AI-071": null,
+          "AI-072": null,
+          "AI-073": null,
+          "AI-074": null,
+          "AI-075": null,
+          "AI-076": null,
+          "AI-077": null,
+          "AI-078": null,
+          "AI-079": null,
+          "AI-080": null,
+          "AI-081": null,
+          "AI-082": null,
+          "AI-083": null,
+          "AI-084": null,
+          "AI-085": null,
+          "AI-086": null,
+          "AI-087": null,
+          "AI-088": null,
+          "AI-089": null,
+          "AI-090": null
+        },
+        "applied_indicator_configs": {
+          "MACD": {
+            "fast": 12,
+            "slow": 26,
+            "signal": 9
+          },
+          "note": "MACD configuration changes per case; do not treat these as actual observed indicator values"
+        }
+      }
+    },
+    {
+      "id": "paper:macd",
+      "ontology_type": "N-130:CalculationExpression",
+      "properties": {
+        "name": "MACD line",
+        "expression_ast": {
+          "op": "subtract",
+          "args": [
+            {
+              "op": "EMA",
+              "input": "EURUSD_PRICE_SERIES",
+              "period_ref": "FAST"
+            },
+            {
+              "op": "EMA",
+              "input": "EURUSD_PRICE_SERIES",
+              "period_ref": "SLOW"
+            }
+          ]
+        },
+        "output": "MACD_LINE",
+        "output_unit": "PRICE_DIFFERENCE"
+      }
+    },
+    {
+      "id": "paper:signal",
+      "ontology_type": "N-130:CalculationExpression",
+      "properties": {
+        "name": "Signal line",
+        "expression_ast": {
+          "op": "EMA",
+          "input_ref": "paper:macd",
+          "period_ref": "SIGNAL"
+        },
+        "output": "SIGNAL_LINE",
+        "output_unit": "PRICE_DIFFERENCE"
+      }
+    },
+    {
+      "id": "paper:rule:long",
+      "ontology_type": "N-108:TradingRule",
+      "properties": {
+        "kind": "ENTRY_AND_REVERSE_LONG",
+        "evaluation": "MACD_CROSSES_ABOVE_SIGNAL",
+        "position_state_precondition": "CAN_BE_SHORT_OR_FLAT"
+      }
+    },
+    {
+      "id": "paper:rule:short",
+      "ontology_type": "N-108:TradingRule",
+      "properties": {
+        "kind": "ENTRY_AND_REVERSE_SHORT",
+        "evaluation": "MACD_CROSSES_BELOW_SIGNAL",
+        "position_state_precondition": "CAN_BE_LONG_OR_FLAT"
+      }
+    },
+    {
+      "id": "paper:cond:long",
+      "ontology_type": "N-127:RuleCondition",
+      "properties": {
+        "condition_ast": {
+          "op": "CROSSES_ABOVE",
+          "left_ref": "paper:macd",
+          "right_ref": "paper:signal"
+        },
+        "result_type": "BOOLEAN"
+      }
+    },
+    {
+      "id": "paper:cond:short",
+      "ontology_type": "N-127:RuleCondition",
+      "properties": {
+        "condition_ast": {
+          "op": "CROSSES_BELOW",
+          "left_ref": "paper:macd",
+          "right_ref": "paper:signal"
+        },
+        "result_type": "BOOLEAN"
+      }
+    },
+    {
+      "id": "paper:action:close_short",
+      "ontology_type": "N-128:TradeAction",
+      "properties": {
+        "kind": "CLOSE_EXISTING_SHORT",
+        "order_fill_data": "NOT_AVAILABLE"
+      }
+    },
+    {
+      "id": "paper:action:open_long",
+      "ontology_type": "N-128:TradeAction",
+      "properties": {
+        "kind": "OPEN_LONG",
+        "risk_fraction_of_current_balance": 0.2,
+        "order_fill_data": "NOT_AVAILABLE"
+      }
+    },
+    {
+      "id": "paper:action:close_long",
+      "ontology_type": "N-128:TradeAction",
+      "properties": {
+        "kind": "CLOSE_EXISTING_LONG",
+        "order_fill_data": "NOT_AVAILABLE"
+      }
+    },
+    {
+      "id": "paper:action:open_short",
+      "ontology_type": "N-128:TradeAction",
+      "properties": {
+        "kind": "OPEN_SHORT",
+        "risk_fraction_of_current_balance": 0.2,
+        "order_fill_data": "NOT_AVAILABLE"
+      }
+    },
+    {
+      "id": "paper:position",
+      "ontology_type": "N-104:TradePosition",
+      "properties": {
+        "role": "BACKTEST_POSITION_TEMPLATE",
+        "instrument": "EURUSD",
+        "real_fills_in_source": false
+      }
+    },
+    {
+      "id": "paper:source_evidence_trade",
+      "ontology_type": "N-121:EvidenceAssertion",
+      "properties": {
+        "assertion": "The study trades simulated positions using MACD crossover reversal, not author-proven real fills"
+      }
+    },
+    {
+      "id": "paper:source_evidence_results",
+      "ontology_type": "N-121:EvidenceAssertion",
+      "properties": {
+        "assertion": "Appendix B reports per-experiment EURUSD metrics; not a backtest rerun in this repository"
+      }
+    },
+    {
+      "id": "paper:case:a",
+      "ontology_type": "N-118:TradeCase",
+      "properties": {
+        "kind": "SPECIFIED_BACKTEST_NOT_ACTUAL_TRADE",
+        "experiment": "a",
+        "symbol": "EURUSD",
+        "indicator_parameters": {
+          "fast": 12,
+          "slow": 26,
+          "signal": 9
+        },
+        "weekend_position_policy": "CLOSE",
+        "source_parameter_locations": "§3.1"
+      }
+    },
+    {
+      "id": "paper:result:a",
+      "ontology_type": "N-005:BacktestResult",
+      "properties": {
+        "experiment": "a",
+        "calculated_locally": false,
+        "source_reports_values": true,
+        "as_reported": {
+          "gross_profit": 45671.48,
+          "gross_loss": -52901.34,
+          "net_profit": -7229.86,
+          "drawdown_pct": 82.51,
+          "trade_count": 243
+        }
+      }
+    },
+    {
+      "id": "paper:metric:a:gross_profit",
+      "ontology_type": "N-138:SourceReportedMetric",
+      "properties": {
+        "metric_name": "gross_profit",
+        "metric_value": 45671.48,
+        "unit": "USD",
+        "source_table": "Appendix B Table A1",
+        "source_state": "AUTHOR_REPORTED"
+      }
+    },
+    {
+      "id": "paper:metric:a:gross_loss",
+      "ontology_type": "N-138:SourceReportedMetric",
+      "properties": {
+        "metric_name": "gross_loss",
+        "metric_value": -52901.34,
+        "unit": "USD",
+        "source_table": "Appendix B Table A1",
+        "source_state": "AUTHOR_REPORTED"
+      }
+    },
+    {
+      "id": "paper:metric:a:net_profit",
+      "ontology_type": "N-138:SourceReportedMetric",
+      "properties": {
+        "metric_name": "net_profit",
+        "metric_value": -7229.86,
+        "unit": "USD",
+        "source_table": "Appendix B Table A1",
+        "source_state": "AUTHOR_REPORTED"
+      }
+    },
+    {
+      "id": "paper:metric:a:drawdown_pct",
+      "ontology_type": "N-138:SourceReportedMetric",
+      "properties": {
+        "metric_name": "drawdown_pct",
+        "metric_value": 82.51,
+        "unit": "percent",
+        "source_table": "Appendix B Table A2",
+        "source_state": "AUTHOR_REPORTED"
+      }
+    },
+    {
+      "id": "paper:metric:a:trade_count",
+      "ontology_type": "N-138:SourceReportedMetric",
+      "properties": {
+        "metric_name": "trade_count",
+        "metric_value": 243,
+        "unit": "count",
+        "source_table": "Appendix B Table A2",
+        "source_state": "AUTHOR_REPORTED"
+      }
+    },
+    {
+      "id": "paper:case:b",
+      "ontology_type": "N-118:TradeCase",
+      "properties": {
+        "kind": "SPECIFIED_BACKTEST_NOT_ACTUAL_TRADE",
+        "experiment": "b",
+        "symbol": "EURUSD",
+        "indicator_parameters": {
+          "fast": 27,
+          "slow": 280,
+          "signal": 28
+        },
+        "weekend_position_policy": "CLOSE",
+        "source_parameter_locations": "Table 2 + §3.1"
+      }
+    },
+    {
+      "id": "paper:result:b",
+      "ontology_type": "N-005:BacktestResult",
+      "properties": {
+        "experiment": "b",
+        "calculated_locally": false,
+        "source_reports_values": true,
+        "as_reported": {
+          "gross_profit": 36106.59,
+          "gross_loss": -31757.62,
+          "net_profit": 4348.97,
+          "drawdown_pct": 47.95,
+          "trade_count": 81
+        }
+      }
+    },
+    {
+      "id": "paper:metric:b:gross_profit",
+      "ontology_type": "N-138:SourceReportedMetric",
+      "properties": {
+        "metric_name": "gross_profit",
+        "metric_value": 36106.59,
+        "unit": "USD",
+        "source_table": "Appendix B Table A1",
+        "source_state": "AUTHOR_REPORTED"
+      }
+    },
+    {
+      "id": "paper:metric:b:gross_loss",
+      "ontology_type": "N-138:SourceReportedMetric",
+      "properties": {
+        "metric_name": "gross_loss",
+        "metric_value": -31757.62,
+        "unit": "USD",
+        "source_table": "Appendix B Table A1",
+        "source_state": "AUTHOR_REPORTED"
+      }
+    },
+    {
+      "id": "paper:metric:b:net_profit",
+      "ontology_type": "N-138:SourceReportedMetric",
+      "properties": {
+        "metric_name": "net_profit",
+        "metric_value": 4348.97,
+        "unit": "USD",
+        "source_table": "Appendix B Table A1",
+        "source_state": "AUTHOR_REPORTED"
+      }
+    },
+    {
+      "id": "paper:metric:b:drawdown_pct",
+      "ontology_type": "N-138:SourceReportedMetric",
+      "properties": {
+        "metric_name": "drawdown_pct",
+        "metric_value": 47.95,
+        "unit": "percent",
+        "source_table": "Appendix B Table A2",
+        "source_state": "AUTHOR_REPORTED"
+      }
+    },
+    {
+      "id": "paper:metric:b:trade_count",
+      "ontology_type": "N-138:SourceReportedMetric",
+      "properties": {
+        "metric_name": "trade_count",
+        "metric_value": 81,
+        "unit": "count",
+        "source_table": "Appendix B Table A2",
+        "source_state": "AUTHOR_REPORTED"
+      }
+    },
+    {
+      "id": "paper:case:c",
+      "ontology_type": "N-118:TradeCase",
+      "properties": {
+        "kind": "SPECIFIED_BACKTEST_NOT_ACTUAL_TRADE",
+        "experiment": "c",
+        "symbol": "EURUSD",
+        "indicator_parameters": {
+          "fast": 27,
+          "slow": 280,
+          "signal": 28
+        },
+        "weekend_position_policy": "HOLD",
+        "source_parameter_locations": "Table 2 + §3.1"
+      }
+    },
+    {
+      "id": "paper:result:c",
+      "ontology_type": "N-005:BacktestResult",
+      "properties": {
+        "experiment": "c",
+        "calculated_locally": false,
+        "source_reports_values": true,
+        "as_reported": {
+          "gross_profit": 32522.98,
+          "gross_loss": -27630.16,
+          "net_profit": 4892.82,
+          "drawdown_pct": 42.18,
+          "trade_count": 60
+        }
+      }
+    },
+    {
+      "id": "paper:metric:c:gross_profit",
+      "ontology_type": "N-138:SourceReportedMetric",
+      "properties": {
+        "metric_name": "gross_profit",
+        "metric_value": 32522.98,
+        "unit": "USD",
+        "source_table": "Appendix B Table A1",
+        "source_state": "AUTHOR_REPORTED"
+      }
+    },
+    {
+      "id": "paper:metric:c:gross_loss",
+      "ontology_type": "N-138:SourceReportedMetric",
+      "properties": {
+        "metric_name": "gross_loss",
+        "metric_value": -27630.16,
+        "unit": "USD",
+        "source_table": "Appendix B Table A1",
+        "source_state": "AUTHOR_REPORTED"
+      }
+    },
+    {
+      "id": "paper:metric:c:net_profit",
+      "ontology_type": "N-138:SourceReportedMetric",
+      "properties": {
+        "metric_name": "net_profit",
+        "metric_value": 4892.82,
+        "unit": "USD",
+        "source_table": "Appendix B Table A1",
+        "source_state": "AUTHOR_REPORTED"
+      }
+    },
+    {
+      "id": "paper:metric:c:drawdown_pct",
+      "ontology_type": "N-138:SourceReportedMetric",
+      "properties": {
+        "metric_name": "drawdown_pct",
+        "metric_value": 42.18,
+        "unit": "percent",
+        "source_table": "Appendix B Table A2",
+        "source_state": "AUTHOR_REPORTED"
+      }
+    },
+    {
+      "id": "paper:metric:c:trade_count",
+      "ontology_type": "N-138:SourceReportedMetric",
+      "properties": {
+        "metric_name": "trade_count",
+        "metric_value": 60,
+        "unit": "count",
+        "source_table": "Appendix B Table A2",
+        "source_state": "AUTHOR_REPORTED"
+      }
+    },
+    {
+      "id": "paper:indicator_param:a:fast",
+      "ontology_type": "N-041:IndicatorParameter",
+      "properties": {
+        "indicator_slot": "Asset.EURUSD.indicator_attributes.MACD",
+        "role": "P_FAST",
+        "value": 12,
+        "value_type": "positive_integer_bars",
+        "timeframe": "1h",
+        "source_ref": "§3.1"
+      }
+    },
+    {
+      "id": "paper:indicator_param:a:slow",
+      "ontology_type": "N-041:IndicatorParameter",
+      "properties": {
+        "indicator_slot": "Asset.EURUSD.indicator_attributes.MACD",
+        "role": "P_SLOW",
+        "value": 26,
+        "value_type": "positive_integer_bars",
+        "timeframe": "1h",
+        "source_ref": "§3.1"
+      }
+    },
+    {
+      "id": "paper:indicator_param:a:signal",
+      "ontology_type": "N-041:IndicatorParameter",
+      "properties": {
+        "indicator_slot": "Asset.EURUSD.indicator_attributes.MACD",
+        "role": "P_SIGNAL",
+        "value": 9,
+        "value_type": "positive_integer_bars",
+        "timeframe": "1h",
+        "source_ref": "§3.1"
+      }
+    },
+    {
+      "id": "paper:indicator_param:selected:fast",
+      "ontology_type": "N-041:IndicatorParameter",
+      "properties": {
+        "indicator_slot": "Asset.EURUSD.indicator_attributes.MACD",
+        "role": "P_FAST",
+        "value": 27,
+        "value_type": "positive_integer_bars",
+        "timeframe": "1h",
+        "source_ref": "Table 2 EURUSD row"
+      }
+    },
+    {
+      "id": "paper:indicator_param:selected:slow",
+      "ontology_type": "N-041:IndicatorParameter",
+      "properties": {
+        "indicator_slot": "Asset.EURUSD.indicator_attributes.MACD",
+        "role": "P_SLOW",
+        "value": 280,
+        "value_type": "positive_integer_bars",
+        "timeframe": "1h",
+        "source_ref": "Table 2 EURUSD row"
+      }
+    },
+    {
+      "id": "paper:indicator_param:selected:signal",
+      "ontology_type": "N-041:IndicatorParameter",
+      "properties": {
+        "indicator_slot": "Asset.EURUSD.indicator_attributes.MACD",
+        "role": "P_SIGNAL",
+        "value": 28,
+        "value_type": "positive_integer_bars",
+        "timeframe": "1h",
+        "source_ref": "Table 2 EURUSD row"
+      }
+    },
+    {
+      "id": "paper:rule:close_before_weekend",
+      "ontology_type": "N-108:TradingRule",
+      "properties": {
+        "role": "WEEKEND_POSITION_CLOSURE",
+        "handling": "CLOSE_ALL_OPEN_POSITIONS_BEFORE_WEEKEND",
+        "exact_calendar_cutoff_time": null,
+        "source_status": "BEHAVIOR_DISCLOSED_TIMING_NOT_DISCLOSED"
+      }
+    },
+    {
+      "id": "paper:rule:weekend_hold",
+      "ontology_type": "N-108:TradingRule",
+      "properties": {
+        "role": "ALLOW_WEEKEND_HOLD",
+        "handling": "LEAVE_EXISTING_POSITION_OPEN_OVER_WEEKEND",
+        "source_status": "DISCLOSED"
+      }
+    },
+    {
+      "id": "paper:condition:weekend_boundary",
+      "ontology_type": "N-127:RuleCondition",
+      "properties": {
+        "kind": "WEEKEND_BOUNDARY_PRE_CLOSE",
+        "calendar": "MARKET_WEEK_END",
+        "exact_time": null,
+        "operator": "BEFORE",
+        "source_status": "EXACT_CUTOFF_NOT_DISCLOSED"
+      }
+    },
+    {
+      "id": "paper:action:weekend_close",
+      "ontology_type": "N-128:TradeAction",
+      "properties": {
+        "kind": "CLOSE_CURRENT_POSITION",
+        "when": "WEEKEND_PRE_CLOSE",
+        "order_execution_details": "NOT_DISCLOSED"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "paper:strategy",
+      "relation": "R-006:BACKTESTED_ON",
+      "to": "paper:backtest"
+    },
+    {
+      "from": "paper:strategy",
+      "relation": "R-040:GENERATES_POSITION",
+      "to": "paper:position"
+    },
+    {
+      "from": "paper:strategy",
+      "relation": "R-109:STRATEGY_HAS_ENTRY_RULE",
+      "to": "paper:rule:long"
+    },
+    {
+      "from": "paper:strategy",
+      "relation": "R-109:STRATEGY_HAS_ENTRY_RULE",
+      "to": "paper:rule:short"
+    },
+    {
+      "from": "paper:rule:long",
+      "relation": "R-111:RULE_HAS_ATOMIC_CONDITION",
+      "to": "paper:cond:long"
+    },
+    {
+      "from": "paper:rule:short",
+      "relation": "R-111:RULE_HAS_ATOMIC_CONDITION",
+      "to": "paper:cond:short"
+    },
+    {
+      "from": "paper:cond:long",
+      "relation": "R-117:CONDITION_TESTS_CALCULATION",
+      "to": "paper:macd"
+    },
+    {
+      "from": "paper:cond:long",
+      "relation": "R-117:CONDITION_TESTS_CALCULATION",
+      "to": "paper:signal"
+    },
+    {
+      "from": "paper:cond:short",
+      "relation": "R-117:CONDITION_TESTS_CALCULATION",
+      "to": "paper:macd"
+    },
+    {
+      "from": "paper:cond:short",
+      "relation": "R-117:CONDITION_TESTS_CALCULATION",
+      "to": "paper:signal"
+    },
+    {
+      "from": "paper:macd",
+      "relation": "R-115:EXPRESSION_READS_ASSET_PROPERTY",
+      "to": "paper:asset:EURUSD"
+    },
+    {
+      "from": "paper:rule:long",
+      "relation": "R-112:RULE_DECLARES_ACTION",
+      "to": "paper:action:close_short"
+    },
+    {
+      "from": "paper:rule:long",
+      "relation": "R-112:RULE_DECLARES_ACTION",
+      "to": "paper:action:open_long"
+    },
+    {
+      "from": "paper:rule:short",
+      "relation": "R-112:RULE_DECLARES_ACTION",
+      "to": "paper:action:close_long"
+    },
+    {
+      "from": "paper:rule:short",
+      "relation": "R-112:RULE_DECLARES_ACTION",
+      "to": "paper:action:open_short"
+    },
+    {
+      "from": "paper:action:close_short",
+      "relation": "R-113:ACTION_CHANGES_POSITION",
+      "to": "paper:position"
+    },
+    {
+      "from": "paper:action:open_long",
+      "relation": "R-113:ACTION_CHANGES_POSITION",
+      "to": "paper:position"
+    },
+    {
+      "from": "paper:action:close_long",
+      "relation": "R-113:ACTION_CHANGES_POSITION",
+      "to": "paper:position"
+    },
+    {
+      "from": "paper:action:open_short",
+      "relation": "R-113:ACTION_CHANGES_POSITION",
+      "to": "paper:position"
+    },
+    {
+      "from": "paper:backtest",
+      "relation": "PROPOSED:BACKTEST_STUDY_TESTS_ASSET",
+      "to": "paper:asset:EURUSD",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "paper:source_evidence_trade",
+      "relation": "R-100:ASSERTION_SUPPORTED_BY_PASSAGE",
+      "to": "paper:p_entry"
+    },
+    {
+      "from": "paper:source_evidence_results",
+      "relation": "R-100:ASSERTION_SUPPORTED_BY_PASSAGE",
+      "to": "paper:p_metric"
+    },
+    {
+      "from": "paper:source",
+      "relation": "R-099:SOURCE_HAS_PASSAGE",
+      "to": "paper:p_entry"
+    },
+    {
+      "from": "paper:source",
+      "relation": "R-099:SOURCE_HAS_PASSAGE",
+      "to": "paper:p_setting"
+    },
+    {
+      "from": "paper:source",
+      "relation": "R-099:SOURCE_HAS_PASSAGE",
+      "to": "paper:p_variants"
+    },
+    {
+      "from": "paper:source",
+      "relation": "R-099:SOURCE_HAS_PASSAGE",
+      "to": "paper:p_params"
+    },
+    {
+      "from": "paper:source",
+      "relation": "R-099:SOURCE_HAS_PASSAGE",
+      "to": "paper:p_metric"
+    },
+    {
+      "from": "paper:source",
+      "relation": "R-099:SOURCE_HAS_PASSAGE",
+      "to": "paper:p_extra"
+    },
+    {
+      "from": "paper:case:a",
+      "relation": "R-098:CASE_DERIVED_FROM_SOURCE",
+      "to": "paper:source"
+    },
+    {
+      "from": "paper:case:a",
+      "relation": "PROPOSED:CASE_EVALUATES_STRATEGY",
+      "to": "paper:strategy",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "paper:case:a",
+      "relation": "PROPOSED:CASE_USES_BACKTEST_STUDY",
+      "to": "paper:backtest",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "paper:result:a",
+      "relation": "PROPOSED:BACKTEST_RESULT_OF_CASE",
+      "to": "paper:case:a",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "paper:source",
+      "relation": "R-129:SOURCE_REPORTS_RESULT",
+      "to": "paper:metric:a:gross_profit"
+    },
+    {
+      "from": "paper:metric:a:gross_profit",
+      "relation": "R-131:RESULT_MEASURES_CASE",
+      "to": "paper:case:a"
+    },
+    {
+      "from": "paper:source",
+      "relation": "R-129:SOURCE_REPORTS_RESULT",
+      "to": "paper:metric:a:gross_loss"
+    },
+    {
+      "from": "paper:metric:a:gross_loss",
+      "relation": "R-131:RESULT_MEASURES_CASE",
+      "to": "paper:case:a"
+    },
+    {
+      "from": "paper:source",
+      "relation": "R-129:SOURCE_REPORTS_RESULT",
+      "to": "paper:metric:a:net_profit"
+    },
+    {
+      "from": "paper:metric:a:net_profit",
+      "relation": "R-131:RESULT_MEASURES_CASE",
+      "to": "paper:case:a"
+    },
+    {
+      "from": "paper:source",
+      "relation": "R-129:SOURCE_REPORTS_RESULT",
+      "to": "paper:metric:a:drawdown_pct"
+    },
+    {
+      "from": "paper:metric:a:drawdown_pct",
+      "relation": "R-131:RESULT_MEASURES_CASE",
+      "to": "paper:case:a"
+    },
+    {
+      "from": "paper:source",
+      "relation": "R-129:SOURCE_REPORTS_RESULT",
+      "to": "paper:metric:a:trade_count"
+    },
+    {
+      "from": "paper:metric:a:trade_count",
+      "relation": "R-131:RESULT_MEASURES_CASE",
+      "to": "paper:case:a"
+    },
+    {
+      "from": "paper:case:b",
+      "relation": "R-098:CASE_DERIVED_FROM_SOURCE",
+      "to": "paper:source"
+    },
+    {
+      "from": "paper:case:b",
+      "relation": "PROPOSED:CASE_EVALUATES_STRATEGY",
+      "to": "paper:strategy",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "paper:case:b",
+      "relation": "PROPOSED:CASE_USES_BACKTEST_STUDY",
+      "to": "paper:backtest",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "paper:result:b",
+      "relation": "PROPOSED:BACKTEST_RESULT_OF_CASE",
+      "to": "paper:case:b",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "paper:source",
+      "relation": "R-129:SOURCE_REPORTS_RESULT",
+      "to": "paper:metric:b:gross_profit"
+    },
+    {
+      "from": "paper:metric:b:gross_profit",
+      "relation": "R-131:RESULT_MEASURES_CASE",
+      "to": "paper:case:b"
+    },
+    {
+      "from": "paper:source",
+      "relation": "R-129:SOURCE_REPORTS_RESULT",
+      "to": "paper:metric:b:gross_loss"
+    },
+    {
+      "from": "paper:metric:b:gross_loss",
+      "relation": "R-131:RESULT_MEASURES_CASE",
+      "to": "paper:case:b"
+    },
+    {
+      "from": "paper:source",
+      "relation": "R-129:SOURCE_REPORTS_RESULT",
+      "to": "paper:metric:b:net_profit"
+    },
+    {
+      "from": "paper:metric:b:net_profit",
+      "relation": "R-131:RESULT_MEASURES_CASE",
+      "to": "paper:case:b"
+    },
+    {
+      "from": "paper:source",
+      "relation": "R-129:SOURCE_REPORTS_RESULT",
+      "to": "paper:metric:b:drawdown_pct"
+    },
+    {
+      "from": "paper:metric:b:drawdown_pct",
+      "relation": "R-131:RESULT_MEASURES_CASE",
+      "to": "paper:case:b"
+    },
+    {
+      "from": "paper:source",
+      "relation": "R-129:SOURCE_REPORTS_RESULT",
+      "to": "paper:metric:b:trade_count"
+    },
+    {
+      "from": "paper:metric:b:trade_count",
+      "relation": "R-131:RESULT_MEASURES_CASE",
+      "to": "paper:case:b"
+    },
+    {
+      "from": "paper:case:c",
+      "relation": "R-098:CASE_DERIVED_FROM_SOURCE",
+      "to": "paper:source"
+    },
+    {
+      "from": "paper:case:c",
+      "relation": "PROPOSED:CASE_EVALUATES_STRATEGY",
+      "to": "paper:strategy",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "paper:case:c",
+      "relation": "PROPOSED:CASE_USES_BACKTEST_STUDY",
+      "to": "paper:backtest",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "paper:result:c",
+      "relation": "PROPOSED:BACKTEST_RESULT_OF_CASE",
+      "to": "paper:case:c",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "paper:source",
+      "relation": "R-129:SOURCE_REPORTS_RESULT",
+      "to": "paper:metric:c:gross_profit"
+    },
+    {
+      "from": "paper:metric:c:gross_profit",
+      "relation": "R-131:RESULT_MEASURES_CASE",
+      "to": "paper:case:c"
+    },
+    {
+      "from": "paper:source",
+      "relation": "R-129:SOURCE_REPORTS_RESULT",
+      "to": "paper:metric:c:gross_loss"
+    },
+    {
+      "from": "paper:metric:c:gross_loss",
+      "relation": "R-131:RESULT_MEASURES_CASE",
+      "to": "paper:case:c"
+    },
+    {
+      "from": "paper:source",
+      "relation": "R-129:SOURCE_REPORTS_RESULT",
+      "to": "paper:metric:c:net_profit"
+    },
+    {
+      "from": "paper:metric:c:net_profit",
+      "relation": "R-131:RESULT_MEASURES_CASE",
+      "to": "paper:case:c"
+    },
+    {
+      "from": "paper:source",
+      "relation": "R-129:SOURCE_REPORTS_RESULT",
+      "to": "paper:metric:c:drawdown_pct"
+    },
+    {
+      "from": "paper:metric:c:drawdown_pct",
+      "relation": "R-131:RESULT_MEASURES_CASE",
+      "to": "paper:case:c"
+    },
+    {
+      "from": "paper:source",
+      "relation": "R-129:SOURCE_REPORTS_RESULT",
+      "to": "paper:metric:c:trade_count"
+    },
+    {
+      "from": "paper:metric:c:trade_count",
+      "relation": "R-131:RESULT_MEASURES_CASE",
+      "to": "paper:case:c"
+    },
+    {
+      "from": "paper:result:a",
+      "relation": "PROPOSED:BACKTEST_RESULT_HAS_METRIC",
+      "to": "paper:metric:a:gross_profit",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "paper:result:a",
+      "relation": "PROPOSED:BACKTEST_RESULT_HAS_METRIC",
+      "to": "paper:metric:a:gross_loss",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "paper:result:a",
+      "relation": "PROPOSED:BACKTEST_RESULT_HAS_METRIC",
+      "to": "paper:metric:a:net_profit",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "paper:result:a",
+      "relation": "PROPOSED:BACKTEST_RESULT_HAS_METRIC",
+      "to": "paper:metric:a:drawdown_pct",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "paper:result:a",
+      "relation": "PROPOSED:BACKTEST_RESULT_HAS_METRIC",
+      "to": "paper:metric:a:trade_count",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "paper:case:a",
+      "relation": "PROPOSED:CASE_APPLIES_TO_ASSET",
+      "to": "paper:asset:EURUSD",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "paper:result:b",
+      "relation": "PROPOSED:BACKTEST_RESULT_HAS_METRIC",
+      "to": "paper:metric:b:gross_profit",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "paper:result:b",
+      "relation": "PROPOSED:BACKTEST_RESULT_HAS_METRIC",
+      "to": "paper:metric:b:gross_loss",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "paper:result:b",
+      "relation": "PROPOSED:BACKTEST_RESULT_HAS_METRIC",
+      "to": "paper:metric:b:net_profit",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "paper:result:b",
+      "relation": "PROPOSED:BACKTEST_RESULT_HAS_METRIC",
+      "to": "paper:metric:b:drawdown_pct",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "paper:result:b",
+      "relation": "PROPOSED:BACKTEST_RESULT_HAS_METRIC",
+      "to": "paper:metric:b:trade_count",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "paper:case:b",
+      "relation": "PROPOSED:CASE_APPLIES_TO_ASSET",
+      "to": "paper:asset:EURUSD",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "paper:result:c",
+      "relation": "PROPOSED:BACKTEST_RESULT_HAS_METRIC",
+      "to": "paper:metric:c:gross_profit",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "paper:result:c",
+      "relation": "PROPOSED:BACKTEST_RESULT_HAS_METRIC",
+      "to": "paper:metric:c:gross_loss",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "paper:result:c",
+      "relation": "PROPOSED:BACKTEST_RESULT_HAS_METRIC",
+      "to": "paper:metric:c:net_profit",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "paper:result:c",
+      "relation": "PROPOSED:BACKTEST_RESULT_HAS_METRIC",
+      "to": "paper:metric:c:drawdown_pct",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "paper:result:c",
+      "relation": "PROPOSED:BACKTEST_RESULT_HAS_METRIC",
+      "to": "paper:metric:c:trade_count",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "paper:case:c",
+      "relation": "PROPOSED:CASE_APPLIES_TO_ASSET",
+      "to": "paper:asset:EURUSD",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "paper:rule:close_before_weekend",
+      "relation": "R-111:RULE_HAS_ATOMIC_CONDITION",
+      "to": "paper:condition:weekend_boundary"
+    },
+    {
+      "from": "paper:rule:close_before_weekend",
+      "relation": "R-112:RULE_DECLARES_ACTION",
+      "to": "paper:action:weekend_close"
+    },
+    {
+      "from": "paper:action:weekend_close",
+      "relation": "R-113:ACTION_CHANGES_POSITION",
+      "to": "paper:position"
+    },
+    {
+      "from": "paper:case:a",
+      "relation": "PROPOSED:CASE_CONFIGURES_CALCULATION",
+      "to": "paper:macd",
+      "parameter_set": "a",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "paper:case:a",
+      "relation": "PROPOSED:CASE_CONFIGURES_CALCULATION",
+      "to": "paper:signal",
+      "parameter_set": "a",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "paper:case:a",
+      "relation": "PROPOSED:CASE_USES_INDICATOR_PARAMETER",
+      "to": "paper:indicator_param:a:fast",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "paper:case:a",
+      "relation": "PROPOSED:CASE_USES_INDICATOR_PARAMETER",
+      "to": "paper:indicator_param:a:slow",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "paper:case:a",
+      "relation": "PROPOSED:CASE_USES_INDICATOR_PARAMETER",
+      "to": "paper:indicator_param:a:signal",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "paper:case:a",
+      "relation": "PROPOSED:CASE_HAS_WEEKEND_POLICY",
+      "to": "paper:rule:close_before_weekend",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "paper:case:b",
+      "relation": "PROPOSED:CASE_CONFIGURES_CALCULATION",
+      "to": "paper:macd",
+      "parameter_set": "selected",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "paper:case:b",
+      "relation": "PROPOSED:CASE_CONFIGURES_CALCULATION",
+      "to": "paper:signal",
+      "parameter_set": "selected",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "paper:case:b",
+      "relation": "PROPOSED:CASE_USES_INDICATOR_PARAMETER",
+      "to": "paper:indicator_param:selected:fast",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "paper:case:b",
+      "relation": "PROPOSED:CASE_USES_INDICATOR_PARAMETER",
+      "to": "paper:indicator_param:selected:slow",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "paper:case:b",
+      "relation": "PROPOSED:CASE_USES_INDICATOR_PARAMETER",
+      "to": "paper:indicator_param:selected:signal",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "paper:case:b",
+      "relation": "PROPOSED:CASE_HAS_WEEKEND_POLICY",
+      "to": "paper:rule:close_before_weekend",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "paper:case:c",
+      "relation": "PROPOSED:CASE_CONFIGURES_CALCULATION",
+      "to": "paper:macd",
+      "parameter_set": "selected",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "paper:case:c",
+      "relation": "PROPOSED:CASE_CONFIGURES_CALCULATION",
+      "to": "paper:signal",
+      "parameter_set": "selected",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "paper:case:c",
+      "relation": "PROPOSED:CASE_USES_INDICATOR_PARAMETER",
+      "to": "paper:indicator_param:selected:fast",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "paper:case:c",
+      "relation": "PROPOSED:CASE_USES_INDICATOR_PARAMETER",
+      "to": "paper:indicator_param:selected:slow",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "paper:case:c",
+      "relation": "PROPOSED:CASE_USES_INDICATOR_PARAMETER",
+      "to": "paper:indicator_param:selected:signal",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "paper:case:c",
+      "relation": "PROPOSED:CASE_HAS_WEEKEND_POLICY",
+      "to": "paper:rule:weekend_hold",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    }
+  ],
+  "known_gaps": [
+    {
+      "target": "paper:backtest",
+      "field": "raw_quote_and_tick_series",
+      "type": "INPUT_DATA_NOT_OBTAINED",
+      "effect": "cannot rerun realized per-tick backtest"
+    },
+    {
+      "target": "paper:position",
+      "field": "individual_trade_fills",
+      "type": "INDIVIDUAL_TRADE_LOG_NOT_OBTAINED",
+      "effect": "cannot reconstruct each historical fill"
+    },
+    {
+      "target": "paper:backtest",
+      "field": "MT5 execution, timezone, spread/slippage implementation",
+      "type": "EXECUTION_DETAIL_INSUFFICIENT",
+      "effect": "cannot claim numeric equivalence of rerun"
+    },
+    {
+      "target": "paper:asset:EURUSD",
+      "field": "exact set of 90 indicator attribute semantics",
+      "type": "ONTOLOGY_INDICATOR_CATALOG_NOT_APPROVED",
+      "effect": "90 slots preserve shape only; values not invented"
+    },
+    {
+      "target": "paper:relation",
+      "field": "BACKTEST_STUDY_TESTS_ASSET, CASE_EVALUATES_STRATEGY, CASE_USES_BACKTEST_STUDY, BACKTEST_RESULT_OF_CASE",
+      "type": "ONTOLOGY_RELATION_NEEDS_EXTENSION_APPROVAL",
+      "effect": "these relationships are explicit only as unapproved proposed relations"
+    },
+    {
+      "target": "paper:condition:weekend_boundary",
+      "field": "exact_time",
+      "type": "SOURCE_NOT_DISCLOSED",
+      "effect": "Closing before weekend is source stated but exact broker/time cutoff is not available for fill-level backtest"
+    }
+  ],
+  "source_conflicts": [
+    {
+      "subject": "number of assets",
+      "abstract_or_conclusion": "abstract mentions eleven and conclusion ten",
+      "section_2_4": "nine assets enumerated",
+      "resolution": "retain distinction; only EURUSD specific row is graphed"
+    }
+  ],
+  "status": "PARTIAL_SOURCE_GROUNDED_GRAPH_NOT_BLIND_RECONSTRUCTED",
+  "version": "TV-KG-ITERATIVE-v8.1",
+  "reconstruction_cycles": [
+    {
+      "iteration": 1,
+      "missing_knowledge": "Backtest scenario parameters/weekend policy existed as free properties without explicit semantic links to which MACD calculation and policy they configure.",
+      "correction": "Create six typed IndicatorParameter instances from approved ontology N-041, explicit case-to-MACD and case-to-weekend-policy edges, and rule/condition/action for weekend closure.",
+      "recovered_from_graph": {
+        "a": "EURUSD MACD(12,26,9) close before weekend",
+        "b": "EURUSD MACD(27,280,28) close before weekend",
+        "c": "EURUSD MACD(27,280,28) hold over weekend"
+      },
+      "unresolved": "Actual time and broker fill mechanics for closure; no market series or individual fills",
+      "verification": "GRAPH_TRAVERSAL_RECONSTRUCTABLE_NOT_INDEPENDENT_BLIND_PASS"
+    }
+  ]
+}

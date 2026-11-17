@@ -1,0 +1,208 @@
+{
+  "id": "CHAN_R3_24_FINANCIAL_FACT_AUDIT",
+  "source_method": "Exact indexed blog article with author comments (direct page HTTP429)",
+  "matched": 24,
+  "checked": 24,
+  "failed": [],
+  "status": "SOURCE_FACT_COVERAGE_PASS_BLIND_LLM_PENDING",
+  "not_claimed": [
+    "full page comment section and all images manually exhaustive",
+    "independently verified paper or real broker fills",
+    "fresh separate ChatGPT context blind reconstructed",
+    "source author's valuation numbers independently market-checked"
+  ],
+  "rows": [
+    {
+      "id": "CH01",
+      "path": "publication.date",
+      "origin": "Main blog by Ernie Chan",
+      "financial_fact_recovered": true,
+      "evidence_path_present": true,
+      "decision": "MATCH"
+    },
+    {
+      "id": "CH02",
+      "path": "trade.legs",
+      "origin": "Main article strategy paragraph",
+      "financial_fact_recovered": true,
+      "evidence_path_present": true,
+      "decision": "MATCH"
+    },
+    {
+      "id": "CH03",
+      "path": "trade.entry_window",
+      "origin": "Main article strategy paragraph",
+      "financial_fact_recovered": true,
+      "evidence_path_present": true,
+      "decision": "MATCH"
+    },
+    {
+      "id": "CH04",
+      "path": "trade.exit_window",
+      "origin": "Main article strategy paragraph",
+      "financial_fact_recovered": true,
+      "evidence_path_present": true,
+      "decision": "MATCH"
+    },
+    {
+      "id": "CH05",
+      "path": "contracts.multiplier",
+      "origin": "Main article strategy paragraph",
+      "financial_fact_recovered": true,
+      "evidence_path_present": true,
+      "decision": "MATCH"
+    },
+    {
+      "id": "CH06",
+      "path": "trade.hedge_ratio",
+      "origin": "Main article and Aug 19 2007 comment",
+      "financial_fact_recovered": true,
+      "evidence_path_present": true,
+      "decision": "MATCH"
+    },
+    {
+      "id": "CH07",
+      "path": "performance.recent_consistency",
+      "origin": "Main article first paragraph",
+      "financial_fact_recovered": true,
+      "evidence_path_present": true,
+      "decision": "MATCH"
+    },
+    {
+      "id": "CH08",
+      "path": "performance.annual_mean_usd",
+      "origin": "Main article P/L paragraph",
+      "financial_fact_recovered": true,
+      "evidence_path_present": true,
+      "decision": "MATCH"
+    },
+    {
+      "id": "CH09",
+      "path": "performance.best_annual_usd",
+      "origin": "Main article P/L paragraph",
+      "financial_fact_recovered": true,
+      "evidence_path_present": true,
+      "decision": "MATCH"
+    },
+    {
+      "id": "CH10",
+      "path": "performance.worst_annual_usd",
+      "origin": "Main article P/L paragraph",
+      "financial_fact_recovered": true,
+      "evidence_path_present": true,
+      "decision": "MATCH"
+    },
+    {
+      "id": "CH11",
+      "path": "risk.initial_margin_author_reported_usd",
+      "origin": "Main article margin paragraph",
+      "financial_fact_recovered": true,
+      "evidence_path_present": true,
+      "decision": "MATCH"
+    },
+    {
+      "id": "CH12",
+      "path": "research.backtest_and_paper_trade",
+      "origin": "Main article test paragraph",
+      "financial_fact_recovered": true,
+      "evidence_path_present": true,
+      "decision": "MATCH"
+    },
+    {
+      "id": "CH13",
+      "path": "fundamental.gold_demand_seasonality",
+      "origin": "Main article fundamental paragraph",
+      "financial_fact_recovered": true,
+      "evidence_path_present": true,
+      "decision": "MATCH"
+    },
+    {
+      "id": "CH14",
+      "path": "fundamental.platinum_weak_seasonality",
+      "origin": "Main article fundamental paragraph",
+      "financial_fact_recovered": true,
+      "evidence_path_present": true,
+      "decision": "MATCH"
+    },
+    {
+      "id": "CH15",
+      "path": "prior_inspiration",
+      "origin": "Main article further reading",
+      "financial_fact_recovered": true,
+      "evidence_path_present": true,
+      "decision": "MATCH"
+    },
+    {
+      "id": "CH16",
+      "path": "risk.max_drawdown_author_comment",
+      "origin": "Ernie Chan comment November 26, 2006",
+      "financial_fact_recovered": true,
+      "evidence_path_present": true,
+      "decision": "MATCH"
+    },
+    {
+      "id": "CH17",
+      "path": "risk.max_liquidity_requirement_author_comment",
+      "origin": "Ernie Chan comment November 26, 2006",
+      "financial_fact_recovered": true,
+      "evidence_path_present": true,
+      "decision": "MATCH"
+    },
+    {
+      "id": "CH18",
+      "path": "risk.dollar_neutrality_correction",
+      "origin": "Ernie Chan reply August 19, 2007",
+      "financial_fact_recovered": true,
+      "evidence_path_present": true,
+      "decision": "MATCH"
+    },
+    {
+      "id": "CH19",
+      "path": "risk.author_market_value_numbers",
+      "origin": "Ernie Chan reply August 19, 2007",
+      "financial_fact_recovered": true,
+      "evidence_path_present": true,
+      "decision": "MATCH"
+    },
+    {
+      "id": "CH20",
+      "path": "risk.author_out_right_exposure_analogy",
+      "origin": "Ernie Chan reply August 19, 2007",
+      "financial_fact_recovered": true,
+      "evidence_path_present": true,
+      "decision": "MATCH"
+    },
+    {
+      "id": "CH21",
+      "path": "alternative.dollar_neutral_trade_report",
+      "origin": "Ernie Chan reply August 19, 2007",
+      "financial_fact_recovered": true,
+      "evidence_path_present": true,
+      "decision": "MATCH"
+    },
+    {
+      "id": "CH22",
+      "path": "methods.software",
+      "origin": "Ernie Chan comment August 18, 2007",
+      "financial_fact_recovered": true,
+      "evidence_path_present": true,
+      "decision": "MATCH"
+    },
+    {
+      "id": "CH23",
+      "path": "source.undisclosed_execution_parameters",
+      "origin": "Main article and comment archive",
+      "financial_fact_recovered": true,
+      "evidence_path_present": true,
+      "decision": "MATCH"
+    },
+    {
+      "id": "CH24",
+      "path": "source.execution_claim_discrepancy",
+      "origin": "Main article versus August 19, 2007 author reply",
+      "financial_fact_recovered": true,
+      "evidence_path_present": true,
+      "decision": "MATCH"
+    }
+  ]
+}

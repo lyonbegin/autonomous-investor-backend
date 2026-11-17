@@ -1,0 +1,1793 @@
+{
+  "graph_id": "TV-02yfhjiz-DESCRIPTION-KG-20261117",
+  "ontology_basis": "604_BASELINE_PLUS_V7_PROPOSED_COMPATIBLE_TYPES",
+  "source_scope": "TRADINGVIEW_PUBLIC_DESCRIPTION_ONLY",
+  "not_a_real_trade": true,
+  "reverse_status": "NOT_INDEPENDENTLY_RECONSTRUCTED",
+  "nodes": [
+    {
+      "id": "tv01:source",
+      "ontology_type": "N-119:SourceDocument",
+      "properties": {
+        "title": "Complex Single Trade Strategy",
+        "author": "JustinTimeTunes",
+        "url": "https://www.tradingview.com/script/02yfhjiz-Complex-Single-Trade-Strategy/",
+        "document_kind": "TRADINGVIEW_PUBLIC_SCRIPT_DESCRIPTION",
+        "source_code_status": "NOT_OBTAINED"
+      }
+    },
+    {
+      "id": "tv01:p_signal",
+      "ontology_type": "N-120:SourcePassage",
+      "properties": {
+        "locator": "Public description, paragraphs 1–3",
+        "topics": [
+          "buy/sell signal semantics",
+          "one position only",
+          "opposite signal",
+          "cancel signal"
+        ]
+      }
+    },
+    {
+      "id": "tv01:p_stops",
+      "ontology_type": "N-120:SourcePassage",
+      "properties": {
+        "locator": "Public description, paragraphs 4–6",
+        "topics": [
+          "regular stop",
+          "initial trailing stop",
+          "trailing stop",
+          "cutoff"
+        ]
+      }
+    },
+    {
+      "id": "tv01:p_tp",
+      "ontology_type": "N-120:SourcePassage",
+      "properties": {
+        "locator": "Public description, paragraph 7",
+        "topics": [
+          "four take profit tranches",
+          "percentage triggers",
+          "position reduction"
+        ]
+      }
+    },
+    {
+      "id": "tv01:case",
+      "ontology_type": "N-118:TradeCase",
+      "properties": {
+        "case_kind": "STRATEGY_SPECIFICATION_NOT_EXECUTED_TRADE",
+        "source_strategy_id": "02yfhjiz",
+        "full_pine_status": "NOT_OBTAINED"
+      }
+    },
+    {
+      "id": "tv01:strategy",
+      "ontology_type": "N-110:TradingStrategy",
+      "properties": {
+        "name": "Complex Single Trade Strategy",
+        "asset_scope": "GENERIC_UNSPECIFIED",
+        "economic_structure": "position lifecycle management on externally supplied signals",
+        "indicators_source": "EXTERNAL_SIGNAL_INPUT_NOT_DEFINED",
+        "max_concurrent_positions": 1
+      }
+    },
+    {
+      "id": "tv01:position",
+      "ontology_type": "N-104:TradePosition",
+      "properties": {
+        "role": "ABSTRACT_POSITION_TEMPLATE_NOT_ACTUAL_FILL",
+        "max_concurrent": 1,
+        "entry_quantity": null,
+        "contract": null
+      }
+    },
+    {
+      "id": "tv01:signal",
+      "ontology_type": "N-109:TradingSignal",
+      "properties": {
+        "name": "external_buy_sell_signal",
+        "sign_semantics": {
+          "positive": "BUY",
+          "negative": "SELL",
+          "zero": "NONE"
+        },
+        "source_indicator": null
+      }
+    },
+    {
+      "id": "tv01:cancel",
+      "ontology_type": "N-109:TradingSignal",
+      "properties": {
+        "name": "optional_cancel_signal",
+        "sign_semantics": {
+          "positive": "CLOSE_SHORT",
+          "negative": "CLOSE_LONG",
+          "zero": "NONE"
+        },
+        "optional": true
+      }
+    },
+    {
+      "id": "tv01:r_enter_long",
+      "ontology_type": "N-108:TradingRule",
+      "properties": {
+        "role": "ENTRY_LONG",
+        "requires": "NO_OPEN_POSITION",
+        "same_direction_while_open": "IGNORE",
+        "first_valid_signal_timing": "OPEN_IMMEDIATELY_AS_DESCRIBED",
+        "pine_bar_execution_phase": "NOT_VERIFIED"
+      }
+    },
+    {
+      "id": "tv01:r_enter_short",
+      "ontology_type": "N-108:TradingRule",
+      "properties": {
+        "role": "ENTRY_SHORT",
+        "requires": "NO_OPEN_POSITION",
+        "same_direction_while_open": "IGNORE",
+        "first_valid_signal_timing": "OPEN_IMMEDIATELY_AS_DESCRIBED",
+        "pine_bar_execution_phase": "NOT_VERIFIED"
+      }
+    },
+    {
+      "id": "tv01:r_opposite",
+      "ontology_type": "N-108:TradingRule",
+      "properties": {
+        "role": "OPPOSITE_SIGNAL_WHILE_POSITION_OPEN",
+        "mode_choices": [
+          "IGNORE",
+          "CLOSE",
+          "CLOSE_AND_REVERSE"
+        ],
+        "default_mode": null
+      }
+    },
+    {
+      "id": "tv01:r_cancel",
+      "ontology_type": "N-108:TradingRule",
+      "properties": {
+        "role": "CANCEL_POSITION",
+        "optional": true
+      }
+    },
+    {
+      "id": "tv01:c_buy",
+      "ontology_type": "N-127:RuleCondition",
+      "properties": {
+        "left": {
+          "signal": "tv01:signal"
+        },
+        "operator": ">",
+        "right": 0
+      }
+    },
+    {
+      "id": "tv01:c_sell",
+      "ontology_type": "N-127:RuleCondition",
+      "properties": {
+        "left": {
+          "signal": "tv01:signal"
+        },
+        "operator": "<",
+        "right": 0
+      }
+    },
+    {
+      "id": "tv01:c_cancel_positive",
+      "ontology_type": "N-127:RuleCondition",
+      "properties": {
+        "left": {
+          "signal": "tv01:cancel"
+        },
+        "operator": ">",
+        "right": 0
+      }
+    },
+    {
+      "id": "tv01:c_cancel_negative",
+      "ontology_type": "N-127:RuleCondition",
+      "properties": {
+        "left": {
+          "signal": "tv01:cancel"
+        },
+        "operator": "<",
+        "right": 0
+      }
+    },
+    {
+      "id": "tv01:a_open_long",
+      "ontology_type": "N-128:TradeAction",
+      "properties": {
+        "kind": "OPEN_LONG",
+        "position_size_formula": "NOT_DISCLOSED"
+      }
+    },
+    {
+      "id": "tv01:a_open_short",
+      "ontology_type": "N-128:TradeAction",
+      "properties": {
+        "kind": "OPEN_SHORT",
+        "position_size_formula": "NOT_DISCLOSED"
+      }
+    },
+    {
+      "id": "tv01:a_close_long",
+      "ontology_type": "N-128:TradeAction",
+      "properties": {
+        "kind": "CLOSE_LONG"
+      }
+    },
+    {
+      "id": "tv01:a_close_short",
+      "ontology_type": "N-128:TradeAction",
+      "properties": {
+        "kind": "CLOSE_SHORT"
+      }
+    },
+    {
+      "id": "tv01:r_regular_stop",
+      "ontology_type": "N-084:RiskRule",
+      "properties": {
+        "kind": "REGULAR_STOP",
+        "can_coexist_with_other_stops": true,
+        "stop_offset_value": null
+      }
+    },
+    {
+      "id": "tv01:r_initial_trail",
+      "ontology_type": "N-084:RiskRule",
+      "properties": {
+        "kind": "INITIAL_TRAILING_STOP",
+        "cutoff_behavior": "TRAILS_UNTIL_CUTOFF_THEN_FREEZES",
+        "cutoff_value": null,
+        "cutoff_zero_means": "AT_ENTRY",
+        "long_positive_cutoff": "ABOVE_ENTRY",
+        "short_cutoff_inverts": true
+      }
+    },
+    {
+      "id": "tv01:r_trail",
+      "ontology_type": "N-084:RiskRule",
+      "properties": {
+        "kind": "TRAILING_STOP",
+        "may_take_over_after_initial_trail_cutoff": true,
+        "stop_offset_value": null
+      }
+    },
+    {
+      "id": "tv01:e_signal",
+      "ontology_type": "N-121:EvidenceAssertion",
+      "properties": {
+        "claim": "External signals interpreted by sign, one position at a time, optional cancellation/opposite handling"
+      }
+    },
+    {
+      "id": "tv01:e_stops",
+      "ontology_type": "N-121:EvidenceAssertion",
+      "properties": {
+        "claim": "Three distinct stop mechanisms with cutoff semantics"
+      }
+    },
+    {
+      "id": "tv01:e_tp",
+      "ontology_type": "N-121:EvidenceAssertion",
+      "properties": {
+        "claim": "Four separate percentage-profit partial exits with independently configured reduction quantities"
+      }
+    },
+    {
+      "id": "tv01:r_tp1",
+      "ontology_type": "N-108:TradingRule",
+      "properties": {
+        "role": "PARTIAL_TAKE_PROFIT",
+        "tier": 1,
+        "trigger_profit_pct": null,
+        "reduce_position_pct": null,
+        "price_gain_trigger_pct": null,
+        "position_reduction_value": null,
+        "position_reduction_unit": "NOT_DISCLOSED",
+        "trigger_basis": "PERCENTAGE_GAIN_IN_PRICE"
+      }
+    },
+    {
+      "id": "tv01:c_tp1",
+      "ontology_type": "N-127:RuleCondition",
+      "properties": {
+        "left": {
+          "calculation_ref": "tv01:calc:direction_adjusted_price_gain_pct"
+        },
+        "operator": ">=",
+        "right": null,
+        "source_status": "PARAMETER_VALUE_NOT_EXTRACTED",
+        "threshold_unit": "percent price change",
+        "comparator_source_status": "COMPARISON_AT_OR_ABOVE_INFERRED_FROM_DESCRIPTION_NOT_PINE_CONFIRMED"
+      }
+    },
+    {
+      "id": "tv01:a_tp1",
+      "ontology_type": "N-128:TradeAction",
+      "properties": {
+        "kind": "REDUCE_POSITION",
+        "tier": 1,
+        "reduction_fraction": null,
+        "reduction_value": null,
+        "reduction_unit": "NOT_DISCLOSED"
+      }
+    },
+    {
+      "id": "tv01:r_tp2",
+      "ontology_type": "N-108:TradingRule",
+      "properties": {
+        "role": "PARTIAL_TAKE_PROFIT",
+        "tier": 2,
+        "trigger_profit_pct": null,
+        "reduce_position_pct": null,
+        "price_gain_trigger_pct": null,
+        "position_reduction_value": null,
+        "position_reduction_unit": "NOT_DISCLOSED",
+        "trigger_basis": "PERCENTAGE_GAIN_IN_PRICE"
+      }
+    },
+    {
+      "id": "tv01:c_tp2",
+      "ontology_type": "N-127:RuleCondition",
+      "properties": {
+        "left": {
+          "calculation_ref": "tv01:calc:direction_adjusted_price_gain_pct"
+        },
+        "operator": ">=",
+        "right": null,
+        "source_status": "PARAMETER_VALUE_NOT_EXTRACTED",
+        "threshold_unit": "percent price change",
+        "comparator_source_status": "COMPARISON_AT_OR_ABOVE_INFERRED_FROM_DESCRIPTION_NOT_PINE_CONFIRMED"
+      }
+    },
+    {
+      "id": "tv01:a_tp2",
+      "ontology_type": "N-128:TradeAction",
+      "properties": {
+        "kind": "REDUCE_POSITION",
+        "tier": 2,
+        "reduction_fraction": null,
+        "reduction_value": null,
+        "reduction_unit": "NOT_DISCLOSED"
+      }
+    },
+    {
+      "id": "tv01:r_tp3",
+      "ontology_type": "N-108:TradingRule",
+      "properties": {
+        "role": "PARTIAL_TAKE_PROFIT",
+        "tier": 3,
+        "trigger_profit_pct": null,
+        "reduce_position_pct": null,
+        "price_gain_trigger_pct": null,
+        "position_reduction_value": null,
+        "position_reduction_unit": "NOT_DISCLOSED",
+        "trigger_basis": "PERCENTAGE_GAIN_IN_PRICE"
+      }
+    },
+    {
+      "id": "tv01:c_tp3",
+      "ontology_type": "N-127:RuleCondition",
+      "properties": {
+        "left": {
+          "calculation_ref": "tv01:calc:direction_adjusted_price_gain_pct"
+        },
+        "operator": ">=",
+        "right": null,
+        "source_status": "PARAMETER_VALUE_NOT_EXTRACTED",
+        "threshold_unit": "percent price change",
+        "comparator_source_status": "COMPARISON_AT_OR_ABOVE_INFERRED_FROM_DESCRIPTION_NOT_PINE_CONFIRMED"
+      }
+    },
+    {
+      "id": "tv01:a_tp3",
+      "ontology_type": "N-128:TradeAction",
+      "properties": {
+        "kind": "REDUCE_POSITION",
+        "tier": 3,
+        "reduction_fraction": null,
+        "reduction_value": null,
+        "reduction_unit": "NOT_DISCLOSED"
+      }
+    },
+    {
+      "id": "tv01:r_tp4",
+      "ontology_type": "N-108:TradingRule",
+      "properties": {
+        "role": "PARTIAL_TAKE_PROFIT",
+        "tier": 4,
+        "trigger_profit_pct": null,
+        "reduce_position_pct": null,
+        "price_gain_trigger_pct": null,
+        "position_reduction_value": null,
+        "position_reduction_unit": "NOT_DISCLOSED",
+        "trigger_basis": "PERCENTAGE_GAIN_IN_PRICE"
+      }
+    },
+    {
+      "id": "tv01:c_tp4",
+      "ontology_type": "N-127:RuleCondition",
+      "properties": {
+        "left": {
+          "calculation_ref": "tv01:calc:direction_adjusted_price_gain_pct"
+        },
+        "operator": ">=",
+        "right": null,
+        "source_status": "PARAMETER_VALUE_NOT_EXTRACTED",
+        "threshold_unit": "percent price change",
+        "comparator_source_status": "COMPARISON_AT_OR_ABOVE_INFERRED_FROM_DESCRIPTION_NOT_PINE_CONFIRMED"
+      }
+    },
+    {
+      "id": "tv01:a_tp4",
+      "ontology_type": "N-128:TradeAction",
+      "properties": {
+        "kind": "REDUCE_POSITION",
+        "tier": 4,
+        "reduction_fraction": null,
+        "reduction_value": null,
+        "reduction_unit": "NOT_DISCLOSED"
+      }
+    },
+    {
+      "id": "tv01:r_cancel_positive_closes_short",
+      "ontology_type": "N-108:TradingRule",
+      "properties": {
+        "role": "CANCEL_SHORT",
+        "precondition": "SHORT_POSITION_OPEN",
+        "meaning": "optional cancel signal >0 closes short only",
+        "source_locator": "TradingView public description line 37"
+      }
+    },
+    {
+      "id": "tv01:r_cancel_negative_closes_long",
+      "ontology_type": "N-108:TradingRule",
+      "properties": {
+        "role": "CANCEL_LONG",
+        "precondition": "LONG_POSITION_OPEN",
+        "meaning": "optional cancel signal <0 closes long only",
+        "source_locator": "TradingView public description line 37"
+      }
+    },
+    {
+      "id": "tv01:state:FLAT",
+      "ontology_type": "N-141:PositionState",
+      "properties": {
+        "state": "FLAT",
+        "role": "ABSTRACT_POSITION_STATE_NOT_REAL_EXECUTION"
+      }
+    },
+    {
+      "id": "tv01:state:LONG",
+      "ontology_type": "N-141:PositionState",
+      "properties": {
+        "state": "LONG",
+        "role": "ABSTRACT_POSITION_STATE_NOT_REAL_EXECUTION"
+      }
+    },
+    {
+      "id": "tv01:state:SHORT",
+      "ontology_type": "N-141:PositionState",
+      "properties": {
+        "state": "SHORT",
+        "role": "ABSTRACT_POSITION_STATE_NOT_REAL_EXECUTION"
+      }
+    },
+    {
+      "id": "tv01:r_opposite:long_to_short",
+      "ontology_type": "N-108:TradingRule",
+      "properties": {
+        "role": "OPPOSITE_SIGNAL_TRANSITION",
+        "active_position_side": "LONG",
+        "incoming_signal_side": "SHORT",
+        "available_modes": [
+          "IGNORE",
+          "CLOSE",
+          "CLOSE_AND_REVERSE"
+        ],
+        "selected_mode": "NOT_DISCLOSED",
+        "condition_combinator": "AND"
+      }
+    },
+    {
+      "id": "tv01:transition:long_to_short:IGNORE",
+      "ontology_type": "N-142:PositionTransitionSpec",
+      "properties": {
+        "transition_mode": "IGNORE",
+        "event": "OPPOSITE_SIGNAL",
+        "actual_execution": false,
+        "action_count": 0
+      }
+    },
+    {
+      "id": "tv01:transition:long_to_short:CLOSE",
+      "ontology_type": "N-142:PositionTransitionSpec",
+      "properties": {
+        "transition_mode": "CLOSE",
+        "event": "OPPOSITE_SIGNAL",
+        "actual_execution": false,
+        "action_count": 1
+      }
+    },
+    {
+      "id": "tv01:transition:long_to_short:CLOSE_AND_REVERSE",
+      "ontology_type": "N-142:PositionTransitionSpec",
+      "properties": {
+        "transition_mode": "CLOSE_AND_REVERSE",
+        "event": "OPPOSITE_SIGNAL",
+        "actual_execution": false,
+        "action_count": 2
+      }
+    },
+    {
+      "id": "tv01:r_opposite:short_to_long",
+      "ontology_type": "N-108:TradingRule",
+      "properties": {
+        "role": "OPPOSITE_SIGNAL_TRANSITION",
+        "active_position_side": "SHORT",
+        "incoming_signal_side": "LONG",
+        "available_modes": [
+          "IGNORE",
+          "CLOSE",
+          "CLOSE_AND_REVERSE"
+        ],
+        "selected_mode": "NOT_DISCLOSED",
+        "condition_combinator": "AND"
+      }
+    },
+    {
+      "id": "tv01:transition:short_to_long:IGNORE",
+      "ontology_type": "N-142:PositionTransitionSpec",
+      "properties": {
+        "transition_mode": "IGNORE",
+        "event": "OPPOSITE_SIGNAL",
+        "actual_execution": false,
+        "action_count": 0
+      }
+    },
+    {
+      "id": "tv01:transition:short_to_long:CLOSE",
+      "ontology_type": "N-142:PositionTransitionSpec",
+      "properties": {
+        "transition_mode": "CLOSE",
+        "event": "OPPOSITE_SIGNAL",
+        "actual_execution": false,
+        "action_count": 1
+      }
+    },
+    {
+      "id": "tv01:transition:short_to_long:CLOSE_AND_REVERSE",
+      "ontology_type": "N-142:PositionTransitionSpec",
+      "properties": {
+        "transition_mode": "CLOSE_AND_REVERSE",
+        "event": "OPPOSITE_SIGNAL",
+        "actual_execution": false,
+        "action_count": 2
+      }
+    },
+    {
+      "id": "tv01:calc:direction_adjusted_price_gain_pct",
+      "ontology_type": "N-130:CalculationExpression",
+      "properties": {
+        "name": "Price gain percentage from entry",
+        "expression_ast": {
+          "op": "IF_POSITION_SIDE",
+          "LONG": {
+            "op": "PERCENT_CHANGE",
+            "numerator": {
+              "op": "SUB",
+              "args": [
+                "CURRENT_ASSET_PRICE",
+                "ENTRY_PRICE"
+              ]
+            },
+            "denominator": "ENTRY_PRICE"
+          },
+          "SHORT": {
+            "op": "PERCENT_CHANGE",
+            "numerator": {
+              "op": "SUB",
+              "args": [
+                "ENTRY_PRICE",
+                "CURRENT_ASSET_PRICE"
+              ]
+            },
+            "denominator": "ENTRY_PRICE"
+          }
+        },
+        "output": "DIRECTION_ADJUSTED_PRICE_GAIN_PCT",
+        "inputs": [
+          "POSITION_SIDE",
+          "ENTRY_PRICE",
+          "CURRENT_ASSET_PRICE"
+        ],
+        "source_note": "Illustrative algebraic formalization of percent gain in price; full Pine computation unverified",
+        "expression_status": "SOURCE_TEXT_DERIVED_NOT_PINE_VERIFIED",
+        "unit": "percent"
+      }
+    },
+    {
+      "id": "tv01:condition:initial_stop_cutoff",
+      "ontology_type": "N-127:RuleCondition",
+      "properties": {
+        "rule_kind": "INITIAL_TRAILING_STOP_CUTOFF",
+        "threshold_offset_percent": null,
+        "reference": "ENTRY_PRICE",
+        "price_side_adjustment": "SIGN_REVERSES_FOR_SHORT",
+        "percent_reference_wording": "PERCENT_OF_CURRENT_ASSET_PRICE_AROUND_ENTRY_LEVEL",
+        "exact_formula": "SOURCE_CODE_NOT_OBTAINED",
+        "condition_result": "STOP_FREEZES_AT_CUTOFF"
+      }
+    },
+    {
+      "id": "tv01:action:freeze_initial_trailing_stop",
+      "ontology_type": "N-128:TradeAction",
+      "properties": {
+        "kind": "FREEZE_STOP_PRICE_AT_CUTOFF",
+        "target": "tv01:r_initial_trail",
+        "is_order": false,
+        "when": "CUTOFF_REACHED",
+        "is_trade_fill": false
+      }
+    },
+    {
+      "id": "tv01:e_stop_ordering",
+      "ontology_type": "N-121:EvidenceAssertion",
+      "properties": {
+        "claim": "Typical guidance: Trailing Stop > Initial Trailing Stop >= Stop",
+        "claim_kind": "AUTHOR_GUIDANCE_NOT_HARD_EXECUTION_RULE"
+      }
+    },
+    {
+      "id": "tv01:gap:01",
+      "ontology_type": "N-143:InformationGap",
+      "properties": {
+        "target_node": "tv01:signal",
+        "field_path": "source_indicator",
+        "kind": "GENERIC_EXTERNAL_INPUT_INTENTIONALLY_UNSPECIFIED",
+        "impact": "Cannot infer how buy/sell signals were generated; this generic strategy accepts other indicators.",
+        "source_scope": "TRADINGVIEW_PUBLIC_DESCRIPTION",
+        "resolution_requirement": "PINE_SOURCE_OR_RUNTIME_CONFIGURATION_WHEN_APPLICABLE"
+      }
+    },
+    {
+      "id": "tv01:gap:02",
+      "ontology_type": "N-143:InformationGap",
+      "properties": {
+        "target_node": "tv01:strategy",
+        "field_path": "full_pine_source",
+        "kind": "NOT_EXTRACTED",
+        "impact": "Cannot verify all defaults, bar timing, and stop/TP implementation details.",
+        "source_scope": "TRADINGVIEW_PUBLIC_DESCRIPTION",
+        "resolution_requirement": "PINE_SOURCE_OR_RUNTIME_CONFIGURATION_WHEN_APPLICABLE"
+      }
+    },
+    {
+      "id": "tv01:gap:03",
+      "ontology_type": "N-143:InformationGap",
+      "properties": {
+        "target_node": "tv01:r_opposite",
+        "field_path": "selected_mode",
+        "kind": "NOT_EXTRACTED",
+        "impact": "Cannot reproduce which of three possible opposite-signal handling policies was selected at runtime.",
+        "source_scope": "TRADINGVIEW_PUBLIC_DESCRIPTION",
+        "resolution_requirement": "PINE_SOURCE_OR_RUNTIME_CONFIGURATION_WHEN_APPLICABLE"
+      }
+    },
+    {
+      "id": "tv01:gap:04",
+      "ontology_type": "N-143:InformationGap",
+      "properties": {
+        "target_node": "tv01:r_initial_trail",
+        "field_path": "cutoff_value",
+        "kind": "NOT_EXTRACTED",
+        "impact": "Cannot calculate numeric stop freezing price.",
+        "source_scope": "TRADINGVIEW_PUBLIC_DESCRIPTION",
+        "resolution_requirement": "PINE_SOURCE_OR_RUNTIME_CONFIGURATION_WHEN_APPLICABLE"
+      }
+    },
+    {
+      "id": "tv01:gap:05",
+      "ontology_type": "N-143:InformationGap",
+      "properties": {
+        "target_node": "tv01:condition:initial_stop_cutoff",
+        "field_path": "exact_formula",
+        "kind": "NOT_EXTRACTED",
+        "impact": "Cannot confirm exact cutoff percentage denominator and crossing logic.",
+        "source_scope": "TRADINGVIEW_PUBLIC_DESCRIPTION",
+        "resolution_requirement": "PINE_SOURCE_OR_RUNTIME_CONFIGURATION_WHEN_APPLICABLE"
+      }
+    },
+    {
+      "id": "tv01:gap:06",
+      "ontology_type": "N-143:InformationGap",
+      "properties": {
+        "target_node": "tv01:position",
+        "field_path": "actual_contract/entry_price",
+        "kind": "GENERIC_STRATEGY_NOT_ACTUAL_TRADE",
+        "impact": "No specific historical trade exists in the public strategy description.",
+        "source_scope": "TRADINGVIEW_PUBLIC_DESCRIPTION",
+        "resolution_requirement": "PINE_SOURCE_OR_RUNTIME_CONFIGURATION_WHEN_APPLICABLE"
+      }
+    },
+    {
+      "id": "tv01:gap:07",
+      "ontology_type": "N-143:InformationGap",
+      "properties": {
+        "target_node": "tv01:r_tp1",
+        "field_path": "price_gain_trigger_pct",
+        "kind": "NOT_EXTRACTED",
+        "impact": "Cannot compute trigger threshold for TP tier 1.",
+        "source_scope": "TRADINGVIEW_PUBLIC_DESCRIPTION",
+        "resolution_requirement": "PINE_SOURCE_OR_RUNTIME_CONFIGURATION_WHEN_APPLICABLE"
+      }
+    },
+    {
+      "id": "tv01:gap:08",
+      "ontology_type": "N-143:InformationGap",
+      "properties": {
+        "target_node": "tv01:a_tp1",
+        "field_path": "reduction_value/unit",
+        "kind": "NOT_EXTRACTED",
+        "impact": "Cannot reproduce position reduction at TP tier 1.",
+        "source_scope": "TRADINGVIEW_PUBLIC_DESCRIPTION",
+        "resolution_requirement": "PINE_SOURCE_OR_RUNTIME_CONFIGURATION_WHEN_APPLICABLE"
+      }
+    },
+    {
+      "id": "tv01:gap:09",
+      "ontology_type": "N-143:InformationGap",
+      "properties": {
+        "target_node": "tv01:r_tp2",
+        "field_path": "price_gain_trigger_pct",
+        "kind": "NOT_EXTRACTED",
+        "impact": "Cannot compute trigger threshold for TP tier 2.",
+        "source_scope": "TRADINGVIEW_PUBLIC_DESCRIPTION",
+        "resolution_requirement": "PINE_SOURCE_OR_RUNTIME_CONFIGURATION_WHEN_APPLICABLE"
+      }
+    },
+    {
+      "id": "tv01:gap:10",
+      "ontology_type": "N-143:InformationGap",
+      "properties": {
+        "target_node": "tv01:a_tp2",
+        "field_path": "reduction_value/unit",
+        "kind": "NOT_EXTRACTED",
+        "impact": "Cannot reproduce position reduction at TP tier 2.",
+        "source_scope": "TRADINGVIEW_PUBLIC_DESCRIPTION",
+        "resolution_requirement": "PINE_SOURCE_OR_RUNTIME_CONFIGURATION_WHEN_APPLICABLE"
+      }
+    },
+    {
+      "id": "tv01:gap:11",
+      "ontology_type": "N-143:InformationGap",
+      "properties": {
+        "target_node": "tv01:r_tp3",
+        "field_path": "price_gain_trigger_pct",
+        "kind": "NOT_EXTRACTED",
+        "impact": "Cannot compute trigger threshold for TP tier 3.",
+        "source_scope": "TRADINGVIEW_PUBLIC_DESCRIPTION",
+        "resolution_requirement": "PINE_SOURCE_OR_RUNTIME_CONFIGURATION_WHEN_APPLICABLE"
+      }
+    },
+    {
+      "id": "tv01:gap:12",
+      "ontology_type": "N-143:InformationGap",
+      "properties": {
+        "target_node": "tv01:a_tp3",
+        "field_path": "reduction_value/unit",
+        "kind": "NOT_EXTRACTED",
+        "impact": "Cannot reproduce position reduction at TP tier 3.",
+        "source_scope": "TRADINGVIEW_PUBLIC_DESCRIPTION",
+        "resolution_requirement": "PINE_SOURCE_OR_RUNTIME_CONFIGURATION_WHEN_APPLICABLE"
+      }
+    },
+    {
+      "id": "tv01:gap:13",
+      "ontology_type": "N-143:InformationGap",
+      "properties": {
+        "target_node": "tv01:r_tp4",
+        "field_path": "price_gain_trigger_pct",
+        "kind": "NOT_EXTRACTED",
+        "impact": "Cannot compute trigger threshold for TP tier 4.",
+        "source_scope": "TRADINGVIEW_PUBLIC_DESCRIPTION",
+        "resolution_requirement": "PINE_SOURCE_OR_RUNTIME_CONFIGURATION_WHEN_APPLICABLE"
+      }
+    },
+    {
+      "id": "tv01:gap:14",
+      "ontology_type": "N-143:InformationGap",
+      "properties": {
+        "target_node": "tv01:a_tp4",
+        "field_path": "reduction_value/unit",
+        "kind": "NOT_EXTRACTED",
+        "impact": "Cannot reproduce position reduction at TP tier 4.",
+        "source_scope": "TRADINGVIEW_PUBLIC_DESCRIPTION",
+        "resolution_requirement": "PINE_SOURCE_OR_RUNTIME_CONFIGURATION_WHEN_APPLICABLE"
+      }
+    },
+    {
+      "id": "tv01:policy:concurrent_stops",
+      "ontology_type": "N-144:ConcurrentStopPolicy",
+      "properties": {
+        "simultaneous_allowed": true,
+        "enabled_subset": "USER_CONFIGURATION_NOT_EXTRACTED",
+        "simultaneous_trigger_priority": "NOT_VERIFIED_FROM_PINE",
+        "user_can_combine_any_of": [
+          "REGULAR_STOP",
+          "INITIAL_TRAILING_STOP",
+          "TRAILING_STOP"
+        ],
+        "author_guidance_distinct_from_executable_constraint": true
+      }
+    },
+    {
+      "id": "tv01:gap:15",
+      "ontology_type": "N-143:InformationGap",
+      "properties": {
+        "target_node": "tv01:policy:concurrent_stops",
+        "field_path": "simultaneous_trigger_priority",
+        "kind": "NOT_EXTRACTED",
+        "impact": "Cannot know stop-order conflict execution priority from description alone",
+        "source_scope": "TRADINGVIEW_PUBLIC_DESCRIPTION",
+        "resolution_requirement": "FULL_PINE_SOURCE"
+      }
+    },
+    {
+      "id": "tv01:source:simplebuy",
+      "ontology_type": "N-119:SourceDocument",
+      "properties": {
+        "title": "Simple Buy/Sell Indicator",
+        "author": "JustinTimeTunes",
+        "url": "https://www.tradingview.com/script/RsZi3CJ1-Simple-Buy-Sell-Indicator/",
+        "document_kind": "TRADINGVIEW_INDICATOR_SCRIPT",
+        "independent_script_id": "RsZi3CJ1",
+        "max_input_rules": 4,
+        "signal_output_map": {
+          "0": "NONE",
+          "1": "BUY",
+          "-1": "SELL"
+        },
+        "full_pine_status": "NOT_OBTAINED",
+        "actual_selected_as_input": false
+      }
+    },
+    {
+      "id": "tv01:source:custombuy",
+      "ontology_type": "N-119:SourceDocument",
+      "properties": {
+        "title": "Custom Buy/Sell Indicator",
+        "author": "JustinTimeTunes",
+        "url": "https://www.tradingview.com/script/PZbgI2XG-Custom-Buy-Sell-Indicator/",
+        "document_kind": "TRADINGVIEW_INDICATOR_SCRIPT",
+        "independent_script_id": "PZbgI2XG",
+        "max_input_rules": 7,
+        "logical_expression_modes_count": 10,
+        "signal_output_map": {
+          "0": "NONE",
+          "1": "BUY",
+          "-1": "SELL"
+        },
+        "full_pine_status": "NOT_OBTAINED",
+        "actual_selected_as_input": false
+      }
+    },
+    {
+      "id": "tv01:p_compatible_sources",
+      "ontology_type": "N-120:SourcePassage",
+      "properties": {
+        "locator": "Main TradingView strategy description line 50",
+        "text_scope": "Author names Simple and Custom Buy/Sell Indicators as possible signal inputs"
+      }
+    },
+    {
+      "id": "tv01:e_compatible_sources",
+      "ontology_type": "N-121:EvidenceAssertion",
+      "properties": {
+        "claim": "Two published TradingView indicators by same author are eligible signal producers; does not prove either was selected at runtime",
+        "claim_kind": "SOURCE_STATED_COMPATIBILITY_NOT_EXECUTION"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "tv01:case",
+      "relation": "R-098:CASE_DERIVED_FROM_SOURCE",
+      "to": "tv01:source"
+    },
+    {
+      "from": "tv01:source",
+      "relation": "R-099:SOURCE_HAS_PASSAGE",
+      "to": "tv01:p_signal"
+    },
+    {
+      "from": "tv01:source",
+      "relation": "R-099:SOURCE_HAS_PASSAGE",
+      "to": "tv01:p_stops"
+    },
+    {
+      "from": "tv01:source",
+      "relation": "R-099:SOURCE_HAS_PASSAGE",
+      "to": "tv01:p_tp"
+    },
+    {
+      "from": "tv01:strategy",
+      "relation": "R-040:GENERATES_POSITION",
+      "to": "tv01:position"
+    },
+    {
+      "from": "tv01:strategy",
+      "relation": "R-109:STRATEGY_HAS_ENTRY_RULE",
+      "to": "tv01:r_enter_long"
+    },
+    {
+      "from": "tv01:strategy",
+      "relation": "R-109:STRATEGY_HAS_ENTRY_RULE",
+      "to": "tv01:r_enter_short"
+    },
+    {
+      "from": "tv01:strategy",
+      "relation": "R-110:STRATEGY_HAS_EXIT_RULE",
+      "to": "tv01:r_cancel"
+    },
+    {
+      "from": "tv01:strategy",
+      "relation": "R-110:STRATEGY_HAS_EXIT_RULE",
+      "to": "tv01:r_opposite"
+    },
+    {
+      "from": "tv01:r_enter_long",
+      "relation": "R-111:RULE_HAS_ATOMIC_CONDITION",
+      "to": "tv01:c_buy"
+    },
+    {
+      "from": "tv01:r_enter_short",
+      "relation": "R-111:RULE_HAS_ATOMIC_CONDITION",
+      "to": "tv01:c_sell"
+    },
+    {
+      "from": "tv01:r_enter_long",
+      "relation": "R-112:RULE_DECLARES_ACTION",
+      "to": "tv01:a_open_long"
+    },
+    {
+      "from": "tv01:r_enter_short",
+      "relation": "R-112:RULE_DECLARES_ACTION",
+      "to": "tv01:a_open_short"
+    },
+    {
+      "from": "tv01:a_open_long",
+      "relation": "R-113:ACTION_CHANGES_POSITION",
+      "to": "tv01:position"
+    },
+    {
+      "from": "tv01:a_open_short",
+      "relation": "R-113:ACTION_CHANGES_POSITION",
+      "to": "tv01:position"
+    },
+    {
+      "from": "tv01:a_close_long",
+      "relation": "R-113:ACTION_CHANGES_POSITION",
+      "to": "tv01:position"
+    },
+    {
+      "from": "tv01:a_close_short",
+      "relation": "R-113:ACTION_CHANGES_POSITION",
+      "to": "tv01:position"
+    },
+    {
+      "from": "tv01:strategy",
+      "relation": "R-094:USES_RISK_RULE",
+      "to": "tv01:r_regular_stop"
+    },
+    {
+      "from": "tv01:strategy",
+      "relation": "R-094:USES_RISK_RULE",
+      "to": "tv01:r_initial_trail"
+    },
+    {
+      "from": "tv01:strategy",
+      "relation": "R-094:USES_RISK_RULE",
+      "to": "tv01:r_trail"
+    },
+    {
+      "from": "tv01:case",
+      "relation": "R-101:CASE_HAS_ASSERTION",
+      "to": "tv01:e_signal"
+    },
+    {
+      "from": "tv01:case",
+      "relation": "R-101:CASE_HAS_ASSERTION",
+      "to": "tv01:e_stops"
+    },
+    {
+      "from": "tv01:case",
+      "relation": "R-101:CASE_HAS_ASSERTION",
+      "to": "tv01:e_tp"
+    },
+    {
+      "from": "tv01:e_signal",
+      "relation": "R-100:ASSERTION_SUPPORTED_BY_PASSAGE",
+      "to": "tv01:p_signal"
+    },
+    {
+      "from": "tv01:e_stops",
+      "relation": "R-100:ASSERTION_SUPPORTED_BY_PASSAGE",
+      "to": "tv01:p_stops"
+    },
+    {
+      "from": "tv01:e_tp",
+      "relation": "R-100:ASSERTION_SUPPORTED_BY_PASSAGE",
+      "to": "tv01:p_tp"
+    },
+    {
+      "from": "tv01:strategy",
+      "relation": "R-110:STRATEGY_HAS_EXIT_RULE",
+      "to": "tv01:r_tp1"
+    },
+    {
+      "from": "tv01:r_tp1",
+      "relation": "R-111:RULE_HAS_ATOMIC_CONDITION",
+      "to": "tv01:c_tp1"
+    },
+    {
+      "from": "tv01:r_tp1",
+      "relation": "R-112:RULE_DECLARES_ACTION",
+      "to": "tv01:a_tp1"
+    },
+    {
+      "from": "tv01:a_tp1",
+      "relation": "R-113:ACTION_CHANGES_POSITION",
+      "to": "tv01:position"
+    },
+    {
+      "from": "tv01:strategy",
+      "relation": "R-110:STRATEGY_HAS_EXIT_RULE",
+      "to": "tv01:r_tp2"
+    },
+    {
+      "from": "tv01:r_tp2",
+      "relation": "R-111:RULE_HAS_ATOMIC_CONDITION",
+      "to": "tv01:c_tp2"
+    },
+    {
+      "from": "tv01:r_tp2",
+      "relation": "R-112:RULE_DECLARES_ACTION",
+      "to": "tv01:a_tp2"
+    },
+    {
+      "from": "tv01:a_tp2",
+      "relation": "R-113:ACTION_CHANGES_POSITION",
+      "to": "tv01:position"
+    },
+    {
+      "from": "tv01:strategy",
+      "relation": "R-110:STRATEGY_HAS_EXIT_RULE",
+      "to": "tv01:r_tp3"
+    },
+    {
+      "from": "tv01:r_tp3",
+      "relation": "R-111:RULE_HAS_ATOMIC_CONDITION",
+      "to": "tv01:c_tp3"
+    },
+    {
+      "from": "tv01:r_tp3",
+      "relation": "R-112:RULE_DECLARES_ACTION",
+      "to": "tv01:a_tp3"
+    },
+    {
+      "from": "tv01:a_tp3",
+      "relation": "R-113:ACTION_CHANGES_POSITION",
+      "to": "tv01:position"
+    },
+    {
+      "from": "tv01:strategy",
+      "relation": "R-110:STRATEGY_HAS_EXIT_RULE",
+      "to": "tv01:r_tp4"
+    },
+    {
+      "from": "tv01:r_tp4",
+      "relation": "R-111:RULE_HAS_ATOMIC_CONDITION",
+      "to": "tv01:c_tp4"
+    },
+    {
+      "from": "tv01:r_tp4",
+      "relation": "R-112:RULE_DECLARES_ACTION",
+      "to": "tv01:a_tp4"
+    },
+    {
+      "from": "tv01:a_tp4",
+      "relation": "R-113:ACTION_CHANGES_POSITION",
+      "to": "tv01:position"
+    },
+    {
+      "from": "tv01:case",
+      "relation": "PROPOSED:CASE_DESCRIBES_STRATEGY",
+      "to": "tv01:strategy",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:c_buy",
+      "relation": "PROPOSED:CONDITION_READS_SIGNAL",
+      "to": "tv01:signal",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:c_sell",
+      "relation": "PROPOSED:CONDITION_READS_SIGNAL",
+      "to": "tv01:signal",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:c_cancel_positive",
+      "relation": "PROPOSED:CONDITION_READS_SIGNAL",
+      "to": "tv01:cancel",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:c_cancel_negative",
+      "relation": "PROPOSED:CONDITION_READS_SIGNAL",
+      "to": "tv01:cancel",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:r_regular_stop",
+      "relation": "PROPOSED:RISK_RULE_CAN_CLOSE_POSITION_BY_ACTION",
+      "to": "tv01:a_close_long",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:r_regular_stop",
+      "relation": "PROPOSED:RISK_RULE_CAN_CLOSE_POSITION_BY_ACTION",
+      "to": "tv01:a_close_short",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:r_initial_trail",
+      "relation": "PROPOSED:RISK_RULE_CAN_CLOSE_POSITION_BY_ACTION",
+      "to": "tv01:a_close_long",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:r_initial_trail",
+      "relation": "PROPOSED:RISK_RULE_CAN_CLOSE_POSITION_BY_ACTION",
+      "to": "tv01:a_close_short",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:r_trail",
+      "relation": "PROPOSED:RISK_RULE_CAN_CLOSE_POSITION_BY_ACTION",
+      "to": "tv01:a_close_long",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:r_trail",
+      "relation": "PROPOSED:RISK_RULE_CAN_CLOSE_POSITION_BY_ACTION",
+      "to": "tv01:a_close_short",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:c_tp1",
+      "relation": "PROPOSED:CONDITION_READS_POSITION_METRIC",
+      "to": "tv01:position",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:c_tp2",
+      "relation": "PROPOSED:CONDITION_READS_POSITION_METRIC",
+      "to": "tv01:position",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:c_tp3",
+      "relation": "PROPOSED:CONDITION_READS_POSITION_METRIC",
+      "to": "tv01:position",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:c_tp4",
+      "relation": "PROPOSED:CONDITION_READS_POSITION_METRIC",
+      "to": "tv01:position",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:r_cancel",
+      "relation": "PROPOSED:POLICY_CONTAINS_RULE",
+      "to": "tv01:r_cancel_positive_closes_short",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:r_cancel_positive_closes_short",
+      "relation": "R-111:RULE_HAS_ATOMIC_CONDITION",
+      "to": "tv01:c_cancel_positive"
+    },
+    {
+      "from": "tv01:r_cancel_positive_closes_short",
+      "relation": "R-112:RULE_DECLARES_ACTION",
+      "to": "tv01:a_close_short"
+    },
+    {
+      "from": "tv01:r_cancel",
+      "relation": "PROPOSED:POLICY_CONTAINS_RULE",
+      "to": "tv01:r_cancel_negative_closes_long",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:r_cancel_negative_closes_long",
+      "relation": "R-111:RULE_HAS_ATOMIC_CONDITION",
+      "to": "tv01:c_cancel_negative"
+    },
+    {
+      "from": "tv01:r_cancel_negative_closes_long",
+      "relation": "R-112:RULE_DECLARES_ACTION",
+      "to": "tv01:a_close_long"
+    },
+    {
+      "from": "tv01:r_opposite",
+      "relation": "PROPOSED:POLICY_CONTAINS_RULE",
+      "to": "tv01:r_opposite:long_to_short",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:r_opposite:long_to_short",
+      "relation": "R-111:RULE_HAS_ATOMIC_CONDITION",
+      "to": "tv01:c_sell"
+    },
+    {
+      "from": "tv01:r_opposite:long_to_short",
+      "relation": "PROPOSED:RULE_REQUIRES_POSITION_STATE",
+      "to": "tv01:state:LONG",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:r_opposite:long_to_short",
+      "relation": "PROPOSED:RULE_HAS_TRANSITION",
+      "to": "tv01:transition:long_to_short:IGNORE",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:transition:long_to_short:IGNORE",
+      "relation": "PROPOSED:TRANSITION_FROM_STATE",
+      "to": "tv01:state:LONG",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:transition:long_to_short:IGNORE",
+      "relation": "PROPOSED:TRANSITION_TO_STATE",
+      "to": "tv01:state:LONG",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:r_opposite:long_to_short",
+      "relation": "PROPOSED:RULE_HAS_TRANSITION",
+      "to": "tv01:transition:long_to_short:CLOSE",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:transition:long_to_short:CLOSE",
+      "relation": "PROPOSED:TRANSITION_FROM_STATE",
+      "to": "tv01:state:LONG",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:transition:long_to_short:CLOSE",
+      "relation": "PROPOSED:TRANSITION_TO_STATE",
+      "to": "tv01:state:FLAT",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:transition:long_to_short:CLOSE",
+      "relation": "PROPOSED:TRANSITION_ORDERED_ACTION",
+      "to": "tv01:a_close_long",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7",
+      "sequence_index": 1
+    },
+    {
+      "from": "tv01:r_opposite:long_to_short",
+      "relation": "PROPOSED:RULE_HAS_TRANSITION",
+      "to": "tv01:transition:long_to_short:CLOSE_AND_REVERSE",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:transition:long_to_short:CLOSE_AND_REVERSE",
+      "relation": "PROPOSED:TRANSITION_FROM_STATE",
+      "to": "tv01:state:LONG",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:transition:long_to_short:CLOSE_AND_REVERSE",
+      "relation": "PROPOSED:TRANSITION_TO_STATE",
+      "to": "tv01:state:SHORT",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:transition:long_to_short:CLOSE_AND_REVERSE",
+      "relation": "PROPOSED:TRANSITION_ORDERED_ACTION",
+      "to": "tv01:a_close_long",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7",
+      "sequence_index": 1
+    },
+    {
+      "from": "tv01:transition:long_to_short:CLOSE_AND_REVERSE",
+      "relation": "PROPOSED:TRANSITION_ORDERED_ACTION",
+      "to": "tv01:a_open_short",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7",
+      "sequence_index": 2
+    },
+    {
+      "from": "tv01:r_opposite",
+      "relation": "PROPOSED:POLICY_CONTAINS_RULE",
+      "to": "tv01:r_opposite:short_to_long",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:r_opposite:short_to_long",
+      "relation": "R-111:RULE_HAS_ATOMIC_CONDITION",
+      "to": "tv01:c_buy"
+    },
+    {
+      "from": "tv01:r_opposite:short_to_long",
+      "relation": "PROPOSED:RULE_REQUIRES_POSITION_STATE",
+      "to": "tv01:state:SHORT",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:r_opposite:short_to_long",
+      "relation": "PROPOSED:RULE_HAS_TRANSITION",
+      "to": "tv01:transition:short_to_long:IGNORE",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:transition:short_to_long:IGNORE",
+      "relation": "PROPOSED:TRANSITION_FROM_STATE",
+      "to": "tv01:state:SHORT",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:transition:short_to_long:IGNORE",
+      "relation": "PROPOSED:TRANSITION_TO_STATE",
+      "to": "tv01:state:SHORT",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:r_opposite:short_to_long",
+      "relation": "PROPOSED:RULE_HAS_TRANSITION",
+      "to": "tv01:transition:short_to_long:CLOSE",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:transition:short_to_long:CLOSE",
+      "relation": "PROPOSED:TRANSITION_FROM_STATE",
+      "to": "tv01:state:SHORT",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:transition:short_to_long:CLOSE",
+      "relation": "PROPOSED:TRANSITION_TO_STATE",
+      "to": "tv01:state:FLAT",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:transition:short_to_long:CLOSE",
+      "relation": "PROPOSED:TRANSITION_ORDERED_ACTION",
+      "to": "tv01:a_close_short",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7",
+      "sequence_index": 1
+    },
+    {
+      "from": "tv01:r_opposite:short_to_long",
+      "relation": "PROPOSED:RULE_HAS_TRANSITION",
+      "to": "tv01:transition:short_to_long:CLOSE_AND_REVERSE",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:transition:short_to_long:CLOSE_AND_REVERSE",
+      "relation": "PROPOSED:TRANSITION_FROM_STATE",
+      "to": "tv01:state:SHORT",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:transition:short_to_long:CLOSE_AND_REVERSE",
+      "relation": "PROPOSED:TRANSITION_TO_STATE",
+      "to": "tv01:state:LONG",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:transition:short_to_long:CLOSE_AND_REVERSE",
+      "relation": "PROPOSED:TRANSITION_ORDERED_ACTION",
+      "to": "tv01:a_close_short",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7",
+      "sequence_index": 1
+    },
+    {
+      "from": "tv01:transition:short_to_long:CLOSE_AND_REVERSE",
+      "relation": "PROPOSED:TRANSITION_ORDERED_ACTION",
+      "to": "tv01:a_open_long",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7",
+      "sequence_index": 2
+    },
+    {
+      "from": "tv01:r_enter_long",
+      "relation": "PROPOSED:RULE_REQUIRES_POSITION_STATE",
+      "to": "tv01:state:FLAT",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:r_enter_short",
+      "relation": "PROPOSED:RULE_REQUIRES_POSITION_STATE",
+      "to": "tv01:state:FLAT",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:calc:direction_adjusted_price_gain_pct",
+      "relation": "PROPOSED:CALCULATION_READS_POSITION_PRICE_AND_SIDE",
+      "to": "tv01:position",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:c_tp1",
+      "relation": "R-117:CONDITION_TESTS_CALCULATION",
+      "to": "tv01:calc:direction_adjusted_price_gain_pct"
+    },
+    {
+      "from": "tv01:c_tp2",
+      "relation": "R-117:CONDITION_TESTS_CALCULATION",
+      "to": "tv01:calc:direction_adjusted_price_gain_pct"
+    },
+    {
+      "from": "tv01:c_tp3",
+      "relation": "R-117:CONDITION_TESTS_CALCULATION",
+      "to": "tv01:calc:direction_adjusted_price_gain_pct"
+    },
+    {
+      "from": "tv01:c_tp4",
+      "relation": "R-117:CONDITION_TESTS_CALCULATION",
+      "to": "tv01:calc:direction_adjusted_price_gain_pct"
+    },
+    {
+      "from": "tv01:r_initial_trail",
+      "relation": "R-111:RULE_HAS_ATOMIC_CONDITION",
+      "to": "tv01:condition:initial_stop_cutoff"
+    },
+    {
+      "from": "tv01:r_initial_trail",
+      "relation": "R-112:RULE_DECLARES_ACTION",
+      "to": "tv01:action:freeze_initial_trailing_stop"
+    },
+    {
+      "from": "tv01:action:freeze_initial_trailing_stop",
+      "relation": "PROPOSED:ACTION_MODIFIES_RISK_RULE",
+      "to": "tv01:r_initial_trail",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:r_trail",
+      "relation": "PROPOSED:RISK_RULE_MAY_TAKE_OVER_AFTER",
+      "to": "tv01:r_initial_trail",
+      "optional": true,
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:case",
+      "relation": "R-101:CASE_HAS_ASSERTION",
+      "to": "tv01:e_stop_ordering"
+    },
+    {
+      "from": "tv01:e_stop_ordering",
+      "relation": "R-100:ASSERTION_SUPPORTED_BY_PASSAGE",
+      "to": "tv01:p_stops"
+    },
+    {
+      "from": "tv01:gap:01",
+      "relation": "PROPOSED:GAP_BLOCKS_NODE_FIELD",
+      "to": "tv01:signal",
+      "field_path": "source_indicator",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:gap:02",
+      "relation": "PROPOSED:GAP_BLOCKS_NODE_FIELD",
+      "to": "tv01:strategy",
+      "field_path": "full_pine_source",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:gap:03",
+      "relation": "PROPOSED:GAP_BLOCKS_NODE_FIELD",
+      "to": "tv01:r_opposite",
+      "field_path": "selected_mode",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:gap:04",
+      "relation": "PROPOSED:GAP_BLOCKS_NODE_FIELD",
+      "to": "tv01:r_initial_trail",
+      "field_path": "cutoff_value",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:gap:05",
+      "relation": "PROPOSED:GAP_BLOCKS_NODE_FIELD",
+      "to": "tv01:condition:initial_stop_cutoff",
+      "field_path": "exact_formula",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:gap:06",
+      "relation": "PROPOSED:GAP_BLOCKS_NODE_FIELD",
+      "to": "tv01:position",
+      "field_path": "actual_contract/entry_price",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:gap:07",
+      "relation": "PROPOSED:GAP_BLOCKS_NODE_FIELD",
+      "to": "tv01:r_tp1",
+      "field_path": "price_gain_trigger_pct",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:gap:08",
+      "relation": "PROPOSED:GAP_BLOCKS_NODE_FIELD",
+      "to": "tv01:a_tp1",
+      "field_path": "reduction_value/unit",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:gap:09",
+      "relation": "PROPOSED:GAP_BLOCKS_NODE_FIELD",
+      "to": "tv01:r_tp2",
+      "field_path": "price_gain_trigger_pct",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:gap:10",
+      "relation": "PROPOSED:GAP_BLOCKS_NODE_FIELD",
+      "to": "tv01:a_tp2",
+      "field_path": "reduction_value/unit",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:gap:11",
+      "relation": "PROPOSED:GAP_BLOCKS_NODE_FIELD",
+      "to": "tv01:r_tp3",
+      "field_path": "price_gain_trigger_pct",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:gap:12",
+      "relation": "PROPOSED:GAP_BLOCKS_NODE_FIELD",
+      "to": "tv01:a_tp3",
+      "field_path": "reduction_value/unit",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:gap:13",
+      "relation": "PROPOSED:GAP_BLOCKS_NODE_FIELD",
+      "to": "tv01:r_tp4",
+      "field_path": "price_gain_trigger_pct",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:gap:14",
+      "relation": "PROPOSED:GAP_BLOCKS_NODE_FIELD",
+      "to": "tv01:a_tp4",
+      "field_path": "reduction_value/unit",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:strategy",
+      "relation": "PROPOSED:STRATEGY_HAS_STOP_COMBINATION_POLICY",
+      "to": "tv01:policy:concurrent_stops",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:policy:concurrent_stops",
+      "relation": "PROPOSED:STOP_POLICY_CONTAINS_RISK_RULE",
+      "to": "tv01:r_regular_stop",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:policy:concurrent_stops",
+      "relation": "PROPOSED:STOP_POLICY_CONTAINS_RISK_RULE",
+      "to": "tv01:r_initial_trail",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:policy:concurrent_stops",
+      "relation": "PROPOSED:STOP_POLICY_CONTAINS_RISK_RULE",
+      "to": "tv01:r_trail",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:policy:concurrent_stops",
+      "relation": "PROPOSED:POLICY_SUPPORTED_BY_ASSERTION",
+      "to": "tv01:e_stops",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:gap:15",
+      "relation": "PROPOSED:GAP_BLOCKS_NODE_FIELD",
+      "to": "tv01:policy:concurrent_stops",
+      "field_path": "simultaneous_trigger_priority",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:source",
+      "relation": "R-099:SOURCE_HAS_PASSAGE",
+      "to": "tv01:p_compatible_sources"
+    },
+    {
+      "from": "tv01:case",
+      "relation": "R-101:CASE_HAS_ASSERTION",
+      "to": "tv01:e_compatible_sources"
+    },
+    {
+      "from": "tv01:e_compatible_sources",
+      "relation": "R-100:ASSERTION_SUPPORTED_BY_PASSAGE",
+      "to": "tv01:p_compatible_sources"
+    },
+    {
+      "from": "tv01:strategy",
+      "relation": "PROPOSED:STRATEGY_LISTS_COMPATIBLE_SIGNAL_SCRIPT",
+      "to": "tv01:source:simplebuy",
+      "link_type": "POSSIBLE_INPUT_NOT_ACTUAL_CONFIGURATION",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:source:simplebuy",
+      "relation": "PROPOSED:INDICATOR_SCRIPT_CAN_PROVIDE_SIGNAL",
+      "to": "tv01:signal",
+      "link_type": "SOURCE_DECLARED_POTENTIAL_SIGNAL",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:strategy",
+      "relation": "PROPOSED:STRATEGY_LISTS_COMPATIBLE_SIGNAL_SCRIPT",
+      "to": "tv01:source:custombuy",
+      "link_type": "POSSIBLE_INPUT_NOT_ACTUAL_CONFIGURATION",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:source:custombuy",
+      "relation": "PROPOSED:INDICATOR_SCRIPT_CAN_PROVIDE_SIGNAL",
+      "to": "tv01:signal",
+      "link_type": "SOURCE_DECLARED_POTENTIAL_SIGNAL",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    }
+  ],
+  "known_gaps": [
+    {
+      "target": "tv01:signal",
+      "field": "source_indicator",
+      "cause": "EXTERNAL_INPUT_NOT_IDENTIFIED",
+      "required_for": "original buy/sell signal reproduction"
+    },
+    {
+      "target": "tv01:strategy",
+      "field": "full_pine",
+      "cause": "SOURCE_CODE_NOT_OBTAINED",
+      "required_for": "exact stop/TP execution and intra-bar behavior"
+    },
+    {
+      "target": "tv01:r_opposite",
+      "field": "default_mode",
+      "cause": "PARAMETER_NOT_EXTRACTED",
+      "required_for": "exact opposite signal execution"
+    },
+    {
+      "target": "tv01:r_initial_trail",
+      "field": "cutoff_value",
+      "cause": "PARAMETER_NOT_EXTRACTED",
+      "required_for": "stop-level evolution"
+    },
+    {
+      "target": "tv01:r_tp1..r_tp4",
+      "field": "trigger_profit_pct/reduce_position_pct",
+      "cause": "PARAMETER_NOT_EXTRACTED",
+      "required_for": "exact partial exit schedule"
+    },
+    {
+      "target": "tv01:position",
+      "field": "actual_contract/asset",
+      "cause": "GENERIC_STRATEGY_NOT_SPECIFIC_TRADE",
+      "required_for": "concrete transaction reconstruction"
+    },
+    {
+      "target": "tv01:case -> tv01:strategy",
+      "field": "CASE_DESCRIBES_STRATEGY relation",
+      "cause": "V7_RELATION_NOT_DEFINED",
+      "required_for": "navigate source case to strategy without relying on IDs"
+    }
+  ],
+  "status": "PARTIAL_KG_FROM_PUBLIC_DESCRIPTION",
+  "verified_against": "https://www.tradingview.com/script/02yfhjiz-Complex-Single-Trade-Strategy/",
+  "reconstruction_cycles": [
+    {
+      "iteration": 1,
+      "missing_knowledge": "The two cancel conditions could map to either close action when both were connected to one rule.",
+      "correction": "Split cancel behavior into two independently traversable TradingRule nodes and connect each to exactly one RuleCondition and TradeAction.",
+      "source_reference": "https://www.tradingview.com/script/02yfhjiz-Complex-Single-Trade-Strategy/ (description cancel line)",
+      "restored_from_graph": {
+        "signal_positive": "CLOSE_SHORT",
+        "signal_negative": "CLOSE_LONG",
+        "signal_zero": "NO_CANCEL_ACTION"
+      },
+      "verification": "GRAPH_PATH_RECONSTRUCTABLE_NOT_INDEPENDENT_BLIND_PASS"
+    },
+    {
+      "iteration": 2,
+      "missing_knowledge": "An opposite signal rule listed three choices but had neither initial/current position state nor the executed actions and their sequence.",
+      "correction": "Create position states and six semantic transition specifications linked to the appropriate opposite signal and ordered actions; distinguish source-defined alternative modes from chosen runtime mode.",
+      "restored_from_graph": {
+        "when_long_and_sell_signal": {
+          "IGNORE": "LONG->LONG no action",
+          "CLOSE": "LONG->FLAT CLOSE_LONG",
+          "CLOSE_AND_REVERSE": "LONG->SHORT CLOSE_LONG then OPEN_SHORT"
+        },
+        "when_short_and_buy_signal": {
+          "IGNORE": "SHORT->SHORT no action",
+          "CLOSE": "SHORT->FLAT CLOSE_SHORT",
+          "CLOSE_AND_REVERSE": "SHORT->LONG CLOSE_SHORT then OPEN_LONG"
+        }
+      },
+      "unresolved": "The source description does not state the configured default opposite-signal mode; do not infer actual choice.",
+      "verification": "GRAPH_PATH_RECONSTRUCTABLE_NOT_INDEPENDENT_BLIND_PASS"
+    },
+    {
+      "iteration": 3,
+      "missing_knowledge": "TP conditions read untyped position 'unrealized_gain_pct', which risks conflating price movement and monetary P&L. Initial trailing-stop lacked cutoff condition and freeze action.",
+      "correction": "Create direction-adjusted price-change computation, link each of 4 TP conditions; create stop cutoff condition and freeze action; preserve author's stop-ordering recommendation separately from mandatory execution.",
+      "source_reference": "TradingView description lines 38–48",
+      "restored_from_graph": {
+        "take_profit": "Four independently configurable trigger percentages based on favorable asset-price change, each reducing position size by a separately configurable amount.",
+        "initial_trailing_stop": "Trails until side-adjusted cutoff relative to entry, then freezes that stop; a regular trailing stop may take over.",
+        "typical_stop_ordering": "Trailing Stop > Initial Trailing Stop >= Stop (guidance only)"
+      },
+      "unresolved": [
+        "Exact TP percentages and reduction units/amounts",
+        "Pine expression and execution priority for cutoff"
+      ],
+      "verification": "GRAPH_PATH_RECONSTRUCTABLE_NOT_INDEPENDENT_BLIND_PASS"
+    },
+    {
+      "iteration": 4,
+      "missing_knowledge": "Unresolved values were only in free-standing known_gaps text; no graph edge identified which exact node field they blocked.",
+      "correction": "Add 14 individually linked InformationGap nodes with field_path and distinct gap kinds.",
+      "restored_from_graph": {
+        "failure_trace": "A reverse reader can traverse GAP_BLOCKS_NODE_FIELD to exact target node and unresolved field."
+      },
+      "verification": "GRAPH_TRACEABLE_GAPS_NOT_INDEPENDENT_BLIND_PASS"
+    },
+    {
+      "iteration": 5,
+      "missing_knowledge": "The description allows regular, initial trailing and regular trailing stops separately or together, but only individual stop rules were linked to the strategy. Immediate opening of the first valid signal was not recorded as timing.",
+      "correction": "Create ConcurrentStopPolicy with three separate risk-rule relations; add immediate entry-timing property; attach a priority-resolution gap to the policy.",
+      "restored_from_graph": {
+        "stop_combinations": "Any of the three stop rules may operate separately or concurrently; exact collision priority unavailable",
+        "first_signal": "When flat, the first valid buy/sell signal opens the matching position immediately (source description timing only, not verified Pine bar timing)."
+      },
+      "verification": "PUBLIC_DESCRIPTION_RECONSTRUCTABLE_FOR_THIS_STEP_NOT_FULL_PINE"
+    },
+    {
+      "iteration": 6,
+      "missing_knowledge": "The source explicitly mentions two independently published Buy/Sell indicator scripts as possible input providers, but the graph had only an anonymous external TradingSignal. This lost cross-script metadata relations.",
+      "correction": "Add two SourceDocument nodes for the identified indicator scripts and provenance-correct compatibility edges to the TradingStrategy and generic TradingSignal.",
+      "restored_from_graph": {
+        "compatible_signal_scripts": [
+          "RsZi3CJ1 Simple Buy/Sell Indicator: max 4 rules",
+          "PZbgI2XG Custom Buy/Sell Indicator: max 7 rules and 10 logic modes"
+        ],
+        "signal_values": "1 BUY, 0 none, -1 SELL"
+      },
+      "unresolved": "Neither compatible indicator is proven to have been actually selected for any historical trade; full Pine code unextracted",
+      "verification": "CROSS_SCRIPT_SOURCE_RELATION_RECONSTRUCTABLE_NOT_ACTUAL_USED_SIGNAL"
+    }
+  ],
+  "version": "TV-KG-ITERATIVE-v8.6"
+}

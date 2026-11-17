@@ -1,0 +1,90 @@
+{
+  "research_id": "CHAN-PL-GC",
+  "source_strategies": [
+    "PL July x2 LONG",
+    "GC June x1 SHORT"
+  ],
+  "current_source_registry": "source-facts-v3.json",
+  "registered_financial_facts": 30,
+  "active_graph": "round-7-root-connected-20261117.graph.json",
+  "active_graph_counts": {
+    "nodes": 78,
+    "edges": 170
+  },
+  "current_reconstruction_input": "round-7-root-connected-20261117-graph-only-input.json",
+  "reconstruction_result": "round-7-root-connected-20261117-graph-only-reconstruction-retry2.json",
+  "latest_comparison": "round-7-root-connected-20261117-source-comparison-retry2.json",
+  "source_fact_coverage": {
+    "passed": 30,
+    "total": 30,
+    "assessment": "SOURCE_REGISTERED_FACTS_GRAPH_PATH_PASS_ONLY"
+  },
+  "version_history": [
+    {
+      "round": 1,
+      "graph": "legacy_v7_external",
+      "result": "FAIL_SOURCE_CORRECTION_MISSING"
+    },
+    {
+      "round": 2,
+      "graph": "round-2-rebuilt.graph.json",
+      "result": "FAIL_CAUSAL_RISK_NEUTRALITY_MISSING"
+    },
+    {
+      "round": 3,
+      "graph": "round-3-rebuilt.graph.json",
+      "result": "FAIL_22_OF_26_AFTER_CORRECTED_AUDIT"
+    },
+    {
+      "round": 4,
+      "graph": "round-4-rebuilt.graph.json",
+      "result": "FAIL_25_OF_26_PRIOR_WORK_ATTRIBUTION_LOST"
+    },
+    {
+      "round": 5,
+      "graph": "round-5-rebuilt.graph.json",
+      "result": "PASS_26_OF_26_V2_BUT_FAIL_26_OF_30_EXPANDED_V3"
+    },
+    {
+      "round": 6,
+      "graph": "round-6-rebuilt.graph.json",
+      "result": "PASS_30_OF_30_REGISTERED_FACTS_BUT_FAIL_DIRECTED_CASE_ROOT_REACHABILITY_60_OF_70"
+    },
+    {
+      "round": 7,
+      "graph": "round-7-root-connected-20261117.graph.json",
+      "result": "30_OF_30_REGISTERED_FACTS_AFTER_READER_RETRY;70_OF_70_FINANCIAL_NODES_CASE_ROOT_REACHABLE;INDEPENDENT_BLIND_PENDING"
+    }
+  ],
+  "full_paper_exhaustive_source_capture": "NOT_CERTIFIED",
+  "independent_new_chatgpt_blind_replay": "NOT_EXECUTED",
+  "actual_market_price_replay": "NOT_EXECUTED",
+  "actual_trading_account_fills": "UNAVAILABLE",
+  "final_certification": "BLIND_PENDING_NOT_FULL_PASS",
+  "next_actions": [
+    "Run independent clean ChatGPT conversation with current_reconstruction_input only",
+    "Compare its reconstruction against 30 source facts; if it fails, supersede R7 and rebuild R8",
+    "Do not autoapprove unreviewed ontology relation candidates"
+  ],
+  "ontology": "v10-ontology-gap-candidates.json UNAPPROVED",
+  "root_reachability": {
+    "financial_nodes": 70,
+    "reachable_from_case": 70,
+    "unreachable": 0
+  },
+  "replay_reader_iterations_R7": 2,
+  "relationship_mutations_R7": {
+    "tested": 11,
+    "detected": 11
+  },
+  "ontology_r7_delta": "round-7-root-connected-20261117-ontology-relations-proposed.json (7 unapproved relation types; deduplication pending)",
+  "ontology_auto_adoption": {
+    "status": "AUTO_APPLIED_SOURCE_REGISTERED_FACT_RECONSTRUCTION",
+    "effective_overlay": "research/ontology/active-auto-extensions.json",
+    "synchronized_from": "current_reconstruction_input",
+    "separate_manual_approval_required": false,
+    "source_fact_pass_only": true,
+    "independent_chatgpt_blind_verification": "STILL_PENDING",
+    "baseline_604_definitions_preserved": true
+  }
+}

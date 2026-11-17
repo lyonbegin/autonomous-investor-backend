@@ -1,0 +1,398 @@
+{
+  "research_id": "CHAN-PL-GC-20261117",
+  "strategy_kind": "SEASONAL_INTERMARKET_FUTURES_SPREAD",
+  "source_scope": "author original post + authors corrections/comments + 2007 recap",
+  "not_actual_verified_fills": true,
+  "documents": [
+    {
+      "id": "S2006",
+      "kind": "AUTHOR_INITIAL_POST",
+      "date": "2006-11-24",
+      "url": "https://epchan.blogspot.com/2006/11/trading-platinum-gold-seasonal-spread.html",
+      "label": "Trading a platinum-gold seasonal spread"
+    },
+    {
+      "id": "S2006RISK",
+      "kind": "AUTHOR_COMMENT",
+      "date": "2006-11-26",
+      "url": "https://epchan.blogspot.com/2006/11/trading-platinum-gold-seasonal-spread.html",
+      "label": "Author reply to drawdown question"
+    },
+    {
+      "id": "S2007FEB",
+      "kind": "AUTHOR_CLARIFICATION",
+      "date": "2007-03-01",
+      "url": "https://epchan.blogspot.com/2007/02/platinum-gold-spread-revisited.html?m=1",
+      "label": "Author clarifies not cointegration"
+    },
+    {
+      "id": "S2007CORR",
+      "kind": "AUTHOR_FORMAL_CORRECTION",
+      "date": "2007-04-20",
+      "url": "https://epchan.blogspot.com/2007/04/recap-platinum-gold-spread-trade.html?m=1",
+      "label": "Recap with arithmetic correction"
+    },
+    {
+      "id": "S2007RISK",
+      "kind": "AUTHOR_COMMENT",
+      "date": "2007-08-19",
+      "url": "https://epchan.blogspot.com/2006/11/trading-platinum-gold-seasonal-spread.html",
+      "label": "Author confirms dollar neutrality and risk caveat"
+    }
+  ],
+  "primary_source_facts": [
+    {
+      "id": "C01",
+      "source": "S2006",
+      "predicate": "strategy_class",
+      "value": "SEASONAL_FUTURES_INTERMARKET_SPREAD",
+      "scope": "base",
+      "locator": "initial post, description",
+      "status": "AUTHOR_REPORTED"
+    },
+    {
+      "id": "C02",
+      "source": "S2006",
+      "predicate": "long_leg",
+      "value": {
+        "root": "PL",
+        "contracts": 2,
+        "contract_month": "JULY",
+        "direction": "LONG"
+      },
+      "scope": "base",
+      "locator": "initial post, strategy sentence",
+      "status": "AUTHOR_REPORTED"
+    },
+    {
+      "id": "C03",
+      "source": "S2006",
+      "predicate": "short_leg",
+      "value": {
+        "root": "GC",
+        "contracts": 1,
+        "contract_month": "JUNE",
+        "direction": "SHORT"
+      },
+      "scope": "base",
+      "locator": "initial post, strategy sentence",
+      "status": "AUTHOR_REPORTED"
+    },
+    {
+      "id": "C04",
+      "source": "S2006",
+      "predicate": "PL_contract_multiplier",
+      "value": {
+        "value": 50,
+        "unit": "TROY_OZ_PER_CONTRACT"
+      },
+      "scope": "base",
+      "locator": "initial post, contract sizes",
+      "status": "AUTHOR_REPORTED"
+    },
+    {
+      "id": "C05",
+      "source": "S2006",
+      "predicate": "GC_contract_multiplier",
+      "value": {
+        "value": 100,
+        "unit": "TROY_OZ_PER_CONTRACT"
+      },
+      "scope": "base",
+      "locator": "initial post, contract sizes",
+      "status": "AUTHOR_REPORTED"
+    },
+    {
+      "id": "C06",
+      "source": "S2006",
+      "predicate": "entry_window",
+      "value": {
+        "month": "FEBRUARY",
+        "period": "LATE",
+        "exact_day": null
+      },
+      "scope": "general_strategy",
+      "locator": "around end of February",
+      "status": "AUTHOR_REPORTED"
+    },
+    {
+      "id": "C07",
+      "source": "S2006",
+      "predicate": "exit_window",
+      "value": {
+        "month": "APRIL",
+        "period": "MID",
+        "exact_day": null
+      },
+      "scope": "general_strategy",
+      "locator": "around mid-April",
+      "status": "AUTHOR_REPORTED"
+    },
+    {
+      "id": "C08",
+      "source": "S2006",
+      "predicate": "research_modes",
+      "value": {
+        "backtest": "AUTHOR_CLAIMED",
+        "paper_trade_2006": "AUTHOR_CLAIMED",
+        "original_fill_records": "NOT_PROVIDED"
+      },
+      "scope": "study_2006",
+      "locator": "initial post, testing paragraph",
+      "status": "AUTHOR_REPORTED"
+    },
+    {
+      "id": "C09",
+      "source": "S2006",
+      "predicate": "gold_demand_driver",
+      "value": {
+        "regions": [
+          "INDIA",
+          "CHINA"
+        ],
+        "end_of_festivals": "CHINESE_NEW_YEAR",
+        "gold_jewelry_seasonal_demand": "DECLINES_AFTER_FESTIVALS"
+      },
+      "scope": "economic_reason",
+      "locator": "initial post, fundamental reason",
+      "status": "AUTHOR_REPORTED"
+    },
+    {
+      "id": "C10",
+      "source": "S2006",
+      "predicate": "platinum_hedge_rationale",
+      "value": {
+        "industry": "AUTOMOTIVE_CATALYTIC_CONVERTERS",
+        "seasonality": "WEAKER_THAN_GOLD_JEWELRY"
+      },
+      "scope": "economic_reason",
+      "locator": "initial post, fundamental reason",
+      "status": "AUTHOR_REPORTED"
+    },
+    {
+      "id": "C11",
+      "source": "S2006",
+      "predicate": "average_annual_pnl",
+      "value": {
+        "value": 6600,
+        "unit": "USD",
+        "source_status": "ORIGINAL_SUPERSEDED",
+        "period_claim": "SINCE_1995"
+      },
+      "scope": "initial_performance",
+      "locator": "initial post, average every year",
+      "status": "AUTHOR_REPORTED"
+    },
+    {
+      "id": "C12",
+      "source": "S2006",
+      "predicate": "best_year_pnl",
+      "value": {
+        "value": 15400,
+        "unit": "USD",
+        "source_status": "ORIGINAL_SUPERSEDED"
+      },
+      "scope": "initial_performance",
+      "locator": "initial post, best year",
+      "status": "AUTHOR_REPORTED"
+    },
+    {
+      "id": "C13",
+      "source": "S2006",
+      "predicate": "worst_year_pnl",
+      "value": {
+        "value": -3810,
+        "unit": "USD",
+        "source_status": "ORIGINAL_SUPERSEDED"
+      },
+      "scope": "initial_performance",
+      "locator": "initial post, worst year",
+      "status": "AUTHOR_REPORTED"
+    },
+    {
+      "id": "C14",
+      "source": "S2006",
+      "predicate": "exchange_margin",
+      "value": {
+        "value": 743,
+        "unit": "USD",
+        "type": "INITIAL_MARGIN_AS_AUTHOR_REPORTED_HISTORICAL"
+      },
+      "scope": "margin",
+      "locator": "initial post, NYMEX margin",
+      "status": "AUTHOR_REPORTED"
+    },
+    {
+      "id": "C15",
+      "source": "S2006RISK",
+      "predicate": "historical_max_drawdown",
+      "value": {
+        "value": -10910,
+        "unit": "USD",
+        "start_year": 2000,
+        "drawdown_year": 2001
+      },
+      "scope": "risk_comment",
+      "locator": "2006-11-26 author reply",
+      "status": "AUTHOR_REPORTED"
+    },
+    {
+      "id": "C16",
+      "source": "S2006RISK",
+      "predicate": "author_max_margin_to_survive_drawdown",
+      "value": {
+        "value": 11653,
+        "unit": "USD",
+        "arithmetic": "743+10910",
+        "concept": "REQUIRED_CAPITAL_WITH_INTERIM_DRAWDOWN"
+      },
+      "scope": "risk_comment",
+      "locator": "2006-11-26 author reply",
+      "status": "AUTHOR_REPORTED"
+    },
+    {
+      "id": "C17",
+      "source": "S2007CORR",
+      "predicate": "corrected_average_pnl",
+      "value": {
+        "value": 3064,
+        "unit": "USD",
+        "supersedes": "C11",
+        "period": "LAST_SEVEN_YEARS_AS_OF_2007"
+      },
+      "scope": "corrected_performance",
+      "locator": "2007-04-20 recap, correction",
+      "status": "AUTHOR_REPORTED"
+    },
+    {
+      "id": "C18",
+      "source": "S2007CORR",
+      "predicate": "corrected_best_pnl",
+      "value": {
+        "value": 7320,
+        "unit": "USD",
+        "supersedes": "C12",
+        "period": "LAST_SEVEN_YEARS_AS_OF_2007"
+      },
+      "scope": "corrected_performance",
+      "locator": "2007-04-20 recap, correction",
+      "status": "AUTHOR_REPORTED"
+    },
+    {
+      "id": "C19",
+      "source": "S2007CORR",
+      "predicate": "corrected_worst_pnl",
+      "value": {
+        "value": -540,
+        "unit": "USD",
+        "supersedes": "C13",
+        "period": "LAST_SEVEN_YEARS_AS_OF_2007"
+      },
+      "scope": "corrected_performance",
+      "locator": "2007-04-20 recap, correction",
+      "status": "AUTHOR_REPORTED"
+    },
+    {
+      "id": "C20",
+      "source": "S2007CORR",
+      "predicate": "corrected_max_drawdown",
+      "value": {
+        "value": -4860,
+        "unit": "USD",
+        "period": "LAST_SEVEN_YEARS_AS_OF_2007",
+        "relation_to_C15": "UNRESOLVED_WINDOW_OR_METHOD_DIFFERENCE"
+      },
+      "scope": "corrected_performance",
+      "locator": "2007-04-20 recap, drawdown",
+      "status": "AUTHOR_REPORTED"
+    },
+    {
+      "id": "C21",
+      "source": "S2007CORR",
+      "predicate": "conditional_2007_result",
+      "value": {
+        "entry_date": "2007-02-26_NEAR_CLOSE",
+        "exit_date": "2007-04-19_NEAR_CLOSE",
+        "pnl_approx_usd": 6610,
+        "kind": "IF_ENTERED_HYPOTHETICAL_COMPARISON",
+        "actual_fill_proven": false
+      },
+      "scope": "2007_hypothetical",
+      "locator": "2007-04-20 recap, if a trader had entered",
+      "status": "AUTHOR_REPORTED"
+    },
+    {
+      "id": "C22",
+      "source": "S2007RISK",
+      "predicate": "hedge_neutrality",
+      "value": {
+        "ounce_exposure_long_pl": 100,
+        "ounce_exposure_short_gc": 100,
+        "ounce_matched": true,
+        "dollar_neutral": false,
+        "volatility_neutral": "NOT_PROVEN"
+      },
+      "scope": "risk_author_comment",
+      "locator": "2007-08-19 author reply",
+      "status": "AUTHOR_REPORTED"
+    },
+    {
+      "id": "C23",
+      "source": "S2007RISK",
+      "predicate": "neutrality_risk_comment",
+      "value": {
+        "dollar_risk": "ALMOST_ONE_PL_CONTRACT_OUTRIGHT",
+        "dollar_neutral_alternative_profit": "AUTHOR_CLAIMED_LESS_PROFITABLE",
+        "author_market_values": "HISTORICAL_UNCLEAR_DENOMINATION_DO_NOT_TREAT_AS_CONTRACT_VALUES"
+      },
+      "scope": "risk_author_comment",
+      "locator": "2007-08-19 author reply",
+      "status": "AUTHOR_REPORTED"
+    },
+    {
+      "id": "C24",
+      "source": "S2007FEB",
+      "predicate": "not_cointegration",
+      "value": {
+        "cointegration_based": false,
+        "authors_own_clarification": "EXPECT_SPREAD_TO_DIVERGE_NOT_CONVERGE"
+      },
+      "scope": "model_basis",
+      "locator": "2007-03-01 author comment",
+      "status": "AUTHOR_REPORTED"
+    },
+    {
+      "id": "C25",
+      "source": "S2006",
+      "predicate": "intellectual_source",
+      "value": {
+        "person": "Jerry Toepke",
+        "article": "Give Seasonal Spreads Some Respect",
+        "journal": "Stocks, Futures and Options Magazine",
+        "issue": "2006-01",
+        "full_article_retrieved": false
+      },
+      "scope": "provenance",
+      "locator": "initial post, Further reading",
+      "status": "AUTHOR_REPORTED"
+    },
+    {
+      "id": "C26",
+      "source": "S2006RISK",
+      "predicate": "interim_risk_qualification",
+      "value": {
+        "risk": "MATERIAL_INTERIM_DRAWDOWN",
+        "annual_pnl_may_be_positive_while_dd_high": true
+      },
+      "scope": "risk_comment",
+      "locator": "2006-11-26 author reply",
+      "status": "AUTHOR_REPORTED"
+    }
+  ],
+  "access_notes": [
+    "2006 original and 2007 correction indexed as author-site excerpts; full post retrieval rate-limited in web open",
+    "2007-04-20 corrected results must not be overwritten by 2006 report",
+    "source actual chart arrays, price bars, exact annual trades and paper-account fills missing"
+  ],
+  "status": "FACT_REGISTER_COMPOSED_FROM_PRIMARY_WEB_CONTENT"
+}

@@ -1,0 +1,185 @@
+{
+  "id": "CHAN_R2_24_SOURCE_FACT_COMPARISON",
+  "matched": 20,
+  "total": 24,
+  "failed_fact_ids": [
+    "CH01",
+    "CH08",
+    "CH15",
+    "CH16"
+  ],
+  "rows": [
+    {
+      "fact_id": "CH01",
+      "source_path": "publication.date",
+      "status": "REBUILD_REQUIRED",
+      "explanation": "Publication date was only on excluded source metadata.",
+      "source_location": "Main blog by Ernie Chan"
+    },
+    {
+      "fact_id": "CH02",
+      "source_path": "trade.legs",
+      "status": "PASS",
+      "explanation": "Financial source fact recoverable from redacted graph",
+      "source_location": "Main article strategy paragraph"
+    },
+    {
+      "fact_id": "CH03",
+      "source_path": "trade.entry_window",
+      "status": "PASS",
+      "explanation": "Financial source fact recoverable from redacted graph",
+      "source_location": "Main article strategy paragraph"
+    },
+    {
+      "fact_id": "CH04",
+      "source_path": "trade.exit_window",
+      "status": "PASS",
+      "explanation": "Financial source fact recoverable from redacted graph",
+      "source_location": "Main article strategy paragraph"
+    },
+    {
+      "fact_id": "CH05",
+      "source_path": "contracts.multiplier",
+      "status": "PASS",
+      "explanation": "Financial source fact recoverable from redacted graph",
+      "source_location": "Main article strategy paragraph"
+    },
+    {
+      "fact_id": "CH06",
+      "source_path": "trade.hedge_ratio",
+      "status": "PASS",
+      "explanation": "Financial source fact recoverable from redacted graph",
+      "source_location": "Main article and Aug 19 2007 comment"
+    },
+    {
+      "fact_id": "CH07",
+      "source_path": "performance.recent_consistency",
+      "status": "PASS",
+      "explanation": "Financial source fact recoverable from redacted graph",
+      "source_location": "Main article first paragraph"
+    },
+    {
+      "fact_id": "CH08",
+      "source_path": "performance.annual_mean_usd",
+      "status": "REBUILD_REQUIRED",
+      "explanation": "1995 stored in generic year field; source requires typed since_year.",
+      "source_location": "Main article P/L paragraph"
+    },
+    {
+      "fact_id": "CH09",
+      "source_path": "performance.best_annual_usd",
+      "status": "PASS",
+      "explanation": "Financial source fact recoverable from redacted graph",
+      "source_location": "Main article P/L paragraph"
+    },
+    {
+      "fact_id": "CH10",
+      "source_path": "performance.worst_annual_usd",
+      "status": "PASS",
+      "explanation": "Financial source fact recoverable from redacted graph",
+      "source_location": "Main article P/L paragraph"
+    },
+    {
+      "fact_id": "CH11",
+      "source_path": "risk.initial_margin_author_reported_usd",
+      "status": "PASS",
+      "explanation": "Financial source fact recoverable from redacted graph",
+      "source_location": "Main article margin paragraph"
+    },
+    {
+      "fact_id": "CH12",
+      "source_path": "research.backtest_and_paper_trade",
+      "status": "PASS",
+      "explanation": "Financial source fact recoverable from redacted graph",
+      "source_location": "Main article test paragraph"
+    },
+    {
+      "fact_id": "CH13",
+      "source_path": "fundamental.gold_demand_seasonality",
+      "status": "PASS",
+      "explanation": "Financial source fact recoverable from redacted graph",
+      "source_location": "Main article fundamental paragraph"
+    },
+    {
+      "fact_id": "CH14",
+      "source_path": "fundamental.platinum_weak_seasonality",
+      "status": "PASS",
+      "explanation": "Financial source fact recoverable from redacted graph",
+      "source_location": "Main article fundamental paragraph"
+    },
+    {
+      "fact_id": "CH15",
+      "source_path": "prior_inspiration",
+      "status": "REBUILD_REQUIRED",
+      "explanation": "Jerry Toepke cited work was only a redacted SourceDocument, absent from blind graph.",
+      "source_location": "Main article further reading"
+    },
+    {
+      "fact_id": "CH16",
+      "source_path": "risk.max_drawdown_author_comment",
+      "status": "REBUILD_REQUIRED",
+      "explanation": "Maximum drawdown observation year 2001 is stored, but backtest window 'since 2000' lacks separate typed property.",
+      "source_location": "Ernie Chan comment November 26, 2006"
+    },
+    {
+      "fact_id": "CH17",
+      "source_path": "risk.max_liquidity_requirement_author_comment",
+      "status": "PASS",
+      "explanation": "Financial source fact recoverable from redacted graph",
+      "source_location": "Ernie Chan comment November 26, 2006"
+    },
+    {
+      "fact_id": "CH18",
+      "source_path": "risk.dollar_neutrality_correction",
+      "status": "PASS",
+      "explanation": "Financial source fact recoverable from redacted graph",
+      "source_location": "Ernie Chan reply August 19, 2007"
+    },
+    {
+      "fact_id": "CH19",
+      "source_path": "risk.author_market_value_numbers",
+      "status": "PASS",
+      "explanation": "Financial source fact recoverable from redacted graph",
+      "source_location": "Ernie Chan reply August 19, 2007"
+    },
+    {
+      "fact_id": "CH20",
+      "source_path": "risk.author_out_right_exposure_analogy",
+      "status": "PASS",
+      "explanation": "Financial source fact recoverable from redacted graph",
+      "source_location": "Ernie Chan reply August 19, 2007"
+    },
+    {
+      "fact_id": "CH21",
+      "source_path": "alternative.dollar_neutral_trade_report",
+      "status": "PASS",
+      "explanation": "Financial source fact recoverable from redacted graph",
+      "source_location": "Ernie Chan reply August 19, 2007"
+    },
+    {
+      "fact_id": "CH22",
+      "source_path": "methods.software",
+      "status": "PASS",
+      "explanation": "Financial source fact recoverable from redacted graph",
+      "source_location": "Ernie Chan comment August 18, 2007"
+    },
+    {
+      "fact_id": "CH23",
+      "source_path": "source.undisclosed_execution_parameters",
+      "status": "PASS",
+      "explanation": "Financial source fact recoverable from redacted graph",
+      "source_location": "Main article and comment archive"
+    },
+    {
+      "fact_id": "CH24",
+      "source_path": "source.execution_claim_discrepancy",
+      "status": "PASS",
+      "explanation": "Financial source fact recoverable from redacted graph",
+      "source_location": "Main article versus August 19, 2007 author reply"
+    }
+  ],
+  "full_original_page_exhaustive": false,
+  "independent_chatgpt_reconstruction": false,
+  "stage": "REBUILD_REQUIRED",
+  "next_action": "Rebuild graph with publication provenance snapshot, cited-work reference, typed backtest start year and separate drawdown observation year."
+}

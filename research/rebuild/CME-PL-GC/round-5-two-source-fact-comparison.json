@@ -1,0 +1,206 @@
+{
+  "id": "CME_R5_23_SOURCE_FACT_AUDIT",
+  "fact_count": 23,
+  "matched": 23,
+  "failed": 0,
+  "full_source_document_exhaustiveness": false,
+  "independent_fresh_chatgpt_blind_test": false,
+  "source_passage_provenance_all": true,
+  "financial_reconstruction_all": true,
+  "rows": [
+    {
+      "source": "CME-COURSE",
+      "fact_path": "case.kind",
+      "finance_recovered": true,
+      "source_passage_linked": true,
+      "decision": "PASS",
+      "reason": "source→graph→reconstruction match"
+    },
+    {
+      "source": "CME-COURSE",
+      "fact_path": "case.date.entry",
+      "finance_recovered": true,
+      "source_passage_linked": true,
+      "decision": "PASS",
+      "reason": "source→graph→reconstruction match"
+    },
+    {
+      "source": "CME-COURSE",
+      "fact_path": "case.date.exit",
+      "finance_recovered": true,
+      "source_passage_linked": true,
+      "decision": "PASS",
+      "reason": "source→graph→reconstruction match"
+    },
+    {
+      "source": "CME-COURSE",
+      "fact_path": "case.contract.pl",
+      "finance_recovered": true,
+      "source_passage_linked": true,
+      "decision": "PASS",
+      "reason": "Corrected comparison-field alias: reconstruction uses qty, source register uses contracts; multiplier, contract month, year, venue, symbol all match."
+    },
+    {
+      "source": "CME-COURSE",
+      "fact_path": "case.contract.gc",
+      "finance_recovered": true,
+      "source_passage_linked": true,
+      "decision": "PASS",
+      "reason": "Corrected comparison-field alias: reconstruction uses qty, source register uses contracts; multiplier, contract month, year, venue, symbol all match."
+    },
+    {
+      "source": "CME-COURSE",
+      "fact_path": "case.entry",
+      "finance_recovered": true,
+      "source_passage_linked": true,
+      "decision": "PASS",
+      "reason": "source→graph→reconstruction match"
+    },
+    {
+      "source": "CME-COURSE",
+      "fact_path": "case.exit",
+      "finance_recovered": true,
+      "source_passage_linked": true,
+      "decision": "PASS",
+      "reason": "source→graph→reconstruction match"
+    },
+    {
+      "source": "CME-COURSE",
+      "fact_path": "case.pnl",
+      "finance_recovered": true,
+      "source_passage_linked": true,
+      "decision": "PASS",
+      "reason": "source→graph→reconstruction match"
+    },
+    {
+      "source": "CME-COURSE",
+      "fact_path": "margin",
+      "finance_recovered": true,
+      "source_passage_linked": true,
+      "decision": "PASS",
+      "reason": "source→graph→reconstruction match"
+    },
+    {
+      "source": "CME-COURSE",
+      "fact_path": "driver",
+      "finance_recovered": true,
+      "source_passage_linked": true,
+      "decision": "PASS",
+      "reason": "source→graph→reconstruction match"
+    },
+    {
+      "source": "CME-2017-ARTICLE",
+      "fact_path": "case.kind",
+      "finance_recovered": true,
+      "source_passage_linked": true,
+      "decision": "PASS",
+      "reason": "source→graph→reconstruction match"
+    },
+    {
+      "source": "CME-2017-ARTICLE",
+      "fact_path": "case.date.entry",
+      "finance_recovered": true,
+      "source_passage_linked": true,
+      "decision": "PASS",
+      "reason": "source→graph→reconstruction match"
+    },
+    {
+      "source": "CME-2017-ARTICLE",
+      "fact_path": "case.date.exit",
+      "finance_recovered": true,
+      "source_passage_linked": true,
+      "decision": "PASS",
+      "reason": "source→graph→reconstruction match"
+    },
+    {
+      "source": "CME-2017-ARTICLE",
+      "fact_path": "case.contract.pl",
+      "finance_recovered": true,
+      "source_passage_linked": true,
+      "decision": "PASS",
+      "reason": "Corrected comparison-field alias: reconstruction uses qty, source register uses contracts; multiplier, contract month, year, venue, symbol all match."
+    },
+    {
+      "source": "CME-2017-ARTICLE",
+      "fact_path": "case.contract.gc",
+      "finance_recovered": true,
+      "source_passage_linked": true,
+      "decision": "PASS",
+      "reason": "Corrected comparison-field alias: reconstruction uses qty, source register uses contracts; multiplier, contract month, year, venue, symbol all match."
+    },
+    {
+      "source": "CME-2017-ARTICLE",
+      "fact_path": "case.entry",
+      "finance_recovered": true,
+      "source_passage_linked": true,
+      "decision": "PASS",
+      "reason": "source→graph→reconstruction match"
+    },
+    {
+      "source": "CME-2017-ARTICLE",
+      "fact_path": "case.exit",
+      "finance_recovered": true,
+      "source_passage_linked": true,
+      "decision": "PASS",
+      "reason": "source→graph→reconstruction match"
+    },
+    {
+      "source": "CME-2017-ARTICLE",
+      "fact_path": "case.pnl",
+      "finance_recovered": true,
+      "source_passage_linked": true,
+      "decision": "PASS",
+      "reason": "source→graph→reconstruction match"
+    },
+    {
+      "source": "CME-2017-ARTICLE",
+      "fact_path": "margin",
+      "finance_recovered": true,
+      "source_passage_linked": true,
+      "decision": "PASS",
+      "reason": "source→graph→reconstruction match"
+    },
+    {
+      "source": "CME-2017-ARTICLE",
+      "fact_path": "driver",
+      "finance_recovered": true,
+      "source_passage_linked": true,
+      "decision": "PASS",
+      "reason": "source→graph→reconstruction match"
+    },
+    {
+      "source": "CME-2017-ARTICLE",
+      "fact_path": "contradictory_narrative",
+      "finance_recovered": true,
+      "source_passage_linked": true,
+      "decision": "PASS",
+      "reason": "source→graph→reconstruction match"
+    },
+    {
+      "source": "CME-2017-ARTICLE",
+      "fact_path": "mislabel",
+      "finance_recovered": true,
+      "source_passage_linked": true,
+      "decision": "PASS",
+      "reason": "source→graph→reconstruction match"
+    },
+    {
+      "source": "CME-2017-ARTICLE",
+      "fact_path": "rounded_spread_change",
+      "finance_recovered": true,
+      "source_passage_linked": true,
+      "decision": "PASS",
+      "reason": "source→graph→reconstruction match"
+    }
+  ],
+  "stage": "SOURCE_FACT_PASS_BLIND_LLM_PENDING",
+  "comparison_revision": {
+    "revision": 2,
+    "changed_fields": [
+      "reconstruction.legs[].qty ↔ source.contracts"
+    ],
+    "schema_error_first_pass": "Four false negatives due to reading nonexistent reconstruction.legs[].contracts",
+    "graph_was_not_modified": "The factual data and graph links were correct; only the comparison was repaired.",
+    "audit_original_version": "previous Git commit 02315d153467f3cc01848215ac93e89dbf0b7a9c"
+  }
+}

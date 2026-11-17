@@ -1,0 +1,278 @@
+{
+  "version": "CME-v9-DRAFT",
+  "source_scope": "CME official educational worked trade",
+  "baseline": "604 occurrences + v7 unique candidates (do not duplicate v7 types)",
+  "new_node_candidates": [
+    {
+      "name": "EconomicEvent",
+      "reason": "자동차 판매 증가라는 미래 사건 자체를 기초상품 수요 변화와 별도 객체로 식별",
+      "evidence_scope": "CME case F03/F15",
+      "status": "PROPOSED"
+    },
+    {
+      "name": "CommodityUseChannel",
+      "reason": "자동차 촉매제라는 백금 수요 경로를 독립적으로 연결",
+      "evidence_scope": "CME case F03/F15",
+      "status": "PROPOSED"
+    },
+    {
+      "name": "CommodityDemandExpectation",
+      "reason": "백금 실물 수요의 예상 방향을 실제 관측 데이터와 구별",
+      "evidence_scope": "CME case F03/F15",
+      "status": "PROPOSED"
+    },
+    {
+      "name": "RelativePriceExpectation",
+      "reason": "금 대비 백금의 상대강세 예상을 단독 종목 추세와 구별",
+      "evidence_scope": "CME case F03/F15",
+      "status": "PROPOSED"
+    },
+    {
+      "name": "SpreadDirectionExpectation",
+      "reason": "음수 PL−GC 스프레드가 0 쪽으로 좁혀지는 방향을 독립적으로 기술",
+      "evidence_scope": "CME case F03/F15",
+      "status": "PROPOSED"
+    },
+    {
+      "name": "MarginOffsetMechanism",
+      "reason": "청산소의 포트폴리오 상계 메커니즘을 단순 경제 주장과 분리",
+      "evidence_scope": "CME case F03/F15",
+      "status": "PROPOSED"
+    },
+    {
+      "name": "MarginComparison",
+      "reason": "스프레드와 개별 선물 매입/매도 증거금 비교를 조건부 결과로 표시",
+      "evidence_scope": "CME case F03/F15",
+      "status": "PROPOSED"
+    }
+  ],
+  "new_relation_candidates": [
+    {
+      "term": "PAIR_HAS_LEG",
+      "from_type": "FuturesPair",
+      "to_type": "TradeLeg",
+      "source_node": "pair",
+      "target_node": "leg:pl",
+      "status": "PROPOSED_NOT_CANONICAL"
+    },
+    {
+      "term": "REFERENCES_UNDERLYING",
+      "from_type": "Asset",
+      "to_type": "UnderlyingCommodity",
+      "source_node": "asset:pl",
+      "target_node": "commodity:pl",
+      "status": "PROPOSED_NOT_CANONICAL"
+    },
+    {
+      "term": "EVENT_HAS_ACTION",
+      "from_type": "TradeEvent",
+      "to_type": "TradeAction",
+      "source_node": "event:entry",
+      "target_node": "act:pl:entry",
+      "status": "PROPOSED_NOT_CANONICAL"
+    },
+    {
+      "term": "ACTION_USES_PRICE",
+      "from_type": "TradeAction",
+      "to_type": "PriceObservation",
+      "source_node": "act:pl:entry",
+      "target_node": "price:pl:entry",
+      "status": "PROPOSED_NOT_CANONICAL"
+    },
+    {
+      "term": "ACTION_HAS_NOTIONAL_CALCULATION",
+      "from_type": "TradeAction",
+      "to_type": "CalculationExpression",
+      "source_node": "act:pl:entry",
+      "target_node": "calc:notional:pl:entry",
+      "status": "PROPOSED_NOT_CANONICAL"
+    },
+    {
+      "term": "EXPRESSION_READS_ACTION",
+      "from_type": "CalculationExpression",
+      "to_type": "TradeAction",
+      "source_node": "calc:notional:pl:entry",
+      "target_node": "act:pl:entry",
+      "status": "PROPOSED_NOT_CANONICAL"
+    },
+    {
+      "term": "EXPRESSION_READS_CONTRACT_SPEC",
+      "from_type": "CalculationExpression",
+      "to_type": "ContractSpecification",
+      "source_node": "calc:notional:pl:entry",
+      "target_node": "spec:pl",
+      "status": "PROPOSED_NOT_CANONICAL"
+    },
+    {
+      "term": "EXPRESSION_READS_PRICE",
+      "from_type": "CalculationExpression",
+      "to_type": "PriceObservation",
+      "source_node": "calc:notional:pl:entry",
+      "target_node": "price:pl:entry",
+      "status": "PROPOSED_NOT_CANONICAL"
+    },
+    {
+      "term": "CALCULATION_PRODUCES_METRIC",
+      "from_type": "CalculationExpression",
+      "to_type": "SourceReportedMetric",
+      "source_node": "calc:notional:pl:entry",
+      "target_node": "notional:pl:entry",
+      "status": "PROPOSED_NOT_CANONICAL"
+    },
+    {
+      "term": "EXPRESSION_READS_LEG",
+      "from_type": "CalculationExpression",
+      "to_type": "TradeLeg",
+      "source_node": "calc:pnl:pl",
+      "target_node": "leg:pl",
+      "status": "PROPOSED_NOT_CANONICAL"
+    },
+    {
+      "term": "EXPRESSION_READS_METRIC",
+      "from_type": "CalculationExpression",
+      "to_type": "SourceReportedMetric",
+      "source_node": "calc:spread:change",
+      "target_node": "spread:entry",
+      "status": "PROPOSED_NOT_CANONICAL"
+    },
+    {
+      "term": "CASE_USES_STRATEGY",
+      "from_type": "TradeCase",
+      "to_type": "TradingStrategy",
+      "source_node": "case",
+      "target_node": "strategy",
+      "status": "PROPOSED_NOT_CANONICAL"
+    },
+    {
+      "term": "STRATEGY_USES_FUTURES_PAIR",
+      "from_type": "TradingStrategy",
+      "to_type": "FuturesPair",
+      "source_node": "strategy",
+      "target_node": "pair",
+      "status": "PROPOSED_NOT_CANONICAL"
+    },
+    {
+      "term": "CASE_HAS_POSITION",
+      "from_type": "TradeCase",
+      "to_type": "TradePosition",
+      "source_node": "case",
+      "target_node": "position",
+      "status": "PROPOSED_NOT_CANONICAL"
+    },
+    {
+      "term": "CASE_HAS_TRADE_EVENT",
+      "from_type": "TradeCase",
+      "to_type": "TradeEvent",
+      "source_node": "case",
+      "target_node": "event:entry",
+      "status": "PROPOSED_NOT_CANONICAL"
+    },
+    {
+      "term": "CASE_HAS_REPORT_METRIC",
+      "from_type": "TradeCase",
+      "to_type": "SourceReportedMetric",
+      "source_node": "case",
+      "target_node": "result:pnl:total",
+      "status": "PROPOSED_NOT_CANONICAL"
+    },
+    {
+      "term": "CASE_HAS_ECONOMIC_EVENT",
+      "from_type": "TradeCase",
+      "to_type": "EconomicEvent",
+      "source_node": "case",
+      "target_node": "economic:event:auto_sales",
+      "status": "PROPOSED_NOT_CANONICAL"
+    },
+    {
+      "term": "EVENT_SUPPORTS_COMMODITY_USE_CHANNEL",
+      "from_type": "EconomicEvent",
+      "to_type": "CommodityUseChannel",
+      "source_node": "economic:event:auto_sales",
+      "target_node": "economic:channel:pl_auto_catalyst",
+      "status": "PROPOSED_NOT_CANONICAL"
+    },
+    {
+      "term": "CHANNEL_APPLIES_TO_UNDERLYING",
+      "from_type": "CommodityUseChannel",
+      "to_type": "UnderlyingCommodity",
+      "source_node": "economic:channel:pl_auto_catalyst",
+      "target_node": "commodity:pl",
+      "status": "PROPOSED_NOT_CANONICAL"
+    },
+    {
+      "term": "CHANNEL_IMPLIES_DEMAND_EXPECTATION",
+      "from_type": "CommodityUseChannel",
+      "to_type": "CommodityDemandExpectation",
+      "source_node": "economic:channel:pl_auto_catalyst",
+      "target_node": "economic:pl_demand",
+      "status": "PROPOSED_NOT_CANONICAL"
+    },
+    {
+      "term": "DEMAND_EXPECTATION_SUPPORTS_RELATIVE_PRICE",
+      "from_type": "CommodityDemandExpectation",
+      "to_type": "RelativePriceExpectation",
+      "source_node": "economic:pl_demand",
+      "target_node": "economic:relative_price",
+      "status": "PROPOSED_NOT_CANONICAL"
+    },
+    {
+      "term": "RELATIVE_PRICE_IMPLIES_SPREAD_DIRECTION",
+      "from_type": "RelativePriceExpectation",
+      "to_type": "SpreadDirectionExpectation",
+      "source_node": "economic:relative_price",
+      "target_node": "economic:spread_narrow",
+      "status": "PROPOSED_NOT_CANONICAL"
+    },
+    {
+      "term": "EXPECTATION_TARGETS_FUTURES_PAIR",
+      "from_type": "SpreadDirectionExpectation",
+      "to_type": "FuturesPair",
+      "source_node": "economic:spread_narrow",
+      "target_node": "pair",
+      "status": "PROPOSED_NOT_CANONICAL"
+    },
+    {
+      "term": "CASE_HAS_MARGIN_MECHANISM",
+      "from_type": "TradeCase",
+      "to_type": "MarginOffsetMechanism",
+      "source_node": "case",
+      "target_node": "margin:mechanism",
+      "status": "PROPOSED_NOT_CANONICAL"
+    },
+    {
+      "term": "MARGIN_OFFSET_APPLIES_TO_POSITION",
+      "from_type": "MarginOffsetMechanism",
+      "to_type": "TradePosition",
+      "source_node": "margin:mechanism",
+      "target_node": "position",
+      "status": "PROPOSED_NOT_CANONICAL"
+    },
+    {
+      "term": "MARGIN_OFFSET_LEADS_TO_COMPARISON",
+      "from_type": "MarginOffsetMechanism",
+      "to_type": "MarginComparison",
+      "source_node": "margin:mechanism",
+      "target_node": "margin:comparison",
+      "status": "PROPOSED_NOT_CANONICAL"
+    },
+    {
+      "term": "COMPARISON_REFERS_TO_FUTURES_PAIR",
+      "from_type": "MarginComparison",
+      "to_type": "FuturesPair",
+      "source_node": "margin:comparison",
+      "target_node": "pair",
+      "status": "PROPOSED_NOT_CANONICAL"
+    },
+    {
+      "term": "EVIDENCES_FINANCIAL_NODE",
+      "from_type": "SourcePassage",
+      "to_type": "EconomicEvent",
+      "source_node": "sourcefact:F03",
+      "target_node": "economic:event:auto_sales",
+      "status": "PROPOSED_NOT_CANONICAL"
+    }
+  ],
+  "review_note": "Before merging, compare aliases/semantics with 97 original and 35 v7 relation types, plus 2026-11-17 v8 candidates; quantities here are unreviewed candidate counts.",
+  "new_property_candidates": [],
+  "not_a_canonical_release": true
+}

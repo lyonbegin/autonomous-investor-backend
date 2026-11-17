@@ -1,0 +1,258 @@
+{
+  "graph_id": "CME-CHAN-PL-GC-CROSSCASE-20261117",
+  "status": "PROPOSED_CROSS_CASE_KNOWLEDGE_NOT_NEW_EXECUTED_STRATEGY",
+  "source_cases": [
+    "CME-PL-GC",
+    "CHAN-PL-GC"
+  ],
+  "nodes": [
+    {
+      "id": "case:CME",
+      "type": "TradeCase",
+      "fields": {
+        "source": "https://www.cmegroup.com/education/courses/understanding-futures-spreads/understanding-intermarket-spreads-platinum-and-gold",
+        "case_kind": "EDUCATIONAL_WORKED_TRADE",
+        "underlying_graph": "research/rebuild/CME-PL-GC/round-5-rebuilt.graph.json",
+        "entry_month": "MARCH",
+        "exit_month": "MARCH",
+        "price_basis": "PUBLISHED_EDUCATIONAL_EXAMPLE"
+      }
+    },
+    {
+      "id": "case:CHAN",
+      "type": "TradeCase",
+      "fields": {
+        "source": "https://epchan.blogspot.com/2006/11/trading-platinum-gold-seasonal-spread.html",
+        "case_kind": "AUTHOR_SEASONAL_STRATEGY_AND_PAPER_TRADE_CLAIM",
+        "underlying_graph": "research/rebuild/CHAN-PL-GC/round-3-source-risk-full.graph.json",
+        "strategy_entry_window": "LATE_FEBRUARY",
+        "strategy_exit_window": "MID_APRIL",
+        "original_and_corrected_results_must_be_separated": true
+      }
+    },
+    {
+      "id": "position:CME",
+      "type": "TradePosition",
+      "fields": {
+        "legs": [
+          [
+            "PL",
+            2,
+            "APR"
+          ],
+          [
+            "GC",
+            -1,
+            "APR"
+          ]
+        ],
+        "contract_maturity_alignment": "SAME_MONTH",
+        "actual_execution_proven": false
+      }
+    },
+    {
+      "id": "position:CHAN",
+      "type": "TradePosition",
+      "fields": {
+        "legs": [
+          [
+            "PL",
+            2,
+            "JULY"
+          ],
+          [
+            "GC",
+            -1,
+            "JUNE"
+          ]
+        ],
+        "contract_maturity_alignment": "DIFFERENT_MONTHS_BUT_DIFFERENT_COMMODITY_MARKETS",
+        "actual_execution_proven": false
+      }
+    },
+    {
+      "id": "pattern:equal_ounces",
+      "type": "CrossCaseHedgeQuantityPattern",
+      "fields": {
+        "long_pl_troy_oz": 100,
+        "short_gc_troy_oz": 100,
+        "ratio": "2 PL contracts:1 GC contract",
+        "condition": "PL_MULTIPLIER_50_OZ_AND_GC_MULTIPLIER_100_OZ",
+        "does_not_prove_usd_risk_neutrality": true
+      }
+    },
+    {
+      "id": "neutrality:usd",
+      "type": "RiskDimension",
+      "fields": {
+        "dimension": "USD_NOTIONAL_VALUE",
+        "equal_physical_unit_exposure_implies_neutrality": false,
+        "requires_actual_entry_prices": true
+      }
+    },
+    {
+      "id": "neutrality:price_risk",
+      "type": "RiskDimension",
+      "fields": {
+        "dimension": "INSTRUMENT_LEVEL_VOLATILITY_AND_CORRELATION",
+        "equal_physical_units_implies_risk_neutrality": false,
+        "requires_historical_vol_and_correlation": true
+      }
+    },
+    {
+      "id": "basis:CME",
+      "type": "EconomicHypothesis",
+      "fields": {
+        "driver": "HIGHER_AUTO_SALES_AND_PLATINUM_AUTOCATALYST_DEMAND",
+        "intended_relative_move": "PLATINUM_OUTPERFORMS_GOLD",
+        "temporal_kind": "SCENARIO_EXPECTATION"
+      }
+    },
+    {
+      "id": "basis:CHAN",
+      "type": "EconomicHypothesis",
+      "fields": {
+        "driver": "POST_CHINESE_NEW_YEAR_GOLD_JEWELRY_DEMAND_EXHAUSTION",
+        "intended_relative_move": "GOLD_WEAKENS_RELATIVE_TO_PLATINUM",
+        "temporal_kind": "ANNUAL_SEASONALITY"
+      }
+    },
+    {
+      "id": "claim:CME_notional",
+      "type": "SourceReportedMetric",
+      "fields": {
+        "entry_pl_usd": 98840,
+        "entry_gc_usd": 123190,
+        "pl_relative_dollar_position": "LESS_THAN_GC_SHORT",
+        "metric_kind": "EDUCATIONAL_ENTRY_NOTIONAL"
+      }
+    },
+    {
+      "id": "claim:CHAN_notional",
+      "type": "SourceReportedMetric",
+      "fields": {
+        "pl_rel_gc_position": "AUTHOR_SAYS_PL_SIDE_LARGER",
+        "author_quoted_pl_two_contracts_usd": 12260,
+        "author_quoted_gc_one_contract_usd": 6650,
+        "quote_scale_verified": false,
+        "metric_kind": "AUTHOR_2007_COMMENT_NOT_CONFIRMED_MARKET_NOTIONAL"
+      }
+    },
+    {
+      "id": "report:CME",
+      "type": "SourceReportedMetric",
+      "fields": {
+        "gross_profit_example_usd": 5570,
+        "metric_type": "EDUCATIONAL_SINGLE_EXAMPLE",
+        "not_a_backtested_mean": true
+      }
+    },
+    {
+      "id": "report:CHAN",
+      "type": "SourceReportedMetric",
+      "fields": {
+        "corrected_avg_profit_usd": 3064,
+        "cohort": "AUTHOR_REPORTED_LAST_7_YEARS_AS_OF_APR2007",
+        "earlier_claim_avg_usd": 6600,
+        "earlier_cohort": "AUTHOR_REPORTED_SINCE_1995",
+        "not_same_cohort": true
+      }
+    },
+    {
+      "id": "comparison:results",
+      "type": "CrossCaseResultComparability",
+      "fields": {
+        "direct_return_comparison_permitted": false,
+        "reason": "CME one educational hypothetical example vs Chan seasonal historical summary and different time windows; neither includes matched raw backtest inputs."
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "case:CME",
+      "relation": "CASE_HAS_POSITION",
+      "to": "position:CME"
+    },
+    {
+      "from": "case:CHAN",
+      "relation": "CASE_HAS_POSITION",
+      "to": "position:CHAN"
+    },
+    {
+      "from": "position:CME",
+      "relation": "POSITION_USES_HEDGE_SIZING_PATTERN",
+      "to": "pattern:equal_ounces"
+    },
+    {
+      "from": "position:CHAN",
+      "relation": "POSITION_USES_HEDGE_SIZING_PATTERN",
+      "to": "pattern:equal_ounces"
+    },
+    {
+      "from": "pattern:equal_ounces",
+      "relation": "HEDGE_QUANTITY_NOT_EQUIVALENT_TO_USD_NEUTRALITY",
+      "to": "neutrality:usd"
+    },
+    {
+      "from": "pattern:equal_ounces",
+      "relation": "HEDGE_QUANTITY_NOT_EQUIVALENT_TO_RISK_NEUTRALITY",
+      "to": "neutrality:price_risk"
+    },
+    {
+      "from": "case:CME",
+      "relation": "CASE_HAS_ECONOMIC_BASIS",
+      "to": "basis:CME"
+    },
+    {
+      "from": "case:CHAN",
+      "relation": "CASE_HAS_ECONOMIC_BASIS",
+      "to": "basis:CHAN"
+    },
+    {
+      "from": "case:CME",
+      "relation": "CASE_HAS_SOURCE_REPORTED_NOTIONAL",
+      "to": "claim:CME_notional"
+    },
+    {
+      "from": "case:CHAN",
+      "relation": "CASE_HAS_AUTHOR_QUOTED_NOTIONAL",
+      "to": "claim:CHAN_notional"
+    },
+    {
+      "from": "case:CME",
+      "relation": "CASE_HAS_REPORTED_OUTCOME",
+      "to": "report:CME"
+    },
+    {
+      "from": "case:CHAN",
+      "relation": "CASE_HAS_REPORTED_OUTCOME",
+      "to": "report:CHAN"
+    },
+    {
+      "from": "report:CME",
+      "relation": "OUTCOME_CONTRAST_IS_NOT_DIRECT_COMPARISON",
+      "to": "comparison:results"
+    },
+    {
+      "from": "report:CHAN",
+      "relation": "OUTCOME_CONTRAST_IS_NOT_DIRECT_COMPARISON",
+      "to": "comparison:results"
+    },
+    {
+      "from": "basis:CME",
+      "relation": "IS_DIFFERENT_ECONOMIC_DRIVER_FROM",
+      "to": "basis:CHAN"
+    },
+    {
+      "from": "position:CME",
+      "relation": "HAS_DIFFERENT_DELIVERY_MONTH_STRUCTURE_FROM",
+      "to": "position:CHAN"
+    }
+  ],
+  "lessons": [
+    "Both 2PL:1GC strategies physically match 100oz quantities but do not establish dollar or risk neutrality",
+    "CME and Chan contract months and economic motives differ materially",
+    "Source-reported results have incompatible scope and should not be ranked by raw profit",
+    "Chan revised author figures must coexist with earlier originally published claims"
+  ]
+}

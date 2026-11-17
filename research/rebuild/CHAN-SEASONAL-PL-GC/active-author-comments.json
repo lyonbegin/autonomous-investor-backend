@@ -1,0 +1,21 @@
+{
+  "case_family": "CHAN_PL_GC_SEASONAL_2006_WITH_AUTHOR_COMMENTS",
+  "active_graph": "round-3-rebuilt.graph.json",
+  "reconstruction_graph": "round-3-source-redacted.graph.json",
+  "reconstructed_output": "round-3-graph-only-reconstruction.json",
+  "fact_check_report": "round-3-24-fact-comparison.json",
+  "selected_source_facts": {
+    "matched": 24,
+    "checked": 24
+  },
+  "full_author_comment_page_exhaustive": false,
+  "independent_new_chatgpt_blind": false,
+  "real_broker_fills_proven": false,
+  "state": "BLIND_PENDING_NOT_FULL_PASS",
+  "superseded_versions": [
+    "v7_graph_from_project_zip",
+    "round-2-source-grounded.graph.json"
+  ],
+  "source_access_limit": "Blog page direct open HTTP 429; indexed exact original article and comments reviewed",
+  "note": "2006 reported margin $743 distinct from later maximum drawdown $10,910 and retrospective funding buffer $11,653; do not treat comment dollar market values as verified current prices"
+}
