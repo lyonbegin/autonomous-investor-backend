@@ -1,0 +1,262 @@
+{
+  "id": "R5_TWO_SOURCE_GRAPH_ONLY_RECONSTRUCTION",
+  "input": "round-5-source-redacted.graph.json",
+  "input_contains_original_source_text": false,
+  "independent_new_chatgpt_context": false,
+  "method": "FINANCIAL_NODES_AND_RELATIONS_ONLY",
+  "scenarios": [
+    {
+      "case_id": "course:case",
+      "classification": "EDUCATIONAL_WORKED_EXAMPLE",
+      "trade_year": null,
+      "entry_date": "03-02",
+      "exit_date": "03-30",
+      "source_not_actual_fills": "HYPOTHETICAL_NOT_PROOF_OF_REAL_FILLS",
+      "legs": [
+        {
+          "root": "PL",
+          "venue": "NYMEX",
+          "month": "APR",
+          "year": null,
+          "direction": "LONG",
+          "qty": 2,
+          "multiplier_troy_oz": 50,
+          "entry": {
+            "stage": "entry",
+            "side": "BUY",
+            "price_usd_per_oz": 988.4
+          },
+          "exit": {
+            "stage": "exit",
+            "side": "SELL",
+            "price_usd_per_oz": 1056.4
+          },
+          "entry_notional_usd": 98840,
+          "exit_notional_usd": 105640,
+          "leg_pnl_usd": 6800
+        },
+        {
+          "root": "GC",
+          "venue": "COMEX",
+          "month": "APR",
+          "year": null,
+          "direction": "SHORT",
+          "qty": 1,
+          "multiplier_troy_oz": 100,
+          "entry": {
+            "stage": "entry",
+            "side": "SELL",
+            "price_usd_per_oz": 1231.9
+          },
+          "exit": {
+            "stage": "exit",
+            "side": "BUY",
+            "price_usd_per_oz": 1244.2
+          },
+          "entry_notional_usd": 123190,
+          "exit_notional_usd": 124420,
+          "leg_pnl_usd": -1230
+        }
+      ],
+      "spread": {
+        "entry_usd_per_oz": -243.5,
+        "exit_usd_per_oz": -187.8,
+        "change_usd_per_oz": 55.7
+      },
+      "recalculated_gross_pnl_usd": 5570,
+      "reported_gross_pnl_usd": 5570,
+      "economic_causal_chain": [
+        {
+          "type": "EconomicEvent",
+          "meaning": {
+            "driver": "INCREASING_AUTOMOBILE_SALES",
+            "source_status": "EXPECTED_NOT_OBSERVED"
+          }
+        },
+        {
+          "type": "CommodityUseChannel",
+          "meaning": {
+            "industry": "AUTOMOTIVE",
+            "commodity": "PLATINUM",
+            "channel": "CATALYTIC_CONVERTER_DEMAND"
+          }
+        },
+        {
+          "type": "CommodityDemandExpectation",
+          "meaning": {
+            "commodity": "PLATINUM",
+            "expected_change": "INCREASE",
+            "assertion_type": "HYPOTHESIS"
+          }
+        },
+        {
+          "type": "RelativePriceExpectation",
+          "meaning": {
+            "relative": "PLATINUM_MINUS_GOLD",
+            "expected_change": "INCREASE",
+            "status": "EXPECTED"
+          }
+        },
+        {
+          "type": "SpreadDirectionExpectation",
+          "meaning": {
+            "spread": "PL_MINUS_GC",
+            "expected_change": "TOWARD_ZERO_FROM_NEGATIVE",
+            "position_direction": "LONG_SPREAD"
+          }
+        }
+      ],
+      "margin": {
+        "qualitative": "SPREAD_REQUIRES_LESS_MAINTENANCE_MARGIN",
+        "numeric": null
+      },
+      "reported_rounded_spread_widening_pct": null,
+      "arithmetic_spread_widening_pct": null,
+      "contradictions": []
+    },
+    {
+      "case_id": "article2017:case",
+      "classification": "EDUCATIONAL_WORKED_EXAMPLE",
+      "trade_year": 2017,
+      "entry_date": "2017-03-02",
+      "exit_date": "2017-03-30",
+      "source_not_actual_fills": "HYPOTHETICAL_NOT_PROOF_OF_REAL_FILLS",
+      "legs": [
+        {
+          "root": "PLJ7",
+          "venue": "NYMEX",
+          "month": "APR",
+          "year": 2017,
+          "direction": "LONG",
+          "qty": 2,
+          "multiplier_troy_oz": 50,
+          "entry": {
+            "stage": "entry",
+            "side": "BUY",
+            "price_usd_per_oz": 988.4
+          },
+          "exit": {
+            "stage": "exit",
+            "side": "SELL",
+            "price_usd_per_oz": 971.4
+          },
+          "entry_notional_usd": 98840,
+          "exit_notional_usd": 97140,
+          "leg_pnl_usd": -1700
+        },
+        {
+          "root": "GCJ7",
+          "venue": "COMEX",
+          "month": "APR",
+          "year": 2017,
+          "direction": "SHORT",
+          "qty": 1,
+          "multiplier_troy_oz": 100,
+          "entry": {
+            "stage": "entry",
+            "side": "SELL",
+            "price_usd_per_oz": 1231.9
+          },
+          "exit": {
+            "stage": "exit",
+            "side": "BUY",
+            "price_usd_per_oz": 1233.6
+          },
+          "entry_notional_usd": 123190,
+          "exit_notional_usd": 123360,
+          "leg_pnl_usd": -170
+        }
+      ],
+      "spread": {
+        "entry_usd_per_oz": -243.5,
+        "exit_usd_per_oz": -262.2,
+        "change_usd_per_oz": -18.7
+      },
+      "recalculated_gross_pnl_usd": -1870,
+      "reported_gross_pnl_usd": -1870,
+      "economic_causal_chain": [
+        {
+          "type": "EconomicEvent",
+          "meaning": {
+            "driver": "INCREASING_AUTOMOBILE_SALES",
+            "source_status": "EXPECTED_NOT_OBSERVED"
+          }
+        },
+        {
+          "type": "CommodityUseChannel",
+          "meaning": {
+            "industry": "AUTOMOTIVE",
+            "commodity": "PLATINUM",
+            "channel": "CATALYTIC_CONVERTER_DEMAND"
+          }
+        },
+        {
+          "type": "CommodityDemandExpectation",
+          "meaning": {
+            "commodity": "PLATINUM",
+            "expected_change": "INCREASE",
+            "assertion_type": "HYPOTHESIS"
+          }
+        },
+        {
+          "type": "RelativePriceExpectation",
+          "meaning": {
+            "relative": "PLATINUM_MINUS_GOLD",
+            "expected_change": "INCREASE",
+            "status": "EXPECTED"
+          }
+        },
+        {
+          "type": "SpreadDirectionExpectation",
+          "meaning": {
+            "spread": "PL_MINUS_GC",
+            "expected_change": "TOWARD_ZERO_FROM_NEGATIVE",
+            "position_direction": "LONG_SPREAD"
+          }
+        }
+      ],
+      "margin": {
+        "qualitative": "SPREAD_REQUIRES_LESS_MAINTENANCE_MARGIN",
+        "numeric": {
+          "historical_offset_percent": 58,
+          "pl_per_contract_usd": 1600,
+          "gc_per_contract_usd": 4250,
+          "unoffset_total_usd": 7450,
+          "offset_total_usd": 3129,
+          "unoffset_formula": "2*PL_margin_per_contract + GC_margin_per_contract",
+          "offset_formula": "gross_margin * (1-offset_pct/100)"
+        }
+      },
+      "reported_rounded_spread_widening_pct": 8,
+      "arithmetic_spread_widening_pct": 7.6796714579,
+      "contradictions": [
+        {
+          "type": "WITHIN_SOURCE_TABLE_VS_PROSE",
+          "meaning": "GC price rose, contradicting both-metals-fell sentence",
+          "source_claims": [
+            "Both gold and platinum fell during this worked scenario",
+            "GC rose by USD 1.70/oz from 1231.90 to 1233.60"
+          ]
+        },
+        {
+          "type": "TABLE_LABEL_CONTEXT_MISMATCH",
+          "meaning": "GSR",
+          "source_claims": [
+            "Platinum/gold table uses label Liquidate GSR @"
+          ]
+        }
+      ]
+    }
+  ],
+  "checks": {
+    "both_examples_found": true,
+    "both_pnl_match": true,
+    "separate_opposite_outcomes": true,
+    "source_year_not_mixed": true,
+    "causal_chain_reconstructed": true,
+    "margin_evidence_separate": true,
+    "rounded_eight_percent": true,
+    "article_claim_conflicts_preserved": true
+  },
+  "graph_scope_status": "SELECTED_FACT_REPLAY_COMPLETE_BLIND_LLM_PENDING"
+}
