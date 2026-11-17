@@ -1,0 +1,322 @@
+{
+  "job_id": "CME-PL-GC-R5-GRAPH-ONLY-RECONSTRUCTION",
+  "method": "Directed graph traversal from source-redacted financial graph, formulas re-evaluated from leg node inputs",
+  "independent_new_chatgpt_context": false,
+  "classification": "EDUCATIONAL_WORKED_EXAMPLE",
+  "real_execution_confirmed": false,
+  "original_trade_year": null,
+  "strategy": "INTERMARKET_RELATIVE_VALUE_SPREAD",
+  "instrument_pair": {
+    "spread_definition": "PL price minus GC price",
+    "spread_unit": "USD/troy_oz",
+    "intermarket": true,
+    "leg_execution_intent": "SIMULTANEOUS",
+    "matched_oz_exposure": 100
+  },
+  "events": [
+    {
+      "date_month": 3,
+      "date_day": 2,
+      "year": null,
+      "date_precision": "MONTH_DAY_ONLY",
+      "event_kind": "OPEN_SPREAD",
+      "leg_actions_simultaneous": true
+    },
+    {
+      "date_month": 3,
+      "date_day": 30,
+      "year": null,
+      "date_precision": "MONTH_DAY_ONLY",
+      "event_kind": "CLOSE_SPREAD",
+      "leg_actions_simultaneous": true
+    }
+  ],
+  "legs": [
+    {
+      "id": "leg:pl",
+      "direction": "LONG",
+      "qty": 2,
+      "root": "PL",
+      "market": "NYMEX",
+      "contract_month": "APR",
+      "contract_year": null,
+      "mult": 50,
+      "entry": {
+        "node_id": "act:pl:entry",
+        "action_side": "BUY",
+        "price": 988.4,
+        "stage": "entry"
+      },
+      "exit": {
+        "node_id": "act:pl:exit",
+        "action_side": "SELL",
+        "price": 1056.4,
+        "stage": "exit"
+      },
+      "entry_notional_usd": 98840,
+      "exit_notional_usd": 105640,
+      "gross_pnl_usd": 6800,
+      "measured_oz": 100
+    },
+    {
+      "id": "leg:gc",
+      "direction": "SHORT",
+      "qty": 1,
+      "root": "GC",
+      "market": "COMEX",
+      "contract_month": "APR",
+      "contract_year": null,
+      "mult": 100,
+      "entry": {
+        "node_id": "act:gc:entry",
+        "action_side": "SELL",
+        "price": 1231.9,
+        "stage": "entry"
+      },
+      "exit": {
+        "node_id": "act:gc:exit",
+        "action_side": "BUY",
+        "price": 1244.2,
+        "stage": "exit"
+      },
+      "entry_notional_usd": 123190,
+      "exit_notional_usd": 124420,
+      "gross_pnl_usd": -1230,
+      "measured_oz": 100
+    }
+  ],
+  "spread": {
+    "sign_definition": "PL price minus GC price",
+    "entry_usd_per_oz": -243.5,
+    "exit_usd_per_oz": -187.8,
+    "change_usd_per_oz": 55.7
+  },
+  "pnl": {
+    "pl_usd": 6800,
+    "gc_usd": -1230,
+    "gross_usd": 5570,
+    "source_graph_reported": 5570
+  },
+  "original_economic_path": {
+    "event": {
+      "subject": "AUTOMOBILE_SALES",
+      "anticipated_direction": "INCREASE",
+      "horizon": "SHORT_TERM",
+      "measured_observation": false
+    },
+    "industrial_channel": {
+      "consumer_industry": "AUTOMOTIVE",
+      "commodity_use": "PLATINUM_AS_CATALYTIC_CONVERTER",
+      "demand_role": "INDUSTRIAL"
+    },
+    "demand": {
+      "commodity": "PLATINUM",
+      "direction": "INCREASE",
+      "evidence_kind": "SCENARIO_HYPOTHESIS_NOT_MEASURED_DATA"
+    },
+    "relative_price": {
+      "numerator_underlying": "PLATINUM",
+      "denominator_underlying": "GOLD",
+      "direction": "PLATINUM_OUTPERFORMS_GOLD",
+      "conditional_on": "HYPOTHESIZED_AUTOMOTIVE_DEMAND"
+    },
+    "spread_target": {
+      "spread_definition": "PL_MINUS_GC",
+      "initial_state": "NEGATIVE",
+      "future_change": "INCREASE_TOWARD_ZERO",
+      "scenario": "EXPECTED_NOT_GUARANTEED"
+    }
+  },
+  "conditional_counterfactual_gold_path": {
+    "macro": {
+      "event_kind": "ECONOMIC_DISTRESS_OR_POLITICAL_UNCERTAINTY",
+      "realized_this_trade": false,
+      "role": "COUNTERFACTUAL_BACKGROUND_REGIME"
+    },
+    "gold_demand": {
+      "commodity": "GOLD",
+      "expected_direction": "INCREASE",
+      "cause": "SAFE_HAVEN_DEMAND",
+      "uncertainty": "MAY_OCCUR_IN_DISTRESS"
+    },
+    "relative_price": {
+      "favored_commodity": "GOLD",
+      "compared_with": "PLATINUM",
+      "expected_direction": "GOLD_RELATIVE_APPRECIATION_OR_PRICE_SUPPORT",
+      "conditional_on": "MACRO_DISTRESS",
+      "is_trade_trigger": false
+    }
+  },
+  "historic_background": {
+    "spread_pattern": {
+      "spread_definition": "PL_MINUS_GC",
+      "direction": "BECOMING_MORE_NEGATIVE",
+      "time_anchor": "SINCE_2015_SOURCE_CLAIM",
+      "measured_time_series": "NOT_ATTACHED"
+    },
+    "regime": {
+      "start_year": 2015,
+      "relationship": "GOLD_USD_PER_OZ_GREATER_THAN_PLATINUM_USD_PER_OZ",
+      "qualifier": "CME_AUTHOR_HISTORICAL_CLAIM_NOT_NEW_PRICE_QUERY",
+      "period_end": "NOT_SPECIFIED",
+      "source_kind": "BACKGROUND_CONTEXT",
+      "is_entry_rule": false
+    }
+  },
+  "market_structure": {
+    "intermarket_definition": {
+      "spread_class": "INTER_MARKET",
+      "definition": "TWO_RELATED_DISTINCT_FUTURES_MARKETS_WITH_SIMILAR_MATURITIES",
+      "case_applies": true
+    },
+    "calendar_spread_definition": {
+      "spread_class": "INTRA_MARKET_CALENDAR",
+      "definition": "SAME_FUTURES_MARKET_DIFFERENT_CONTRACT_MONTHS",
+      "case_applies": false,
+      "contrast_only": true
+    },
+    "legging_risk": {
+      "risk_kind": "LEGGING_RISK",
+      "context": "INTERMARKET_CONTRACTS_MAY_BE_EXECUTED_AT_DIFFERENT_TIMES_OR_PRICES",
+      "present_in_specific_example": "NOT_DISCLOSED",
+      "risk_not_same_as_loss": "YES"
+    },
+    "mitigations": [
+      {
+        "method": "DEDICATED_INTERMARKET_SPREAD_CONTRACT",
+        "meaning": "Combined spread order instrument",
+        "used_in_cme_worked_trade": "NOT_DISCLOSED",
+        "general_mitigation": true
+      },
+      {
+        "method": "LIQUID_COMPONENT_CONTRACTS",
+        "meaning": "Select liquid underlying legs",
+        "used_in_cme_worked_trade": "NOT_DISCLOSED",
+        "general_mitigation": true
+      },
+      {
+        "method": "VENDOR_AUTO_SPREADING",
+        "meaning": "Automated multi-leg spread execution facility",
+        "used_in_cme_worked_trade": "NOT_DISCLOSED",
+        "general_mitigation": true
+      }
+    ]
+  },
+  "spread_hedge_exposure": {
+    "from": "TWO_OUTRIGHT_FUTURES_PRICE_MOVEMENTS",
+    "to": "RELATIVE_PRICE_DIFFERENTIAL_PL_MINUS_GC",
+    "risk_free": false,
+    "intrinsic_hedging": "SOME_MARKET_EXPOSURE_OFFSET_NOT_PERFECT_NEUTRALITY",
+    "claim_kind": "SOURCE_GENERAL_MOTIVATION"
+  },
+  "metal_market_context": {
+    "assets": [
+      "PLATINUM",
+      "GOLD"
+    ],
+    "claim": "STRONGLY_CORRELATED_METALS_DUE_RELATED_ECONOMIC_LINKS",
+    "different_fundamentals": true,
+    "numeric_pearson_or_rank_correlation": null,
+    "claim_kind": "CME_GENERAL_CONTEXT_NOT_EMPIRICAL_ESTIMATE"
+  },
+  "risk_benefits": [
+    {
+      "kind": "LOWER_PRICE_VOLATILITY_RELATIVE_TO_OUTRIGHT",
+      "strength": "MAY_OR_TENDS_NOT_GUARANTEED",
+      "quantified_value": null,
+      "case_measured": false
+    },
+    {
+      "kind": "LOWER_MARGIN_RELATIVE_TO_OUTRIGHT",
+      "strength": "GENERAL_FEATURE_WITH_CLEARING_OFFSETS",
+      "quantified_value": null,
+      "case_measured": false
+    },
+    {
+      "kind": "POTENTIALLY_SUPERIOR_RISK_ADJUSTED_RETURNS",
+      "strength": "POSSIBLE_NOT_VERIFIED_BY_THIS_EXAMPLE",
+      "quantified_value": null,
+      "case_measured": false
+    }
+  ],
+  "trading_infrastructure": {
+    "venue": "CME_GLOBEX",
+    "asset_group": "CME_PRECIOUS_METALS_FUTURES",
+    "electronic_trade_share_claim": "OVER_90_PERCENT",
+    "access_hours_claim": "VIRTUALLY_24_HOURS",
+    "specific_example_route": "NOT_DISCLOSED",
+    "time_context": "CME_EDUCATION_ARTICLE",
+    "not_actual_execution_evidence": true
+  },
+  "margin": {
+    "mechanism": {
+      "clearing_context": "CME_CLEARING",
+      "mechanism": "OFFSET_RECOGNITION_FOR_RELATED_LEGS",
+      "degree": "POSSIBLE",
+      "numeric_margin": null
+    },
+    "specific_example": {
+      "case_kind": "EXCHANGE_EDUCATION_EXAMPLE",
+      "clearing_agent": "CME_CLEARING",
+      "source_assertion_strength": "WOULD_HAVE_BEEN_IDENTIFIED_AS_OFFSET",
+      "margin_compared_to": "TWO_SEPARATE_OUTRIGHT_POSITIONS",
+      "margin_relation": "LESS",
+      "numerical_discount": null,
+      "executed_clearance_proven": false
+    },
+    "comparison": {
+      "comparison_basis": "SPREAD_VS_TWO_OUTRIGHT_FUTURES_POSITIONS",
+      "expected_relation": "SPREAD_MARGIN_MAY_BE_LOWER",
+      "observed_discount": "NOT_STATED",
+      "conditional": true
+    }
+  },
+  "physical_exposure": {
+    "legs": [
+      {
+        "id": "calc:underlying_oz:pl",
+        "metric": {
+          "underlying": "PLATINUM",
+          "metric": "TROY_OUNCE_QUANTITY",
+          "quantity": 100,
+          "direction": "LONG",
+          "equality_of_units_not_asset_identity": true
+        }
+      },
+      {
+        "id": "calc:underlying_oz:gc",
+        "metric": {
+          "underlying": "GOLD",
+          "metric": "TROY_OUNCE_QUANTITY",
+          "quantity": 100,
+          "direction": "SHORT",
+          "equality_of_units_not_asset_identity": true
+        }
+      }
+    ],
+    "equal_ounces": true,
+    "usd_notionals_equal": false,
+    "actual_delta_neutrality_not_claimed": true
+  },
+  "non_invented_unknowns": [
+    "trade year",
+    "source-specific actual filled orders",
+    "slippage and commissions",
+    "mechanical auto-entry rule",
+    "actual numerical margin",
+    "actual legging fill method"
+  ],
+  "checks": {
+    "two_separate_legs": true,
+    "dated_events": true,
+    "contract_months": true,
+    "pnl_reproduces": true,
+    "spread_reproduces": true,
+    "economic_hypothesis_complete": true,
+    "contrasting_gold_hypothesis_complete": true,
+    "historical_context_connected": true,
+    "risk_and_three_mitigations": true,
+    "margin_example_strength": true,
+    "matching_physical_quantities_without_false_dollar_neutrality": true
+  }
+}
