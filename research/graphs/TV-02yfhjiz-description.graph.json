@@ -389,6 +389,26 @@
         "tier": 4,
         "reduction_fraction": null
       }
+    },
+    {
+      "id": "tv01:r_cancel_positive_closes_short",
+      "ontology_type": "N-108:TradingRule",
+      "properties": {
+        "role": "CANCEL_SHORT",
+        "precondition": "SHORT_POSITION_OPEN",
+        "meaning": "optional cancel signal >0 closes short only",
+        "source_locator": "TradingView public description line 37"
+      }
+    },
+    {
+      "id": "tv01:r_cancel_negative_closes_long",
+      "ontology_type": "N-108:TradingRule",
+      "properties": {
+        "role": "CANCEL_LONG",
+        "precondition": "LONG_POSITION_OPEN",
+        "meaning": "optional cancel signal <0 closes long only",
+        "source_locator": "TradingView public description line 37"
+      }
     }
   ],
   "edges": [
@@ -448,16 +468,6 @@
       "to": "tv01:c_sell"
     },
     {
-      "from": "tv01:r_cancel",
-      "relation": "R-111:RULE_HAS_ATOMIC_CONDITION",
-      "to": "tv01:c_cancel_positive"
-    },
-    {
-      "from": "tv01:r_cancel",
-      "relation": "R-111:RULE_HAS_ATOMIC_CONDITION",
-      "to": "tv01:c_cancel_negative"
-    },
-    {
       "from": "tv01:r_enter_long",
       "relation": "R-112:RULE_DECLARES_ACTION",
       "to": "tv01:a_open_long"
@@ -466,16 +476,6 @@
       "from": "tv01:r_enter_short",
       "relation": "R-112:RULE_DECLARES_ACTION",
       "to": "tv01:a_open_short"
-    },
-    {
-      "from": "tv01:r_cancel",
-      "relation": "R-112:RULE_DECLARES_ACTION",
-      "to": "tv01:a_close_long"
-    },
-    {
-      "from": "tv01:r_cancel",
-      "relation": "R-112:RULE_DECLARES_ACTION",
-      "to": "tv01:a_close_short"
     },
     {
       "from": "tv01:a_open_long",
@@ -711,6 +711,38 @@
       "relation": "PROPOSED:CONDITION_READS_POSITION_METRIC",
       "to": "tv01:position",
       "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:r_cancel",
+      "relation": "PROPOSED:POLICY_CONTAINS_RULE",
+      "to": "tv01:r_cancel_positive_closes_short",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:r_cancel_positive_closes_short",
+      "relation": "R-111:RULE_HAS_ATOMIC_CONDITION",
+      "to": "tv01:c_cancel_positive"
+    },
+    {
+      "from": "tv01:r_cancel_positive_closes_short",
+      "relation": "R-112:RULE_DECLARES_ACTION",
+      "to": "tv01:a_close_short"
+    },
+    {
+      "from": "tv01:r_cancel",
+      "relation": "PROPOSED:POLICY_CONTAINS_RULE",
+      "to": "tv01:r_cancel_negative_closes_long",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:r_cancel_negative_closes_long",
+      "relation": "R-111:RULE_HAS_ATOMIC_CONDITION",
+      "to": "tv01:c_cancel_negative"
+    },
+    {
+      "from": "tv01:r_cancel_negative_closes_long",
+      "relation": "R-112:RULE_DECLARES_ACTION",
+      "to": "tv01:a_close_long"
     }
   ],
   "known_gaps": [
@@ -758,5 +790,20 @@
     }
   ],
   "status": "PARTIAL_KG_FROM_PUBLIC_DESCRIPTION",
-  "verified_against": "https://www.tradingview.com/script/02yfhjiz-Complex-Single-Trade-Strategy/"
+  "verified_against": "https://www.tradingview.com/script/02yfhjiz-Complex-Single-Trade-Strategy/",
+  "reconstruction_cycles": [
+    {
+      "iteration": 1,
+      "missing_knowledge": "The two cancel conditions could map to either close action when both were connected to one rule.",
+      "correction": "Split cancel behavior into two independently traversable TradingRule nodes and connect each to exactly one RuleCondition and TradeAction.",
+      "source_reference": "https://www.tradingview.com/script/02yfhjiz-Complex-Single-Trade-Strategy/ (description cancel line)",
+      "restored_from_graph": {
+        "signal_positive": "CLOSE_SHORT",
+        "signal_negative": "CLOSE_LONG",
+        "signal_zero": "NO_CANCEL_ACTION"
+      },
+      "verification": "GRAPH_PATH_RECONSTRUCTABLE_NOT_INDEPENDENT_BLIND_PASS"
+    }
+  ],
+  "version": "TV-KG-ITERATIVE-v8.1"
 }
