@@ -638,6 +638,174 @@
         "claim": "Typical guidance: Trailing Stop > Initial Trailing Stop >= Stop",
         "claim_kind": "AUTHOR_GUIDANCE_NOT_HARD_EXECUTION_RULE"
       }
+    },
+    {
+      "id": "tv01:gap:01",
+      "ontology_type": "N-143:InformationGap",
+      "properties": {
+        "target_node": "tv01:signal",
+        "field_path": "source_indicator",
+        "kind": "GENERIC_EXTERNAL_INPUT_INTENTIONALLY_UNSPECIFIED",
+        "impact": "Cannot infer how buy/sell signals were generated; this generic strategy accepts other indicators.",
+        "source_scope": "TRADINGVIEW_PUBLIC_DESCRIPTION",
+        "resolution_requirement": "PINE_SOURCE_OR_RUNTIME_CONFIGURATION_WHEN_APPLICABLE"
+      }
+    },
+    {
+      "id": "tv01:gap:02",
+      "ontology_type": "N-143:InformationGap",
+      "properties": {
+        "target_node": "tv01:strategy",
+        "field_path": "full_pine_source",
+        "kind": "NOT_EXTRACTED",
+        "impact": "Cannot verify all defaults, bar timing, and stop/TP implementation details.",
+        "source_scope": "TRADINGVIEW_PUBLIC_DESCRIPTION",
+        "resolution_requirement": "PINE_SOURCE_OR_RUNTIME_CONFIGURATION_WHEN_APPLICABLE"
+      }
+    },
+    {
+      "id": "tv01:gap:03",
+      "ontology_type": "N-143:InformationGap",
+      "properties": {
+        "target_node": "tv01:r_opposite",
+        "field_path": "selected_mode",
+        "kind": "NOT_EXTRACTED",
+        "impact": "Cannot reproduce which of three possible opposite-signal handling policies was selected at runtime.",
+        "source_scope": "TRADINGVIEW_PUBLIC_DESCRIPTION",
+        "resolution_requirement": "PINE_SOURCE_OR_RUNTIME_CONFIGURATION_WHEN_APPLICABLE"
+      }
+    },
+    {
+      "id": "tv01:gap:04",
+      "ontology_type": "N-143:InformationGap",
+      "properties": {
+        "target_node": "tv01:r_initial_trail",
+        "field_path": "cutoff_value",
+        "kind": "NOT_EXTRACTED",
+        "impact": "Cannot calculate numeric stop freezing price.",
+        "source_scope": "TRADINGVIEW_PUBLIC_DESCRIPTION",
+        "resolution_requirement": "PINE_SOURCE_OR_RUNTIME_CONFIGURATION_WHEN_APPLICABLE"
+      }
+    },
+    {
+      "id": "tv01:gap:05",
+      "ontology_type": "N-143:InformationGap",
+      "properties": {
+        "target_node": "tv01:condition:initial_stop_cutoff",
+        "field_path": "exact_formula",
+        "kind": "NOT_EXTRACTED",
+        "impact": "Cannot confirm exact cutoff percentage denominator and crossing logic.",
+        "source_scope": "TRADINGVIEW_PUBLIC_DESCRIPTION",
+        "resolution_requirement": "PINE_SOURCE_OR_RUNTIME_CONFIGURATION_WHEN_APPLICABLE"
+      }
+    },
+    {
+      "id": "tv01:gap:06",
+      "ontology_type": "N-143:InformationGap",
+      "properties": {
+        "target_node": "tv01:position",
+        "field_path": "actual_contract/entry_price",
+        "kind": "GENERIC_STRATEGY_NOT_ACTUAL_TRADE",
+        "impact": "No specific historical trade exists in the public strategy description.",
+        "source_scope": "TRADINGVIEW_PUBLIC_DESCRIPTION",
+        "resolution_requirement": "PINE_SOURCE_OR_RUNTIME_CONFIGURATION_WHEN_APPLICABLE"
+      }
+    },
+    {
+      "id": "tv01:gap:07",
+      "ontology_type": "N-143:InformationGap",
+      "properties": {
+        "target_node": "tv01:r_tp1",
+        "field_path": "price_gain_trigger_pct",
+        "kind": "NOT_EXTRACTED",
+        "impact": "Cannot compute trigger threshold for TP tier 1.",
+        "source_scope": "TRADINGVIEW_PUBLIC_DESCRIPTION",
+        "resolution_requirement": "PINE_SOURCE_OR_RUNTIME_CONFIGURATION_WHEN_APPLICABLE"
+      }
+    },
+    {
+      "id": "tv01:gap:08",
+      "ontology_type": "N-143:InformationGap",
+      "properties": {
+        "target_node": "tv01:a_tp1",
+        "field_path": "reduction_value/unit",
+        "kind": "NOT_EXTRACTED",
+        "impact": "Cannot reproduce position reduction at TP tier 1.",
+        "source_scope": "TRADINGVIEW_PUBLIC_DESCRIPTION",
+        "resolution_requirement": "PINE_SOURCE_OR_RUNTIME_CONFIGURATION_WHEN_APPLICABLE"
+      }
+    },
+    {
+      "id": "tv01:gap:09",
+      "ontology_type": "N-143:InformationGap",
+      "properties": {
+        "target_node": "tv01:r_tp2",
+        "field_path": "price_gain_trigger_pct",
+        "kind": "NOT_EXTRACTED",
+        "impact": "Cannot compute trigger threshold for TP tier 2.",
+        "source_scope": "TRADINGVIEW_PUBLIC_DESCRIPTION",
+        "resolution_requirement": "PINE_SOURCE_OR_RUNTIME_CONFIGURATION_WHEN_APPLICABLE"
+      }
+    },
+    {
+      "id": "tv01:gap:10",
+      "ontology_type": "N-143:InformationGap",
+      "properties": {
+        "target_node": "tv01:a_tp2",
+        "field_path": "reduction_value/unit",
+        "kind": "NOT_EXTRACTED",
+        "impact": "Cannot reproduce position reduction at TP tier 2.",
+        "source_scope": "TRADINGVIEW_PUBLIC_DESCRIPTION",
+        "resolution_requirement": "PINE_SOURCE_OR_RUNTIME_CONFIGURATION_WHEN_APPLICABLE"
+      }
+    },
+    {
+      "id": "tv01:gap:11",
+      "ontology_type": "N-143:InformationGap",
+      "properties": {
+        "target_node": "tv01:r_tp3",
+        "field_path": "price_gain_trigger_pct",
+        "kind": "NOT_EXTRACTED",
+        "impact": "Cannot compute trigger threshold for TP tier 3.",
+        "source_scope": "TRADINGVIEW_PUBLIC_DESCRIPTION",
+        "resolution_requirement": "PINE_SOURCE_OR_RUNTIME_CONFIGURATION_WHEN_APPLICABLE"
+      }
+    },
+    {
+      "id": "tv01:gap:12",
+      "ontology_type": "N-143:InformationGap",
+      "properties": {
+        "target_node": "tv01:a_tp3",
+        "field_path": "reduction_value/unit",
+        "kind": "NOT_EXTRACTED",
+        "impact": "Cannot reproduce position reduction at TP tier 3.",
+        "source_scope": "TRADINGVIEW_PUBLIC_DESCRIPTION",
+        "resolution_requirement": "PINE_SOURCE_OR_RUNTIME_CONFIGURATION_WHEN_APPLICABLE"
+      }
+    },
+    {
+      "id": "tv01:gap:13",
+      "ontology_type": "N-143:InformationGap",
+      "properties": {
+        "target_node": "tv01:r_tp4",
+        "field_path": "price_gain_trigger_pct",
+        "kind": "NOT_EXTRACTED",
+        "impact": "Cannot compute trigger threshold for TP tier 4.",
+        "source_scope": "TRADINGVIEW_PUBLIC_DESCRIPTION",
+        "resolution_requirement": "PINE_SOURCE_OR_RUNTIME_CONFIGURATION_WHEN_APPLICABLE"
+      }
+    },
+    {
+      "id": "tv01:gap:14",
+      "ontology_type": "N-143:InformationGap",
+      "properties": {
+        "target_node": "tv01:a_tp4",
+        "field_path": "reduction_value/unit",
+        "kind": "NOT_EXTRACTED",
+        "impact": "Cannot reproduce position reduction at TP tier 4.",
+        "source_scope": "TRADINGVIEW_PUBLIC_DESCRIPTION",
+        "resolution_requirement": "PINE_SOURCE_OR_RUNTIME_CONFIGURATION_WHEN_APPLICABLE"
+      }
     }
   ],
   "edges": [
@@ -1227,6 +1395,104 @@
       "from": "tv01:e_stop_ordering",
       "relation": "R-100:ASSERTION_SUPPORTED_BY_PASSAGE",
       "to": "tv01:p_stops"
+    },
+    {
+      "from": "tv01:gap:01",
+      "relation": "PROPOSED:GAP_BLOCKS_NODE_FIELD",
+      "to": "tv01:signal",
+      "field_path": "source_indicator",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:gap:02",
+      "relation": "PROPOSED:GAP_BLOCKS_NODE_FIELD",
+      "to": "tv01:strategy",
+      "field_path": "full_pine_source",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:gap:03",
+      "relation": "PROPOSED:GAP_BLOCKS_NODE_FIELD",
+      "to": "tv01:r_opposite",
+      "field_path": "selected_mode",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:gap:04",
+      "relation": "PROPOSED:GAP_BLOCKS_NODE_FIELD",
+      "to": "tv01:r_initial_trail",
+      "field_path": "cutoff_value",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:gap:05",
+      "relation": "PROPOSED:GAP_BLOCKS_NODE_FIELD",
+      "to": "tv01:condition:initial_stop_cutoff",
+      "field_path": "exact_formula",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:gap:06",
+      "relation": "PROPOSED:GAP_BLOCKS_NODE_FIELD",
+      "to": "tv01:position",
+      "field_path": "actual_contract/entry_price",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:gap:07",
+      "relation": "PROPOSED:GAP_BLOCKS_NODE_FIELD",
+      "to": "tv01:r_tp1",
+      "field_path": "price_gain_trigger_pct",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:gap:08",
+      "relation": "PROPOSED:GAP_BLOCKS_NODE_FIELD",
+      "to": "tv01:a_tp1",
+      "field_path": "reduction_value/unit",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:gap:09",
+      "relation": "PROPOSED:GAP_BLOCKS_NODE_FIELD",
+      "to": "tv01:r_tp2",
+      "field_path": "price_gain_trigger_pct",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:gap:10",
+      "relation": "PROPOSED:GAP_BLOCKS_NODE_FIELD",
+      "to": "tv01:a_tp2",
+      "field_path": "reduction_value/unit",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:gap:11",
+      "relation": "PROPOSED:GAP_BLOCKS_NODE_FIELD",
+      "to": "tv01:r_tp3",
+      "field_path": "price_gain_trigger_pct",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:gap:12",
+      "relation": "PROPOSED:GAP_BLOCKS_NODE_FIELD",
+      "to": "tv01:a_tp3",
+      "field_path": "reduction_value/unit",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:gap:13",
+      "relation": "PROPOSED:GAP_BLOCKS_NODE_FIELD",
+      "to": "tv01:r_tp4",
+      "field_path": "price_gain_trigger_pct",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:gap:14",
+      "relation": "PROPOSED:GAP_BLOCKS_NODE_FIELD",
+      "to": "tv01:a_tp4",
+      "field_path": "reduction_value/unit",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
     }
   ],
   "known_gaps": [
@@ -1322,7 +1588,16 @@
         "Pine expression and execution priority for cutoff"
       ],
       "verification": "GRAPH_PATH_RECONSTRUCTABLE_NOT_INDEPENDENT_BLIND_PASS"
+    },
+    {
+      "iteration": 4,
+      "missing_knowledge": "Unresolved values were only in free-standing known_gaps text; no graph edge identified which exact node field they blocked.",
+      "correction": "Add 14 individually linked InformationGap nodes with field_path and distinct gap kinds.",
+      "restored_from_graph": {
+        "failure_trace": "A reverse reader can traverse GAP_BLOCKS_NODE_FIELD to exact target node and unresolved field."
+      },
+      "verification": "GRAPH_TRACEABLE_GAPS_NOT_INDEPENDENT_BLIND_PASS"
     }
   ],
-  "version": "TV-KG-ITERATIVE-v8.3"
+  "version": "TV-KG-ITERATIVE-v8.4"
 }
