@@ -77,5 +77,14 @@
     "tested": 11,
     "detected": 11
   },
-  "ontology_r7_delta": "round-7-root-connected-20261117-ontology-relations-proposed.json (7 unapproved relation types; deduplication pending)"
+  "ontology_r7_delta": "round-7-root-connected-20261117-ontology-relations-proposed.json (7 unapproved relation types; deduplication pending)",
+  "ontology_auto_adoption": {
+    "status": "AUTO_APPLIED_SOURCE_REGISTERED_FACT_RECONSTRUCTION",
+    "effective_overlay": "research/ontology/active-auto-extensions.json",
+    "synchronized_from": "current_reconstruction_input",
+    "separate_manual_approval_required": false,
+    "source_fact_pass_only": true,
+    "independent_chatgpt_blind_verification": "STILL_PENDING",
+    "baseline_604_definitions_preserved": true
+  }
 }
