@@ -35,3 +35,10 @@
 - 기존 문맥에서 블라인드 세션이 오염되었을 때: RECONSTRUCTION_CONTAMINATED, 새로운 세션에서 재실행.
 - 원문 실행 요소가 공개되지 않았을 때: SOURCE_NOT_DISCLOSED. 가역성 결함과 구분.
 - 같은 응답을 여러 번 중복 제출할 위험이 있을 때: 전송 성공 여부 확인 전 재전송 금지.
+
+
+## T7_REBUILD_LOOP (필수)
+입력: 직전 SOURCE_COMPARE 결과의 FAIL 항목, 원문 fact register, 기존 604/v7 온톨로지, 신규 정의 후보.
+명령: "결손 유형을 SOURCE_NOT_ACQUIRED / SOURCE_NOT_DISCLOSED / EXTRACTION_MISSING / ONTOLOGY_MISSING / MODELING_WRONG / RECONSTRUCTION_WRONG / ORIGINAL_CONFLICT로 판정하십시오. 재모델링이 필요하면 이전 그래프를 폐기 대상으로 표시하고, 누락된 금융 의미가 복원되도록 전체 지식그래프를 다시 생성하십시오. 새로운 독립 ChatGPT 대화에 그래프만 제공해 역재현하고, 원문 비교 단계로 돌아가십시오. 원문에 공개한 모든 필수 사실이 독립 복원되기 전에는 완료하지 마십시오."
+출력: 다음 그래프 전체 버전, source-redacted graph input, 복원 결과, 원문 차이, 승인 대기 온톨로지 확장, 다음 반복 상태.
+합격: SOURCE_FACT_COVERAGE_PASS + INDEPENDENT_BLIND_REPLAY_PASS 둘 다 통과. 이외에는 REBUILD_REQUIRED 또는 SOURCE_BLOCKED; 성공으로 보고 금지.
