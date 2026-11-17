@@ -6,18 +6,18 @@
   ],
   "current_source_registry": "source-facts-v3.json",
   "registered_financial_facts": 30,
-  "active_graph": "round-6-rebuilt.graph.json",
+  "active_graph": "round-7-root-connected-20261117.graph.json",
   "active_graph_counts": {
     "nodes": 78,
-    "edges": 159
+    "edges": 170
   },
-  "current_reconstruction_input": "round-6-graph-only-input.json",
-  "reconstruction_result": "round-6-graph-only-reconstruction.json",
-  "latest_comparison": "round-6-source-comparison.json",
+  "current_reconstruction_input": "round-7-root-connected-20261117-graph-only-input.json",
+  "reconstruction_result": "round-7-root-connected-20261117-graph-only-reconstruction-retry2.json",
+  "latest_comparison": "round-7-root-connected-20261117-source-comparison-retry2.json",
   "source_fact_coverage": {
     "passed": 30,
     "total": 30,
-    "assessment": "PASS_FOR_REGISTERED_FACTS_ONLY"
+    "assessment": "SOURCE_REGISTERED_FACTS_GRAPH_PATH_PASS_ONLY"
   },
   "version_history": [
     {
@@ -48,7 +48,12 @@
     {
       "round": 6,
       "graph": "round-6-rebuilt.graph.json",
-      "result": "PASS_30_OF_30_REGISTERED_V3_FACTS"
+      "result": "PASS_30_OF_30_REGISTERED_FACTS_BUT_FAIL_DIRECTED_CASE_ROOT_REACHABILITY_60_OF_70"
+    },
+    {
+      "round": 7,
+      "graph": "round-7-root-connected-20261117.graph.json",
+      "result": "30_OF_30_REGISTERED_FACTS_AFTER_READER_RETRY;70_OF_70_FINANCIAL_NODES_CASE_ROOT_REACHABLE;INDEPENDENT_BLIND_PENDING"
     }
   ],
   "full_paper_exhaustive_source_capture": "NOT_CERTIFIED",
@@ -57,10 +62,20 @@
   "actual_trading_account_fills": "UNAVAILABLE",
   "final_certification": "BLIND_PENDING_NOT_FULL_PASS",
   "next_actions": [
-    "HITEL study protocol awaited for fresh independent clean-room ChatGPT replay",
-    "If blind replay fails, supersede R6 and fully rebuild R7 then repeat",
-    "Reaudit new author updates/comments to expand fact register without overwriting old claims",
-    "Continue next case while source-limited requirements remain open"
+    "Run independent clean ChatGPT conversation with current_reconstruction_input only",
+    "Compare its reconstruction against 30 source facts; if it fails, supersede R7 and rebuild R8",
+    "Do not autoapprove unreviewed ontology relation candidates"
   ],
-  "ontology": "v10-ontology-gap-candidates.json UNAPPROVED"
+  "ontology": "v10-ontology-gap-candidates.json UNAPPROVED",
+  "root_reachability": {
+    "financial_nodes": 70,
+    "reachable_from_case": 70,
+    "unreachable": 0
+  },
+  "replay_reader_iterations_R7": 2,
+  "relationship_mutations_R7": {
+    "tested": 11,
+    "detected": 11
+  },
+  "ontology_r7_delta": "round-7-root-connected-20261117-ontology-relations-proposed.json (7 unapproved relation types; deduplication pending)"
 }
