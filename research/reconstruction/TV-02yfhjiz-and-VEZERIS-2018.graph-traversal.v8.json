@@ -5,7 +5,7 @@
   "source_excluded_from_reconstruction_input": true,
   "full_original_source_fidelity": "NOT_CERTIFIED",
   "graph_versions": {
-    "tv": "TV-KG-ITERATIVE-v8.5",
+    "tv": "TV-KG-ITERATIVE-v8.6",
     "paper": "TV-KG-ITERATIVE-v8.1"
   },
   "tv": {
@@ -162,6 +162,24 @@
         "rule_id": "tv01:r_enter_short",
         "first_valid_signal_timing": "OPEN_IMMEDIATELY_AS_DESCRIBED"
       }
+    ],
+    "compatible_scripts": [
+      {
+        "id": "tv01:source:simplebuy",
+        "url": "https://www.tradingview.com/script/RsZi3CJ1-Simple-Buy-Sell-Indicator/",
+        "max_rules": 4,
+        "logic_modes": null,
+        "actual_selected_as_input": false,
+        "links_to_signal": true
+      },
+      {
+        "id": "tv01:source:custombuy",
+        "url": "https://www.tradingview.com/script/PZbgI2XG-Custom-Buy-Sell-Indicator/",
+        "max_rules": 7,
+        "logic_modes": 10,
+        "actual_selected_as_input": false,
+        "links_to_signal": true
+      }
     ]
   },
   "paper": {
@@ -316,14 +334,15 @@
     "paper_three_experiments_connected": true,
     "paper_net_arithmetic_all": true,
     "tv01_concurrent_stop_policy_reachable": true,
-    "tv01_first_entry_immediate": true
+    "tv01_first_entry_immediate": true,
+    "tv_source_signal_scripts_provenance_only": true
   },
   "integrity": {
     "tv": {
       "missing_endpoints": 0,
       "duplicate_triples": 0,
-      "nodes": 72,
-      "edges": 126
+      "nodes": 76,
+      "edges": 133
     },
     "paper": {
       "missing_endpoints": 0,
