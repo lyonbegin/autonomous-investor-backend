@@ -1,0 +1,193 @@
+{
+  "case": "CHAN-PL-GC",
+  "graph_round": 5,
+  "source_registry": "source-facts-v3.json",
+  "prior_result": "26/26 v2 facts matched",
+  "expanded_source_audit": "26/30 facts matched",
+  "passed": 26,
+  "failed": 4,
+  "verdict": "REBUILD_REQUIRED",
+  "scope": "Expanded original-author/comment source audit; new facts C27–C30 were absent from R5",
+  "rows": [
+    {
+      "fact_id": "C01",
+      "source": "S2006",
+      "status": "MATCH",
+      "source_locator": "initial post, description"
+    },
+    {
+      "fact_id": "C02",
+      "source": "S2006",
+      "status": "MATCH",
+      "source_locator": "initial post, strategy sentence"
+    },
+    {
+      "fact_id": "C03",
+      "source": "S2006",
+      "status": "MATCH",
+      "source_locator": "initial post, strategy sentence"
+    },
+    {
+      "fact_id": "C04",
+      "source": "S2006",
+      "status": "MATCH",
+      "source_locator": "initial post, contract sizes"
+    },
+    {
+      "fact_id": "C05",
+      "source": "S2006",
+      "status": "MATCH",
+      "source_locator": "initial post, contract sizes"
+    },
+    {
+      "fact_id": "C06",
+      "source": "S2006",
+      "status": "MATCH",
+      "source_locator": "around end of February"
+    },
+    {
+      "fact_id": "C07",
+      "source": "S2006",
+      "status": "MATCH",
+      "source_locator": "around mid-April"
+    },
+    {
+      "fact_id": "C08",
+      "source": "S2006",
+      "status": "MATCH",
+      "source_locator": "initial post, testing paragraph"
+    },
+    {
+      "fact_id": "C09",
+      "source": "S2006",
+      "status": "MATCH",
+      "source_locator": "initial post, fundamental reason"
+    },
+    {
+      "fact_id": "C10",
+      "source": "S2006",
+      "status": "MATCH",
+      "source_locator": "initial post, fundamental reason"
+    },
+    {
+      "fact_id": "C11",
+      "source": "S2006",
+      "status": "MATCH",
+      "source_locator": "initial post, average every year"
+    },
+    {
+      "fact_id": "C12",
+      "source": "S2006",
+      "status": "MATCH",
+      "source_locator": "initial post, best year"
+    },
+    {
+      "fact_id": "C13",
+      "source": "S2006",
+      "status": "MATCH",
+      "source_locator": "initial post, worst year"
+    },
+    {
+      "fact_id": "C14",
+      "source": "S2006",
+      "status": "MATCH",
+      "source_locator": "initial post, NYMEX margin"
+    },
+    {
+      "fact_id": "C15",
+      "source": "S2006RISK",
+      "status": "MATCH",
+      "source_locator": "2006-11-26 author reply"
+    },
+    {
+      "fact_id": "C16",
+      "source": "S2006RISK",
+      "status": "MATCH",
+      "source_locator": "2006-11-26 author reply"
+    },
+    {
+      "fact_id": "C17",
+      "source": "S2007CORR",
+      "status": "MATCH",
+      "source_locator": "2007-04-20 recap, correction"
+    },
+    {
+      "fact_id": "C18",
+      "source": "S2007CORR",
+      "status": "MATCH",
+      "source_locator": "2007-04-20 recap, correction"
+    },
+    {
+      "fact_id": "C19",
+      "source": "S2007CORR",
+      "status": "MATCH",
+      "source_locator": "2007-04-20 recap, correction"
+    },
+    {
+      "fact_id": "C20",
+      "source": "S2007CORR",
+      "status": "MATCH",
+      "source_locator": "2007-04-20 recap, drawdown"
+    },
+    {
+      "fact_id": "C21",
+      "source": "S2007CORR",
+      "status": "MATCH",
+      "source_locator": "2007-04-20 recap, if a trader had entered"
+    },
+    {
+      "fact_id": "C22",
+      "source": "S2007RISK",
+      "status": "MATCH",
+      "source_locator": "2007-08-19 author reply"
+    },
+    {
+      "fact_id": "C23",
+      "source": "S2007RISK",
+      "status": "MATCH",
+      "source_locator": "2007-08-19 author reply"
+    },
+    {
+      "fact_id": "C24",
+      "source": "S2007FEB",
+      "status": "MATCH",
+      "source_locator": "2007-03-01 author comment"
+    },
+    {
+      "fact_id": "C25",
+      "source": "S2006",
+      "status": "MATCH",
+      "source_locator": "initial post, Further reading"
+    },
+    {
+      "fact_id": "C26",
+      "source": "S2006RISK",
+      "status": "MATCH",
+      "source_locator": "2006-11-26 author reply"
+    },
+    {
+      "fact_id": "C27",
+      "source": "S2006",
+      "status": "MISSING_IN_R5_GRAPH",
+      "source_locator": "2006-11-24 original paragraph"
+    },
+    {
+      "fact_id": "C28",
+      "source": "S2007RISK",
+      "status": "MISSING_IN_R5_GRAPH",
+      "source_locator": "2007-08-19 author reply"
+    },
+    {
+      "fact_id": "C29",
+      "source": "S2007METHOD",
+      "status": "MISSING_IN_R5_GRAPH",
+      "source_locator": "2007-08-18 author reply"
+    },
+    {
+      "fact_id": "C30",
+      "source": "S2007READER",
+      "status": "MISSING_IN_R5_GRAPH",
+      "source_locator": "2007-08-18 reader ATR calculation"
+    }
+  ]
+}
