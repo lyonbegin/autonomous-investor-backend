@@ -1,0 +1,51 @@
+name: KG Ontology - Automatically Adopt Source-Fact-Passing Graph Types
+
+on:
+  push:
+    branches:
+      - feature/chatgpt-kg-research-orchestration-20261117
+    paths:
+      - "research/rebuild/**/active.json"
+      - "research/rebuild/**/round-*.json"
+      - "research/ontology/sync-auto-adopted.mjs"
+      - ".github/workflows/kg-ontology-auto-adopt.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: kg-ontology-auto-adopt-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  adopt-passing-financial-graph-definitions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Validate mechanical sync script
+        run: node --check research/ontology/sync-auto-adopted.mjs
+      - name: Automatically update active research ontology overlay
+        run: node research/ontology/sync-auto-adopted.mjs
+      - name: Persist ontology overlay on research branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add research/ontology/active-auto-extensions.json
+          if git diff --cached --quiet; then
+            echo "No new evidence-qualified graph definitions."
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit -m "Auto-adopt reversible source-fact graph ontology definitions"
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          fi
+          {
+            echo "### 자동 반영 검증 범위"
+            echo "- 등록 사실 복원과 그래프 도달성에 성공한 정의를 별도 승인 없이 연구용 활성 온톨로지에 반영"
+            echo "- GitHub Actions는 기계적 병합·중복 제거·작업 기록만 수행"
+            echo "- 원문 금융 해석, 별도 ChatGPT 독립 역재현, 실제 체결 검증을 수행한 것으로 표시하지 않음"
+          } >> "$GITHUB_STEP_SUMMARY"
