@@ -1,0 +1,172 @@
+{
+  "round": 4,
+  "compared_source_facts": 26,
+  "passed": 25,
+  "failed": 1,
+  "failed_fields": [
+    "C25"
+  ],
+  "status": "REBUILD_REQUIRED",
+  "prior_round3_corrected_pass": "22/26",
+  "new_round_pass": "25/26",
+  "replay_style": "GRAPH_REDACTED_INPUT_AND_SOURCE_COMPARISON_WITHIN_SAME_ASSISTANT_SESSION",
+  "clean_room_chatgpt": false,
+  "rows": [
+    {
+      "fact_id": "C01",
+      "source": "S2006",
+      "covered_by_redacted_graph": true,
+      "reason": null
+    },
+    {
+      "fact_id": "C02",
+      "source": "S2006",
+      "covered_by_redacted_graph": true,
+      "reason": null
+    },
+    {
+      "fact_id": "C03",
+      "source": "S2006",
+      "covered_by_redacted_graph": true,
+      "reason": null
+    },
+    {
+      "fact_id": "C04",
+      "source": "S2006",
+      "covered_by_redacted_graph": true,
+      "reason": null
+    },
+    {
+      "fact_id": "C05",
+      "source": "S2006",
+      "covered_by_redacted_graph": true,
+      "reason": null
+    },
+    {
+      "fact_id": "C06",
+      "source": "S2006",
+      "covered_by_redacted_graph": true,
+      "reason": null
+    },
+    {
+      "fact_id": "C07",
+      "source": "S2006",
+      "covered_by_redacted_graph": true,
+      "reason": null
+    },
+    {
+      "fact_id": "C08",
+      "source": "S2006",
+      "covered_by_redacted_graph": true,
+      "reason": null
+    },
+    {
+      "fact_id": "C09",
+      "source": "S2006",
+      "covered_by_redacted_graph": true,
+      "reason": null
+    },
+    {
+      "fact_id": "C10",
+      "source": "S2006",
+      "covered_by_redacted_graph": true,
+      "reason": null
+    },
+    {
+      "fact_id": "C11",
+      "source": "S2006",
+      "covered_by_redacted_graph": true,
+      "reason": null
+    },
+    {
+      "fact_id": "C12",
+      "source": "S2006",
+      "covered_by_redacted_graph": true,
+      "reason": null
+    },
+    {
+      "fact_id": "C13",
+      "source": "S2006",
+      "covered_by_redacted_graph": true,
+      "reason": null
+    },
+    {
+      "fact_id": "C14",
+      "source": "S2006",
+      "covered_by_redacted_graph": true,
+      "reason": null
+    },
+    {
+      "fact_id": "C15",
+      "source": "S2006RISK",
+      "covered_by_redacted_graph": true,
+      "reason": null
+    },
+    {
+      "fact_id": "C16",
+      "source": "S2006RISK",
+      "covered_by_redacted_graph": true,
+      "reason": null
+    },
+    {
+      "fact_id": "C17",
+      "source": "S2007CORR",
+      "covered_by_redacted_graph": true,
+      "reason": null
+    },
+    {
+      "fact_id": "C18",
+      "source": "S2007CORR",
+      "covered_by_redacted_graph": true,
+      "reason": null
+    },
+    {
+      "fact_id": "C19",
+      "source": "S2007CORR",
+      "covered_by_redacted_graph": true,
+      "reason": null
+    },
+    {
+      "fact_id": "C20",
+      "source": "S2007CORR",
+      "covered_by_redacted_graph": true,
+      "reason": null
+    },
+    {
+      "fact_id": "C21",
+      "source": "S2007CORR",
+      "covered_by_redacted_graph": true,
+      "reason": null
+    },
+    {
+      "fact_id": "C22",
+      "source": "S2007RISK",
+      "covered_by_redacted_graph": true,
+      "reason": null
+    },
+    {
+      "fact_id": "C23",
+      "source": "S2007RISK",
+      "covered_by_redacted_graph": true,
+      "reason": null
+    },
+    {
+      "fact_id": "C24",
+      "source": "S2007FEB",
+      "covered_by_redacted_graph": true,
+      "reason": null
+    },
+    {
+      "fact_id": "C25",
+      "source": "S2006",
+      "covered_by_redacted_graph": false,
+      "reason": "Prior work citation is stored solely as SourceDocument and removed for blind reconstruction"
+    },
+    {
+      "fact_id": "C26",
+      "source": "S2006RISK",
+      "covered_by_redacted_graph": true,
+      "reason": null
+    }
+  ]
+}
