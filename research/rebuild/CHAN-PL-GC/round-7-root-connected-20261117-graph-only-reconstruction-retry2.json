@@ -1,0 +1,2054 @@
+{
+  "type": "R7_GRAPH_ONLY_RECONSTRUCTION_RETRY2",
+  "graph_input": "round-7-root-connected-20261117-graph-only-input.json",
+  "new_independent_llm_context": false,
+  "source_original_supplied": false,
+  "graph_root": "case",
+  "reachable_financial_nodes": 70,
+  "total_financial_nodes": 70,
+  "case_classification": "AUTHOR_REPORTED_SEASONAL_STRATEGY",
+  "proven_live_execution": false,
+  "strategy": {
+    "name": "PL/GC seasonal intermarket spread",
+    "signal_family": "ECONOMIC_CALENDAR",
+    "cointegration_strategy": false,
+    "observed_trade_execution_not_verified": true
+  },
+  "position": {
+    "kind": "LONG_PLATINUM_SHORT_GOLD",
+    "contracts_per_leg": "TWO_PL_ONE_GC",
+    "position_role": "RECURRING_SEASONAL_TEMPLATE"
+  },
+  "pair": {
+    "pair_kind": "INTERMARKET_FUTURES",
+    "legs_rebalanced_at_entry": false,
+    "spread_interpretation": "PLATINUM_PRICE_RELATIVE_TO_GOLD",
+    "spread_numeric_formula": "NOT_SOURCE_EXPLICIT",
+    "no_trade_quote_values": true
+  },
+  "legs": [
+    {
+      "root": "PL",
+      "contract": {
+        "root": "PL",
+        "contract_month": "JULY",
+        "contract_year": null,
+        "venue": "NYMEX"
+      },
+      "quantity_and_side": {
+        "direction": "LONG",
+        "contract_quantity": 2,
+        "role": "LONG_SPREAD_LEG"
+      },
+      "spec": {
+        "multiplier": 50,
+        "multiplier_unit": "TROY_OZ_PER_CONTRACT",
+        "contract_quantity_unit": "CONTRACTS"
+      },
+      "exposure": {
+        "measure_kind": "COMMODITY_OUNCE_QUANTITY",
+        "expression": "contract_quantity × multiplier",
+        "amount_troy_ounces": 100,
+        "asset": "PLATINUM",
+        "unit": "TROY_OZ",
+        "not_a_dollar_exposure": true
+      },
+      "paths": {
+        "contract": [
+          {
+            "from": "case",
+            "relation": "CASE_USES_STRATEGY",
+            "to": "strategy"
+          },
+          {
+            "from": "strategy",
+            "relation": "STRATEGY_HAS_POSITION_TEMPLATE",
+            "to": "position"
+          },
+          {
+            "from": "position",
+            "relation": "POSITION_CONTAINS_LEG",
+            "to": "leg:PL"
+          },
+          {
+            "from": "leg:PL",
+            "relation": "LEG_TRADES_FUTURES_CONTRACT",
+            "to": "contract:PL"
+          }
+        ],
+        "leg": [
+          {
+            "from": "case",
+            "relation": "CASE_USES_STRATEGY",
+            "to": "strategy"
+          },
+          {
+            "from": "strategy",
+            "relation": "STRATEGY_HAS_POSITION_TEMPLATE",
+            "to": "position"
+          },
+          {
+            "from": "position",
+            "relation": "POSITION_CONTAINS_LEG",
+            "to": "leg:PL"
+          }
+        ],
+        "spec": [
+          {
+            "from": "case",
+            "relation": "CASE_USES_STRATEGY",
+            "to": "strategy"
+          },
+          {
+            "from": "strategy",
+            "relation": "STRATEGY_HAS_POSITION_TEMPLATE",
+            "to": "position"
+          },
+          {
+            "from": "position",
+            "relation": "POSITION_HAS_READER_ATR_PROXY_CALCULATION",
+            "to": "calc:reader:PL"
+          },
+          {
+            "from": "calc:reader:PL",
+            "relation": "EXPRESSION_READS_CONTRACT_SPEC",
+            "to": "spec:PL"
+          }
+        ]
+      }
+    },
+    {
+      "root": "GC",
+      "contract": {
+        "root": "GC",
+        "contract_month": "JUNE",
+        "contract_year": null,
+        "venue": "COMEX"
+      },
+      "quantity_and_side": {
+        "direction": "SHORT",
+        "contract_quantity": 1,
+        "role": "SHORT_SPREAD_LEG"
+      },
+      "spec": {
+        "multiplier": 100,
+        "multiplier_unit": "TROY_OZ_PER_CONTRACT",
+        "contract_quantity_unit": "CONTRACTS"
+      },
+      "exposure": {
+        "measure_kind": "COMMODITY_OUNCE_QUANTITY",
+        "expression": "contract_quantity × multiplier",
+        "amount_troy_ounces": 100,
+        "asset": "GOLD",
+        "unit": "TROY_OZ",
+        "not_a_dollar_exposure": true
+      },
+      "paths": {
+        "contract": [
+          {
+            "from": "case",
+            "relation": "CASE_USES_STRATEGY",
+            "to": "strategy"
+          },
+          {
+            "from": "strategy",
+            "relation": "STRATEGY_HAS_POSITION_TEMPLATE",
+            "to": "position"
+          },
+          {
+            "from": "position",
+            "relation": "POSITION_CONTAINS_LEG",
+            "to": "leg:GC"
+          },
+          {
+            "from": "leg:GC",
+            "relation": "LEG_TRADES_FUTURES_CONTRACT",
+            "to": "contract:GC"
+          }
+        ],
+        "leg": [
+          {
+            "from": "case",
+            "relation": "CASE_USES_STRATEGY",
+            "to": "strategy"
+          },
+          {
+            "from": "strategy",
+            "relation": "STRATEGY_HAS_POSITION_TEMPLATE",
+            "to": "position"
+          },
+          {
+            "from": "position",
+            "relation": "POSITION_CONTAINS_LEG",
+            "to": "leg:GC"
+          }
+        ],
+        "spec": [
+          {
+            "from": "case",
+            "relation": "CASE_USES_STRATEGY",
+            "to": "strategy"
+          },
+          {
+            "from": "strategy",
+            "relation": "STRATEGY_HAS_POSITION_TEMPLATE",
+            "to": "position"
+          },
+          {
+            "from": "position",
+            "relation": "POSITION_HAS_READER_ATR_PROXY_CALCULATION",
+            "to": "calc:reader:GC"
+          },
+          {
+            "from": "calc:reader:GC",
+            "relation": "EXPRESSION_READS_CONTRACT_SPEC",
+            "to": "spec:GC"
+          }
+        ]
+      }
+    }
+  ],
+  "entry": {
+    "rule": {
+      "kind": "SEASONAL_ENTRY",
+      "trigger": "CALENDAR_WINDOW",
+      "price_level_signal": "NOT_DISCLOSED"
+    },
+    "calendar": {
+      "month": "FEBRUARY",
+      "portion": "LATE",
+      "approximate": true,
+      "exact_date": null,
+      "year_parameter": "PER_YEAR"
+    },
+    "graph_path": [
+      {
+        "from": "case",
+        "relation": "CASE_USES_STRATEGY",
+        "to": "strategy"
+      },
+      {
+        "from": "strategy",
+        "relation": "STRATEGY_HAS_ENTRY_RULE",
+        "to": "rule:entry"
+      },
+      {
+        "from": "rule:entry",
+        "relation": "RULE_USES_CALENDAR_WINDOW",
+        "to": "window:entry"
+      }
+    ]
+  },
+  "exit": {
+    "rule": {
+      "kind": "SEASONAL_EXIT",
+      "trigger": "CALENDAR_WINDOW",
+      "price_level_signal": "NOT_DISCLOSED"
+    },
+    "calendar": {
+      "month": "APRIL",
+      "portion": "MID",
+      "approximate": true,
+      "exact_date": null,
+      "year_parameter": "PER_YEAR"
+    },
+    "graph_path": [
+      {
+        "from": "case",
+        "relation": "CASE_USES_STRATEGY",
+        "to": "strategy"
+      },
+      {
+        "from": "strategy",
+        "relation": "STRATEGY_HAS_EXIT_RULE",
+        "to": "rule:exit"
+      },
+      {
+        "from": "rule:exit",
+        "relation": "RULE_USES_CALENDAR_WINDOW",
+        "to": "window:exit"
+      }
+    ]
+  },
+  "fundamental_seasonality": {
+    "event": {
+      "event": "END_OF_CHINESE_NEW_YEAR_FESTIVAL_PERIOD",
+      "calendar_kind": "LUNISOLAR_SEASONAL",
+      "day_specific": "YEAR_DEPENDENT",
+      "exact_date": "NOT_DISCLOSED"
+    },
+    "gold_demand": {
+      "subject": "JEWELRY_GOLD_DEMAND",
+      "regions": [
+        "INDIA",
+        "CHINA"
+      ],
+      "direction_after_festivals": "DECLINE",
+      "source_grade": "AUTHOR_FUNDAMENTAL_HYPOTHESIS"
+    },
+    "platinum_use": {
+      "commodity": "PLATINUM",
+      "industry": "AUTOMOBILE_CATALYTIC_CONVERTERS",
+      "economic_role": "INDUSTRIAL",
+      "seasonality_relative_to_gold": "WEAKER"
+    },
+    "relative_price": {
+      "base": "PLATINUM",
+      "counterpart": "GOLD",
+      "expected_direction": "PLATINUM_OUTPERFORMS_GOLD_AFTER_SEASONAL_GOLD_DEMAND_DECLINE",
+      "evidence_kind": "FUNDAMENTAL_EXPLANATION_NOT_BACKTEST_SIGNAL"
+    },
+    "spread_direction": {
+      "expected_change": "RELATIVE_PL_GC_DIVERGENCE_FAVORING_LONG_PL",
+      "is_cointegration_mean_reversion": false,
+      "point_quoted": "NONE"
+    },
+    "paths": {
+      "festival": [
+        {
+          "from": "case",
+          "relation": "CASE_USES_STRATEGY",
+          "to": "strategy"
+        },
+        {
+          "from": "strategy",
+          "relation": "STRATEGY_HAS_FUNDAMENTAL_SEASONAL_EVENT",
+          "to": "event:cny_end"
+        }
+      ],
+      "platinum_use": [
+        {
+          "from": "case",
+          "relation": "CASE_USES_STRATEGY",
+          "to": "strategy"
+        },
+        {
+          "from": "strategy",
+          "relation": "STRATEGY_CITES_COUNTERPART_INDUSTRIAL_USE",
+          "to": "commodity_use:platinum"
+        }
+      ]
+    }
+  },
+  "cointegration_model_exclusion": {
+    "model": "COINTEGRATION",
+    "applied": false,
+    "author_explanation": "EXPECT_SPREAD_TO_DIVERGE_NOT_CONVERGE",
+    "source_type": "EXPLICIT_AUTHOR_CLARIFICATION"
+  },
+  "research_provenance": {
+    "backtest": {
+      "author_reported": true,
+      "source_period_start_claim": 1995,
+      "source_period_end": "NOT_PRECISELY_DISCLOSED",
+      "raw_price_bars_not_available": true
+    },
+    "paper_trade": {
+      "kind": "AUTHOR_REPORTED_PAPER_TRADE",
+      "year": 2006,
+      "result_claim": "WORKED_AS_ADVERTISED",
+      "real_fills_documented": false,
+      "do_not_confuse_with_actual_broker_fill": true
+    },
+    "source_origin": {
+      "originator": "Jerry Toepke",
+      "work_title": "Give Seasonal Spreads Some Respect",
+      "publication": "Stocks, Futures and Options Magazine",
+      "publication_month": "2006-01",
+      "relationship": "CHAN_FIRST_READ_THIS_SEASONAL_TRADING_IDEA",
+      "primary_article_full_text_obtained": false,
+      "authors_research_adaptation": "ERNIE_CHAN_BACKTESTED_AND_PAPER_TRADED_IN_2006",
+      "source_is_author_SELF_REPORT": true
+    },
+    "tools": [
+      {
+        "software": "MATLAB",
+        "relationship": "USED_FOR_MOST_RESEARCH_BY_AUTHOR",
+        "specific_source_code": "NOT_PUBLISHED"
+      },
+      {
+        "software": "EXCEL",
+        "relationship": "ALTERNATIVE_MAY_SUFFICE_FOR_SIMPLE_SPREAD_MODELS",
+        "specific_workbook": "NOT_PUBLISHED"
+      }
+    ]
+  },
+  "annual_results": {
+    "initial": [
+      {
+        "id": "metric:orig_avg",
+        "metric_name": "AVERAGE_ANNUAL_PNL",
+        "value": 6600,
+        "currency": "USD",
+        "status": "SUPERSEDED_ORIGINAL",
+        "reporting_mode": "AUTHOR_REPORTED_NOT_RECALCULATED",
+        "measurement_scope": [
+          {
+            "id": "scope:original",
+            "period": "SINCE_1995_AS_CLAIMED_IN_2006",
+            "scope_kind": "INITIAL_SOURCE_REPORTED_BACKTEST",
+            "method_not_verified": true
+          }
+        ],
+        "path": [
+          {
+            "from": "case",
+            "relation": "CASE_HAS_REPORT_METRIC",
+            "to": "metric:orig_avg"
+          }
+        ]
+      },
+      {
+        "id": "metric:orig_best",
+        "metric_name": "MAX_ANNUAL_PNL",
+        "value": 15400,
+        "currency": "USD",
+        "status": "SUPERSEDED_ORIGINAL",
+        "reporting_mode": "AUTHOR_REPORTED_NOT_RECALCULATED",
+        "measurement_scope": [
+          {
+            "id": "scope:original",
+            "period": "SINCE_1995_AS_CLAIMED_IN_2006",
+            "scope_kind": "INITIAL_SOURCE_REPORTED_BACKTEST",
+            "method_not_verified": true
+          }
+        ],
+        "path": [
+          {
+            "from": "case",
+            "relation": "CASE_HAS_REPORT_METRIC",
+            "to": "metric:orig_best"
+          }
+        ]
+      },
+      {
+        "id": "metric:orig_worst",
+        "metric_name": "MIN_ANNUAL_PNL",
+        "value": -3810,
+        "currency": "USD",
+        "status": "SUPERSEDED_ORIGINAL",
+        "reporting_mode": "AUTHOR_REPORTED_NOT_RECALCULATED",
+        "measurement_scope": [
+          {
+            "id": "scope:original",
+            "period": "SINCE_1995_AS_CLAIMED_IN_2006",
+            "scope_kind": "INITIAL_SOURCE_REPORTED_BACKTEST",
+            "method_not_verified": true
+          }
+        ],
+        "path": [
+          {
+            "from": "case",
+            "relation": "CASE_HAS_REPORT_METRIC",
+            "to": "metric:orig_worst"
+          }
+        ]
+      }
+    ],
+    "revised": [
+      {
+        "id": "metric:new_avg",
+        "metric_name": "AVERAGE_ANNUAL_PNL",
+        "value": 3064,
+        "currency": "USD",
+        "status": "AUTHOR_CORRECTED",
+        "reporting_mode": "AUTHOR_REPORTED_NOT_RECALCULATED",
+        "measurement_scope": [
+          {
+            "id": "scope:2007recent",
+            "period": "LAST_SEVEN_YEARS_AS_OF_2007_APRIL",
+            "scope_kind": "AUTHOR_CORRECTED_GRAPH",
+            "method_not_verified": true,
+            "window_start_year": null
+          }
+        ],
+        "path": [
+          {
+            "from": "case",
+            "relation": "CASE_HAS_REPORT_METRIC",
+            "to": "metric:new_avg"
+          }
+        ]
+      },
+      {
+        "id": "metric:new_best",
+        "metric_name": "MAX_ANNUAL_PNL",
+        "value": 7320,
+        "currency": "USD",
+        "status": "AUTHOR_CORRECTED",
+        "reporting_mode": "AUTHOR_REPORTED_NOT_RECALCULATED",
+        "measurement_scope": [
+          {
+            "id": "scope:2007recent",
+            "period": "LAST_SEVEN_YEARS_AS_OF_2007_APRIL",
+            "scope_kind": "AUTHOR_CORRECTED_GRAPH",
+            "method_not_verified": true,
+            "window_start_year": null
+          }
+        ],
+        "path": [
+          {
+            "from": "case",
+            "relation": "CASE_HAS_REPORT_METRIC",
+            "to": "metric:new_best"
+          }
+        ]
+      },
+      {
+        "id": "metric:new_worst",
+        "metric_name": "MIN_ANNUAL_PNL",
+        "value": -540,
+        "currency": "USD",
+        "status": "AUTHOR_CORRECTED",
+        "reporting_mode": "AUTHOR_REPORTED_NOT_RECALCULATED",
+        "measurement_scope": [
+          {
+            "id": "scope:2007recent",
+            "period": "LAST_SEVEN_YEARS_AS_OF_2007_APRIL",
+            "scope_kind": "AUTHOR_CORRECTED_GRAPH",
+            "method_not_verified": true,
+            "window_start_year": null
+          }
+        ],
+        "path": [
+          {
+            "from": "case",
+            "relation": "CASE_HAS_REPORT_METRIC",
+            "to": "metric:new_worst"
+          }
+        ]
+      }
+    ],
+    "revision": {
+      "announcement_date": "2007-04-20",
+      "correction_of": "HISTORICAL_PROFIT_GRAPH_ARITHMETIC",
+      "author_explicit_error_acknowledgement": true,
+      "correction_vs_changed_window": "NOT_FULLY_DISAMBIGUATED"
+    },
+    "revision_path": [
+      {
+        "from": "case",
+        "relation": "CASE_HAS_PUBLICATION_CORRECTION",
+        "to": "correction:2007"
+      }
+    ],
+    "revision_metric_edges": [
+      "metric:new_avg",
+      "metric:new_best",
+      "metric:new_worst",
+      "metric:dd_2007"
+    ],
+    "qualifier": "Do not equate different observation windows without source proof"
+  },
+  "interim_risk": {
+    "initial_margin": {
+      "id": "metric:margin_initial",
+      "metric_name": "HISTORICAL_REPORTED_INITIAL_MARGIN",
+      "value": 743,
+      "currency": "USD",
+      "status": "AUTHOR_REPORTED",
+      "reporting_mode": "AUTHOR_REPORTED_NOT_RECALCULATED",
+      "measurement_scope": [
+        {
+          "id": "scope:original",
+          "period": "SINCE_1995_AS_CLAIMED_IN_2006",
+          "scope_kind": "INITIAL_SOURCE_REPORTED_BACKTEST",
+          "method_not_verified": true
+        }
+      ],
+      "path": [
+        {
+          "from": "case",
+          "relation": "CASE_HAS_REPORT_METRIC",
+          "to": "metric:margin_initial"
+        }
+      ]
+    },
+    "drawdown_2006": {
+      "id": "metric:dd_2006",
+      "metric_name": "MAX_INTRAPERIOD_DRAWDOWN",
+      "value": -10910,
+      "currency": "USD",
+      "status": "AUTHOR_COMMENT",
+      "reporting_mode": "AUTHOR_REPORTED_NOT_RECALCULATED",
+      "measurement_scope": [
+        {
+          "id": "scope:2006dd",
+          "period": "SINCE_2000",
+          "event_year": 2001,
+          "source_context": "2006-11-26 AUTHOR_COMMENT",
+          "method_not_verified": true
+        }
+      ],
+      "path": [
+        {
+          "from": "case",
+          "relation": "CASE_HAS_REPORT_METRIC",
+          "to": "metric:dd_2006"
+        }
+      ]
+    },
+    "reported_required_capital": {
+      "id": "metric:required_capital",
+      "metric_name": "MAX_CAPITAL_REQUIREMENT_INCLUDING_DRAWDOWN",
+      "value": 11653,
+      "currency": "USD",
+      "status": "AUTHOR_COMMENT",
+      "reporting_mode": "AUTHOR_REPORTED_NOT_RECALCULATED",
+      "measurement_scope": [
+        {
+          "id": "scope:2006dd",
+          "period": "SINCE_2000",
+          "event_year": 2001,
+          "source_context": "2006-11-26 AUTHOR_COMMENT",
+          "method_not_verified": true
+        }
+      ],
+      "path": [
+        {
+          "from": "case",
+          "relation": "CASE_HAS_REPORT_METRIC",
+          "to": "metric:required_capital"
+        }
+      ]
+    },
+    "margin_quote": {
+      "reported_date": "2006-11-24",
+      "quoted_exchange": "NYMEX",
+      "original_margin_usd": 743,
+      "portfolio_definition": "2 JUL PL LONG + 1 JUN GC SHORT",
+      "contract_year": null,
+      "author_reported_not_independently_verified": true
+    },
+    "capital_calculation": {
+      "operator": "ADD",
+      "formula": "reported_initial_margin + abs(maximum_interim_drawdown)",
+      "input_units": [
+        "USD",
+        "USD"
+      ],
+      "output_unit": "USD",
+      "interpretation": "AUTHOR_STATED_CAPITAL_BUFFER_NOT_EXCHANGE_INITIAL_MARGIN"
+    },
+    "computed_from_graph_usd": 11653,
+    "drawdown_comparability_warning": {
+      "left_observation": "metric:dd_2006",
+      "right_observation": "metric:dd_2007",
+      "conflict_kind": "DISTINCT_PUBLICATION_AND_MEASUREMENT_WINDOW_OR_CORRECTED_METHOD",
+      "auto_reconcile": false,
+      "source_interpretation": "NOT_ENOUGH_TO_PROVE_SAME_PERIOD_AND_MEASURE"
+    },
+    "revised_drawdown": {
+      "id": "metric:dd_2007",
+      "metric_name": "MAX_INTRAPERIOD_DRAWDOWN",
+      "value": -4860,
+      "currency": "USD",
+      "status": "AUTHOR_CORRECTED",
+      "reporting_mode": "AUTHOR_REPORTED_NOT_RECALCULATED",
+      "measurement_scope": [
+        {
+          "id": "scope:2007recent",
+          "period": "LAST_SEVEN_YEARS_AS_OF_2007_APRIL",
+          "scope_kind": "AUTHOR_CORRECTED_GRAPH",
+          "method_not_verified": true,
+          "window_start_year": null
+        }
+      ],
+      "path": [
+        {
+          "from": "case",
+          "relation": "CASE_HAS_REPORT_METRIC",
+          "to": "metric:dd_2007"
+        }
+      ]
+    },
+    "path_dependent_annual_qualification": {
+      "kind": "INTERIM_DRAWDOWN_WITH_POSITIVE_END_OF_YEAR_RESULT",
+      "author_example_year": 2001,
+      "drawdown_value_id": "metric:dd_2006",
+      "final_pnl_amount": null,
+      "final_pnl_sign": "POSITIVE",
+      "source_grade": "AUTHOR_COMMENT_NO_ACCOUNT_FILLS",
+      "graph_anchor": "risk:interim",
+      "graph_path": [
+        {
+          "from": "case",
+          "relation": "CASE_HAS_PATH_RISK",
+          "to": "risk:interim"
+        }
+      ],
+      "interpretation": "High interim drawdown can coexist with positive year-end PnL, not a guarantee of profit or proof of broker fills"
+    }
+  },
+  "physical_and_financial_neutrality": {
+    "ounce": {
+      "basis": "TROY_OUNCES_PER_SIDE",
+      "left_exposure_ounces": 100,
+      "right_exposure_ounces": 100,
+      "result": "EQUAL_QUANTITY_NOT_EQUAL_VALUE",
+      "source_kind": "DERIVED_FROM_CONTRACT_SIZES"
+    },
+    "dollar": {
+      "basis": "DOLLAR_NOTIONAL",
+      "comparison": "NOT_DOLLAR_NEUTRAL",
+      "author_derived": true,
+      "notional_input_quotes": "NOT_IN_MAIN_ARTICLE",
+      "independent_calculation_possible": false
+    },
+    "volatility_risk": {
+      "basis": "DOLLAR_VOLATILITY_RISK",
+      "comparison": "NOT_SHOWN_NEUTRAL",
+      "author_comparison": "ALMOST_ONE_PLATINUM_FUTURES_CONTRACT_OUTRIGHT_RISK",
+      "independent_risk_model": false
+    },
+    "author_quote_values": [
+      {
+        "metric_name": "AUTHOR_QUOTED_LEG_MARKET_VALUE",
+        "one_contract_root": "GC",
+        "value": 6650,
+        "currency": "USD",
+        "reported_at": "2007-08-19",
+        "calculation_basis": "AMBIGUOUS_SCALE_NOT_REPRODUCIBLE",
+        "not_futures_notional_certified": true
+      },
+      {
+        "metric_name": "AUTHOR_QUOTED_LEG_MARKET_VALUE",
+        "two_contract_root": "PL",
+        "value": 12260,
+        "currency": "USD",
+        "reported_at": "2007-08-19",
+        "calculation_basis": "AMBIGUOUS_SCALE_NOT_REPRODUCIBLE",
+        "not_futures_notional_certified": true
+      }
+    ]
+  },
+  "conditional_2007_hypothetical": {
+    "scenario": {
+      "state": "IF_A_TRADER_HAD_ENTERED",
+      "entry_timing": "2007-02-26_NEAR_CLOSE",
+      "exit_timing": "2007-04-19_NEAR_CLOSE",
+      "actual_trade_confirmed": false,
+      "entry_quote": null,
+      "exit_quote": null
+    },
+    "outcome": {
+      "id": "metric:hypo_pnl",
+      "metric_name": "TRADE_GROSS_PNL_APPROX",
+      "value": 6610,
+      "currency": "USD",
+      "status": "CONDITIONAL_SCENARIO_NOT_EXECUTION",
+      "reporting_mode": "AUTHOR_REPORTED_NOT_RECALCULATED",
+      "measurement_scope": [
+        {
+          "id": "scope:2007case",
+          "period": "2007-02-26_NEAR_CLOSE_TO_2007-04-19_NEAR_CLOSE",
+          "scope_kind": "IF_TRADED_HYPOTHETICAL",
+          "does_not_imply_actual_fills": true
+        }
+      ],
+      "path": [
+        {
+          "from": "case",
+          "relation": "CASE_HAS_REPORT_METRIC",
+          "to": "metric:hypo_pnl"
+        }
+      ]
+    },
+    "executed_broker_fills_proven": false
+  },
+  "source_claimed_winning_frequency": {
+    "metric_name": "PROFITABLE_YEARS",
+    "profitable_years": 6,
+    "observation_years": 7,
+    "period": "LAST_7_YEARS_AS_OF_2006",
+    "specific_calendar_years": "NOT_DISCLOSED",
+    "source_role": "AUTHOR_2006_ORIGINAL_BACKTEST_CLAIM"
+  },
+  "research_counterfactual": {
+    "construction": {
+      "construction_goal": "DOLLAR_NEUTRAL_SPREAD",
+      "proposed_to_compare_with": "2PL_TO_1GC_OUNCE_MATCHED",
+      "contract_ratio": "NOT_DISCLOSED",
+      "market_prices": "NOT_DISCLOSED",
+      "executed_trades_independently_verified": false,
+      "source_kind": "AUTHOR_DISCUSSION_OF_ALTERNATIVE"
+    },
+    "performance": {
+      "baseline": "2PL_TO_1GC",
+      "alternative": "AUTHOR_DOLLAR_NEUTRAL_VARIANT",
+      "outcome": "DOLLAR_NEUTRAL_VARIANT_WAS_LESS_PROFITABLE",
+      "evidence": "AUTHOR_SAYS_HISTORICAL_BACKTEST_AND_OWN_REAL_TRADING_TEST",
+      "quantified_pnl_difference": null,
+      "actual_trade_fills": "NOT_AVAILABLE",
+      "not_statistically_reproduced": true
+    }
+  },
+  "reader_atr_proxy": {
+    "gc_atr": {
+      "name": "gc_quote",
+      "root": "GC",
+      "value": 9.77,
+      "unit": "USD_PER_OZ",
+      "window": 504,
+      "reported_by": "READER_PABLO_2007-08-18",
+      "independently_validated": false,
+      "author_exact_ATR_confirmation": false
+    },
+    "pl_atr": {
+      "name": "pl_quote",
+      "root": "PL",
+      "value": 17,
+      "unit": "USD_PER_OZ",
+      "window": 504,
+      "reported_by": "READER_PABLO_2007-08-18",
+      "independently_validated": false,
+      "author_exact_ATR_confirmation": false
+    },
+    "gc_calc": {
+      "formula": "9.77 USD/oz × 100 oz/GC contract = 977 USD",
+      "operation": "MULTIPLY",
+      "source_type": "READER_CALCULATION",
+      "result": 977,
+      "unit": "USD_PER_GC_CONTRACT_ONE_ATR"
+    },
+    "pl_calc": {
+      "formula": "17.00 USD/oz × 50 oz/PL contract = 850 USD",
+      "operation": "MULTIPLY",
+      "source_type": "READER_CALCULATION",
+      "result": 850,
+      "unit": "USD_PER_PL_CONTRACT_ONE_ATR"
+    },
+    "gc_one_contract_proxy_usd": 977,
+    "pl_one_contract_proxy_usd": 850,
+    "actual_two_pl_proxy_usd": 1700,
+    "one_pl_vs_gc_ratio": 0.8700102354145343,
+    "two_pl_vs_gc_ratio": 1.7400204708290685,
+    "source_warning": "Reader ATR estimate does not independently establish covariance-adjusted spread volatility; do not attribute to Chan."
+  },
+  "graph_paths": [
+    {
+      "node_id": "activity:paper2006",
+      "canonical_type": "EvidenceAssertion",
+      "edges_from_case": [
+        {
+          "from": "case",
+          "relation": "CASE_HAS_ASSERTION",
+          "to": "activity:paper2006"
+        }
+      ]
+    },
+    {
+      "node_id": "assertion:neutrality",
+      "canonical_type": "EvidenceAssertion",
+      "edges_from_case": [
+        {
+          "from": "case",
+          "relation": "CASE_HAS_ASSERTION",
+          "to": "assertion:neutrality"
+        }
+      ]
+    },
+    {
+      "node_id": "asset:GC",
+      "canonical_type": "Asset",
+      "edges_from_case": [
+        {
+          "from": "case",
+          "relation": "CASE_USES_STRATEGY",
+          "to": "strategy"
+        },
+        {
+          "from": "strategy",
+          "relation": "STRATEGY_HAS_DEMAND_DRIVER",
+          "to": "demand:gold_jewelry"
+        },
+        {
+          "from": "demand:gold_jewelry",
+          "relation": "DEMAND_DRIVER_AFFECTS_ASSET",
+          "to": "asset:GC"
+        }
+      ]
+    },
+    {
+      "node_id": "asset:PL",
+      "canonical_type": "Asset",
+      "edges_from_case": [
+        {
+          "from": "case",
+          "relation": "CASE_USES_STRATEGY",
+          "to": "strategy"
+        },
+        {
+          "from": "strategy",
+          "relation": "STRATEGY_CITES_COUNTERPART_INDUSTRIAL_USE",
+          "to": "commodity_use:platinum"
+        },
+        {
+          "from": "commodity_use:platinum",
+          "relation": "USE_CHANNEL_APPLIES_TO_ASSET",
+          "to": "asset:PL"
+        }
+      ]
+    },
+    {
+      "node_id": "attribution:original_inspiration",
+      "canonical_type": "PriorWorkAttribution",
+      "edges_from_case": [
+        {
+          "from": "case",
+          "relation": "CASE_USES_STRATEGY",
+          "to": "strategy"
+        },
+        {
+          "from": "strategy",
+          "relation": "STRATEGY_ATTRIBUTES_ORIGINAL_IDEA_TO",
+          "to": "attribution:original_inspiration"
+        }
+      ]
+    },
+    {
+      "node_id": "calc:reader:GC",
+      "canonical_type": "CalculationExpression",
+      "edges_from_case": [
+        {
+          "from": "case",
+          "relation": "CASE_USES_STRATEGY",
+          "to": "strategy"
+        },
+        {
+          "from": "strategy",
+          "relation": "STRATEGY_HAS_POSITION_TEMPLATE",
+          "to": "position"
+        },
+        {
+          "from": "position",
+          "relation": "POSITION_HAS_READER_ATR_PROXY_CALCULATION",
+          "to": "calc:reader:GC"
+        }
+      ]
+    },
+    {
+      "node_id": "calc:reader:PL",
+      "canonical_type": "CalculationExpression",
+      "edges_from_case": [
+        {
+          "from": "case",
+          "relation": "CASE_USES_STRATEGY",
+          "to": "strategy"
+        },
+        {
+          "from": "strategy",
+          "relation": "STRATEGY_HAS_POSITION_TEMPLATE",
+          "to": "position"
+        },
+        {
+          "from": "position",
+          "relation": "POSITION_HAS_READER_ATR_PROXY_CALCULATION",
+          "to": "calc:reader:PL"
+        }
+      ]
+    },
+    {
+      "node_id": "capital:calc",
+      "canonical_type": "CalculationExpression",
+      "edges_from_case": [
+        {
+          "from": "case",
+          "relation": "CASE_HAS_INTERIM_CAPITAL_BUFFER_CALCULATION",
+          "to": "capital:calc"
+        }
+      ]
+    },
+    {
+      "node_id": "case",
+      "canonical_type": "TradeCase",
+      "edges_from_case": []
+    },
+    {
+      "node_id": "commodity_use:platinum",
+      "canonical_type": "CommodityUseChannel",
+      "edges_from_case": [
+        {
+          "from": "case",
+          "relation": "CASE_USES_STRATEGY",
+          "to": "strategy"
+        },
+        {
+          "from": "strategy",
+          "relation": "STRATEGY_CITES_COUNTERPART_INDUSTRIAL_USE",
+          "to": "commodity_use:platinum"
+        }
+      ]
+    },
+    {
+      "node_id": "comparison:dollar",
+      "canonical_type": "ExposureBasisComparison",
+      "edges_from_case": [
+        {
+          "from": "case",
+          "relation": "CASE_HAS_ASSERTION",
+          "to": "assertion:neutrality"
+        },
+        {
+          "from": "assertion:neutrality",
+          "relation": "ASSERTION_SUPPORTED_BY_COMPARISON",
+          "to": "comparison:dollar"
+        }
+      ]
+    },
+    {
+      "node_id": "comparison:ounce",
+      "canonical_type": "ExposureBasisComparison",
+      "edges_from_case": [
+        {
+          "from": "case",
+          "relation": "CASE_USES_STRATEGY",
+          "to": "strategy"
+        },
+        {
+          "from": "strategy",
+          "relation": "STRATEGY_HAS_POSITION_TEMPLATE",
+          "to": "position"
+        },
+        {
+          "from": "position",
+          "relation": "POSITION_EVALUATED_ON_BASIS",
+          "to": "comparison:ounce"
+        }
+      ]
+    },
+    {
+      "node_id": "comparison:relative_performance",
+      "canonical_type": "CounterfactualPerformanceAssessment",
+      "edges_from_case": [
+        {
+          "from": "case",
+          "relation": "CASE_HAS_COUNTERFACTUAL_ASSESSMENT",
+          "to": "comparison:relative_performance"
+        }
+      ]
+    },
+    {
+      "node_id": "comparison:volrisk",
+      "canonical_type": "ExposureBasisComparison",
+      "edges_from_case": [
+        {
+          "from": "case",
+          "relation": "CASE_HAS_ASSERTION",
+          "to": "assertion:neutrality"
+        },
+        {
+          "from": "assertion:neutrality",
+          "relation": "ASSERTION_SUPPORTED_BY_COMPARISON",
+          "to": "comparison:volrisk"
+        }
+      ]
+    },
+    {
+      "node_id": "contract:GC",
+      "canonical_type": "FuturesContract",
+      "edges_from_case": [
+        {
+          "from": "case",
+          "relation": "CASE_USES_STRATEGY",
+          "to": "strategy"
+        },
+        {
+          "from": "strategy",
+          "relation": "STRATEGY_HAS_POSITION_TEMPLATE",
+          "to": "position"
+        },
+        {
+          "from": "position",
+          "relation": "POSITION_CONTAINS_LEG",
+          "to": "leg:GC"
+        },
+        {
+          "from": "leg:GC",
+          "relation": "LEG_TRADES_FUTURES_CONTRACT",
+          "to": "contract:GC"
+        }
+      ]
+    },
+    {
+      "node_id": "contract:PL",
+      "canonical_type": "FuturesContract",
+      "edges_from_case": [
+        {
+          "from": "case",
+          "relation": "CASE_USES_STRATEGY",
+          "to": "strategy"
+        },
+        {
+          "from": "strategy",
+          "relation": "STRATEGY_HAS_POSITION_TEMPLATE",
+          "to": "position"
+        },
+        {
+          "from": "position",
+          "relation": "POSITION_CONTAINS_LEG",
+          "to": "leg:PL"
+        },
+        {
+          "from": "leg:PL",
+          "relation": "LEG_TRADES_FUTURES_CONTRACT",
+          "to": "contract:PL"
+        }
+      ]
+    },
+    {
+      "node_id": "correction:2007",
+      "canonical_type": "SourceCorrectionEvent",
+      "edges_from_case": [
+        {
+          "from": "case",
+          "relation": "CASE_HAS_PUBLICATION_CORRECTION",
+          "to": "correction:2007"
+        }
+      ]
+    },
+    {
+      "node_id": "counterfactual:dollar_neutral",
+      "canonical_type": "CounterfactualHedgeConstruction",
+      "edges_from_case": [
+        {
+          "from": "case",
+          "relation": "CASE_HAS_COUNTERFACTUAL_ASSESSMENT",
+          "to": "comparison:relative_performance"
+        },
+        {
+          "from": "comparison:relative_performance",
+          "relation": "PERFORMANCE_ALTERNATIVE_CONSTRUCTION",
+          "to": "counterfactual:dollar_neutral"
+        }
+      ]
+    },
+    {
+      "node_id": "demand:gold_jewelry",
+      "canonical_type": "SeasonalDemandDriver",
+      "edges_from_case": [
+        {
+          "from": "case",
+          "relation": "CASE_USES_STRATEGY",
+          "to": "strategy"
+        },
+        {
+          "from": "strategy",
+          "relation": "STRATEGY_HAS_DEMAND_DRIVER",
+          "to": "demand:gold_jewelry"
+        }
+      ]
+    },
+    {
+      "node_id": "event:cny_end",
+      "canonical_type": "SeasonalEvent",
+      "edges_from_case": [
+        {
+          "from": "case",
+          "relation": "CASE_USES_STRATEGY",
+          "to": "strategy"
+        },
+        {
+          "from": "strategy",
+          "relation": "STRATEGY_HAS_FUNDAMENTAL_SEASONAL_EVENT",
+          "to": "event:cny_end"
+        }
+      ]
+    },
+    {
+      "node_id": "exposure:GC",
+      "canonical_type": "ExposureMeasure",
+      "edges_from_case": [
+        {
+          "from": "case",
+          "relation": "CASE_USES_STRATEGY",
+          "to": "strategy"
+        },
+        {
+          "from": "strategy",
+          "relation": "STRATEGY_HAS_POSITION_TEMPLATE",
+          "to": "position"
+        },
+        {
+          "from": "position",
+          "relation": "POSITION_CONTAINS_LEG",
+          "to": "leg:GC"
+        },
+        {
+          "from": "leg:GC",
+          "relation": "LEG_HAS_MEASURED_EXPOSURE",
+          "to": "exposure:GC"
+        }
+      ]
+    },
+    {
+      "node_id": "exposure:PL",
+      "canonical_type": "ExposureMeasure",
+      "edges_from_case": [
+        {
+          "from": "case",
+          "relation": "CASE_USES_STRATEGY",
+          "to": "strategy"
+        },
+        {
+          "from": "strategy",
+          "relation": "STRATEGY_HAS_POSITION_TEMPLATE",
+          "to": "position"
+        },
+        {
+          "from": "position",
+          "relation": "POSITION_CONTAINS_LEG",
+          "to": "leg:PL"
+        },
+        {
+          "from": "leg:PL",
+          "relation": "LEG_HAS_MEASURED_EXPOSURE",
+          "to": "exposure:PL"
+        }
+      ]
+    },
+    {
+      "node_id": "leg:GC",
+      "canonical_type": "TradeLeg",
+      "edges_from_case": [
+        {
+          "from": "case",
+          "relation": "CASE_USES_STRATEGY",
+          "to": "strategy"
+        },
+        {
+          "from": "strategy",
+          "relation": "STRATEGY_HAS_POSITION_TEMPLATE",
+          "to": "position"
+        },
+        {
+          "from": "position",
+          "relation": "POSITION_CONTAINS_LEG",
+          "to": "leg:GC"
+        }
+      ]
+    },
+    {
+      "node_id": "leg:PL",
+      "canonical_type": "TradeLeg",
+      "edges_from_case": [
+        {
+          "from": "case",
+          "relation": "CASE_USES_STRATEGY",
+          "to": "strategy"
+        },
+        {
+          "from": "strategy",
+          "relation": "STRATEGY_HAS_POSITION_TEMPLATE",
+          "to": "position"
+        },
+        {
+          "from": "position",
+          "relation": "POSITION_CONTAINS_LEG",
+          "to": "leg:PL"
+        }
+      ]
+    },
+    {
+      "node_id": "margin:historical_quote",
+      "canonical_type": "ExchangeMarginQuote",
+      "edges_from_case": [
+        {
+          "from": "case",
+          "relation": "CASE_HAS_INTERIM_CAPITAL_BUFFER_CALCULATION",
+          "to": "capital:calc"
+        },
+        {
+          "from": "capital:calc",
+          "relation": "EXPRESSION_READS_MARGIN_QUOTE",
+          "to": "margin:historical_quote"
+        }
+      ]
+    },
+    {
+      "node_id": "metric:dd_2006",
+      "canonical_type": "SourceReportedMetric",
+      "edges_from_case": [
+        {
+          "from": "case",
+          "relation": "CASE_HAS_REPORT_METRIC",
+          "to": "metric:dd_2006"
+        }
+      ]
+    },
+    {
+      "node_id": "metric:dd_2007",
+      "canonical_type": "SourceReportedMetric",
+      "edges_from_case": [
+        {
+          "from": "case",
+          "relation": "CASE_HAS_REPORT_METRIC",
+          "to": "metric:dd_2007"
+        }
+      ]
+    },
+    {
+      "node_id": "metric:hypo_pnl",
+      "canonical_type": "SourceReportedMetric",
+      "edges_from_case": [
+        {
+          "from": "case",
+          "relation": "CASE_HAS_REPORT_METRIC",
+          "to": "metric:hypo_pnl"
+        }
+      ]
+    },
+    {
+      "node_id": "metric:margin_initial",
+      "canonical_type": "SourceReportedMetric",
+      "edges_from_case": [
+        {
+          "from": "case",
+          "relation": "CASE_HAS_REPORT_METRIC",
+          "to": "metric:margin_initial"
+        }
+      ]
+    },
+    {
+      "node_id": "metric:new_avg",
+      "canonical_type": "SourceReportedMetric",
+      "edges_from_case": [
+        {
+          "from": "case",
+          "relation": "CASE_HAS_REPORT_METRIC",
+          "to": "metric:new_avg"
+        }
+      ]
+    },
+    {
+      "node_id": "metric:new_best",
+      "canonical_type": "SourceReportedMetric",
+      "edges_from_case": [
+        {
+          "from": "case",
+          "relation": "CASE_HAS_REPORT_METRIC",
+          "to": "metric:new_best"
+        }
+      ]
+    },
+    {
+      "node_id": "metric:new_worst",
+      "canonical_type": "SourceReportedMetric",
+      "edges_from_case": [
+        {
+          "from": "case",
+          "relation": "CASE_HAS_REPORT_METRIC",
+          "to": "metric:new_worst"
+        }
+      ]
+    },
+    {
+      "node_id": "metric:orig_avg",
+      "canonical_type": "SourceReportedMetric",
+      "edges_from_case": [
+        {
+          "from": "case",
+          "relation": "CASE_HAS_REPORT_METRIC",
+          "to": "metric:orig_avg"
+        }
+      ]
+    },
+    {
+      "node_id": "metric:orig_best",
+      "canonical_type": "SourceReportedMetric",
+      "edges_from_case": [
+        {
+          "from": "case",
+          "relation": "CASE_HAS_REPORT_METRIC",
+          "to": "metric:orig_best"
+        }
+      ]
+    },
+    {
+      "node_id": "metric:orig_worst",
+      "canonical_type": "SourceReportedMetric",
+      "edges_from_case": [
+        {
+          "from": "case",
+          "relation": "CASE_HAS_REPORT_METRIC",
+          "to": "metric:orig_worst"
+        }
+      ]
+    },
+    {
+      "node_id": "metric:required_capital",
+      "canonical_type": "SourceReportedMetric",
+      "edges_from_case": [
+        {
+          "from": "case",
+          "relation": "CASE_HAS_REPORT_METRIC",
+          "to": "metric:required_capital"
+        }
+      ]
+    },
+    {
+      "node_id": "model:cointegration_exclusion",
+      "canonical_type": "ModelApplicabilityFinding",
+      "edges_from_case": [
+        {
+          "from": "case",
+          "relation": "CASE_USES_STRATEGY",
+          "to": "strategy"
+        },
+        {
+          "from": "strategy",
+          "relation": "STRATEGY_EXCLUDES_MODEL",
+          "to": "model:cointegration_exclusion"
+        }
+      ]
+    },
+    {
+      "node_id": "outcome:year2001",
+      "canonical_type": "AnnualOutcomeSign",
+      "edges_from_case": [
+        {
+          "from": "case",
+          "relation": "CASE_HAS_PATH_RISK",
+          "to": "risk:interim"
+        },
+        {
+          "from": "risk:interim",
+          "relation": "PATH_RISK_CONTRASTS_WITH_ANNUAL_OUTCOME",
+          "to": "outcome:year2001"
+        }
+      ]
+    },
+    {
+      "node_id": "pair",
+      "canonical_type": "FuturesPair",
+      "edges_from_case": [
+        {
+          "from": "case",
+          "relation": "CASE_USES_STRATEGY",
+          "to": "strategy"
+        },
+        {
+          "from": "strategy",
+          "relation": "STRATEGY_TRADES_FUTURES_PAIR",
+          "to": "pair"
+        }
+      ]
+    },
+    {
+      "node_id": "position",
+      "canonical_type": "TradePosition",
+      "edges_from_case": [
+        {
+          "from": "case",
+          "relation": "CASE_USES_STRATEGY",
+          "to": "strategy"
+        },
+        {
+          "from": "strategy",
+          "relation": "STRATEGY_HAS_POSITION_TEMPLATE",
+          "to": "position"
+        }
+      ]
+    },
+    {
+      "node_id": "quote:oneGC",
+      "canonical_type": "SourceReportedMetric",
+      "edges_from_case": [
+        {
+          "from": "case",
+          "relation": "CASE_HAS_ASSERTION",
+          "to": "assertion:neutrality"
+        },
+        {
+          "from": "assertion:neutrality",
+          "relation": "ASSERTION_SUPPORTED_BY_COMPARISON",
+          "to": "comparison:dollar"
+        },
+        {
+          "from": "comparison:dollar",
+          "relation": "COMPARISON_CITES_AUTHOR_VALUE",
+          "to": "quote:oneGC"
+        }
+      ]
+    },
+    {
+      "node_id": "quote:twoPL",
+      "canonical_type": "SourceReportedMetric",
+      "edges_from_case": [
+        {
+          "from": "case",
+          "relation": "CASE_HAS_ASSERTION",
+          "to": "assertion:neutrality"
+        },
+        {
+          "from": "assertion:neutrality",
+          "relation": "ASSERTION_SUPPORTED_BY_COMPARISON",
+          "to": "comparison:dollar"
+        },
+        {
+          "from": "comparison:dollar",
+          "relation": "COMPARISON_CITES_AUTHOR_VALUE",
+          "to": "quote:twoPL"
+        }
+      ]
+    },
+    {
+      "node_id": "reader:ATR:gc_dollar_move",
+      "canonical_type": "SourceReportedMetric",
+      "edges_from_case": [
+        {
+          "from": "case",
+          "relation": "CASE_USES_STRATEGY",
+          "to": "strategy"
+        },
+        {
+          "from": "strategy",
+          "relation": "STRATEGY_HAS_POSITION_TEMPLATE",
+          "to": "position"
+        },
+        {
+          "from": "position",
+          "relation": "POSITION_HAS_READER_ATR_PROXY_CALCULATION",
+          "to": "calc:reader:GC"
+        },
+        {
+          "from": "calc:reader:GC",
+          "relation": "CALCULATION_PRODUCES_METRIC",
+          "to": "reader:ATR:gc_dollar_move"
+        }
+      ]
+    },
+    {
+      "node_id": "reader:ATR:gc_quote",
+      "canonical_type": "SourceReportedMetric",
+      "edges_from_case": [
+        {
+          "from": "case",
+          "relation": "CASE_USES_STRATEGY",
+          "to": "strategy"
+        },
+        {
+          "from": "strategy",
+          "relation": "STRATEGY_HAS_POSITION_TEMPLATE",
+          "to": "position"
+        },
+        {
+          "from": "position",
+          "relation": "POSITION_HAS_READER_ATR_PROXY_CALCULATION",
+          "to": "calc:reader:GC"
+        },
+        {
+          "from": "calc:reader:GC",
+          "relation": "EXPRESSION_READS_ATR_ESTIMATE",
+          "to": "reader:ATR:gc_quote"
+        }
+      ]
+    },
+    {
+      "node_id": "reader:ATR:pl_dollar_move",
+      "canonical_type": "SourceReportedMetric",
+      "edges_from_case": [
+        {
+          "from": "case",
+          "relation": "CASE_USES_STRATEGY",
+          "to": "strategy"
+        },
+        {
+          "from": "strategy",
+          "relation": "STRATEGY_HAS_POSITION_TEMPLATE",
+          "to": "position"
+        },
+        {
+          "from": "position",
+          "relation": "POSITION_HAS_READER_ATR_PROXY_CALCULATION",
+          "to": "calc:reader:PL"
+        },
+        {
+          "from": "calc:reader:PL",
+          "relation": "CALCULATION_PRODUCES_METRIC",
+          "to": "reader:ATR:pl_dollar_move"
+        }
+      ]
+    },
+    {
+      "node_id": "reader:ATR:pl_quote",
+      "canonical_type": "SourceReportedMetric",
+      "edges_from_case": [
+        {
+          "from": "case",
+          "relation": "CASE_USES_STRATEGY",
+          "to": "strategy"
+        },
+        {
+          "from": "strategy",
+          "relation": "STRATEGY_HAS_POSITION_TEMPLATE",
+          "to": "position"
+        },
+        {
+          "from": "position",
+          "relation": "POSITION_HAS_READER_ATR_PROXY_CALCULATION",
+          "to": "calc:reader:PL"
+        },
+        {
+          "from": "calc:reader:PL",
+          "relation": "EXPRESSION_READS_ATR_ESTIMATE",
+          "to": "reader:ATR:pl_quote"
+        }
+      ]
+    },
+    {
+      "node_id": "relative_price",
+      "canonical_type": "RelativePriceExpectation",
+      "edges_from_case": [
+        {
+          "from": "case",
+          "relation": "CASE_USES_STRATEGY",
+          "to": "strategy"
+        },
+        {
+          "from": "strategy",
+          "relation": "STRATEGY_HAS_DEMAND_DRIVER",
+          "to": "demand:gold_jewelry"
+        },
+        {
+          "from": "demand:gold_jewelry",
+          "relation": "DEMAND_EXPECTATION_SUPPORTS_RELATIVE_PRICE",
+          "to": "relative_price"
+        }
+      ]
+    },
+    {
+      "node_id": "research:tool:EXCEL",
+      "canonical_type": "ResearchSoftwareDisclosure",
+      "edges_from_case": [
+        {
+          "from": "case",
+          "relation": "CASE_HAS_BACKTEST_STUDY",
+          "to": "study:backtest"
+        },
+        {
+          "from": "study:backtest",
+          "relation": "RESEARCH_METHOD_USES_OR_MENTIONS_TOOL",
+          "to": "research:tool:EXCEL"
+        }
+      ]
+    },
+    {
+      "node_id": "research:tool:MATLAB",
+      "canonical_type": "ResearchSoftwareDisclosure",
+      "edges_from_case": [
+        {
+          "from": "case",
+          "relation": "CASE_HAS_BACKTEST_STUDY",
+          "to": "study:backtest"
+        },
+        {
+          "from": "study:backtest",
+          "relation": "RESEARCH_METHOD_USES_OR_MENTIONS_TOOL",
+          "to": "research:tool:MATLAB"
+        }
+      ]
+    },
+    {
+      "node_id": "risk:drawdown_comparability",
+      "canonical_type": "EvidenceConflict",
+      "edges_from_case": [
+        {
+          "from": "case",
+          "relation": "CASE_HAS_DRAWDOWN_SCOPE_CONFLICT_WARNING",
+          "to": "risk:drawdown_comparability"
+        }
+      ]
+    },
+    {
+      "node_id": "risk:interim",
+      "canonical_type": "PathDependentRiskObservation",
+      "edges_from_case": [
+        {
+          "from": "case",
+          "relation": "CASE_HAS_PATH_RISK",
+          "to": "risk:interim"
+        }
+      ]
+    },
+    {
+      "node_id": "riskcomparison:reader_single_contract",
+      "canonical_type": "VolatilityProxyComparison",
+      "edges_from_case": [
+        {
+          "from": "case",
+          "relation": "CASE_HAS_ASSERTION",
+          "to": "assertion:neutrality"
+        },
+        {
+          "from": "assertion:neutrality",
+          "relation": "ASSERTION_SUPPORTED_BY_COMPARISON",
+          "to": "comparison:volrisk"
+        },
+        {
+          "from": "comparison:volrisk",
+          "relation": "VOLATILITY_COMPARISON_HAS_READER_PROXY",
+          "to": "riskcomparison:twoPL_vs_oneGC"
+        },
+        {
+          "from": "riskcomparison:twoPL_vs_oneGC",
+          "relation": "DERIVED_FROM_READER_SINGLE_CONTRACT_COMPARISON",
+          "to": "riskcomparison:reader_single_contract"
+        }
+      ]
+    },
+    {
+      "node_id": "riskcomparison:twoPL_vs_oneGC",
+      "canonical_type": "VolatilityProxyComparison",
+      "edges_from_case": [
+        {
+          "from": "case",
+          "relation": "CASE_HAS_ASSERTION",
+          "to": "assertion:neutrality"
+        },
+        {
+          "from": "assertion:neutrality",
+          "relation": "ASSERTION_SUPPORTED_BY_COMPARISON",
+          "to": "comparison:volrisk"
+        },
+        {
+          "from": "comparison:volrisk",
+          "relation": "VOLATILITY_COMPARISON_HAS_READER_PROXY",
+          "to": "riskcomparison:twoPL_vs_oneGC"
+        }
+      ]
+    },
+    {
+      "node_id": "rule:entry",
+      "canonical_type": "TradingRule",
+      "edges_from_case": [
+        {
+          "from": "case",
+          "relation": "CASE_USES_STRATEGY",
+          "to": "strategy"
+        },
+        {
+          "from": "strategy",
+          "relation": "STRATEGY_HAS_ENTRY_RULE",
+          "to": "rule:entry"
+        }
+      ]
+    },
+    {
+      "node_id": "rule:exit",
+      "canonical_type": "TradingRule",
+      "edges_from_case": [
+        {
+          "from": "case",
+          "relation": "CASE_USES_STRATEGY",
+          "to": "strategy"
+        },
+        {
+          "from": "strategy",
+          "relation": "STRATEGY_HAS_EXIT_RULE",
+          "to": "rule:exit"
+        }
+      ]
+    },
+    {
+      "node_id": "scenario:2007",
+      "canonical_type": "ConditionalTradeScenario",
+      "edges_from_case": [
+        {
+          "from": "case",
+          "relation": "CASE_USES_STRATEGY",
+          "to": "strategy"
+        },
+        {
+          "from": "strategy",
+          "relation": "STRATEGY_HAS_CONDITIONAL_SCENARIO",
+          "to": "scenario:2007"
+        }
+      ]
+    },
+    {
+      "node_id": "scope:2006dd",
+      "canonical_type": "MeasurementScope",
+      "edges_from_case": [
+        {
+          "from": "case",
+          "relation": "CASE_HAS_REPORT_METRIC",
+          "to": "metric:dd_2006"
+        },
+        {
+          "from": "metric:dd_2006",
+          "relation": "METRIC_HAS_MEASUREMENT_SCOPE",
+          "to": "scope:2006dd"
+        }
+      ]
+    },
+    {
+      "node_id": "scope:2007case",
+      "canonical_type": "MeasurementScope",
+      "edges_from_case": [
+        {
+          "from": "case",
+          "relation": "CASE_HAS_REPORT_METRIC",
+          "to": "metric:hypo_pnl"
+        },
+        {
+          "from": "metric:hypo_pnl",
+          "relation": "METRIC_HAS_MEASUREMENT_SCOPE",
+          "to": "scope:2007case"
+        }
+      ]
+    },
+    {
+      "node_id": "scope:2007recent",
+      "canonical_type": "MeasurementScope",
+      "edges_from_case": [
+        {
+          "from": "case",
+          "relation": "CASE_HAS_REPORT_METRIC",
+          "to": "metric:new_avg"
+        },
+        {
+          "from": "metric:new_avg",
+          "relation": "METRIC_HAS_MEASUREMENT_SCOPE",
+          "to": "scope:2007recent"
+        }
+      ]
+    },
+    {
+      "node_id": "scope:ATR504",
+      "canonical_type": "MeasurementScope",
+      "edges_from_case": [
+        {
+          "from": "case",
+          "relation": "CASE_USES_STRATEGY",
+          "to": "strategy"
+        },
+        {
+          "from": "strategy",
+          "relation": "STRATEGY_HAS_POSITION_TEMPLATE",
+          "to": "position"
+        },
+        {
+          "from": "position",
+          "relation": "POSITION_HAS_READER_ATR_PROXY_CALCULATION",
+          "to": "calc:reader:GC"
+        },
+        {
+          "from": "calc:reader:GC",
+          "relation": "EXPRESSION_READS_ATR_ESTIMATE",
+          "to": "reader:ATR:gc_quote"
+        },
+        {
+          "from": "reader:ATR:gc_quote",
+          "relation": "METRIC_HAS_MEASUREMENT_SCOPE",
+          "to": "scope:ATR504"
+        }
+      ]
+    },
+    {
+      "node_id": "scope:original",
+      "canonical_type": "MeasurementScope",
+      "edges_from_case": [
+        {
+          "from": "case",
+          "relation": "CASE_HAS_REPORT_METRIC",
+          "to": "metric:orig_avg"
+        },
+        {
+          "from": "metric:orig_avg",
+          "relation": "METRIC_HAS_MEASUREMENT_SCOPE",
+          "to": "scope:original"
+        }
+      ]
+    },
+    {
+      "node_id": "spec:GC",
+      "canonical_type": "ContractSpecification",
+      "edges_from_case": [
+        {
+          "from": "case",
+          "relation": "CASE_USES_STRATEGY",
+          "to": "strategy"
+        },
+        {
+          "from": "strategy",
+          "relation": "STRATEGY_HAS_POSITION_TEMPLATE",
+          "to": "position"
+        },
+        {
+          "from": "position",
+          "relation": "POSITION_HAS_READER_ATR_PROXY_CALCULATION",
+          "to": "calc:reader:GC"
+        },
+        {
+          "from": "calc:reader:GC",
+          "relation": "EXPRESSION_READS_CONTRACT_SPEC",
+          "to": "spec:GC"
+        }
+      ]
+    },
+    {
+      "node_id": "spec:PL",
+      "canonical_type": "ContractSpecification",
+      "edges_from_case": [
+        {
+          "from": "case",
+          "relation": "CASE_USES_STRATEGY",
+          "to": "strategy"
+        },
+        {
+          "from": "strategy",
+          "relation": "STRATEGY_HAS_POSITION_TEMPLATE",
+          "to": "position"
+        },
+        {
+          "from": "position",
+          "relation": "POSITION_HAS_READER_ATR_PROXY_CALCULATION",
+          "to": "calc:reader:PL"
+        },
+        {
+          "from": "calc:reader:PL",
+          "relation": "EXPRESSION_READS_CONTRACT_SPEC",
+          "to": "spec:PL"
+        }
+      ]
+    },
+    {
+      "node_id": "spread_direction",
+      "canonical_type": "SpreadDirectionExpectation",
+      "edges_from_case": [
+        {
+          "from": "case",
+          "relation": "CASE_USES_STRATEGY",
+          "to": "strategy"
+        },
+        {
+          "from": "strategy",
+          "relation": "STRATEGY_HAS_DEMAND_DRIVER",
+          "to": "demand:gold_jewelry"
+        },
+        {
+          "from": "demand:gold_jewelry",
+          "relation": "DEMAND_EXPECTATION_SUPPORTS_RELATIVE_PRICE",
+          "to": "relative_price"
+        },
+        {
+          "from": "relative_price",
+          "relation": "RELATIVE_PRICE_IMPLIES_SPREAD_DIRECTION",
+          "to": "spread_direction"
+        }
+      ]
+    },
+    {
+      "node_id": "strategy",
+      "canonical_type": "TradingStrategy",
+      "edges_from_case": [
+        {
+          "from": "case",
+          "relation": "CASE_USES_STRATEGY",
+          "to": "strategy"
+        }
+      ]
+    },
+    {
+      "node_id": "study:backtest",
+      "canonical_type": "BacktestStudy",
+      "edges_from_case": [
+        {
+          "from": "case",
+          "relation": "CASE_HAS_BACKTEST_STUDY",
+          "to": "study:backtest"
+        }
+      ]
+    },
+    {
+      "node_id": "venue:NYMEX",
+      "canonical_type": "ExchangeVenue",
+      "edges_from_case": [
+        {
+          "from": "case",
+          "relation": "CASE_HAS_INTERIM_CAPITAL_BUFFER_CALCULATION",
+          "to": "capital:calc"
+        },
+        {
+          "from": "capital:calc",
+          "relation": "EXPRESSION_READS_MARGIN_QUOTE",
+          "to": "margin:historical_quote"
+        },
+        {
+          "from": "margin:historical_quote",
+          "relation": "MARGIN_QUOTE_ASSIGNED_TO_VENUE",
+          "to": "venue:NYMEX"
+        }
+      ]
+    },
+    {
+      "node_id": "window:entry",
+      "canonical_type": "CalendarTradingWindow",
+      "edges_from_case": [
+        {
+          "from": "case",
+          "relation": "CASE_USES_STRATEGY",
+          "to": "strategy"
+        },
+        {
+          "from": "strategy",
+          "relation": "STRATEGY_HAS_ENTRY_RULE",
+          "to": "rule:entry"
+        },
+        {
+          "from": "rule:entry",
+          "relation": "RULE_USES_CALENDAR_WINDOW",
+          "to": "window:entry"
+        }
+      ]
+    },
+    {
+      "node_id": "window:exit",
+      "canonical_type": "CalendarTradingWindow",
+      "edges_from_case": [
+        {
+          "from": "case",
+          "relation": "CASE_USES_STRATEGY",
+          "to": "strategy"
+        },
+        {
+          "from": "strategy",
+          "relation": "STRATEGY_HAS_EXIT_RULE",
+          "to": "rule:exit"
+        },
+        {
+          "from": "rule:exit",
+          "relation": "RULE_USES_CALENDAR_WINDOW",
+          "to": "window:exit"
+        }
+      ]
+    },
+    {
+      "node_id": "winfreq:2006",
+      "canonical_type": "SourceReportedMetric",
+      "edges_from_case": [
+        {
+          "from": "case",
+          "relation": "CASE_HAS_BACKTEST_STUDY",
+          "to": "study:backtest"
+        },
+        {
+          "from": "study:backtest",
+          "relation": "BACKTEST_REPORTS_WIN_FREQUENCY",
+          "to": "winfreq:2006"
+        }
+      ]
+    }
+  ],
+  "checks": {
+    "all_financial_nodes_reachable": true,
+    "legs_correct": true,
+    "capital_arithmetic_matches": true,
+    "source_correction_connected_to_revised_results": true,
+    "reader_atr_calculation_sources_connected": true
+  },
+  "reconstruction_retry": 2,
+  "retry_reason": "C26 was omitted by initial graph reader although accessible case→CASE_HAS_PATH_RISK→risk:interim",
+  "independent_new_llm_context": false
+}
