@@ -1,0 +1,257 @@
+{
+  "schema": "CME_R4_SOURCE_LOCKED_FACT_REGISTER",
+  "research_goal": "Never reconcile two CME hypothetical examples into a single actual executed trade",
+  "sources": [
+    {
+      "id": "CME-COURSE",
+      "url": "https://www.cmegroup.com/education/courses/understanding-futures-spreads/understanding-intermarket-spreads-platinum-and-gold",
+      "title": "Understanding Intermarket Spreads: Platinum and Gold",
+      "source_type": "CME_OFFICIAL_EDUCATION",
+      "year_in_trade": "NOT_STATED",
+      "page_evidence": "Gold-Platinum Spread Trade, lines 60-79"
+    },
+    {
+      "id": "CME-2017-ARTICLE",
+      "url": "https://www.cmegroup.com/education/articles-and-reports/spread-trading-opportunities-with-precious-metals",
+      "title": "Spread Trading Opportunities with Precious Metals",
+      "source_type": "CME_OFFICIAL_EDUCATION_ARTICLE",
+      "year_in_trade": 2017,
+      "page_evidence": "Platinum-Gold Spread Trade, lines 50-75"
+    }
+  ],
+  "source_facts": [
+    {
+      "source": "CME-COURSE",
+      "path": "case.kind",
+      "value": "EDUCATIONAL_WORKED_TRADE",
+      "evidence": "paragraph before P&L table"
+    },
+    {
+      "source": "CME-COURSE",
+      "path": "case.date.entry",
+      "value": "March 2; year not stated",
+      "evidence": "Gold-Platinum P&L example"
+    },
+    {
+      "source": "CME-COURSE",
+      "path": "case.date.exit",
+      "value": "March 30; year not stated",
+      "evidence": "closing bullet"
+    },
+    {
+      "source": "CME-COURSE",
+      "path": "case.contract.pl",
+      "value": {
+        "month": "APR",
+        "year": null,
+        "root": "PL",
+        "venue": "NYMEX",
+        "oz_per_contract": 50,
+        "contracts": 2
+      },
+      "evidence": "Gold-Platinum example and precious metals section"
+    },
+    {
+      "source": "CME-COURSE",
+      "path": "case.contract.gc",
+      "value": {
+        "month": "APR",
+        "year": null,
+        "root": "GC",
+        "venue": "COMEX",
+        "oz_per_contract": 100,
+        "contracts": 1
+      },
+      "evidence": "Gold-Platinum example and precious metals section"
+    },
+    {
+      "source": "CME-COURSE",
+      "path": "case.entry",
+      "value": {
+        "pl_buy": 988.4,
+        "gc_sell": 1231.9,
+        "spread": -243.5
+      },
+      "evidence": "P&L table entry row"
+    },
+    {
+      "source": "CME-COURSE",
+      "path": "case.exit",
+      "value": {
+        "pl_sell": 1056.4,
+        "gc_buy": 1244.2,
+        "spread": -187.8
+      },
+      "evidence": "P&L table exit row"
+    },
+    {
+      "source": "CME-COURSE",
+      "path": "case.pnl",
+      "value": {
+        "pl": 6800,
+        "gc": -1230,
+        "total": 5570
+      },
+      "evidence": "P&L table total"
+    },
+    {
+      "source": "CME-COURSE",
+      "path": "margin",
+      "value": {
+        "direction": "spread less than two outrights",
+        "percentage": null,
+        "amount_usd": null
+      },
+      "evidence": "Margin Offsets"
+    },
+    {
+      "source": "CME-COURSE",
+      "path": "driver",
+      "value": "automobile sales increase -> platinum demand increase -> platinum relative to gold outperform -> negative spread narrows",
+      "evidence": "Gold-Platinum Spread Trade"
+    },
+    {
+      "source": "CME-2017-ARTICLE",
+      "path": "case.kind",
+      "value": "EDUCATIONAL_WORKED_TRADE",
+      "evidence": "Platinum-Gold Spread P&L Example"
+    },
+    {
+      "source": "CME-2017-ARTICLE",
+      "path": "case.date.entry",
+      "value": "2017-03-02",
+      "evidence": "entry paragraph"
+    },
+    {
+      "source": "CME-2017-ARTICLE",
+      "path": "case.date.exit",
+      "value": "2017-03-30",
+      "evidence": "closing bullet"
+    },
+    {
+      "source": "CME-2017-ARTICLE",
+      "path": "case.contract.pl",
+      "value": {
+        "symbol": "PLJ7",
+        "month": "APR",
+        "year": 2017,
+        "root": "PL",
+        "venue": "NYMEX",
+        "oz_per_contract": 50,
+        "contracts": 2
+      },
+      "evidence": "product table & entry paragraph"
+    },
+    {
+      "source": "CME-2017-ARTICLE",
+      "path": "case.contract.gc",
+      "value": {
+        "symbol": "GCJ7",
+        "month": "APR",
+        "year": 2017,
+        "root": "GC",
+        "venue": "COMEX",
+        "oz_per_contract": 100,
+        "contracts": 1
+      },
+      "evidence": "product table & entry paragraph"
+    },
+    {
+      "source": "CME-2017-ARTICLE",
+      "path": "case.entry",
+      "value": {
+        "pl_buy": 988.4,
+        "gc_sell": 1231.9,
+        "spread": -243.5
+      },
+      "evidence": "entry paragraph"
+    },
+    {
+      "source": "CME-2017-ARTICLE",
+      "path": "case.exit",
+      "value": {
+        "pl_sell": 971.4,
+        "gc_buy": 1233.6,
+        "spread": -262.2
+      },
+      "evidence": "P&L table exit row"
+    },
+    {
+      "source": "CME-2017-ARTICLE",
+      "path": "case.pnl",
+      "value": {
+        "pl": -1700,
+        "gc": -170,
+        "total": -1870
+      },
+      "evidence": "P&L table total"
+    },
+    {
+      "source": "CME-2017-ARTICLE",
+      "path": "margin",
+      "value": {
+        "offset_pct": 58,
+        "pl_contract_margin": 1600,
+        "gc_contract_margin": 4250,
+        "gross_margin": 7450,
+        "offset_margin": 3129,
+        "ratio": "2PL:1GC",
+        "time_reference": "AS_OF_2017_ARTICLE_NOT_CURRENT"
+      },
+      "evidence": "Margin Requirements"
+    },
+    {
+      "source": "CME-2017-ARTICLE",
+      "path": "driver",
+      "value": "auto sales increase -> platinum demand increase -> platinum-gold negative spread expected to narrow",
+      "evidence": "entry paragraph"
+    },
+    {
+      "source": "CME-2017-ARTICLE",
+      "path": "contradictory_narrative",
+      "value": {
+        "source_text_summary": "both gold and platinum fell",
+        "table_price_changes": {
+          "PL": -17,
+          "GC": 1.7
+        },
+        "finding": "GC rises, so the prose and prices conflict"
+      },
+      "evidence": "paragraph preceding closing bullet and price table"
+    },
+    {
+      "source": "CME-2017-ARTICLE",
+      "path": "mislabel",
+      "value": "Liquidate GSR @ used in platinum/gold spread table; GSR refers gold-silver ratio in article",
+      "evidence": "Platinum/Gold P&L table label"
+    },
+    {
+      "source": "CME-2017-ARTICLE",
+      "path": "rounded_spread_change",
+      "value": {
+        "entry": -243.5,
+        "exit": -262.2,
+        "change": -18.7,
+        "source_percent": "8% wider",
+        "calculated_pct_of_entry_magnitude": 7.6796714579
+      },
+      "evidence": "closing bullet and price table"
+    }
+  ],
+  "relationship": {
+    "shared": [
+      "PL/GC ratio 2:1",
+      "same entry price numbers",
+      "automotive demand rationale"
+    ],
+    "different": [
+      "exit quote",
+      "P&L outcome",
+      "trade year disclosed only in article",
+      "numeric historical margin only in article"
+    ],
+    "interpretation": "TWO DISTINCT PUBLISHED OUTCOME SCENARIOS; not proof of a single historical transaction"
+  },
+  "confidence": "SOURCE_TEXT_AND_TABLE_VERIFIED",
+  "data_handling": "No future current margin inference; no unstated year applied to course example"
+}
