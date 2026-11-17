@@ -1,0 +1,181 @@
+{
+  "id": "CROSS_CASE_CHAN_CME_PL_GC_20261117",
+  "cases": [
+    {
+      "id": "CME_POS",
+      "case_ref": "course:case",
+      "graph_ref": "CME_PL_GC_R6_BROAD_SOURCE_REBUILD"
+    },
+    {
+      "id": "CME_NEG",
+      "case_ref": "article2017:case",
+      "graph_ref": "CME_PL_GC_R6_BROAD_SOURCE_REBUILD"
+    },
+    {
+      "id": "CHAN",
+      "case_ref": "chan:case",
+      "graph_ref": "CHAN_R3_REBUILT_PUBLICATION_WINDOW_CITATION"
+    }
+  ],
+  "edges": [
+    {
+      "id": "CROSS-001",
+      "from": "CHAN",
+      "to": [
+        "CME_POS",
+        "CME_NEG"
+      ],
+      "relation": "SHARES_UNDERLYING_FUTURES_PAIR",
+      "attributes": {
+        "term": "SHARES_UNDERLYING_FUTURES_PAIR",
+        "meaning": "Long Platinum PL / Short Gold GC",
+        "warning": "Does not imply identical trading signals"
+      },
+      "approval_status": "PROPOSED_SOURCE_GROUNDED_CROSS_CASE_RELATION"
+    },
+    {
+      "id": "CROSS-002",
+      "from": "CHAN",
+      "to": [
+        "CME_POS",
+        "CME_NEG"
+      ],
+      "relation": "SHARES_2_TO_1_CONTRACT_RATIO",
+      "attributes": {
+        "term": "SHARES_2_TO_1_CONTRACT_RATIO",
+        "quantity_equivalence": "2×50oz PL equals 1×100oz GC",
+        "risk_equivalence": "NOT_DOLLAR_NEUTRAL"
+      },
+      "approval_status": "PROPOSED_SOURCE_GROUNDED_CROSS_CASE_RELATION"
+    },
+    {
+      "id": "CROSS-003",
+      "from": "CHAN",
+      "to": [
+        "CME_POS",
+        "CME_NEG"
+      ],
+      "relation": "DIFFERS_IN_EXPIRY_MONTHS",
+      "attributes": {
+        "term": "DIFFERS_IN_EXPIRY_MONTHS",
+        "cme_course": "APR_PL/APR_GC",
+        "cme_article": "PLJ7/GCJ7 APR_2017",
+        "chan": "JUL_PL/JUN_GC",
+        "classification": "All intermarket; Chan has different contract months, not same-market calendar spread."
+      },
+      "approval_status": "PROPOSED_SOURCE_GROUNDED_CROSS_CASE_RELATION"
+    },
+    {
+      "id": "CROSS-004",
+      "from": "CHAN",
+      "to": [
+        "CME_POS",
+        "CME_NEG"
+      ],
+      "relation": "DIFFERS_IN_TRADE_TIMING",
+      "attributes": {
+        "term": "DIFFERS_IN_TRADE_TIMING",
+        "cme": "March 2 entry / March 30 exit worked example",
+        "chan": "Annual approximate late February entry, mid April exit"
+      },
+      "approval_status": "PROPOSED_SOURCE_GROUNDED_CROSS_CASE_RELATION"
+    },
+    {
+      "id": "CROSS-005",
+      "from": "CHAN",
+      "to": [
+        "CME_POS",
+        "CME_NEG"
+      ],
+      "relation": "DIFFERS_IN_CAUSAL_DRIVER",
+      "attributes": {
+        "term": "DIFFERS_IN_CAUSAL_DRIVER",
+        "cme": "Automobile sale / Platinum industrial demand relative outperformance",
+        "chan": "Asian gold jewelry/festival delivery seasonal decline with weaker platinum seasonality"
+      },
+      "approval_status": "PROPOSED_SOURCE_GROUNDED_CROSS_CASE_RELATION"
+    },
+    {
+      "id": "CROSS-006",
+      "from": "CHAN",
+      "to": [
+        "CME_POS",
+        "CME_NEG"
+      ],
+      "relation": "MATCHED_OUNCES_BUT_NOT_EQUAL_DOLLAR_NOTIONAL",
+      "attributes": {
+        "term": "MATCHED_OUNCES_BUT_NOT_EQUAL_DOLLAR_NOTIONAL",
+        "cme_entry_notionals_usd": [
+          98840,
+          123190
+        ],
+        "relative_difference_usd": 24350,
+        "chan_claim": "Equal oz not dollar neutral; author comments include potentially 10× inaccurate market value figures."
+      },
+      "approval_status": "PROPOSED_SOURCE_GROUNDED_CROSS_CASE_RELATION"
+    },
+    {
+      "id": "CROSS-007",
+      "from": "CHAN",
+      "to": [
+        "CME_POS",
+        "CME_NEG"
+      ],
+      "relation": "HISTORICAL_MARGIN_VALUES_INCOMPARABLE",
+      "attributes": {
+        "term": "HISTORICAL_MARGIN_VALUES_INCOMPARABLE",
+        "cme_article_2017": {
+          "usd": 3129,
+          "offset_percent": 58,
+          "basis": "2017 educational CME maintenance margin"
+        },
+        "chan_2006": {
+          "usd": 743,
+          "basis": "2006 author stated margin"
+        },
+        "risk_comment": {
+          "max_dd": 10910,
+          "stress_capital": 11653
+        }
+      },
+      "approval_status": "PROPOSED_SOURCE_GROUNDED_CROSS_CASE_RELATION"
+    },
+    {
+      "id": "CROSS-008",
+      "from": "CHAN",
+      "to": [
+        "CME_POS",
+        "CME_NEG"
+      ],
+      "relation": "SOURCE_RESULT_TYPES_DISTINCT",
+      "attributes": {
+        "term": "SOURCE_RESULT_TYPES_DISTINCT",
+        "cme_education_examples": [
+          5570,
+          -1870
+        ],
+        "chan_author_annual_avg": 6600,
+        "note": "CME worked PnL not author trade history; Chan rolling historical average not one trade."
+      },
+      "approval_status": "PROPOSED_SOURCE_GROUNDED_CROSS_CASE_RELATION"
+    },
+    {
+      "id": "CROSS-009",
+      "from": "CHAN",
+      "to": [
+        "CME_POS",
+        "CME_NEG"
+      ],
+      "relation": "EXECUTION_PROOF_DISTINCT",
+      "attributes": {
+        "term": "EXECUTION_PROOF_DISTINCT",
+        "cme": "EDUCATIONAL_HYPOTHETICAL",
+        "chan": "AUTHOR_BACKTEST_AND_PAPER_TRADE_REPORTED_ONLY",
+        "real_fills_proven": false
+      },
+      "approval_status": "PROPOSED_SOURCE_GROUNDED_CROSS_CASE_RELATION"
+    }
+  ],
+  "case_identity_policy": "Do not collapse the two CME official worked outcomes, or treat Chan author results as executed fills.",
+  "status": "RELATIONAL_COMPARISON_CREATED_NOT_CANONICAL_ONTOLOGY"
+}
