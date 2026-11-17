@@ -1,0 +1,258 @@
+{
+  "id": "V10_SOURCE_REVERSIBILITY_GAP_DELTA",
+  "baseline": "original 604 source occurrences (117 node,254 attribute,97 relation distinct), v7, v8 and v9 proposal layer",
+  "source_cases": [
+    "CME_PL_GC_R6_BROAD_SOURCE_REBUILD",
+    "CHAN_R3_REBUILT_PUBLICATION_WINDOW_CITATION"
+  ],
+  "candidate_new_nodes": [
+    {
+      "proposal_id": "V10-N01",
+      "term": "LeggingRisk",
+      "definition": "INTERMARKET_RELATED_EXECUTION_LEG_RISK",
+      "source_location": "CME Types of Spreads",
+      "example_node": "general:risk:legging",
+      "status": "NEW_PROPOSAL_NOT_CANONICAL"
+    },
+    {
+      "proposal_id": "V10-N02",
+      "term": "ExecutionMethod",
+      "definition": "DISTINCT_METHOD_OF_SPREAD_RISK_MITIGATION_OR_EXECUTION",
+      "source_location": "CME Types of Spreads",
+      "example_node": "general:mitigation:dedicated",
+      "status": "NEW_PROPOSAL_NOT_CANONICAL"
+    },
+    {
+      "proposal_id": "V10-N03",
+      "term": "ExposureTransformation",
+      "definition": "OUTRIGHT_RISK_TO_RELATIVE_LEG_RISK_MAPPING",
+      "source_location": "CME Creating a Futures Spread",
+      "example_node": "general:risk:relative_exposure",
+      "status": "NEW_PROPOSAL_NOT_CANONICAL"
+    },
+    {
+      "proposal_id": "V10-N04",
+      "term": "HistoricalMarketRegime",
+      "definition": "SOURCE_TIME_BOUNDED_GOLD_PLATINUM_PRICE_RELATIONSHIP",
+      "source_location": "CME historical premium since 2015",
+      "example_node": "general:history:since2015",
+      "status": "NEW_PROPOSAL_NOT_CANONICAL"
+    },
+    {
+      "proposal_id": "V10-N05",
+      "term": "MarketLiquiditySnapshot",
+      "definition": "DATED_AVERAGE_DAILY_VOLUME_AND_OPEN_INTEREST_BY_PRODUCT",
+      "source_location": "CME 2017 article GC/PL contract table",
+      "example_node": "general:market:2016_adv",
+      "status": "NEW_PROPOSAL_NOT_CANONICAL"
+    },
+    {
+      "proposal_id": "V10-N06",
+      "term": "PublicationRecord",
+      "definition": "SOURCE_AUTHOR_POST_DATE_INDEPENDENT_OF_BLIND_SOURCE_TEXT",
+      "source_location": "Chan original blog 2006-11-24",
+      "example_node": "chan:record:publication",
+      "status": "NEW_PROPOSAL_NOT_CANONICAL"
+    },
+    {
+      "proposal_id": "V10-N07",
+      "term": "BibliographicReference",
+      "definition": "CITED_WORK_WITHOUT_CLAIMING_FULL_TEXT_ACCESS",
+      "source_location": "Chan reference to Jerry Toepke January 2006 SFO",
+      "example_node": "chan:ref:toepke",
+      "status": "NEW_PROPOSAL_NOT_CANONICAL"
+    }
+  ],
+  "candidate_new_relations": [
+    {
+      "proposal_id": "V10-R01",
+      "term": "FACT_HAS_DOCUMENT_PASSAGE_EVIDENCE",
+      "domain": "FinancialFact",
+      "range": "SourcePassage",
+      "example_edge": {
+        "from": "article2017:margin:offset",
+        "to": "article2017:passage:margin"
+      },
+      "cardinality": "REQUIRES_DOMAIN_REVIEW",
+      "status": "NEW_PROPOSAL_NOT_CANONICAL"
+    },
+    {
+      "proposal_id": "V10-R02",
+      "term": "LEGGING_RISK_HAS_MITIGATION",
+      "domain": "LeggingRisk",
+      "range": "ExecutionMethod",
+      "example_edge": {
+        "from": "general:risk:legging",
+        "to": "general:mitigation:software"
+      },
+      "cardinality": "REQUIRES_DOMAIN_REVIEW",
+      "status": "NEW_PROPOSAL_NOT_CANONICAL"
+    },
+    {
+      "proposal_id": "V10-R03",
+      "term": "SOURCE_METRIC_COVERS_TIME_WINDOW",
+      "domain": "SourceReportedMetric",
+      "range": "TimeSeriesWindow",
+      "example_edge": {
+        "from": "chan:metric:mean_pnl",
+        "to": "chan:window:research_since1995"
+      },
+      "cardinality": "REQUIRES_DOMAIN_REVIEW",
+      "status": "NEW_PROPOSAL_NOT_CANONICAL"
+    },
+    {
+      "proposal_id": "V10-R04",
+      "term": "CASE_HAS_PUBLICATION_RECORD",
+      "domain": "TradeCase",
+      "range": "PublicationRecord",
+      "example_edge": {
+        "from": "chan:case",
+        "to": "chan:record:publication"
+      },
+      "cardinality": "REQUIRES_DOMAIN_REVIEW",
+      "status": "NEW_PROPOSAL_NOT_CANONICAL"
+    },
+    {
+      "proposal_id": "V10-R05",
+      "term": "CASE_CITES_ORIGINATING_WORK",
+      "domain": "TradeCase",
+      "range": "BibliographicReference",
+      "example_edge": {
+        "from": "chan:case",
+        "to": "chan:ref:toepke"
+      },
+      "cardinality": "REQUIRES_DOMAIN_REVIEW",
+      "status": "NEW_PROPOSAL_NOT_CANONICAL"
+    },
+    {
+      "proposal_id": "V10-R06",
+      "term": "CASE_BINDS_SCENARIO",
+      "domain": "TradeCase",
+      "range": "ScenarioBinding",
+      "example_edge": {
+        "from": "article2017:case",
+        "to": "article2017:scenario"
+      },
+      "cardinality": "REQUIRES_DOMAIN_REVIEW",
+      "status": "NEW_PROPOSAL_NOT_CANONICAL"
+    },
+    {
+      "proposal_id": "V10-R07",
+      "term": "REPORTED_ROUNDED_METRIC_RECONCILES_WITH_COMPUTED",
+      "domain": "SourceReportedMetric",
+      "range": "SourceReportedMetric",
+      "example_edge": {
+        "from": "article2017:metric:spread_change_pct_reported",
+        "to": "article2017:metric:spread_change_pct_recomputed"
+      },
+      "cardinality": "REQUIRES_DOMAIN_REVIEW",
+      "status": "NEW_PROPOSAL_NOT_CANONICAL"
+    },
+    {
+      "proposal_id": "V10-R08",
+      "term": "CASE_HAS_EVIDENCE_CONFLICT",
+      "domain": "TradeCase",
+      "range": "EvidenceConflict",
+      "example_edge": {
+        "from": "article2017:case",
+        "to": "article2017:conflict:direction"
+      },
+      "cardinality": "REQUIRES_DOMAIN_REVIEW",
+      "status": "NEW_PROPOSAL_NOT_CANONICAL"
+    },
+    {
+      "proposal_id": "V10-R09",
+      "term": "CONFLICT_HAS_CLAIM",
+      "domain": "EvidenceConflict",
+      "range": "EvidenceAssertion",
+      "example_edge": {
+        "from": "article2017:conflict:direction",
+        "to": "article2017:claim:gc_rise"
+      },
+      "cardinality": "REQUIRES_DOMAIN_REVIEW",
+      "status": "NEW_PROPOSAL_NOT_CANONICAL"
+    },
+    {
+      "proposal_id": "V10-R10",
+      "term": "CASES_SHARE_ENTRY_STRUCTURE_WITH",
+      "domain": "TradeCase",
+      "range": "TradeCase",
+      "example_edge": {
+        "from": "course:case",
+        "to": "article2017:case"
+      },
+      "cardinality": "REQUIRES_DOMAIN_REVIEW",
+      "status": "NEW_PROPOSAL_NOT_CANONICAL"
+    }
+  ],
+  "candidate_new_properties": [
+    {
+      "proposal_id": "V10-P01",
+      "owner": "TradeCase",
+      "term": "source_specific_year_status",
+      "dtype": "enum EXPLICIT_YEAR|NOT_STATED",
+      "reason": "CME course vs article year provenance",
+      "status": "NEW_PROPOSAL_NOT_CANONICAL"
+    },
+    {
+      "proposal_id": "V10-P02",
+      "owner": "SourceReportedMetric",
+      "term": "reported_rounding_precision",
+      "dtype": "enum EXACT|APPROX_WHOLE_PERCENT|LOWER_BOUND",
+      "reason": "8% article spread widening vs ~7.68% calculation",
+      "status": "NEW_PROPOSAL_NOT_CANONICAL"
+    },
+    {
+      "proposal_id": "V10-P03",
+      "owner": "MarginOffsetMechanism",
+      "term": "historical_margin_time_scope",
+      "dtype": "date or source-anchored historical period",
+      "reason": "2017 margin offset must not become current exchange margin",
+      "status": "NEW_PROPOSAL_NOT_CANONICAL"
+    },
+    {
+      "proposal_id": "V10-P04",
+      "owner": "TimeSeriesWindow",
+      "term": "lookback_start_year",
+      "dtype": "integer year",
+      "reason": "Chan max drawdown occurred 2001 during study since 2000",
+      "status": "NEW_PROPOSAL_NOT_CANONICAL"
+    },
+    {
+      "proposal_id": "V10-P05",
+      "owner": "EvidenceAssertion",
+      "term": "source_claim_execution_grade",
+      "dtype": "AUTHOR_PAPER|AUTHOR_REAL_TEST_WORDING|EXCHANGE_HYPOTHETICAL|INDEPENDENT_FILL",
+      "reason": "Chan 2006 paper trading vs later real test phrasing",
+      "status": "NEW_PROPOSAL_NOT_CANONICAL"
+    },
+    {
+      "proposal_id": "V10-P06",
+      "owner": "TradePosition",
+      "term": "hedge_neutrality_basis",
+      "dtype": "enum PHYSICAL_OUNCES|DOLLAR_NOTIONAL|RISK_VOLATILITY|NONE",
+      "reason": "2:1 ratio ounce balanced, not dollar-neutral",
+      "status": "NEW_PROPOSAL_NOT_CANONICAL"
+    },
+    {
+      "proposal_id": "V10-P07",
+      "owner": "SourcePassage",
+      "term": "source_fact_scope",
+      "dtype": "section / article / comment timestamp",
+      "reason": "Distinguish CME article section vs Chan author comments",
+      "status": "NEW_PROPOSAL_NOT_CANONICAL"
+    },
+    {
+      "proposal_id": "V10-P08",
+      "owner": "PublicationRecord",
+      "term": "publication_date",
+      "dtype": "ISO date",
+      "reason": "Chan blog 2006-11-24 metadata survives redacted financial graph",
+      "status": "NEW_PROPOSAL_NOT_CANONICAL"
+    }
+  ],
+  "duplicate_screening": "Candidate names checked against full original+v7 type catalog and v8/v9 proposal names; semantic/domain/cardinality duplicate review still required",
+  "mutability": "DO_NOT_AUTO_MERGE_OR_REPLACE_604_CANONICAL",
+  "reason": "Not number padding: every proposed type was required to preserve at least one source fact, provenance link or failure diagnosis",
+  "independent_blind_status": "NOT_YET_RUN"
+}
