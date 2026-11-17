@@ -22,5 +22,14 @@
   "expanded_source_review": "26_ITEM_REGISTER_COMPARED_NOT_FULL_PAGE_EXHAUSTIVE",
   "current_reconstruction_input": "round-5-graph-only-input.json",
   "current_reconstruction_result": "round-5-graph-only-reconstruction-retry2.json",
-  "current_comparison": "round-5-source-comparison-retry2.json"
+  "current_comparison": "round-5-source-comparison-retry2.json",
+  "ontology_auto_adoption": {
+    "status": "AUTO_APPLIED_SOURCE_REGISTERED_FACT_RECONSTRUCTION",
+    "effective_overlay": "research/ontology/active-auto-extensions.json",
+    "synchronized_from": "current_reconstruction_input",
+    "separate_manual_approval_required": false,
+    "source_fact_pass_only": true,
+    "independent_chatgpt_blind_verification": "STILL_PENDING",
+    "baseline_604_definitions_preserved": true
+  }
 }
