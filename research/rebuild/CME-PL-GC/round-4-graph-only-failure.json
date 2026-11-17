@@ -1,0 +1,112 @@
+{
+  "graph_version": "10.0-R4-COMPLETE-REBUILD",
+  "method": "CASE_ROOT_DIRECTED_EDGE_GRAPH_TRAVERSAL_NO_SOURCE_REGISTER",
+  "reachable": 54,
+  "total_nodes": 77,
+  "anchors": [
+    {
+      "node_id": "history:regime_since_2015",
+      "directed_reachable_from_case": false
+    },
+    {
+      "node_id": "history:negative_spread_widening",
+      "directed_reachable_from_case": false
+    },
+    {
+      "node_id": "macro:distress",
+      "directed_reachable_from_case": false
+    },
+    {
+      "node_id": "demand:gold_safe_haven",
+      "directed_reachable_from_case": false
+    },
+    {
+      "node_id": "relative:gold_safehaven_price",
+      "directed_reachable_from_case": false
+    },
+    {
+      "node_id": "risk:legging",
+      "directed_reachable_from_case": true
+    },
+    {
+      "node_id": "classification:intermarket",
+      "directed_reachable_from_case": true
+    },
+    {
+      "node_id": "classification:calendar",
+      "directed_reachable_from_case": true
+    },
+    {
+      "node_id": "exposure:transformation",
+      "directed_reachable_from_case": true
+    },
+    {
+      "node_id": "correlation:metals",
+      "directed_reachable_from_case": true
+    },
+    {
+      "node_id": "riskbenefit:reduced_volatility",
+      "directed_reachable_from_case": true
+    },
+    {
+      "node_id": "venue:globex",
+      "directed_reachable_from_case": true
+    },
+    {
+      "node_id": "margin:worked_case_identification",
+      "directed_reachable_from_case": true
+    },
+    {
+      "node_id": "calc:matched_oz",
+      "directed_reachable_from_case": false
+    },
+    {
+      "node_id": "comparison:matched_oz",
+      "directed_reachable_from_case": true
+    },
+    {
+      "node_id": "use:pl_jewelry",
+      "directed_reachable_from_case": false
+    },
+    {
+      "node_id": "use:pl_investment",
+      "directed_reachable_from_case": false
+    }
+  ],
+  "replay_result": "FAIL_GRAPH_RELATION_CONNECTIVITY",
+  "failures": [
+    {
+      "node_id": "history:regime_since_2015",
+      "directed_reachable_from_case": false
+    },
+    {
+      "node_id": "history:negative_spread_widening",
+      "directed_reachable_from_case": false
+    },
+    {
+      "node_id": "macro:distress",
+      "directed_reachable_from_case": false
+    },
+    {
+      "node_id": "demand:gold_safe_haven",
+      "directed_reachable_from_case": false
+    },
+    {
+      "node_id": "relative:gold_safehaven_price",
+      "directed_reachable_from_case": false
+    },
+    {
+      "node_id": "calc:matched_oz",
+      "directed_reachable_from_case": false
+    },
+    {
+      "node_id": "use:pl_jewelry",
+      "directed_reachable_from_case": false
+    },
+    {
+      "node_id": "use:pl_investment",
+      "directed_reachable_from_case": false
+    }
+  ],
+  "note": "Source facts not supplied to traversal; this is a graph connectivity gate, not semantic proof of all source claims."
+}
