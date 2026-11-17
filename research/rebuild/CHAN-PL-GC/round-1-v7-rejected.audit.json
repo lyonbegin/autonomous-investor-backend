@@ -1,0 +1,45 @@
+{
+  "case": "CHAN-PL-GC",
+  "round": 1,
+  "legacy_source": "2026-11-16 v7 original graph archived in 604기반_확장온톨로지_v7_5사례_역재현검증_20261116.zip, graphs/CHAN-SEASONAL-PL-GC.json",
+  "legacy_counts": {
+    "nodes": 119,
+    "edges": 287
+  },
+  "source_facts_cross_checked": "author original 2006 blog, 2006 risk comment, 2007 March cointegration clarification, 2007 April corrected results, 2007 August risk/neutrality comment",
+  "observed_missing_values": [
+    {
+      "name": "corrected_mean_profit",
+      "value": 3064
+    },
+    {
+      "name": "corrected_max_profit",
+      "value": 7320
+    },
+    {
+      "name": "corrected_min_profit",
+      "value": -540
+    },
+    {
+      "name": "corrected_max_drawdown",
+      "value": -4860
+    },
+    {
+      "name": "author_2006_risk_comment_drawdown",
+      "value": -10910
+    },
+    {
+      "name": "author_2006_risk_comment_required_capital",
+      "value": 11653
+    }
+  ],
+  "observed_missing_financial_meanings": [
+    "source correction has priority over older published chart values without deleting original claim",
+    "maximum drawdown -10,910 from older comment and -4,860 from later publication have differing period/method context and may conflict",
+    "matching 100 oz/100 oz is not dollar neutrality",
+    "strategy explicitly not based on cointegration",
+    "2007 $6,610 quote is IF-a-trader-entered hypothetical, not a verified execution"
+  ],
+  "outcome": "REBUILD_REQUIRED",
+  "action": "Do not patch legacy v7 graph in place. Recreate all key cases and source version lineage."
+}
