@@ -47,6 +47,8 @@ jobs:
             cat research/prompts/COMMON_KG_RESEARCH.md
             printf '\n# 단계별 작업 지시문\n'
             cat research/prompts/STAGE_TASKS.md
+            printf '\n# 실패 시 반드시 반복 재생성\n'
+            cat research/prompts/REBUILD_UNTIL_PASS.md
           } > CHATGPT_RESEARCH_TASK.md
           {
             echo '## ChatGPT 연구 작업 준비 결과'
@@ -54,6 +56,7 @@ jobs:
             echo '- 상태: **PREPARED_ONLY**'
             echo '- AI 검색·지식그래프 생성·역복원은 아직 실행되지 않았습니다.'
             echo '- 다음 단계: HITEL 연동 지침에 따른 ChatGPT 작업 전달기를 연결하십시오.'
+            echo '- 실패 발생 시 그래프 기존판을 비활성화하고 원문 사실에서 전체 재구성하며 블라인드 역재현까지 반복합니다.'
             echo ''
             echo '```json'
             cat selected-strategy.json
