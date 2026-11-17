@@ -1,0 +1,181 @@
+{
+  "method": "GRAPH_ONLY_FINANCE_GRAPH_READ; source registry not opened in this invocation",
+  "independent_llm_session": false,
+  "source_document_supplied": false,
+  "classification": "EDUCATIONAL_WORKED_EXAMPLE",
+  "actual_fills": false,
+  "strategy": "INTERMARKET_RELATIVE_VALUE_SPREAD",
+  "spread_type": "INTERMARKET_FUTURES_RELATIVE_VALUE",
+  "events": [
+    {
+      "date_month": 3,
+      "date_day": 2,
+      "year": null,
+      "date_precision": "MONTH_DAY_ONLY",
+      "event_kind": "OPEN_SPREAD",
+      "leg_actions_simultaneous": true
+    },
+    {
+      "date_month": 3,
+      "date_day": 30,
+      "year": null,
+      "date_precision": "MONTH_DAY_ONLY",
+      "event_kind": "CLOSE_SPREAD",
+      "leg_actions_simultaneous": true
+    }
+  ],
+  "legs": [
+    {
+      "leg_id": "leg:pl",
+      "direction": "LONG",
+      "contracts": 2,
+      "contract": {
+        "root": "PL",
+        "contract_month": "APR",
+        "contract_year": null,
+        "venue": "NYMEX",
+        "commodity": "PLATINUM",
+        "contract_multiplier_value": 50,
+        "contract_multiplier_unit": "TROY_OZ_PER_CONTRACT",
+        "quotation_unit": "USD_PER_TROY_OZ",
+        "currency": "USD"
+      },
+      "entry": {
+        "id": "act:pl:entry",
+        "side": "BUY",
+        "price": 988.4,
+        "stage": "entry"
+      },
+      "exit": {
+        "id": "act:pl:exit",
+        "side": "SELL",
+        "price": 1056.4,
+        "stage": "exit"
+      },
+      "computed_pnl_usd": 6800,
+      "reported_pnl_usd": 6800,
+      "notional": {
+        "entry": 98840,
+        "exit": 105640
+      }
+    },
+    {
+      "leg_id": "leg:gc",
+      "direction": "SHORT",
+      "contracts": 1,
+      "contract": {
+        "root": "GC",
+        "contract_month": "APR",
+        "contract_year": null,
+        "venue": "COMEX",
+        "commodity": "GOLD",
+        "contract_multiplier_value": 100,
+        "contract_multiplier_unit": "TROY_OZ_PER_CONTRACT",
+        "quotation_unit": "USD_PER_TROY_OZ",
+        "currency": "USD"
+      },
+      "entry": {
+        "id": "act:gc:entry",
+        "side": "SELL",
+        "price": 1231.9,
+        "stage": "entry"
+      },
+      "exit": {
+        "id": "act:gc:exit",
+        "side": "BUY",
+        "price": 1244.2,
+        "stage": "exit"
+      },
+      "computed_pnl_usd": -1230,
+      "reported_pnl_usd": -1230,
+      "notional": {
+        "entry": 123190,
+        "exit": 124420
+      }
+    }
+  ],
+  "spread": {
+    "definition": "PL price minus GC price",
+    "entry_from_leg_quotes": -243.5,
+    "entry_reported": -243.5,
+    "exit_from_leg_quotes": -187.8,
+    "exit_reported": -187.8,
+    "change_from_leg_quotes": 55.7,
+    "change_reported": 55.7
+  },
+  "reported_total_pnl_usd": 5570,
+  "computed_total_pnl_usd": 5570,
+  "economic_causal_path": [
+    {
+      "event": {
+        "subject": "AUTOMOBILE_SALES",
+        "anticipated_direction": "INCREASE",
+        "horizon": "SHORT_TERM",
+        "measured_observation": false
+      }
+    },
+    {
+      "use_channel": {
+        "consumer_industry": "AUTOMOTIVE",
+        "commodity_use": "PLATINUM_AS_CATALYTIC_CONVERTER",
+        "demand_role": "INDUSTRIAL"
+      },
+      "underlying": {
+        "commodity": "PLATINUM",
+        "role": "PRECIOUS_AND_INDUSTRIAL_METAL",
+        "industrial_use": "AUTO_CATALYST"
+      }
+    },
+    {
+      "platinum_demand": {
+        "commodity": "PLATINUM",
+        "direction": "INCREASE",
+        "evidence_kind": "SCENARIO_HYPOTHESIS_NOT_MEASURED_DATA"
+      }
+    },
+    {
+      "relative_price": {
+        "numerator_underlying": "PLATINUM",
+        "denominator_underlying": "GOLD",
+        "direction": "PLATINUM_OUTPERFORMS_GOLD",
+        "conditional_on": "HYPOTHESIZED_AUTOMOTIVE_DEMAND"
+      }
+    },
+    {
+      "spread_narrowing": {
+        "spread_definition": "PL_MINUS_GC",
+        "initial_state": "NEGATIVE",
+        "future_change": "INCREASE_TOWARD_ZERO",
+        "scenario": "EXPECTED_NOT_GUARANTEED"
+      },
+      "target_futures_pair": "pair"
+    }
+  ],
+  "margin_structure": {
+    "mechanism": {
+      "clearing_context": "CME_CLEARING",
+      "mechanism": "OFFSET_RECOGNITION_FOR_RELATED_LEGS",
+      "degree": "POSSIBLE",
+      "numeric_margin": null
+    },
+    "comparison": {
+      "comparison_basis": "SPREAD_VS_TWO_OUTRIGHT_FUTURES_POSITIONS",
+      "expected_relation": "SPREAD_MARGIN_MAY_BE_LOWER",
+      "observed_discount": "NOT_STATED",
+      "conditional": true
+    },
+    "applies_to_position": [
+      "position"
+    ]
+  },
+  "checks": {
+    "leg_count": true,
+    "position_sides": true,
+    "pnls_match": true,
+    "net_pnl_match": true,
+    "spread_reproduced": true,
+    "causal_chain_complete": true,
+    "margin_relational": true,
+    "no_source_doc_nodes": true
+  }
+}
