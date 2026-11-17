@@ -1,0 +1,26 @@
+{
+  "case_id": "CHAN-SEASONAL-PL-GC",
+  "current_graph": "round-3-source-risk-full.graph.json",
+  "source_fact_register": "source-facts-expanded-27.json",
+  "reconstruction_file": "round-3-risk-graph-only-reconstruction.json",
+  "comparison_file": "round-3-risk-source-comparison.json",
+  "provenance_scope": "2006 original post and comments; Feb 2007 interpretation; Apr 2007 revised performance; Aug 2007 author and reader risk comments",
+  "graph_versions_evaluated": [
+    "round-1-source-versioned.graph.json",
+    "round-2-rebuilt.graph.json",
+    "round-3-source-risk-full.graph.json"
+  ],
+  "selected_facts_reproduced": 27,
+  "selected_facts_total": 27,
+  "semantic_mutation_checks_passed": 8,
+  "semantic_mutation_checks_total": 8,
+  "full_original_chart_data_obtained": false,
+  "actual_historical_fills_verified": false,
+  "independent_separate_chatgpt_blind_session": "NOT_RUN",
+  "current_status": "SOURCE_FACT_SCOPE_PASS_BLIND_PENDING_NOT_FULL_PASS",
+  "blocked_by": [
+    "No accessible original detailed returns chart and historical bars",
+    "HITEL ChatGPT separate context runner not integrated"
+  ],
+  "next_action": "Independent clean ChatGPT reconstruction using round-3-risk-graph-only-input.json, then compare against current 27-fact source benchmark"
+}
