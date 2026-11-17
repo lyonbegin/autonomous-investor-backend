@@ -1,0 +1,202 @@
+{
+  "case_id": "CHAN-PL-GC",
+  "run_id": "R3-RISK-SOURCE-COMPARISON",
+  "fact_count": 27,
+  "matched": 27,
+  "failed": 0,
+  "rows": [
+    {
+      "fact_id": "F01",
+      "source_ref": "S2006",
+      "source_location": "main post opening",
+      "matched": true,
+      "issue": "NONE"
+    },
+    {
+      "fact_id": "F02",
+      "source_ref": "S2006",
+      "source_location": "strategy definition",
+      "matched": true,
+      "issue": "NONE"
+    },
+    {
+      "fact_id": "F03",
+      "source_ref": "S2006",
+      "source_location": "strategy definition",
+      "matched": true,
+      "issue": "NONE"
+    },
+    {
+      "fact_id": "F04",
+      "source_ref": "S2006",
+      "source_location": "strategy definition",
+      "matched": true,
+      "issue": "NONE"
+    },
+    {
+      "fact_id": "F05",
+      "source_ref": "S2006",
+      "source_location": "strategy definition",
+      "matched": true,
+      "issue": "NONE"
+    },
+    {
+      "fact_id": "F06",
+      "source_ref": "S2006",
+      "source_location": "backtest narrative",
+      "matched": true,
+      "issue": "NONE"
+    },
+    {
+      "fact_id": "F07",
+      "source_ref": "S2006",
+      "source_location": "paper trading claim",
+      "matched": true,
+      "issue": "NONE"
+    },
+    {
+      "fact_id": "F08",
+      "source_ref": "S2006",
+      "source_location": "initial results paragraph",
+      "matched": true,
+      "issue": "NONE"
+    },
+    {
+      "fact_id": "F09",
+      "source_ref": "S2006",
+      "source_location": "initial results paragraph",
+      "matched": true,
+      "issue": "NONE"
+    },
+    {
+      "fact_id": "F10",
+      "source_ref": "S2006",
+      "source_location": "economic mechanism",
+      "matched": true,
+      "issue": "NONE"
+    },
+    {
+      "fact_id": "F11",
+      "source_ref": "S2006",
+      "source_location": "economic mechanism",
+      "matched": true,
+      "issue": "NONE"
+    },
+    {
+      "fact_id": "F12",
+      "source_ref": "S2006_COMMENT",
+      "source_location": "author reply on risk",
+      "matched": true,
+      "issue": "NONE"
+    },
+    {
+      "fact_id": "F13",
+      "source_ref": "S2006_COMMENT",
+      "source_location": "author reply on risk",
+      "matched": true,
+      "issue": "NONE"
+    },
+    {
+      "fact_id": "F14",
+      "source_ref": "S2007_FEB",
+      "source_location": "author comment",
+      "matched": true,
+      "issue": "NONE"
+    },
+    {
+      "fact_id": "F15",
+      "source_ref": "S2007_APR",
+      "source_location": "recap main text",
+      "matched": true,
+      "issue": "NONE"
+    },
+    {
+      "fact_id": "F16",
+      "source_ref": "S2007_APR",
+      "source_location": "recap main text",
+      "matched": true,
+      "issue": "NONE"
+    },
+    {
+      "fact_id": "F17",
+      "source_ref": "S2007_APR",
+      "source_location": "recap correction sentence",
+      "matched": true,
+      "issue": "NONE"
+    },
+    {
+      "fact_id": "F18",
+      "source_ref": "S2007_APR",
+      "source_location": "recap metric paragraph",
+      "matched": true,
+      "issue": "NONE"
+    },
+    {
+      "fact_id": "F19",
+      "source_ref": "S2006",
+      "source_location": "contract sizing explanation + Aug 2007 clarification",
+      "matched": true,
+      "issue": "NONE"
+    },
+    {
+      "fact_id": "F20",
+      "source_ref": "S2007_AUG",
+      "source_location": "author risk clarification",
+      "matched": true,
+      "issue": "NONE"
+    },
+    {
+      "fact_id": "F21",
+      "source_ref": "S2007_AUG",
+      "source_location": "author risk clarification",
+      "matched": true,
+      "issue": "NONE"
+    },
+    {
+      "fact_id": "F22",
+      "source_ref": "S2006",
+      "source_location": "further reading",
+      "matched": true,
+      "issue": "NONE"
+    },
+    {
+      "fact_id": "F23",
+      "source_ref": "S2006",
+      "source_location": "not disclosed in blog text",
+      "matched": true,
+      "issue": "NONE"
+    },
+    {
+      "fact_id": "F24",
+      "source_ref": "S2006",
+      "source_location": "cross-post audit",
+      "matched": true,
+      "issue": "NONE"
+    },
+    {
+      "fact_id": "F25",
+      "source_ref": "S2007_APR",
+      "source_location": "source revision graph requirement",
+      "matched": true,
+      "issue": "NONE"
+    },
+    {
+      "fact_id": "F26",
+      "source_ref": "S2007_AUG",
+      "source_location": "Author reply Aug 19 2007, illustrative market values",
+      "matched": true,
+      "issue": "NONE"
+    },
+    {
+      "fact_id": "F27",
+      "source_ref": "S2007_AUG_COMMENTER",
+      "source_location": "Pablo comment Aug 18 2007, author response Aug 19 2007",
+      "matched": true,
+      "issue": "NONE"
+    }
+  ],
+  "status": "SOURCE_FACT_COVERAGE_PASS_SELECTED_27",
+  "independent_chatgpt_fresh_session": false,
+  "actual_fills_reconstructed": false,
+  "limits": "Only 27 selected author posts and comments, not image raw data or independent full backtest"
+}
