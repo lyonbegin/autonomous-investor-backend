@@ -1,0 +1,196 @@
+{
+  "run_id": "CME_R4_TWO_SOURCE_REPLAY_COMPARE",
+  "scope": "23 SELECTED DOCUMENT FACT RECORDS (not full-text audit)",
+  "method": "ChatGPT source-to-graph-only output comparison; same overall conversation, not independent LLM",
+  "passed": 19,
+  "failed": 4,
+  "rows": [
+    {
+      "row": 1,
+      "source": "CME-COURSE",
+      "path": "case.kind",
+      "source_evidence": "paragraph before P&L table",
+      "round4_status": "PASS_LIMITED",
+      "why": "Key value or scenario identity reconstructed for selected fact; source passage-level linkage not independently verified."
+    },
+    {
+      "row": 2,
+      "source": "CME-COURSE",
+      "path": "case.date.entry",
+      "source_evidence": "Gold-Platinum P&L example",
+      "round4_status": "PASS_LIMITED",
+      "why": "Key value or scenario identity reconstructed for selected fact; source passage-level linkage not independently verified."
+    },
+    {
+      "row": 3,
+      "source": "CME-COURSE",
+      "path": "case.date.exit",
+      "source_evidence": "closing bullet",
+      "round4_status": "PASS_LIMITED",
+      "why": "Key value or scenario identity reconstructed for selected fact; source passage-level linkage not independently verified."
+    },
+    {
+      "row": 4,
+      "source": "CME-COURSE",
+      "path": "case.contract.pl",
+      "source_evidence": "Gold-Platinum example and precious metals section",
+      "round4_status": "PASS_LIMITED",
+      "why": "Key value or scenario identity reconstructed for selected fact; source passage-level linkage not independently verified."
+    },
+    {
+      "row": 5,
+      "source": "CME-COURSE",
+      "path": "case.contract.gc",
+      "source_evidence": "Gold-Platinum example and precious metals section",
+      "round4_status": "PASS_LIMITED",
+      "why": "Key value or scenario identity reconstructed for selected fact; source passage-level linkage not independently verified."
+    },
+    {
+      "row": 6,
+      "source": "CME-COURSE",
+      "path": "case.entry",
+      "source_evidence": "P&L table entry row",
+      "round4_status": "PASS_LIMITED",
+      "why": "Key value or scenario identity reconstructed for selected fact; source passage-level linkage not independently verified."
+    },
+    {
+      "row": 7,
+      "source": "CME-COURSE",
+      "path": "case.exit",
+      "source_evidence": "P&L table exit row",
+      "round4_status": "PASS_LIMITED",
+      "why": "Key value or scenario identity reconstructed for selected fact; source passage-level linkage not independently verified."
+    },
+    {
+      "row": 8,
+      "source": "CME-COURSE",
+      "path": "case.pnl",
+      "source_evidence": "P&L table total",
+      "round4_status": "PASS_LIMITED",
+      "why": "Key value or scenario identity reconstructed for selected fact; source passage-level linkage not independently verified."
+    },
+    {
+      "row": 9,
+      "source": "CME-COURSE",
+      "path": "margin",
+      "source_evidence": "Margin Offsets",
+      "round4_status": "PASS_LIMITED",
+      "why": "Key value or scenario identity reconstructed for selected fact; source passage-level linkage not independently verified."
+    },
+    {
+      "row": 10,
+      "source": "CME-COURSE",
+      "path": "driver",
+      "source_evidence": "Gold-Platinum Spread Trade",
+      "round4_status": "FAIL",
+      "why": "The economic causal chain is in graph nodes but absent from graph-only reconstructed output, so the reconstructed case narrative loses the causal premise."
+    },
+    {
+      "row": 11,
+      "source": "CME-2017-ARTICLE",
+      "path": "case.kind",
+      "source_evidence": "Platinum-Gold Spread P&L Example",
+      "round4_status": "PASS_LIMITED",
+      "why": "Key value or scenario identity reconstructed for selected fact; source passage-level linkage not independently verified."
+    },
+    {
+      "row": 12,
+      "source": "CME-2017-ARTICLE",
+      "path": "case.date.entry",
+      "source_evidence": "entry paragraph",
+      "round4_status": "PASS_LIMITED",
+      "why": "Key value or scenario identity reconstructed for selected fact; source passage-level linkage not independently verified."
+    },
+    {
+      "row": 13,
+      "source": "CME-2017-ARTICLE",
+      "path": "case.date.exit",
+      "source_evidence": "closing bullet",
+      "round4_status": "PASS_LIMITED",
+      "why": "Key value or scenario identity reconstructed for selected fact; source passage-level linkage not independently verified."
+    },
+    {
+      "row": 14,
+      "source": "CME-2017-ARTICLE",
+      "path": "case.contract.pl",
+      "source_evidence": "product table & entry paragraph",
+      "round4_status": "PASS_LIMITED",
+      "why": "Key value or scenario identity reconstructed for selected fact; source passage-level linkage not independently verified."
+    },
+    {
+      "row": 15,
+      "source": "CME-2017-ARTICLE",
+      "path": "case.contract.gc",
+      "source_evidence": "product table & entry paragraph",
+      "round4_status": "PASS_LIMITED",
+      "why": "Key value or scenario identity reconstructed for selected fact; source passage-level linkage not independently verified."
+    },
+    {
+      "row": 16,
+      "source": "CME-2017-ARTICLE",
+      "path": "case.entry",
+      "source_evidence": "entry paragraph",
+      "round4_status": "PASS_LIMITED",
+      "why": "Key value or scenario identity reconstructed for selected fact; source passage-level linkage not independently verified."
+    },
+    {
+      "row": 17,
+      "source": "CME-2017-ARTICLE",
+      "path": "case.exit",
+      "source_evidence": "P&L table exit row",
+      "round4_status": "PASS_LIMITED",
+      "why": "Key value or scenario identity reconstructed for selected fact; source passage-level linkage not independently verified."
+    },
+    {
+      "row": 18,
+      "source": "CME-2017-ARTICLE",
+      "path": "case.pnl",
+      "source_evidence": "P&L table total",
+      "round4_status": "PASS_LIMITED",
+      "why": "Key value or scenario identity reconstructed for selected fact; source passage-level linkage not independently verified."
+    },
+    {
+      "row": 19,
+      "source": "CME-2017-ARTICLE",
+      "path": "margin",
+      "source_evidence": "Margin Requirements",
+      "round4_status": "FAIL",
+      "why": "Reconstruction exposes combined and after-offset margin but not the per-contract PL $1,600 and GC $4,250 evidence inputs, offset ratio and exact margin formula as a complete recoverable margin specification."
+    },
+    {
+      "row": 20,
+      "source": "CME-2017-ARTICLE",
+      "path": "driver",
+      "source_evidence": "entry paragraph",
+      "round4_status": "FAIL",
+      "why": "Economic causation is embedded in model subgraph but omitted from the graph-only reconstructed case output."
+    },
+    {
+      "row": 21,
+      "source": "CME-2017-ARTICLE",
+      "path": "contradictory_narrative",
+      "source_evidence": "paragraph preceding closing bullet and price table",
+      "round4_status": "PASS_LIMITED",
+      "why": "Key value or scenario identity reconstructed for selected fact; source passage-level linkage not independently verified."
+    },
+    {
+      "row": 22,
+      "source": "CME-2017-ARTICLE",
+      "path": "mislabel",
+      "source_evidence": "Platinum/Gold P&L table label",
+      "round4_status": "PASS_LIMITED",
+      "why": "Key value or scenario identity reconstructed for selected fact; source passage-level linkage not independently verified."
+    },
+    {
+      "row": 23,
+      "source": "CME-2017-ARTICLE",
+      "path": "rounded_spread_change",
+      "source_evidence": "closing bullet and price table",
+      "round4_status": "FAIL",
+      "why": "Published approximate 8% spread widening is not represented as an explicit sourced approximate claim; only numeric quotes and dollar changes are available."
+    }
+  ],
+  "status": "REBUILD_REQUIRED",
+  "universal_provenance_gap": "Graph results have source ID fields but lack typed SourcePassage→metric/contract/action per-fact provenance edges; R5 must repair evidence traceability as a separate graph completeness requirement.",
+  "next_action": "Build a fresh R5 graph with source-specific evidence paths; reconstruct economic driver and complete source-labeled margin formula; explicitly preserve approximate 8% source claim."
+}
