@@ -85,5 +85,5 @@
     }
   ],
   "approval_status": "UNAPPROVED_PENDING_SEMANTIC_ALIAS_AND_FIVE_OLDER_CASE_REGRESSION",
-  "note": "No duplicate new nodes proposed for already represented SeasonalEvent, SourceCorrectionEvent, CalculationExpression and SourceReportedMetric. R7 introduces navigational relations only; 11 instances across 8 distinct types."
+  "note": "No duplicate new nodes proposed for already represented SeasonalEvent, SourceCorrectionEvent, CalculationExpression and SourceReportedMetric. R7 introduces navigational relations only; 11 instances across 7 distinct types."
 }
