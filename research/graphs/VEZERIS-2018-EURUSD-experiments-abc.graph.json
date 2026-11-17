@@ -611,6 +611,117 @@
         "source_table": "Appendix B Table A2",
         "source_state": "AUTHOR_REPORTED"
       }
+    },
+    {
+      "id": "paper:indicator_param:a:fast",
+      "ontology_type": "N-041:IndicatorParameter",
+      "properties": {
+        "indicator_slot": "Asset.EURUSD.indicator_attributes.MACD",
+        "role": "P_FAST",
+        "value": 12,
+        "value_type": "positive_integer_bars",
+        "timeframe": "1h",
+        "source_ref": "§3.1"
+      }
+    },
+    {
+      "id": "paper:indicator_param:a:slow",
+      "ontology_type": "N-041:IndicatorParameter",
+      "properties": {
+        "indicator_slot": "Asset.EURUSD.indicator_attributes.MACD",
+        "role": "P_SLOW",
+        "value": 26,
+        "value_type": "positive_integer_bars",
+        "timeframe": "1h",
+        "source_ref": "§3.1"
+      }
+    },
+    {
+      "id": "paper:indicator_param:a:signal",
+      "ontology_type": "N-041:IndicatorParameter",
+      "properties": {
+        "indicator_slot": "Asset.EURUSD.indicator_attributes.MACD",
+        "role": "P_SIGNAL",
+        "value": 9,
+        "value_type": "positive_integer_bars",
+        "timeframe": "1h",
+        "source_ref": "§3.1"
+      }
+    },
+    {
+      "id": "paper:indicator_param:selected:fast",
+      "ontology_type": "N-041:IndicatorParameter",
+      "properties": {
+        "indicator_slot": "Asset.EURUSD.indicator_attributes.MACD",
+        "role": "P_FAST",
+        "value": 27,
+        "value_type": "positive_integer_bars",
+        "timeframe": "1h",
+        "source_ref": "Table 2 EURUSD row"
+      }
+    },
+    {
+      "id": "paper:indicator_param:selected:slow",
+      "ontology_type": "N-041:IndicatorParameter",
+      "properties": {
+        "indicator_slot": "Asset.EURUSD.indicator_attributes.MACD",
+        "role": "P_SLOW",
+        "value": 280,
+        "value_type": "positive_integer_bars",
+        "timeframe": "1h",
+        "source_ref": "Table 2 EURUSD row"
+      }
+    },
+    {
+      "id": "paper:indicator_param:selected:signal",
+      "ontology_type": "N-041:IndicatorParameter",
+      "properties": {
+        "indicator_slot": "Asset.EURUSD.indicator_attributes.MACD",
+        "role": "P_SIGNAL",
+        "value": 28,
+        "value_type": "positive_integer_bars",
+        "timeframe": "1h",
+        "source_ref": "Table 2 EURUSD row"
+      }
+    },
+    {
+      "id": "paper:rule:close_before_weekend",
+      "ontology_type": "N-108:TradingRule",
+      "properties": {
+        "role": "WEEKEND_POSITION_CLOSURE",
+        "handling": "CLOSE_ALL_OPEN_POSITIONS_BEFORE_WEEKEND",
+        "exact_calendar_cutoff_time": null,
+        "source_status": "BEHAVIOR_DISCLOSED_TIMING_NOT_DISCLOSED"
+      }
+    },
+    {
+      "id": "paper:rule:weekend_hold",
+      "ontology_type": "N-108:TradingRule",
+      "properties": {
+        "role": "ALLOW_WEEKEND_HOLD",
+        "handling": "LEAVE_EXISTING_POSITION_OPEN_OVER_WEEKEND",
+        "source_status": "DISCLOSED"
+      }
+    },
+    {
+      "id": "paper:condition:weekend_boundary",
+      "ontology_type": "N-127:RuleCondition",
+      "properties": {
+        "kind": "WEEKEND_BOUNDARY_PRE_CLOSE",
+        "calendar": "MARKET_WEEK_END",
+        "exact_time": null,
+        "operator": "BEFORE",
+        "source_status": "EXACT_CUTOFF_NOT_DISCLOSED"
+      }
+    },
+    {
+      "id": "paper:action:weekend_close",
+      "ontology_type": "N-128:TradeAction",
+      "properties": {
+        "kind": "CLOSE_CURRENT_POSITION",
+        "when": "WEEKEND_PRE_CLOSE",
+        "order_execution_details": "NOT_DISCLOSED"
+      }
     }
   ],
   "edges": [
@@ -1081,6 +1192,135 @@
       "relation": "PROPOSED:CASE_APPLIES_TO_ASSET",
       "to": "paper:asset:EURUSD",
       "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "paper:rule:close_before_weekend",
+      "relation": "R-111:RULE_HAS_ATOMIC_CONDITION",
+      "to": "paper:condition:weekend_boundary"
+    },
+    {
+      "from": "paper:rule:close_before_weekend",
+      "relation": "R-112:RULE_DECLARES_ACTION",
+      "to": "paper:action:weekend_close"
+    },
+    {
+      "from": "paper:action:weekend_close",
+      "relation": "R-113:ACTION_CHANGES_POSITION",
+      "to": "paper:position"
+    },
+    {
+      "from": "paper:case:a",
+      "relation": "PROPOSED:CASE_CONFIGURES_CALCULATION",
+      "to": "paper:macd",
+      "parameter_set": "a",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "paper:case:a",
+      "relation": "PROPOSED:CASE_CONFIGURES_CALCULATION",
+      "to": "paper:signal",
+      "parameter_set": "a",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "paper:case:a",
+      "relation": "PROPOSED:CASE_USES_INDICATOR_PARAMETER",
+      "to": "paper:indicator_param:a:fast",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "paper:case:a",
+      "relation": "PROPOSED:CASE_USES_INDICATOR_PARAMETER",
+      "to": "paper:indicator_param:a:slow",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "paper:case:a",
+      "relation": "PROPOSED:CASE_USES_INDICATOR_PARAMETER",
+      "to": "paper:indicator_param:a:signal",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "paper:case:a",
+      "relation": "PROPOSED:CASE_HAS_WEEKEND_POLICY",
+      "to": "paper:rule:close_before_weekend",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "paper:case:b",
+      "relation": "PROPOSED:CASE_CONFIGURES_CALCULATION",
+      "to": "paper:macd",
+      "parameter_set": "selected",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "paper:case:b",
+      "relation": "PROPOSED:CASE_CONFIGURES_CALCULATION",
+      "to": "paper:signal",
+      "parameter_set": "selected",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "paper:case:b",
+      "relation": "PROPOSED:CASE_USES_INDICATOR_PARAMETER",
+      "to": "paper:indicator_param:selected:fast",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "paper:case:b",
+      "relation": "PROPOSED:CASE_USES_INDICATOR_PARAMETER",
+      "to": "paper:indicator_param:selected:slow",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "paper:case:b",
+      "relation": "PROPOSED:CASE_USES_INDICATOR_PARAMETER",
+      "to": "paper:indicator_param:selected:signal",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "paper:case:b",
+      "relation": "PROPOSED:CASE_HAS_WEEKEND_POLICY",
+      "to": "paper:rule:close_before_weekend",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "paper:case:c",
+      "relation": "PROPOSED:CASE_CONFIGURES_CALCULATION",
+      "to": "paper:macd",
+      "parameter_set": "selected",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "paper:case:c",
+      "relation": "PROPOSED:CASE_CONFIGURES_CALCULATION",
+      "to": "paper:signal",
+      "parameter_set": "selected",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "paper:case:c",
+      "relation": "PROPOSED:CASE_USES_INDICATOR_PARAMETER",
+      "to": "paper:indicator_param:selected:fast",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "paper:case:c",
+      "relation": "PROPOSED:CASE_USES_INDICATOR_PARAMETER",
+      "to": "paper:indicator_param:selected:slow",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "paper:case:c",
+      "relation": "PROPOSED:CASE_USES_INDICATOR_PARAMETER",
+      "to": "paper:indicator_param:selected:signal",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "paper:case:c",
+      "relation": "PROPOSED:CASE_HAS_WEEKEND_POLICY",
+      "to": "paper:rule:weekend_hold",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
     }
   ],
   "known_gaps": [
@@ -1113,6 +1353,12 @@
       "field": "BACKTEST_STUDY_TESTS_ASSET, CASE_EVALUATES_STRATEGY, CASE_USES_BACKTEST_STUDY, BACKTEST_RESULT_OF_CASE",
       "type": "ONTOLOGY_RELATION_NEEDS_EXTENSION_APPROVAL",
       "effect": "these relationships are explicit only as unapproved proposed relations"
+    },
+    {
+      "target": "paper:condition:weekend_boundary",
+      "field": "exact_time",
+      "type": "SOURCE_NOT_DISCLOSED",
+      "effect": "Closing before weekend is source stated but exact broker/time cutoff is not available for fill-level backtest"
     }
   ],
   "source_conflicts": [
@@ -1123,5 +1369,20 @@
       "resolution": "retain distinction; only EURUSD specific row is graphed"
     }
   ],
-  "status": "PARTIAL_SOURCE_GROUNDED_GRAPH_NOT_BLIND_RECONSTRUCTED"
+  "status": "PARTIAL_SOURCE_GROUNDED_GRAPH_NOT_BLIND_RECONSTRUCTED",
+  "version": "TV-KG-ITERATIVE-v8.1",
+  "reconstruction_cycles": [
+    {
+      "iteration": 1,
+      "missing_knowledge": "Backtest scenario parameters/weekend policy existed as free properties without explicit semantic links to which MACD calculation and policy they configure.",
+      "correction": "Create six typed IndicatorParameter instances from approved ontology N-041, explicit case-to-MACD and case-to-weekend-policy edges, and rule/condition/action for weekend closure.",
+      "recovered_from_graph": {
+        "a": "EURUSD MACD(12,26,9) close before weekend",
+        "b": "EURUSD MACD(27,280,28) close before weekend",
+        "c": "EURUSD MACD(27,280,28) hold over weekend"
+      },
+      "unresolved": "Actual time and broker fill mechanics for closure; no market series or individual fills",
+      "verification": "GRAPH_TRAVERSAL_RECONSTRUCTABLE_NOT_INDEPENDENT_BLIND_PASS"
+    }
+  ]
 }
