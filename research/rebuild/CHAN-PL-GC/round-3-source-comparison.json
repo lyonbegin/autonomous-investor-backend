@@ -1,0 +1,269 @@
+{
+  "case_id": "CHAN-PL-GC",
+  "round": 3,
+  "method": "GRAPH_ONLY_REPLAY_COMPLETED_THEN_SOURCE_FACT_COMPARISON",
+  "independent_clean_chatgpt_session": false,
+  "fact_scope": "26 EXPLICITLY REGISTERED SOURCE FACTS (original post and four later author posts/comments)",
+  "checked": 26,
+  "passed": 23,
+  "failed": 3,
+  "verdict": "REBUILD_REQUIRED",
+  "graph_paths_checked": {
+    "two_leg_contracts": true,
+    "ounce_balance": true,
+    "not_dollar_neutral": true,
+    "macro_path_complete": true,
+    "source_correction_three_pairs": true,
+    "scoped_all_metrics": true,
+    "drawdown_versions_differ": true,
+    "capital_arithmetic_consistent": true,
+    "paper_trading_not_conflated": true,
+    "not_cointegration": true,
+    "source_nodes_excluded": true
+  },
+  "rows": [
+    {
+      "fact_id": "C01",
+      "source": "S2006",
+      "predicate": "strategy_class",
+      "source_locator": "initial post, description",
+      "graph_path": "strategy.kind",
+      "recovered_as_financial_graph": true,
+      "failure": null
+    },
+    {
+      "fact_id": "C02",
+      "source": "S2006",
+      "predicate": "long_leg",
+      "source_locator": "initial post, strategy sentence",
+      "graph_path": "leg:PL + contract:PL",
+      "recovered_as_financial_graph": true,
+      "failure": null
+    },
+    {
+      "fact_id": "C03",
+      "source": "S2006",
+      "predicate": "short_leg",
+      "source_locator": "initial post, strategy sentence",
+      "graph_path": "leg:GC + contract:GC",
+      "recovered_as_financial_graph": true,
+      "failure": null
+    },
+    {
+      "fact_id": "C04",
+      "source": "S2006",
+      "predicate": "PL_contract_multiplier",
+      "source_locator": "initial post, contract sizes",
+      "graph_path": "spec:PL",
+      "recovered_as_financial_graph": true,
+      "failure": null
+    },
+    {
+      "fact_id": "C05",
+      "source": "S2006",
+      "predicate": "GC_contract_multiplier",
+      "source_locator": "initial post, contract sizes",
+      "graph_path": "spec:GC",
+      "recovered_as_financial_graph": true,
+      "failure": null
+    },
+    {
+      "fact_id": "C06",
+      "source": "S2006",
+      "predicate": "entry_window",
+      "source_locator": "around end of February",
+      "graph_path": "rule:entry → window:entry",
+      "recovered_as_financial_graph": true,
+      "failure": null
+    },
+    {
+      "fact_id": "C07",
+      "source": "S2006",
+      "predicate": "exit_window",
+      "source_locator": "around mid-April",
+      "graph_path": "rule:exit → window:exit",
+      "recovered_as_financial_graph": true,
+      "failure": null
+    },
+    {
+      "fact_id": "C08",
+      "source": "S2006",
+      "predicate": "research_modes",
+      "source_locator": "initial post, testing paragraph",
+      "graph_path": "study:backtest and activity:paper2006",
+      "recovered_as_financial_graph": true,
+      "failure": null
+    },
+    {
+      "fact_id": "C09",
+      "source": "S2006",
+      "predicate": "gold_demand_driver",
+      "source_locator": "initial post, fundamental reason",
+      "graph_path": "event:cny_end → demand:gold_jewelry",
+      "recovered_as_financial_graph": true,
+      "failure": null
+    },
+    {
+      "fact_id": "C10",
+      "source": "S2006",
+      "predicate": "platinum_hedge_rationale",
+      "source_locator": "initial post, fundamental reason",
+      "graph_path": "commodity_use:platinum → asset:PL",
+      "recovered_as_financial_graph": true,
+      "failure": null
+    },
+    {
+      "fact_id": "C11",
+      "source": "S2006",
+      "predicate": "average_annual_pnl",
+      "source_locator": "initial post, average every year",
+      "graph_path": "metric:orig_avg → scope:original",
+      "recovered_as_financial_graph": true,
+      "failure": null
+    },
+    {
+      "fact_id": "C12",
+      "source": "S2006",
+      "predicate": "best_year_pnl",
+      "source_locator": "initial post, best year",
+      "graph_path": "metric:orig_best → scope:original",
+      "recovered_as_financial_graph": true,
+      "failure": null
+    },
+    {
+      "fact_id": "C13",
+      "source": "S2006",
+      "predicate": "worst_year_pnl",
+      "source_locator": "initial post, worst year",
+      "graph_path": "metric:orig_worst → scope:original",
+      "recovered_as_financial_graph": true,
+      "failure": null
+    },
+    {
+      "fact_id": "C14",
+      "source": "S2006",
+      "predicate": "exchange_margin",
+      "source_locator": "initial post, NYMEX margin",
+      "graph_path": null,
+      "recovered_as_financial_graph": false,
+      "failure": {
+        "kind": "MISSING_SEMANTIC_SCOPE",
+        "description": "$743 historic initial margin linked to metric, but not to dated NYMEX margin quotation and spread portfolio."
+      }
+    },
+    {
+      "fact_id": "C15",
+      "source": "S2006RISK",
+      "predicate": "historical_max_drawdown",
+      "source_locator": "2006-11-26 author reply",
+      "graph_path": "metric:dd_2006 → scope:2006dd",
+      "recovered_as_financial_graph": true,
+      "failure": null
+    },
+    {
+      "fact_id": "C16",
+      "source": "S2006RISK",
+      "predicate": "author_max_margin_to_survive_drawdown",
+      "source_locator": "2006-11-26 author reply",
+      "graph_path": "capital:calc → margin_initial + abs(dd_2006) → required_capital",
+      "recovered_as_financial_graph": true,
+      "failure": null
+    },
+    {
+      "fact_id": "C17",
+      "source": "S2007CORR",
+      "predicate": "corrected_average_pnl",
+      "source_locator": "2007-04-20 recap, correction",
+      "graph_path": "correction:2007 → new_avg → scope:2007recent",
+      "recovered_as_financial_graph": true,
+      "failure": null
+    },
+    {
+      "fact_id": "C18",
+      "source": "S2007CORR",
+      "predicate": "corrected_best_pnl",
+      "source_locator": "2007-04-20 recap, correction",
+      "graph_path": "correction:2007 → new_best → scope:2007recent",
+      "recovered_as_financial_graph": true,
+      "failure": null
+    },
+    {
+      "fact_id": "C19",
+      "source": "S2007CORR",
+      "predicate": "corrected_worst_pnl",
+      "source_locator": "2007-04-20 recap, correction",
+      "graph_path": "correction:2007 → new_worst → scope:2007recent",
+      "recovered_as_financial_graph": true,
+      "failure": null
+    },
+    {
+      "fact_id": "C20",
+      "source": "S2007CORR",
+      "predicate": "corrected_max_drawdown",
+      "source_locator": "2007-04-20 recap, drawdown",
+      "graph_path": "dd_2007 ↔ risk:drawdown_comparability ↔ dd_2006",
+      "recovered_as_financial_graph": true,
+      "failure": null
+    },
+    {
+      "fact_id": "C21",
+      "source": "S2007CORR",
+      "predicate": "conditional_2007_result",
+      "source_locator": "2007-04-20 recap, if a trader had entered",
+      "graph_path": "scenario:2007 → metric:hypo_pnl",
+      "recovered_as_financial_graph": true,
+      "failure": null
+    },
+    {
+      "fact_id": "C22",
+      "source": "S2007RISK",
+      "predicate": "hedge_neutrality",
+      "source_locator": "2007-08-19 author reply",
+      "graph_path": "comparison:ounce + comparison:dollar + comparison:volrisk",
+      "recovered_as_financial_graph": true,
+      "failure": null
+    },
+    {
+      "fact_id": "C23",
+      "source": "S2007RISK",
+      "predicate": "neutrality_risk_comment",
+      "source_locator": "2007-08-19 author reply",
+      "graph_path": null,
+      "recovered_as_financial_graph": false,
+      "failure": {
+        "kind": "CLAIM_ONLY_NOT_CAUSALLY_STRUCTURED",
+        "description": "Dollar-neutral alternative reportedly less profitable is only text on EvidenceAssertion; no alternative hedge construction/performance comparison object."
+      }
+    },
+    {
+      "fact_id": "C24",
+      "source": "S2007FEB",
+      "predicate": "not_cointegration",
+      "source_locator": "2007-03-01 author comment",
+      "graph_path": "strategy → model:cointegration_exclusion",
+      "recovered_as_financial_graph": true,
+      "failure": null
+    },
+    {
+      "fact_id": "C25",
+      "source": "S2006",
+      "predicate": "intellectual_source",
+      "source_locator": "initial post, Further reading",
+      "graph_path": "strategy → citation:toepke",
+      "recovered_as_financial_graph": true,
+      "failure": null
+    },
+    {
+      "fact_id": "C26",
+      "source": "S2006RISK",
+      "predicate": "interim_risk_qualification",
+      "source_locator": "2006-11-26 author reply",
+      "graph_path": null,
+      "recovered_as_financial_graph": false,
+      "failure": {
+        "kind": "CLAIM_ONLY_NOT_RELATIONALLY_RECONSTRUCTABLE",
+        "description": "Interim max drawdown and year-end positive result co-existence is only an EvidenceAssertion text, missing period/path-dependent return relation."
+      }
+    }
+  ]
+}
