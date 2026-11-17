@@ -281,17 +281,25 @@
         "role": "PARTIAL_TAKE_PROFIT",
         "tier": 1,
         "trigger_profit_pct": null,
-        "reduce_position_pct": null
+        "reduce_position_pct": null,
+        "price_gain_trigger_pct": null,
+        "position_reduction_value": null,
+        "position_reduction_unit": "NOT_DISCLOSED",
+        "trigger_basis": "PERCENTAGE_GAIN_IN_PRICE"
       }
     },
     {
       "id": "tv01:c_tp1",
       "ontology_type": "N-127:RuleCondition",
       "properties": {
-        "left": "unrealized_gain_pct",
+        "left": {
+          "calculation_ref": "tv01:calc:direction_adjusted_price_gain_pct"
+        },
         "operator": ">=",
         "right": null,
-        "source_status": "PARAMETER_VALUE_NOT_EXTRACTED"
+        "source_status": "PARAMETER_VALUE_NOT_EXTRACTED",
+        "threshold_unit": "percent price change",
+        "comparator_source_status": "COMPARISON_AT_OR_ABOVE_INFERRED_FROM_DESCRIPTION_NOT_PINE_CONFIRMED"
       }
     },
     {
@@ -300,7 +308,9 @@
       "properties": {
         "kind": "REDUCE_POSITION",
         "tier": 1,
-        "reduction_fraction": null
+        "reduction_fraction": null,
+        "reduction_value": null,
+        "reduction_unit": "NOT_DISCLOSED"
       }
     },
     {
@@ -310,17 +320,25 @@
         "role": "PARTIAL_TAKE_PROFIT",
         "tier": 2,
         "trigger_profit_pct": null,
-        "reduce_position_pct": null
+        "reduce_position_pct": null,
+        "price_gain_trigger_pct": null,
+        "position_reduction_value": null,
+        "position_reduction_unit": "NOT_DISCLOSED",
+        "trigger_basis": "PERCENTAGE_GAIN_IN_PRICE"
       }
     },
     {
       "id": "tv01:c_tp2",
       "ontology_type": "N-127:RuleCondition",
       "properties": {
-        "left": "unrealized_gain_pct",
+        "left": {
+          "calculation_ref": "tv01:calc:direction_adjusted_price_gain_pct"
+        },
         "operator": ">=",
         "right": null,
-        "source_status": "PARAMETER_VALUE_NOT_EXTRACTED"
+        "source_status": "PARAMETER_VALUE_NOT_EXTRACTED",
+        "threshold_unit": "percent price change",
+        "comparator_source_status": "COMPARISON_AT_OR_ABOVE_INFERRED_FROM_DESCRIPTION_NOT_PINE_CONFIRMED"
       }
     },
     {
@@ -329,7 +347,9 @@
       "properties": {
         "kind": "REDUCE_POSITION",
         "tier": 2,
-        "reduction_fraction": null
+        "reduction_fraction": null,
+        "reduction_value": null,
+        "reduction_unit": "NOT_DISCLOSED"
       }
     },
     {
@@ -339,17 +359,25 @@
         "role": "PARTIAL_TAKE_PROFIT",
         "tier": 3,
         "trigger_profit_pct": null,
-        "reduce_position_pct": null
+        "reduce_position_pct": null,
+        "price_gain_trigger_pct": null,
+        "position_reduction_value": null,
+        "position_reduction_unit": "NOT_DISCLOSED",
+        "trigger_basis": "PERCENTAGE_GAIN_IN_PRICE"
       }
     },
     {
       "id": "tv01:c_tp3",
       "ontology_type": "N-127:RuleCondition",
       "properties": {
-        "left": "unrealized_gain_pct",
+        "left": {
+          "calculation_ref": "tv01:calc:direction_adjusted_price_gain_pct"
+        },
         "operator": ">=",
         "right": null,
-        "source_status": "PARAMETER_VALUE_NOT_EXTRACTED"
+        "source_status": "PARAMETER_VALUE_NOT_EXTRACTED",
+        "threshold_unit": "percent price change",
+        "comparator_source_status": "COMPARISON_AT_OR_ABOVE_INFERRED_FROM_DESCRIPTION_NOT_PINE_CONFIRMED"
       }
     },
     {
@@ -358,7 +386,9 @@
       "properties": {
         "kind": "REDUCE_POSITION",
         "tier": 3,
-        "reduction_fraction": null
+        "reduction_fraction": null,
+        "reduction_value": null,
+        "reduction_unit": "NOT_DISCLOSED"
       }
     },
     {
@@ -368,17 +398,25 @@
         "role": "PARTIAL_TAKE_PROFIT",
         "tier": 4,
         "trigger_profit_pct": null,
-        "reduce_position_pct": null
+        "reduce_position_pct": null,
+        "price_gain_trigger_pct": null,
+        "position_reduction_value": null,
+        "position_reduction_unit": "NOT_DISCLOSED",
+        "trigger_basis": "PERCENTAGE_GAIN_IN_PRICE"
       }
     },
     {
       "id": "tv01:c_tp4",
       "ontology_type": "N-127:RuleCondition",
       "properties": {
-        "left": "unrealized_gain_pct",
+        "left": {
+          "calculation_ref": "tv01:calc:direction_adjusted_price_gain_pct"
+        },
         "operator": ">=",
         "right": null,
-        "source_status": "PARAMETER_VALUE_NOT_EXTRACTED"
+        "source_status": "PARAMETER_VALUE_NOT_EXTRACTED",
+        "threshold_unit": "percent price change",
+        "comparator_source_status": "COMPARISON_AT_OR_ABOVE_INFERRED_FROM_DESCRIPTION_NOT_PINE_CONFIRMED"
       }
     },
     {
@@ -387,7 +425,9 @@
       "properties": {
         "kind": "REDUCE_POSITION",
         "tier": 4,
-        "reduction_fraction": null
+        "reduction_fraction": null,
+        "reduction_value": null,
+        "reduction_unit": "NOT_DISCLOSED"
       }
     },
     {
@@ -524,6 +564,79 @@
         "event": "OPPOSITE_SIGNAL",
         "actual_execution": false,
         "action_count": 2
+      }
+    },
+    {
+      "id": "tv01:calc:direction_adjusted_price_gain_pct",
+      "ontology_type": "N-130:CalculationExpression",
+      "properties": {
+        "name": "Price gain percentage from entry",
+        "expression_ast": {
+          "op": "IF_POSITION_SIDE",
+          "LONG": {
+            "op": "PERCENT_CHANGE",
+            "numerator": {
+              "op": "SUB",
+              "args": [
+                "CURRENT_ASSET_PRICE",
+                "ENTRY_PRICE"
+              ]
+            },
+            "denominator": "ENTRY_PRICE"
+          },
+          "SHORT": {
+            "op": "PERCENT_CHANGE",
+            "numerator": {
+              "op": "SUB",
+              "args": [
+                "ENTRY_PRICE",
+                "CURRENT_ASSET_PRICE"
+              ]
+            },
+            "denominator": "ENTRY_PRICE"
+          }
+        },
+        "output": "DIRECTION_ADJUSTED_PRICE_GAIN_PCT",
+        "inputs": [
+          "POSITION_SIDE",
+          "ENTRY_PRICE",
+          "CURRENT_ASSET_PRICE"
+        ],
+        "source_note": "Illustrative algebraic formalization of percent gain in price; full Pine computation unverified",
+        "expression_status": "SOURCE_TEXT_DERIVED_NOT_PINE_VERIFIED",
+        "unit": "percent"
+      }
+    },
+    {
+      "id": "tv01:condition:initial_stop_cutoff",
+      "ontology_type": "N-127:RuleCondition",
+      "properties": {
+        "rule_kind": "INITIAL_TRAILING_STOP_CUTOFF",
+        "threshold_offset_percent": null,
+        "reference": "ENTRY_PRICE",
+        "price_side_adjustment": "SIGN_REVERSES_FOR_SHORT",
+        "percent_reference_wording": "PERCENT_OF_CURRENT_ASSET_PRICE_AROUND_ENTRY_LEVEL",
+        "exact_formula": "SOURCE_CODE_NOT_OBTAINED",
+        "condition_result": "STOP_FREEZES_AT_CUTOFF"
+      }
+    },
+    {
+      "id": "tv01:action:freeze_initial_trailing_stop",
+      "ontology_type": "N-128:TradeAction",
+      "properties": {
+        "kind": "FREEZE_STOP_PRICE_AT_CUTOFF",
+        "target": "tv01:r_initial_trail",
+        "is_order": false,
+        "when": "CUTOFF_REACHED",
+        "is_trade_fill": false
+      }
+    },
+    {
+      "id": "tv01:e_stop_ordering",
+      "ontology_type": "N-121:EvidenceAssertion",
+      "properties": {
+        "claim": "Typical guidance: Trailing Stop > Initial Trailing Stop >= Stop",
+        "claim_kind": "AUTHOR_GUIDANCE_NOT_HARD_EXECUTION_RULE"
       }
     }
   ],
@@ -1055,6 +1168,65 @@
       "relation": "PROPOSED:RULE_REQUIRES_POSITION_STATE",
       "to": "tv01:state:FLAT",
       "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:calc:direction_adjusted_price_gain_pct",
+      "relation": "PROPOSED:CALCULATION_READS_POSITION_PRICE_AND_SIDE",
+      "to": "tv01:position",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:c_tp1",
+      "relation": "R-117:CONDITION_TESTS_CALCULATION",
+      "to": "tv01:calc:direction_adjusted_price_gain_pct"
+    },
+    {
+      "from": "tv01:c_tp2",
+      "relation": "R-117:CONDITION_TESTS_CALCULATION",
+      "to": "tv01:calc:direction_adjusted_price_gain_pct"
+    },
+    {
+      "from": "tv01:c_tp3",
+      "relation": "R-117:CONDITION_TESTS_CALCULATION",
+      "to": "tv01:calc:direction_adjusted_price_gain_pct"
+    },
+    {
+      "from": "tv01:c_tp4",
+      "relation": "R-117:CONDITION_TESTS_CALCULATION",
+      "to": "tv01:calc:direction_adjusted_price_gain_pct"
+    },
+    {
+      "from": "tv01:r_initial_trail",
+      "relation": "R-111:RULE_HAS_ATOMIC_CONDITION",
+      "to": "tv01:condition:initial_stop_cutoff"
+    },
+    {
+      "from": "tv01:r_initial_trail",
+      "relation": "R-112:RULE_DECLARES_ACTION",
+      "to": "tv01:action:freeze_initial_trailing_stop"
+    },
+    {
+      "from": "tv01:action:freeze_initial_trailing_stop",
+      "relation": "PROPOSED:ACTION_MODIFIES_RISK_RULE",
+      "to": "tv01:r_initial_trail",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:r_trail",
+      "relation": "PROPOSED:RISK_RULE_MAY_TAKE_OVER_AFTER",
+      "to": "tv01:r_initial_trail",
+      "optional": true,
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:case",
+      "relation": "R-101:CASE_HAS_ASSERTION",
+      "to": "tv01:e_stop_ordering"
+    },
+    {
+      "from": "tv01:e_stop_ordering",
+      "relation": "R-100:ASSERTION_SUPPORTED_BY_PASSAGE",
+      "to": "tv01:p_stops"
     }
   ],
   "known_gaps": [
@@ -1134,7 +1306,23 @@
       },
       "unresolved": "The source description does not state the configured default opposite-signal mode; do not infer actual choice.",
       "verification": "GRAPH_PATH_RECONSTRUCTABLE_NOT_INDEPENDENT_BLIND_PASS"
+    },
+    {
+      "iteration": 3,
+      "missing_knowledge": "TP conditions read untyped position 'unrealized_gain_pct', which risks conflating price movement and monetary P&L. Initial trailing-stop lacked cutoff condition and freeze action.",
+      "correction": "Create direction-adjusted price-change computation, link each of 4 TP conditions; create stop cutoff condition and freeze action; preserve author's stop-ordering recommendation separately from mandatory execution.",
+      "source_reference": "TradingView description lines 38–48",
+      "restored_from_graph": {
+        "take_profit": "Four independently configurable trigger percentages based on favorable asset-price change, each reducing position size by a separately configurable amount.",
+        "initial_trailing_stop": "Trails until side-adjusted cutoff relative to entry, then freezes that stop; a regular trailing stop may take over.",
+        "typical_stop_ordering": "Trailing Stop > Initial Trailing Stop >= Stop (guidance only)"
+      },
+      "unresolved": [
+        "Exact TP percentages and reduction units/amounts",
+        "Pine expression and execution priority for cutoff"
+      ],
+      "verification": "GRAPH_PATH_RECONSTRUCTABLE_NOT_INDEPENDENT_BLIND_PASS"
     }
   ],
-  "version": "TV-KG-ITERATIVE-v8.2"
+  "version": "TV-KG-ITERATIVE-v8.3"
 }
