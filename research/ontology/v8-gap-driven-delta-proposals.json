@@ -26,6 +26,13 @@
       "meaning": "Evidence-linked missing information about a specific graph node field",
       "needs_node_because": "Missing parameter/evidence must point to the exact node and field and carry whether it is not disclosed, not extracted, or not applicable.",
       "status": "PROPOSED_V8_NOT_APPROVED"
+    },
+    {
+      "id": "N-144",
+      "term": "ConcurrentStopPolicy",
+      "meaning": "Selection and concurrent activation policy for multiple independent stop-loss mechanisms",
+      "needs_node_because": "Source allows three stops in any combination; three individual USES_RISK_RULE links cannot express whether/how the stops coexist or collision priority.",
+      "status": "PROPOSED_V8_NOT_APPROVED"
     }
   ],
   "new_relation_types": [
@@ -442,6 +449,45 @@
       "observed_examples": 3,
       "status": "PROPOSED_V8_NOT_APPROVED",
       "review_required": "Compare against original 604 + v7 types, confirm cardinality, then rerun older case graphs."
+    },
+    {
+      "id": "R-156",
+      "term": "STRATEGY_HAS_STOP_COMBINATION_POLICY",
+      "owner": "TradingStrategy",
+      "range": "ConcurrentStopPolicy",
+      "direction": "source→target",
+      "example_edge": {
+        "source_id": "tv01:strategy",
+        "target_id": "tv01:policy:concurrent_stops"
+      },
+      "status": "PROPOSED_V8_NOT_APPROVED",
+      "review_required": "Review source meaning, duplicates, cardinality and 5 prior research-case regression"
+    },
+    {
+      "id": "R-157",
+      "term": "STOP_POLICY_CONTAINS_RISK_RULE",
+      "owner": "ConcurrentStopPolicy",
+      "range": "RiskRule",
+      "direction": "source→target",
+      "example_edge": {
+        "source_id": "tv01:policy:concurrent_stops",
+        "target_id": "tv01:r_initial_trail"
+      },
+      "status": "PROPOSED_V8_NOT_APPROVED",
+      "review_required": "Review source meaning, duplicates, cardinality and 5 prior research-case regression"
+    },
+    {
+      "id": "R-158",
+      "term": "POLICY_SUPPORTED_BY_ASSERTION",
+      "owner": "ConcurrentStopPolicy",
+      "range": "EvidenceAssertion",
+      "direction": "source→target",
+      "example_edge": {
+        "source_id": "tv01:policy:concurrent_stops",
+        "target_id": "tv01:e_stops"
+      },
+      "status": "PROPOSED_V8_NOT_APPROVED",
+      "review_required": "Review source meaning, duplicates, cardinality and 5 prior research-case regression"
     }
   ],
   "new_property_types": [
@@ -532,12 +578,20 @@
       "dtype": "enum CLOSE_BEFORE_WEEKEND|HOLD_WEEKEND|NOT_DISCLOSED",
       "reason": "Published experiments differ in weekend position treatment",
       "status": "PROPOSED_V8_NOT_APPROVED"
+    },
+    {
+      "id": "P-318",
+      "owner": "ConcurrentStopPolicy",
+      "term": "simultaneous_trigger_priority",
+      "dtype": "enum FIRST_HIT|PRICE_WORST|SOURCE_DEFINED|NOT_VERIFIED",
+      "reason": "Prevent treating concurrent stop collisions as settled when Pine implementation is not inspected",
+      "status": "PROPOSED_V8_NOT_APPROVED"
     }
   ],
   "proposed_unique_types_after_v8": {
-    "nodes": 143,
-    "properties": 317,
-    "relations": 155
+    "nodes": 144,
+    "properties": 318,
+    "relations": 158
   },
   "merge_status": "REVIEW_REQUIRED",
   "assurance": "No completed blind AI replay yet; source reconstruction scope differs from runtime trade equivalence."
