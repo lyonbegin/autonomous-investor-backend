@@ -1,0 +1,2412 @@
+{
+  "id": "CME_R6_REDACTED_FOR_CHATGPT",
+  "version": "R6",
+  "goal": "Graph only: reconstruct all published economic/trading facts, not actual trade fills",
+  "nodes": [
+    {
+      "id": "model:pair",
+      "type": "FuturesPair",
+      "fields": {
+        "type": "PLATINUM_GOLD_INTERMARKET_RELATIVE_VALUE",
+        "spread_definition": "PL_QUOTE_MINUS_GC_QUOTE",
+        "one_spread_unit": "USD_PER_TROY_OZ",
+        "hedge_ratio_contracts": "2_PL_LONG_VS_1_GC_SHORT",
+        "matched_troy_oz": 100,
+        "notional_dollar_neutral": false
+      }
+    },
+    {
+      "id": "model:strategy",
+      "type": "TradingStrategy",
+      "fields": {
+        "approach": "LONG_PLATINUM_SHORT_GOLD_SPREAD",
+        "purpose": "HYPOTHESIZED_PL_OUTPERFORMS_GC",
+        "automatic_signal": "NOT_SPECIFIED"
+      }
+    },
+    {
+      "id": "model:econ:event",
+      "type": "EconomicEvent",
+      "fields": {
+        "driver": "INCREASING_AUTOMOBILE_SALES",
+        "source_status": "EXPECTED_NOT_OBSERVED"
+      }
+    },
+    {
+      "id": "model:econ:use",
+      "type": "CommodityUseChannel",
+      "fields": {
+        "industry": "AUTOMOTIVE",
+        "commodity": "PLATINUM",
+        "channel": "CATALYTIC_CONVERTER_DEMAND"
+      }
+    },
+    {
+      "id": "model:econ:demand",
+      "type": "CommodityDemandExpectation",
+      "fields": {
+        "commodity": "PLATINUM",
+        "expected_change": "INCREASE",
+        "assertion_type": "HYPOTHESIS"
+      }
+    },
+    {
+      "id": "model:econ:relative",
+      "type": "RelativePriceExpectation",
+      "fields": {
+        "relative": "PLATINUM_MINUS_GOLD",
+        "expected_change": "INCREASE",
+        "status": "EXPECTED"
+      }
+    },
+    {
+      "id": "model:econ:spread",
+      "type": "SpreadDirectionExpectation",
+      "fields": {
+        "spread": "PL_MINUS_GC",
+        "expected_change": "TOWARD_ZERO_FROM_NEGATIVE",
+        "position_direction": "LONG_SPREAD"
+      }
+    },
+    {
+      "id": "course:case",
+      "type": "TradeCase",
+      "fields": {
+        "scenario_key": "course",
+        "classification": "EDUCATIONAL_WORKED_EXAMPLE",
+        "trade_execution": "HYPOTHETICAL_NOT_PROOF_OF_REAL_FILLS",
+        "entry_date": "03-02",
+        "exit_date": "03-30",
+        "year": null,
+        "year_evidence": "NOT_STATED",
+        "source_locked": true
+      }
+    },
+    {
+      "id": "course:scenario",
+      "type": "ScenarioBinding",
+      "fields": {
+        "case_ref": "course:case",
+        "outcome_variant": "course",
+        "source_derived": true,
+        "assumption": "INDEPENDENT_PUBLISHED_WORKED_OUTCOME"
+      }
+    },
+    {
+      "id": "course:position",
+      "type": "TradePosition",
+      "fields": {
+        "direction": "LONG_SPREAD",
+        "fully_reported_pnl": true,
+        "actual_exchange_fills": false
+      }
+    },
+    {
+      "id": "course:event:entry",
+      "type": "TradeEvent",
+      "fields": {
+        "stage": "entry",
+        "date_when": "03-02",
+        "simultaneous_legs": true,
+        "year": null
+      }
+    },
+    {
+      "id": "course:event:exit",
+      "type": "TradeEvent",
+      "fields": {
+        "stage": "exit",
+        "date_when": "03-30",
+        "simultaneous_legs": true,
+        "year": null
+      }
+    },
+    {
+      "id": "course:asset:pl",
+      "type": "Asset",
+      "fields": {
+        "asset_class": "FUTURES",
+        "root": "PL",
+        "underlying": "PLATINUM"
+      }
+    },
+    {
+      "id": "course:contract:pl",
+      "type": "FuturesContract",
+      "fields": {
+        "full_symbol": "PL",
+        "contract_month": "APR",
+        "contract_year": null,
+        "venue": "NYMEX",
+        "contract_code_precision": "ROOT_PLUS_MONTH_ONLY"
+      }
+    },
+    {
+      "id": "course:spec:pl",
+      "type": "ContractSpecification",
+      "fields": {
+        "multiplier": 50,
+        "multiplier_unit": "TROY_OZ_PER_CONTRACT",
+        "price_quote_unit": "USD_PER_TROY_OZ",
+        "settlement_currency": "USD"
+      }
+    },
+    {
+      "id": "course:leg:pl",
+      "type": "TradeLeg",
+      "fields": {
+        "position_side": "LONG",
+        "contracts": 2,
+        "direction_factor": 1
+      }
+    },
+    {
+      "id": "action:course:pl:entry",
+      "type": "TradeAction",
+      "fields": {
+        "kind": "BUY",
+        "contract_count": 2,
+        "stage": "entry",
+        "actual_order_record": false
+      }
+    },
+    {
+      "id": "price:course:pl:entry",
+      "type": "PriceObservation",
+      "fields": {
+        "quote": 988.4,
+        "currency": "USD",
+        "quote_unit": "USD_PER_TROY_OZ",
+        "time_point": "entry"
+      }
+    },
+    {
+      "id": "metric:notional:course:pl:entry",
+      "type": "SourceReportedMetric",
+      "fields": {
+        "metric": "LEG_ABSOLUTE_NOTIONAL",
+        "value": 98840,
+        "unit": "USD"
+      }
+    },
+    {
+      "id": "calc:notional:course:pl:entry",
+      "type": "CalculationExpression",
+      "fields": {
+        "operation": "MULTIPLICATION",
+        "formula": "contracts × multiplier × quote",
+        "inputs": [
+          "action:course:pl:entry",
+          "course:spec:pl",
+          "price:course:pl:entry"
+        ],
+        "output": "metric:notional:course:pl:entry",
+        "output_unit": "USD"
+      }
+    },
+    {
+      "id": "action:course:pl:exit",
+      "type": "TradeAction",
+      "fields": {
+        "kind": "SELL",
+        "contract_count": 2,
+        "stage": "exit",
+        "actual_order_record": false
+      }
+    },
+    {
+      "id": "price:course:pl:exit",
+      "type": "PriceObservation",
+      "fields": {
+        "quote": 1056.4,
+        "currency": "USD",
+        "quote_unit": "USD_PER_TROY_OZ",
+        "time_point": "exit"
+      }
+    },
+    {
+      "id": "metric:notional:course:pl:exit",
+      "type": "SourceReportedMetric",
+      "fields": {
+        "metric": "LEG_ABSOLUTE_NOTIONAL",
+        "value": 105640,
+        "unit": "USD"
+      }
+    },
+    {
+      "id": "calc:notional:course:pl:exit",
+      "type": "CalculationExpression",
+      "fields": {
+        "operation": "MULTIPLICATION",
+        "formula": "contracts × multiplier × quote",
+        "inputs": [
+          "action:course:pl:exit",
+          "course:spec:pl",
+          "price:course:pl:exit"
+        ],
+        "output": "metric:notional:course:pl:exit",
+        "output_unit": "USD"
+      }
+    },
+    {
+      "id": "course:calc:pnl:pl",
+      "type": "CalculationExpression",
+      "fields": {
+        "operation": "SIGNED_PRICE_DIFFERENCE_TIMES_EXPOSURE",
+        "formula": "direction_factor * quantity * multiplier * (exit quote - entry quote)",
+        "inputs": [
+          "course:leg:pl",
+          "course:spec:pl",
+          "price:course:pl:entry",
+          "price:course:pl:exit"
+        ],
+        "output": "course:metric:pnl:pl",
+        "output_unit": "USD"
+      }
+    },
+    {
+      "id": "course:metric:pnl:pl",
+      "type": "SourceReportedMetric",
+      "fields": {
+        "metric": "LEG_GROSS_PNL",
+        "value": 6800,
+        "unit": "USD"
+      }
+    },
+    {
+      "id": "course:asset:gc",
+      "type": "Asset",
+      "fields": {
+        "asset_class": "FUTURES",
+        "root": "GC",
+        "underlying": "GOLD"
+      }
+    },
+    {
+      "id": "course:contract:gc",
+      "type": "FuturesContract",
+      "fields": {
+        "full_symbol": "GC",
+        "contract_month": "APR",
+        "contract_year": null,
+        "venue": "COMEX",
+        "contract_code_precision": "ROOT_PLUS_MONTH_ONLY"
+      }
+    },
+    {
+      "id": "course:spec:gc",
+      "type": "ContractSpecification",
+      "fields": {
+        "multiplier": 100,
+        "multiplier_unit": "TROY_OZ_PER_CONTRACT",
+        "price_quote_unit": "USD_PER_TROY_OZ",
+        "settlement_currency": "USD"
+      }
+    },
+    {
+      "id": "course:leg:gc",
+      "type": "TradeLeg",
+      "fields": {
+        "position_side": "SHORT",
+        "contracts": 1,
+        "direction_factor": -1
+      }
+    },
+    {
+      "id": "action:course:gc:entry",
+      "type": "TradeAction",
+      "fields": {
+        "kind": "SELL",
+        "contract_count": 1,
+        "stage": "entry",
+        "actual_order_record": false
+      }
+    },
+    {
+      "id": "price:course:gc:entry",
+      "type": "PriceObservation",
+      "fields": {
+        "quote": 1231.9,
+        "currency": "USD",
+        "quote_unit": "USD_PER_TROY_OZ",
+        "time_point": "entry"
+      }
+    },
+    {
+      "id": "metric:notional:course:gc:entry",
+      "type": "SourceReportedMetric",
+      "fields": {
+        "metric": "LEG_ABSOLUTE_NOTIONAL",
+        "value": 123190,
+        "unit": "USD"
+      }
+    },
+    {
+      "id": "calc:notional:course:gc:entry",
+      "type": "CalculationExpression",
+      "fields": {
+        "operation": "MULTIPLICATION",
+        "formula": "contracts × multiplier × quote",
+        "inputs": [
+          "action:course:gc:entry",
+          "course:spec:gc",
+          "price:course:gc:entry"
+        ],
+        "output": "metric:notional:course:gc:entry",
+        "output_unit": "USD"
+      }
+    },
+    {
+      "id": "action:course:gc:exit",
+      "type": "TradeAction",
+      "fields": {
+        "kind": "BUY",
+        "contract_count": 1,
+        "stage": "exit",
+        "actual_order_record": false
+      }
+    },
+    {
+      "id": "price:course:gc:exit",
+      "type": "PriceObservation",
+      "fields": {
+        "quote": 1244.2,
+        "currency": "USD",
+        "quote_unit": "USD_PER_TROY_OZ",
+        "time_point": "exit"
+      }
+    },
+    {
+      "id": "metric:notional:course:gc:exit",
+      "type": "SourceReportedMetric",
+      "fields": {
+        "metric": "LEG_ABSOLUTE_NOTIONAL",
+        "value": 124420,
+        "unit": "USD"
+      }
+    },
+    {
+      "id": "calc:notional:course:gc:exit",
+      "type": "CalculationExpression",
+      "fields": {
+        "operation": "MULTIPLICATION",
+        "formula": "contracts × multiplier × quote",
+        "inputs": [
+          "action:course:gc:exit",
+          "course:spec:gc",
+          "price:course:gc:exit"
+        ],
+        "output": "metric:notional:course:gc:exit",
+        "output_unit": "USD"
+      }
+    },
+    {
+      "id": "course:calc:pnl:gc",
+      "type": "CalculationExpression",
+      "fields": {
+        "operation": "SIGNED_PRICE_DIFFERENCE_TIMES_EXPOSURE",
+        "formula": "direction_factor * quantity * multiplier * (exit quote - entry quote)",
+        "inputs": [
+          "course:leg:gc",
+          "course:spec:gc",
+          "price:course:gc:entry",
+          "price:course:gc:exit"
+        ],
+        "output": "course:metric:pnl:gc",
+        "output_unit": "USD"
+      }
+    },
+    {
+      "id": "course:metric:pnl:gc",
+      "type": "SourceReportedMetric",
+      "fields": {
+        "metric": "LEG_GROSS_PNL",
+        "value": -1230,
+        "unit": "USD"
+      }
+    },
+    {
+      "id": "course:calc:spread:entry",
+      "type": "CalculationExpression",
+      "fields": {
+        "formula": "pl_quote - gc_quote",
+        "operation": "SUBTRACTION",
+        "inputs": [
+          "price:course:pl:entry",
+          "price:course:gc:entry"
+        ],
+        "output": "course:metric:spread:entry"
+      }
+    },
+    {
+      "id": "course:metric:spread:entry",
+      "type": "SourceReportedMetric",
+      "fields": {
+        "metric": "PL_MINUS_GC_QUOTED_SPREAD",
+        "value": -243.5,
+        "unit": "USD_PER_TROY_OZ"
+      }
+    },
+    {
+      "id": "course:calc:spread:exit",
+      "type": "CalculationExpression",
+      "fields": {
+        "formula": "pl_quote - gc_quote",
+        "operation": "SUBTRACTION",
+        "inputs": [
+          "price:course:pl:exit",
+          "price:course:gc:exit"
+        ],
+        "output": "course:metric:spread:exit"
+      }
+    },
+    {
+      "id": "course:metric:spread:exit",
+      "type": "SourceReportedMetric",
+      "fields": {
+        "metric": "PL_MINUS_GC_QUOTED_SPREAD",
+        "value": -187.8,
+        "unit": "USD_PER_TROY_OZ"
+      }
+    },
+    {
+      "id": "course:calc:total_pnl",
+      "type": "CalculationExpression",
+      "fields": {
+        "operation": "ADDITION",
+        "formula": "PL_leg_PnL+GC_leg_PnL",
+        "inputs": [
+          "course:metric:pnl:pl",
+          "course:metric:pnl:gc"
+        ],
+        "output": "course:metric:total_pnl",
+        "output_unit": "USD"
+      }
+    },
+    {
+      "id": "course:metric:total_pnl",
+      "type": "SourceReportedMetric",
+      "fields": {
+        "metric": "SCENARIO_GROSS_PNL",
+        "value": 5570,
+        "unit": "USD",
+        "not_including_unreported_broker_fees": true
+      }
+    },
+    {
+      "id": "course:margin:comparison",
+      "type": "MarginComparison",
+      "fields": {
+        "basis": "SPREAD_VS_TWO_OUTRIGHT_POSITIONS",
+        "claim": "SPREAD_REQUIRES_LESS_MAINTENANCE_MARGIN"
+      }
+    },
+    {
+      "id": "course:margin:unknown",
+      "type": "InformationGap",
+      "fields": {
+        "target_id": "course:margin:comparison",
+        "field": "numeric_margin",
+        "cause": "NOT_DISCLOSED_IN_COURSE_SOURCE",
+        "do_not_import_article_margin": true
+      }
+    },
+    {
+      "id": "article2017:case",
+      "type": "TradeCase",
+      "fields": {
+        "scenario_key": "article2017",
+        "classification": "EDUCATIONAL_WORKED_EXAMPLE",
+        "trade_execution": "HYPOTHETICAL_NOT_PROOF_OF_REAL_FILLS",
+        "entry_date": "2017-03-02",
+        "exit_date": "2017-03-30",
+        "year": 2017,
+        "year_evidence": "EXPLICIT",
+        "source_locked": true
+      }
+    },
+    {
+      "id": "article2017:scenario",
+      "type": "ScenarioBinding",
+      "fields": {
+        "case_ref": "article2017:case",
+        "outcome_variant": "article2017",
+        "source_derived": true,
+        "assumption": "INDEPENDENT_PUBLISHED_WORKED_OUTCOME"
+      }
+    },
+    {
+      "id": "article2017:position",
+      "type": "TradePosition",
+      "fields": {
+        "direction": "LONG_SPREAD",
+        "fully_reported_pnl": true,
+        "actual_exchange_fills": false
+      }
+    },
+    {
+      "id": "article2017:event:entry",
+      "type": "TradeEvent",
+      "fields": {
+        "stage": "entry",
+        "date_when": "2017-03-02",
+        "simultaneous_legs": true,
+        "year": 2017
+      }
+    },
+    {
+      "id": "article2017:event:exit",
+      "type": "TradeEvent",
+      "fields": {
+        "stage": "exit",
+        "date_when": "2017-03-30",
+        "simultaneous_legs": true,
+        "year": 2017
+      }
+    },
+    {
+      "id": "article2017:asset:pl",
+      "type": "Asset",
+      "fields": {
+        "asset_class": "FUTURES",
+        "root": "PL",
+        "underlying": "PLATINUM"
+      }
+    },
+    {
+      "id": "article2017:contract:pl",
+      "type": "FuturesContract",
+      "fields": {
+        "full_symbol": "PLJ7",
+        "contract_month": "APR",
+        "contract_year": 2017,
+        "venue": "NYMEX",
+        "contract_code_precision": "FULL_EXCHANGE_CODE"
+      }
+    },
+    {
+      "id": "article2017:spec:pl",
+      "type": "ContractSpecification",
+      "fields": {
+        "multiplier": 50,
+        "multiplier_unit": "TROY_OZ_PER_CONTRACT",
+        "price_quote_unit": "USD_PER_TROY_OZ",
+        "settlement_currency": "USD"
+      }
+    },
+    {
+      "id": "article2017:leg:pl",
+      "type": "TradeLeg",
+      "fields": {
+        "position_side": "LONG",
+        "contracts": 2,
+        "direction_factor": 1
+      }
+    },
+    {
+      "id": "action:article2017:pl:entry",
+      "type": "TradeAction",
+      "fields": {
+        "kind": "BUY",
+        "contract_count": 2,
+        "stage": "entry",
+        "actual_order_record": false
+      }
+    },
+    {
+      "id": "price:article2017:pl:entry",
+      "type": "PriceObservation",
+      "fields": {
+        "quote": 988.4,
+        "currency": "USD",
+        "quote_unit": "USD_PER_TROY_OZ",
+        "time_point": "entry"
+      }
+    },
+    {
+      "id": "metric:notional:article2017:pl:entry",
+      "type": "SourceReportedMetric",
+      "fields": {
+        "metric": "LEG_ABSOLUTE_NOTIONAL",
+        "value": 98840,
+        "unit": "USD"
+      }
+    },
+    {
+      "id": "calc:notional:article2017:pl:entry",
+      "type": "CalculationExpression",
+      "fields": {
+        "operation": "MULTIPLICATION",
+        "formula": "contracts × multiplier × quote",
+        "inputs": [
+          "action:article2017:pl:entry",
+          "article2017:spec:pl",
+          "price:article2017:pl:entry"
+        ],
+        "output": "metric:notional:article2017:pl:entry",
+        "output_unit": "USD"
+      }
+    },
+    {
+      "id": "action:article2017:pl:exit",
+      "type": "TradeAction",
+      "fields": {
+        "kind": "SELL",
+        "contract_count": 2,
+        "stage": "exit",
+        "actual_order_record": false
+      }
+    },
+    {
+      "id": "price:article2017:pl:exit",
+      "type": "PriceObservation",
+      "fields": {
+        "quote": 971.4,
+        "currency": "USD",
+        "quote_unit": "USD_PER_TROY_OZ",
+        "time_point": "exit"
+      }
+    },
+    {
+      "id": "metric:notional:article2017:pl:exit",
+      "type": "SourceReportedMetric",
+      "fields": {
+        "metric": "LEG_ABSOLUTE_NOTIONAL",
+        "value": 97140,
+        "unit": "USD"
+      }
+    },
+    {
+      "id": "calc:notional:article2017:pl:exit",
+      "type": "CalculationExpression",
+      "fields": {
+        "operation": "MULTIPLICATION",
+        "formula": "contracts × multiplier × quote",
+        "inputs": [
+          "action:article2017:pl:exit",
+          "article2017:spec:pl",
+          "price:article2017:pl:exit"
+        ],
+        "output": "metric:notional:article2017:pl:exit",
+        "output_unit": "USD"
+      }
+    },
+    {
+      "id": "article2017:calc:pnl:pl",
+      "type": "CalculationExpression",
+      "fields": {
+        "operation": "SIGNED_PRICE_DIFFERENCE_TIMES_EXPOSURE",
+        "formula": "direction_factor * quantity * multiplier * (exit quote - entry quote)",
+        "inputs": [
+          "article2017:leg:pl",
+          "article2017:spec:pl",
+          "price:article2017:pl:entry",
+          "price:article2017:pl:exit"
+        ],
+        "output": "article2017:metric:pnl:pl",
+        "output_unit": "USD"
+      }
+    },
+    {
+      "id": "article2017:metric:pnl:pl",
+      "type": "SourceReportedMetric",
+      "fields": {
+        "metric": "LEG_GROSS_PNL",
+        "value": -1700,
+        "unit": "USD"
+      }
+    },
+    {
+      "id": "article2017:asset:gc",
+      "type": "Asset",
+      "fields": {
+        "asset_class": "FUTURES",
+        "root": "GC",
+        "underlying": "GOLD"
+      }
+    },
+    {
+      "id": "article2017:contract:gc",
+      "type": "FuturesContract",
+      "fields": {
+        "full_symbol": "GCJ7",
+        "contract_month": "APR",
+        "contract_year": 2017,
+        "venue": "COMEX",
+        "contract_code_precision": "FULL_EXCHANGE_CODE"
+      }
+    },
+    {
+      "id": "article2017:spec:gc",
+      "type": "ContractSpecification",
+      "fields": {
+        "multiplier": 100,
+        "multiplier_unit": "TROY_OZ_PER_CONTRACT",
+        "price_quote_unit": "USD_PER_TROY_OZ",
+        "settlement_currency": "USD"
+      }
+    },
+    {
+      "id": "article2017:leg:gc",
+      "type": "TradeLeg",
+      "fields": {
+        "position_side": "SHORT",
+        "contracts": 1,
+        "direction_factor": -1
+      }
+    },
+    {
+      "id": "action:article2017:gc:entry",
+      "type": "TradeAction",
+      "fields": {
+        "kind": "SELL",
+        "contract_count": 1,
+        "stage": "entry",
+        "actual_order_record": false
+      }
+    },
+    {
+      "id": "price:article2017:gc:entry",
+      "type": "PriceObservation",
+      "fields": {
+        "quote": 1231.9,
+        "currency": "USD",
+        "quote_unit": "USD_PER_TROY_OZ",
+        "time_point": "entry"
+      }
+    },
+    {
+      "id": "metric:notional:article2017:gc:entry",
+      "type": "SourceReportedMetric",
+      "fields": {
+        "metric": "LEG_ABSOLUTE_NOTIONAL",
+        "value": 123190,
+        "unit": "USD"
+      }
+    },
+    {
+      "id": "calc:notional:article2017:gc:entry",
+      "type": "CalculationExpression",
+      "fields": {
+        "operation": "MULTIPLICATION",
+        "formula": "contracts × multiplier × quote",
+        "inputs": [
+          "action:article2017:gc:entry",
+          "article2017:spec:gc",
+          "price:article2017:gc:entry"
+        ],
+        "output": "metric:notional:article2017:gc:entry",
+        "output_unit": "USD"
+      }
+    },
+    {
+      "id": "action:article2017:gc:exit",
+      "type": "TradeAction",
+      "fields": {
+        "kind": "BUY",
+        "contract_count": 1,
+        "stage": "exit",
+        "actual_order_record": false
+      }
+    },
+    {
+      "id": "price:article2017:gc:exit",
+      "type": "PriceObservation",
+      "fields": {
+        "quote": 1233.6,
+        "currency": "USD",
+        "quote_unit": "USD_PER_TROY_OZ",
+        "time_point": "exit"
+      }
+    },
+    {
+      "id": "metric:notional:article2017:gc:exit",
+      "type": "SourceReportedMetric",
+      "fields": {
+        "metric": "LEG_ABSOLUTE_NOTIONAL",
+        "value": 123360,
+        "unit": "USD"
+      }
+    },
+    {
+      "id": "calc:notional:article2017:gc:exit",
+      "type": "CalculationExpression",
+      "fields": {
+        "operation": "MULTIPLICATION",
+        "formula": "contracts × multiplier × quote",
+        "inputs": [
+          "action:article2017:gc:exit",
+          "article2017:spec:gc",
+          "price:article2017:gc:exit"
+        ],
+        "output": "metric:notional:article2017:gc:exit",
+        "output_unit": "USD"
+      }
+    },
+    {
+      "id": "article2017:calc:pnl:gc",
+      "type": "CalculationExpression",
+      "fields": {
+        "operation": "SIGNED_PRICE_DIFFERENCE_TIMES_EXPOSURE",
+        "formula": "direction_factor * quantity * multiplier * (exit quote - entry quote)",
+        "inputs": [
+          "article2017:leg:gc",
+          "article2017:spec:gc",
+          "price:article2017:gc:entry",
+          "price:article2017:gc:exit"
+        ],
+        "output": "article2017:metric:pnl:gc",
+        "output_unit": "USD"
+      }
+    },
+    {
+      "id": "article2017:metric:pnl:gc",
+      "type": "SourceReportedMetric",
+      "fields": {
+        "metric": "LEG_GROSS_PNL",
+        "value": -170,
+        "unit": "USD"
+      }
+    },
+    {
+      "id": "article2017:calc:spread:entry",
+      "type": "CalculationExpression",
+      "fields": {
+        "formula": "pl_quote - gc_quote",
+        "operation": "SUBTRACTION",
+        "inputs": [
+          "price:article2017:pl:entry",
+          "price:article2017:gc:entry"
+        ],
+        "output": "article2017:metric:spread:entry"
+      }
+    },
+    {
+      "id": "article2017:metric:spread:entry",
+      "type": "SourceReportedMetric",
+      "fields": {
+        "metric": "PL_MINUS_GC_QUOTED_SPREAD",
+        "value": -243.5,
+        "unit": "USD_PER_TROY_OZ"
+      }
+    },
+    {
+      "id": "article2017:calc:spread:exit",
+      "type": "CalculationExpression",
+      "fields": {
+        "formula": "pl_quote - gc_quote",
+        "operation": "SUBTRACTION",
+        "inputs": [
+          "price:article2017:pl:exit",
+          "price:article2017:gc:exit"
+        ],
+        "output": "article2017:metric:spread:exit"
+      }
+    },
+    {
+      "id": "article2017:metric:spread:exit",
+      "type": "SourceReportedMetric",
+      "fields": {
+        "metric": "PL_MINUS_GC_QUOTED_SPREAD",
+        "value": -262.2,
+        "unit": "USD_PER_TROY_OZ"
+      }
+    },
+    {
+      "id": "article2017:calc:total_pnl",
+      "type": "CalculationExpression",
+      "fields": {
+        "operation": "ADDITION",
+        "formula": "PL_leg_PnL+GC_leg_PnL",
+        "inputs": [
+          "article2017:metric:pnl:pl",
+          "article2017:metric:pnl:gc"
+        ],
+        "output": "article2017:metric:total_pnl",
+        "output_unit": "USD"
+      }
+    },
+    {
+      "id": "article2017:metric:total_pnl",
+      "type": "SourceReportedMetric",
+      "fields": {
+        "metric": "SCENARIO_GROSS_PNL",
+        "value": -1870,
+        "unit": "USD",
+        "not_including_unreported_broker_fees": true
+      }
+    },
+    {
+      "id": "article2017:margin:comparison",
+      "type": "MarginComparison",
+      "fields": {
+        "basis": "SPREAD_VS_TWO_OUTRIGHT_POSITIONS",
+        "claim": "SPREAD_REQUIRES_LESS_MAINTENANCE_MARGIN"
+      }
+    },
+    {
+      "id": "article2017:margin:policy",
+      "type": "MarginOffsetMechanism",
+      "fields": {
+        "offset_percent": 58,
+        "eligible_ratio": "2_PL_TO_1_GC",
+        "applicability": "HISTORICAL_CME_MARGIN_CONDITION_AS_PUBLISHED",
+        "not_current_margin": true
+      }
+    },
+    {
+      "id": "article2017:margin:pl",
+      "type": "SourceReportedMetric",
+      "fields": {
+        "metric": "PL_MAINTENANCE_PER_CONTRACT",
+        "value": 1600,
+        "unit": "USD"
+      }
+    },
+    {
+      "id": "article2017:margin:gc",
+      "type": "SourceReportedMetric",
+      "fields": {
+        "metric": "GC_MAINTENANCE_PER_CONTRACT",
+        "value": 4250,
+        "unit": "USD"
+      }
+    },
+    {
+      "id": "article2017:margin:gross",
+      "type": "SourceReportedMetric",
+      "fields": {
+        "metric": "GROSS_MAINTENANCE_MARGIN",
+        "value": 7450,
+        "unit": "USD"
+      }
+    },
+    {
+      "id": "article2017:margin:offset",
+      "type": "SourceReportedMetric",
+      "fields": {
+        "metric": "MARGIN_AFTER_OFFSET",
+        "value": 3129,
+        "unit": "USD"
+      }
+    },
+    {
+      "id": "article2017:calc:gross_margin",
+      "type": "CalculationExpression",
+      "fields": {
+        "formula": "2*PL_margin_per_contract + GC_margin_per_contract",
+        "inputs": [
+          "article2017:margin:pl",
+          "article2017:margin:gc"
+        ],
+        "output": "article2017:margin:gross"
+      }
+    },
+    {
+      "id": "article2017:calc:offset_margin",
+      "type": "CalculationExpression",
+      "fields": {
+        "formula": "gross_margin * (1-offset_pct/100)",
+        "inputs": [
+          "article2017:margin:gross",
+          "article2017:margin:policy"
+        ],
+        "output": "article2017:margin:offset"
+      }
+    },
+    {
+      "id": "cross:outcome_variation",
+      "type": "EvidenceAssertion",
+      "fields": {
+        "type": "CROSS_DOCUMENT_OUTCOME_VARIATION",
+        "claims": "Same entry terms but different explicitly published exit quotes and net results",
+        "not_a_single_actual_trade": true
+      }
+    },
+    {
+      "id": "article2017:claim:both_fell",
+      "type": "EvidenceAssertion",
+      "fields": {
+        "claim": "Both gold and platinum fell during this worked scenario",
+        "claim_kind": "SOURCE_PROSE",
+        "status": "CONTRADICTED_BY_OWN_PRICE_TABLE"
+      }
+    },
+    {
+      "id": "article2017:claim:gc_rise",
+      "type": "EvidenceAssertion",
+      "fields": {
+        "claim": "GC rose by USD 1.70/oz from 1231.90 to 1233.60",
+        "claim_kind": "TABLE_DERIVED_ARITHMETIC"
+      }
+    },
+    {
+      "id": "article2017:conflict:direction",
+      "type": "EvidenceConflict",
+      "fields": {
+        "conflict_type": "WITHIN_SOURCE_TABLE_VS_PROSE",
+        "issue": "GC price rose, contradicting both-metals-fell sentence",
+        "preserve_both_claims": true,
+        "resolution": "NO_SILENT_OVERRIDE",
+        "materiality": "FINANCIAL_TRADE_DIRECTION"
+      }
+    },
+    {
+      "id": "article2017:claim:gsr_label",
+      "type": "EvidenceAssertion",
+      "fields": {
+        "claim": "Platinum/gold table uses label Liquidate GSR @",
+        "interpretation": "LIKELY_COPIED_GOLD_SILVER_LABEL_BUT_NOT_CORRECTED_IN_SOURCE"
+      }
+    },
+    {
+      "id": "article2017:conflict:label",
+      "type": "EvidenceConflict",
+      "fields": {
+        "conflict_type": "TABLE_LABEL_CONTEXT_MISMATCH",
+        "abbreviation": "GSR",
+        "expected_context": "PLATINUM_GOLD_SPREAD",
+        "source_context": "GOLD_SILVER_RATIO_ABOVE_IN_ARTICLE"
+      }
+    },
+    {
+      "id": "course:claim:economic_path",
+      "type": "EvidenceAssertion",
+      "fields": {
+        "claim_type": "SOURCE_GROUNDED_ECONOMIC_HYPOTHESIS",
+        "case_ref": "course:case",
+        "nature": "PREDICTION_NOT_MEASURED_SALES_OR_DEMAND"
+      }
+    },
+    {
+      "id": "article2017:claim:economic_path",
+      "type": "EvidenceAssertion",
+      "fields": {
+        "claim_type": "SOURCE_GROUNDED_ECONOMIC_HYPOTHESIS",
+        "case_ref": "article2017:case",
+        "nature": "PREDICTION_NOT_MEASURED_SALES_OR_DEMAND"
+      }
+    },
+    {
+      "id": "article2017:metric:spread_change_pct_reported",
+      "type": "SourceReportedMetric",
+      "fields": {
+        "metric": "SOURCE_ROUNDED_SPREAD_WIDENING_PERCENT",
+        "value": 8,
+        "unit": "PERCENT",
+        "precision": "APPROXIMATE_NEAREST_WHOLE_PERCENT",
+        "reported_vs_computed": "NOT_EXACT_NUMERICAL_EQUALITY",
+        "sign_orientation": "INCREASE_IN_ABSOLUTE_NEGATIVE_SPREAD"
+      }
+    },
+    {
+      "id": "article2017:calc:spread_change_pct",
+      "type": "CalculationExpression",
+      "fields": {
+        "operation": "ABSOLUTE_SPREAD_WIDENING_RELATIVE_TO_ENTRY_MAGNITUDE",
+        "formula": "100 * (|exit PL−GC spread| − |entry PL−GC spread|) / |entry PL−GC spread|",
+        "input_paths": [
+          "article2017:metric:spread:entry",
+          "article2017:metric:spread:exit"
+        ],
+        "output_unit": "PERCENT",
+        "arithmetic_semantics": "~7.6797%, rounds to about 8%"
+      }
+    },
+    {
+      "id": "article2017:metric:spread_change_pct_recomputed",
+      "type": "SourceReportedMetric",
+      "fields": {
+        "metric": "RECONSTRUCTED_SPREAD_WIDENING_PERCENT",
+        "value": 7.6796714579,
+        "unit": "PERCENT",
+        "metric_source": "ARITHMETIC_FROM_REPORTED_PRICE_TABLE_NOT_CME_DIRECT_QUOTE",
+        "precision": "COMPUTED_FROM_TWO_DECIMAL_QUOTES"
+      }
+    },
+    {
+      "id": "general:approach:intermarket",
+      "type": "TradingApproach",
+      "fields": {
+        "kind": "INTERMARKET_SPREAD",
+        "legs_in_two_distinct_markets": true,
+        "relative_contract_maturity": "SIMILAR_MATURITIES",
+        "applies_to_cases": [
+          "course:case",
+          "article2017:case"
+        ]
+      }
+    },
+    {
+      "id": "general:approach:calendar",
+      "type": "CalendarSpread",
+      "fields": {
+        "kind": "INTRAMARKET_CALENDAR_SPREAD",
+        "legs_on_same_futures_market": true,
+        "different_expiry_months": true,
+        "applies_to_pl_gold_case": false,
+        "contrast_only": true
+      }
+    },
+    {
+      "id": "general:risk:legging",
+      "type": "LeggingRisk",
+      "fields": {
+        "risk_kind": "SPREAD_COMPONENTS_EXECUTED_NON_SIMULTANEOUSLY",
+        "risk_exposure": "TEMPORARY_ONE_LEG_PRICE_RISK",
+        "specific_case_occurrence": "NOT_DOCUMENTED",
+        "may_occur_intermarket": true
+      }
+    },
+    {
+      "id": "general:mitigation:dedicated",
+      "type": "ExecutionMethod",
+      "fields": {
+        "method_kind": "DEDICATED_INTERMARKET_SPREAD_CONTRACT",
+        "description": "single combined spread instrument to reduce legging risk",
+        "generic_market_technique": true,
+        "confirmed_used_in_example": false
+      }
+    },
+    {
+      "id": "general:mitigation:liquid",
+      "type": "ExecutionMethod",
+      "fields": {
+        "method_kind": "LIQUID_LEG_SELECTION",
+        "description": "use liquid outright contracts to reduce legging exposure",
+        "generic_market_technique": true,
+        "confirmed_used_in_example": false
+      }
+    },
+    {
+      "id": "general:mitigation:software",
+      "type": "ExecutionMethod",
+      "fields": {
+        "method_kind": "AUTO_SPREADING_VENDOR_FUNCTION",
+        "description": "vendor screen simultaneously coordinates component orders",
+        "generic_market_technique": true,
+        "confirmed_used_in_example": false
+      }
+    },
+    {
+      "id": "general:calendar:CME_DIRECT",
+      "type": "ExecutionMethod",
+      "fields": {
+        "method_kind": "DEDICATED_CALENDAR_SPREAD_MARKET",
+        "platform": "CME_DIRECT",
+        "claimed_effect": "EXECUTION_WITHOUT_LEGGING_RISK",
+        "applies_to_case": false
+      }
+    },
+    {
+      "id": "general:risk:relative_exposure",
+      "type": "ExposureTransformation",
+      "fields": {
+        "from": "OUTRIGHT_PRICE_MOVEMENTS_OF_EACH_LEG",
+        "to": "RELATIVE_PERFORMANCE_OF_BOTH_LEGS",
+        "effect": "PARTIAL_NATURAL_HEDGE",
+        "risk_free": false
+      }
+    },
+    {
+      "id": "general:assumption:correlation",
+      "type": "EvidenceAssertion",
+      "fields": {
+        "claim_kind": "CME_GENERAL_RELATIVE_VALUE_CONTEXT",
+        "meaning": "Precious metal products may be correlated while having distinct fundamental drivers",
+        "pearson_correlation": null,
+        "not_a_trade_execution_rule": true
+      }
+    },
+    {
+      "id": "general:commodity:pl",
+      "type": "UnderlyingCommodity",
+      "fields": {
+        "commodity": "PLATINUM",
+        "role": "PRECIOUS_AND_INDUSTRIAL"
+      }
+    },
+    {
+      "id": "general:commodity:gc",
+      "type": "UnderlyingCommodity",
+      "fields": {
+        "commodity": "GOLD",
+        "role": "PRECIOUS_AND_SAFE_HAVEN"
+      }
+    },
+    {
+      "id": "general:use:pl:automotive",
+      "type": "CommodityUseChannel",
+      "fields": {
+        "commodity": "PLATINUM",
+        "usage": "CATALYTIC_CONVERTERS",
+        "usage_type": "automotive",
+        "relation_to_live_trade": "BACKGROUND_CONTEXT"
+      }
+    },
+    {
+      "id": "general:use:pl:jewelry",
+      "type": "CommodityUseChannel",
+      "fields": {
+        "commodity": "PLATINUM",
+        "usage": "JEWELRY",
+        "usage_type": "jewelry",
+        "relation_to_live_trade": "BACKGROUND_CONTEXT"
+      }
+    },
+    {
+      "id": "general:use:pl:investment",
+      "type": "CommodityUseChannel",
+      "fields": {
+        "commodity": "PLATINUM",
+        "usage": "INVESTMENT_ASSET",
+        "usage_type": "investment",
+        "relation_to_live_trade": "BACKGROUND_CONTEXT"
+      }
+    },
+    {
+      "id": "general:macro:distress",
+      "type": "EconomicEvent",
+      "fields": {
+        "kind": "ECONOMIC_OR_POLITICAL_DISTRESS",
+        "scenario_kind": "COUNTERFACTUAL_TO_THE_POSITIVE_AUTOMOTIVE_DEMAND_SCENARIO",
+        "actually_observed_in_trade": false
+      }
+    },
+    {
+      "id": "general:macro:gold_demand",
+      "type": "CommodityDemandExpectation",
+      "fields": {
+        "commodity": "GOLD",
+        "driver": "SAFE_HAVEN_APPETITE",
+        "direction": "INCREASE_IN_DISTRESS",
+        "conditional": true
+      }
+    },
+    {
+      "id": "general:macro:gold_vs_pl",
+      "type": "RelativePriceExpectation",
+      "fields": {
+        "relative": "GOLD_VS_PLATINUM",
+        "possible_outcome": "GOLD_BECOMES_MORE_EXPENSIVE",
+        "conditional_on": "GOLD_SAFE_HAVEN_DEMAND",
+        "not_the_case_entry_rule": true
+      }
+    },
+    {
+      "id": "general:history:since2015",
+      "type": "HistoricalMarketRegime",
+      "fields": {
+        "source_claim": "GOLD_AT_PREMIUM_TO_PLATINUM",
+        "time_anchor": "SINCE_2015",
+        "spread_claim": "PLATINUM_MINUS_GOLD_MORE_NEGATIVE",
+        "source_time_specific": true,
+        "verified_against_external_quote_data": false,
+        "do_not_extrapolate_to_current": true
+      }
+    },
+    {
+      "id": "general:metric:rarity_claim",
+      "type": "SourceReportedMetric",
+      "fields": {
+        "metric": "PLATINUM_RELATIVE_RARITY_TO_GOLD",
+        "value": 15,
+        "unit": "APPROXIMATE_MULTIPLICATIVE_FACTOR",
+        "qualification": "SOURCE_CLAIM_NOT_INDEPENDENTLY_VALIDATED",
+        "interpretation": "Platinum described as about 15x rarer"
+      }
+    },
+    {
+      "id": "general:market:globex_share",
+      "type": "SourceReportedMetric",
+      "fields": {
+        "metric": "PRECIOUS_METALS_ELECTRONIC_TRADING_SHARE",
+        "lower_bound_exclusive": 90,
+        "unit": "PERCENT",
+        "exchange_platform": "CME_GLOBEX",
+        "historical_source_statement": true,
+        "do_not_treat_as_current": true
+      }
+    },
+    {
+      "id": "general:market:2016_adv",
+      "type": "MarketLiquiditySnapshot",
+      "fields": {
+        "measure": "AVERAGE_DAILY_VOLUME",
+        "year": 2016,
+        "snapshot_time": "2016_CALENDAR_YEAR",
+        "unit": "CONTRACT_LOTS_PER_TRADING_DAY"
+      }
+    },
+    {
+      "id": "general:market:2017_oi",
+      "type": "MarketLiquiditySnapshot",
+      "fields": {
+        "measure": "OPEN_INTEREST",
+        "as_of_date": "2017-08-21",
+        "unit": "OPEN_CONTRACT_LOTS"
+      }
+    },
+    {
+      "id": "general:market:metric:2016_gc_adv",
+      "type": "SourceReportedMetric",
+      "fields": {
+        "metric": "ADV_2016",
+        "contract_root": "GC",
+        "value": 228432,
+        "unit": "LOTS_PER_TRADING_DAY",
+        "historical": true
+      }
+    },
+    {
+      "id": "general:market:metric:2016_pl_adv",
+      "type": "SourceReportedMetric",
+      "fields": {
+        "metric": "ADV_2016",
+        "contract_root": "PL",
+        "value": 15849,
+        "unit": "LOTS_PER_TRADING_DAY",
+        "historical": true
+      }
+    },
+    {
+      "id": "general:market:metric:2017_gc_oi",
+      "type": "SourceReportedMetric",
+      "fields": {
+        "metric": "OPEN_INTEREST_AS_OF_2017_08_21",
+        "contract_root": "GC",
+        "value": 505829,
+        "unit": "LOTS",
+        "historical": true
+      }
+    },
+    {
+      "id": "general:market:metric:2017_pl_oi",
+      "type": "SourceReportedMetric",
+      "fields": {
+        "metric": "OPEN_INTEREST_AS_OF_2017_08_21",
+        "contract_root": "PL",
+        "value": 71971,
+        "unit": "LOTS",
+        "historical": true
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "model:strategy",
+      "relation": "STRATEGY_USES_FUTURES_PAIR",
+      "to": "model:pair"
+    },
+    {
+      "from": "model:econ:event",
+      "relation": "ECONOMIC_EVENT_ACTIVATES_USE_CHANNEL",
+      "to": "model:econ:use"
+    },
+    {
+      "from": "model:econ:use",
+      "relation": "COMMODITY_USE_DRIVES_DEMAND_EXPECTATION",
+      "to": "model:econ:demand"
+    },
+    {
+      "from": "model:econ:demand",
+      "relation": "DEMAND_EXPECTATION_SUPPORTS_RELATIVE_PERFORMANCE",
+      "to": "model:econ:relative"
+    },
+    {
+      "from": "model:econ:relative",
+      "relation": "RELATIVE_PERFORMANCE_SUPPORTS_SPREAD_EXPECTATION",
+      "to": "model:econ:spread"
+    },
+    {
+      "from": "model:econ:spread",
+      "relation": "SPREAD_EXPECTATION_APPLIES_TO_PAIR",
+      "to": "model:pair"
+    },
+    {
+      "from": "course:case",
+      "relation": "CASE_USES_STRATEGY",
+      "to": "model:strategy"
+    },
+    {
+      "from": "course:case",
+      "relation": "CASE_BINDS_SCENARIO",
+      "to": "course:scenario"
+    },
+    {
+      "from": "course:case",
+      "relation": "CASE_HAS_POSITION",
+      "to": "course:position"
+    },
+    {
+      "from": "course:case",
+      "relation": "CASE_HAS_ECONOMIC_HYPOTHESIS",
+      "to": "model:econ:event"
+    },
+    {
+      "from": "course:case",
+      "relation": "CASE_HAS_TRADE_EVENT",
+      "to": "course:event:entry"
+    },
+    {
+      "from": "course:case",
+      "relation": "CASE_HAS_TRADE_EVENT",
+      "to": "course:event:exit"
+    },
+    {
+      "from": "course:position",
+      "relation": "POSITION_CONTAINS_LEG",
+      "to": "course:leg:pl"
+    },
+    {
+      "from": "course:leg:pl",
+      "relation": "LEG_TRADES_FUTURES_CONTRACT",
+      "to": "course:contract:pl"
+    },
+    {
+      "from": "course:contract:pl",
+      "relation": "CONTRACT_HAS_SPECIFICATION",
+      "to": "course:spec:pl"
+    },
+    {
+      "from": "course:contract:pl",
+      "relation": "CONTRACT_ROOTED_IN_ASSET",
+      "to": "course:asset:pl"
+    },
+    {
+      "from": "course:event:entry",
+      "relation": "EVENT_HAS_ACTION",
+      "to": "action:course:pl:entry",
+      "ordering": "SIMULTANEOUS_WITH_OTHER_LEG"
+    },
+    {
+      "from": "action:course:pl:entry",
+      "relation": "ACTION_APPLIES_TO_LEG",
+      "to": "course:leg:pl"
+    },
+    {
+      "from": "action:course:pl:entry",
+      "relation": "ACTION_USES_PRICE",
+      "to": "price:course:pl:entry"
+    },
+    {
+      "from": "calc:notional:course:pl:entry",
+      "relation": "CALCULATION_READS_INPUT",
+      "to": "action:course:pl:entry"
+    },
+    {
+      "from": "calc:notional:course:pl:entry",
+      "relation": "CALCULATION_READS_INPUT",
+      "to": "course:spec:pl"
+    },
+    {
+      "from": "calc:notional:course:pl:entry",
+      "relation": "CALCULATION_READS_INPUT",
+      "to": "price:course:pl:entry"
+    },
+    {
+      "from": "calc:notional:course:pl:entry",
+      "relation": "CALCULATION_PRODUCES_METRIC",
+      "to": "metric:notional:course:pl:entry"
+    },
+    {
+      "from": "course:event:exit",
+      "relation": "EVENT_HAS_ACTION",
+      "to": "action:course:pl:exit",
+      "ordering": "SIMULTANEOUS_WITH_OTHER_LEG"
+    },
+    {
+      "from": "action:course:pl:exit",
+      "relation": "ACTION_APPLIES_TO_LEG",
+      "to": "course:leg:pl"
+    },
+    {
+      "from": "action:course:pl:exit",
+      "relation": "ACTION_USES_PRICE",
+      "to": "price:course:pl:exit"
+    },
+    {
+      "from": "calc:notional:course:pl:exit",
+      "relation": "CALCULATION_READS_INPUT",
+      "to": "action:course:pl:exit"
+    },
+    {
+      "from": "calc:notional:course:pl:exit",
+      "relation": "CALCULATION_READS_INPUT",
+      "to": "course:spec:pl"
+    },
+    {
+      "from": "calc:notional:course:pl:exit",
+      "relation": "CALCULATION_READS_INPUT",
+      "to": "price:course:pl:exit"
+    },
+    {
+      "from": "calc:notional:course:pl:exit",
+      "relation": "CALCULATION_PRODUCES_METRIC",
+      "to": "metric:notional:course:pl:exit"
+    },
+    {
+      "from": "course:calc:pnl:pl",
+      "relation": "CALCULATION_READS_INPUT",
+      "to": "course:leg:pl"
+    },
+    {
+      "from": "course:calc:pnl:pl",
+      "relation": "CALCULATION_READS_INPUT",
+      "to": "course:spec:pl"
+    },
+    {
+      "from": "course:calc:pnl:pl",
+      "relation": "CALCULATION_READS_INPUT",
+      "to": "price:course:pl:entry"
+    },
+    {
+      "from": "course:calc:pnl:pl",
+      "relation": "CALCULATION_READS_INPUT",
+      "to": "price:course:pl:exit"
+    },
+    {
+      "from": "course:calc:pnl:pl",
+      "relation": "CALCULATION_PRODUCES_METRIC",
+      "to": "course:metric:pnl:pl"
+    },
+    {
+      "from": "course:metric:pnl:pl",
+      "relation": "METRIC_BELONGS_TO_SCENARIO",
+      "to": "course:scenario"
+    },
+    {
+      "from": "course:position",
+      "relation": "POSITION_CONTAINS_LEG",
+      "to": "course:leg:gc"
+    },
+    {
+      "from": "course:leg:gc",
+      "relation": "LEG_TRADES_FUTURES_CONTRACT",
+      "to": "course:contract:gc"
+    },
+    {
+      "from": "course:contract:gc",
+      "relation": "CONTRACT_HAS_SPECIFICATION",
+      "to": "course:spec:gc"
+    },
+    {
+      "from": "course:contract:gc",
+      "relation": "CONTRACT_ROOTED_IN_ASSET",
+      "to": "course:asset:gc"
+    },
+    {
+      "from": "course:event:entry",
+      "relation": "EVENT_HAS_ACTION",
+      "to": "action:course:gc:entry",
+      "ordering": "SIMULTANEOUS_WITH_OTHER_LEG"
+    },
+    {
+      "from": "action:course:gc:entry",
+      "relation": "ACTION_APPLIES_TO_LEG",
+      "to": "course:leg:gc"
+    },
+    {
+      "from": "action:course:gc:entry",
+      "relation": "ACTION_USES_PRICE",
+      "to": "price:course:gc:entry"
+    },
+    {
+      "from": "calc:notional:course:gc:entry",
+      "relation": "CALCULATION_READS_INPUT",
+      "to": "action:course:gc:entry"
+    },
+    {
+      "from": "calc:notional:course:gc:entry",
+      "relation": "CALCULATION_READS_INPUT",
+      "to": "course:spec:gc"
+    },
+    {
+      "from": "calc:notional:course:gc:entry",
+      "relation": "CALCULATION_READS_INPUT",
+      "to": "price:course:gc:entry"
+    },
+    {
+      "from": "calc:notional:course:gc:entry",
+      "relation": "CALCULATION_PRODUCES_METRIC",
+      "to": "metric:notional:course:gc:entry"
+    },
+    {
+      "from": "course:event:exit",
+      "relation": "EVENT_HAS_ACTION",
+      "to": "action:course:gc:exit",
+      "ordering": "SIMULTANEOUS_WITH_OTHER_LEG"
+    },
+    {
+      "from": "action:course:gc:exit",
+      "relation": "ACTION_APPLIES_TO_LEG",
+      "to": "course:leg:gc"
+    },
+    {
+      "from": "action:course:gc:exit",
+      "relation": "ACTION_USES_PRICE",
+      "to": "price:course:gc:exit"
+    },
+    {
+      "from": "calc:notional:course:gc:exit",
+      "relation": "CALCULATION_READS_INPUT",
+      "to": "action:course:gc:exit"
+    },
+    {
+      "from": "calc:notional:course:gc:exit",
+      "relation": "CALCULATION_READS_INPUT",
+      "to": "course:spec:gc"
+    },
+    {
+      "from": "calc:notional:course:gc:exit",
+      "relation": "CALCULATION_READS_INPUT",
+      "to": "price:course:gc:exit"
+    },
+    {
+      "from": "calc:notional:course:gc:exit",
+      "relation": "CALCULATION_PRODUCES_METRIC",
+      "to": "metric:notional:course:gc:exit"
+    },
+    {
+      "from": "course:calc:pnl:gc",
+      "relation": "CALCULATION_READS_INPUT",
+      "to": "course:leg:gc"
+    },
+    {
+      "from": "course:calc:pnl:gc",
+      "relation": "CALCULATION_READS_INPUT",
+      "to": "course:spec:gc"
+    },
+    {
+      "from": "course:calc:pnl:gc",
+      "relation": "CALCULATION_READS_INPUT",
+      "to": "price:course:gc:entry"
+    },
+    {
+      "from": "course:calc:pnl:gc",
+      "relation": "CALCULATION_READS_INPUT",
+      "to": "price:course:gc:exit"
+    },
+    {
+      "from": "course:calc:pnl:gc",
+      "relation": "CALCULATION_PRODUCES_METRIC",
+      "to": "course:metric:pnl:gc"
+    },
+    {
+      "from": "course:metric:pnl:gc",
+      "relation": "METRIC_BELONGS_TO_SCENARIO",
+      "to": "course:scenario"
+    },
+    {
+      "from": "course:calc:spread:entry",
+      "relation": "CALCULATION_READS_INPUT",
+      "to": "price:course:pl:entry",
+      "operand": "MINUEND"
+    },
+    {
+      "from": "course:calc:spread:entry",
+      "relation": "CALCULATION_READS_INPUT",
+      "to": "price:course:gc:entry",
+      "operand": "SUBTRAHEND"
+    },
+    {
+      "from": "course:calc:spread:entry",
+      "relation": "CALCULATION_PRODUCES_METRIC",
+      "to": "course:metric:spread:entry"
+    },
+    {
+      "from": "course:calc:spread:exit",
+      "relation": "CALCULATION_READS_INPUT",
+      "to": "price:course:pl:exit",
+      "operand": "MINUEND"
+    },
+    {
+      "from": "course:calc:spread:exit",
+      "relation": "CALCULATION_READS_INPUT",
+      "to": "price:course:gc:exit",
+      "operand": "SUBTRAHEND"
+    },
+    {
+      "from": "course:calc:spread:exit",
+      "relation": "CALCULATION_PRODUCES_METRIC",
+      "to": "course:metric:spread:exit"
+    },
+    {
+      "from": "course:calc:total_pnl",
+      "relation": "CALCULATION_READS_INPUT",
+      "to": "course:metric:pnl:pl"
+    },
+    {
+      "from": "course:calc:total_pnl",
+      "relation": "CALCULATION_READS_INPUT",
+      "to": "course:metric:pnl:gc"
+    },
+    {
+      "from": "course:calc:total_pnl",
+      "relation": "CALCULATION_PRODUCES_METRIC",
+      "to": "course:metric:total_pnl"
+    },
+    {
+      "from": "course:case",
+      "relation": "CASE_HAS_REPORT_METRIC",
+      "to": "course:metric:total_pnl"
+    },
+    {
+      "from": "course:case",
+      "relation": "CASE_HAS_MARGIN_COMPARISON",
+      "to": "course:margin:comparison"
+    },
+    {
+      "from": "article2017:case",
+      "relation": "CASE_USES_STRATEGY",
+      "to": "model:strategy"
+    },
+    {
+      "from": "article2017:case",
+      "relation": "CASE_BINDS_SCENARIO",
+      "to": "article2017:scenario"
+    },
+    {
+      "from": "article2017:case",
+      "relation": "CASE_HAS_POSITION",
+      "to": "article2017:position"
+    },
+    {
+      "from": "article2017:case",
+      "relation": "CASE_HAS_ECONOMIC_HYPOTHESIS",
+      "to": "model:econ:event"
+    },
+    {
+      "from": "article2017:case",
+      "relation": "CASE_HAS_TRADE_EVENT",
+      "to": "article2017:event:entry"
+    },
+    {
+      "from": "article2017:case",
+      "relation": "CASE_HAS_TRADE_EVENT",
+      "to": "article2017:event:exit"
+    },
+    {
+      "from": "article2017:position",
+      "relation": "POSITION_CONTAINS_LEG",
+      "to": "article2017:leg:pl"
+    },
+    {
+      "from": "article2017:leg:pl",
+      "relation": "LEG_TRADES_FUTURES_CONTRACT",
+      "to": "article2017:contract:pl"
+    },
+    {
+      "from": "article2017:contract:pl",
+      "relation": "CONTRACT_HAS_SPECIFICATION",
+      "to": "article2017:spec:pl"
+    },
+    {
+      "from": "article2017:contract:pl",
+      "relation": "CONTRACT_ROOTED_IN_ASSET",
+      "to": "article2017:asset:pl"
+    },
+    {
+      "from": "article2017:event:entry",
+      "relation": "EVENT_HAS_ACTION",
+      "to": "action:article2017:pl:entry",
+      "ordering": "SIMULTANEOUS_WITH_OTHER_LEG"
+    },
+    {
+      "from": "action:article2017:pl:entry",
+      "relation": "ACTION_APPLIES_TO_LEG",
+      "to": "article2017:leg:pl"
+    },
+    {
+      "from": "action:article2017:pl:entry",
+      "relation": "ACTION_USES_PRICE",
+      "to": "price:article2017:pl:entry"
+    },
+    {
+      "from": "calc:notional:article2017:pl:entry",
+      "relation": "CALCULATION_READS_INPUT",
+      "to": "action:article2017:pl:entry"
+    },
+    {
+      "from": "calc:notional:article2017:pl:entry",
+      "relation": "CALCULATION_READS_INPUT",
+      "to": "article2017:spec:pl"
+    },
+    {
+      "from": "calc:notional:article2017:pl:entry",
+      "relation": "CALCULATION_READS_INPUT",
+      "to": "price:article2017:pl:entry"
+    },
+    {
+      "from": "calc:notional:article2017:pl:entry",
+      "relation": "CALCULATION_PRODUCES_METRIC",
+      "to": "metric:notional:article2017:pl:entry"
+    },
+    {
+      "from": "article2017:event:exit",
+      "relation": "EVENT_HAS_ACTION",
+      "to": "action:article2017:pl:exit",
+      "ordering": "SIMULTANEOUS_WITH_OTHER_LEG"
+    },
+    {
+      "from": "action:article2017:pl:exit",
+      "relation": "ACTION_APPLIES_TO_LEG",
+      "to": "article2017:leg:pl"
+    },
+    {
+      "from": "action:article2017:pl:exit",
+      "relation": "ACTION_USES_PRICE",
+      "to": "price:article2017:pl:exit"
+    },
+    {
+      "from": "calc:notional:article2017:pl:exit",
+      "relation": "CALCULATION_READS_INPUT",
+      "to": "action:article2017:pl:exit"
+    },
+    {
+      "from": "calc:notional:article2017:pl:exit",
+      "relation": "CALCULATION_READS_INPUT",
+      "to": "article2017:spec:pl"
+    },
+    {
+      "from": "calc:notional:article2017:pl:exit",
+      "relation": "CALCULATION_READS_INPUT",
+      "to": "price:article2017:pl:exit"
+    },
+    {
+      "from": "calc:notional:article2017:pl:exit",
+      "relation": "CALCULATION_PRODUCES_METRIC",
+      "to": "metric:notional:article2017:pl:exit"
+    },
+    {
+      "from": "article2017:calc:pnl:pl",
+      "relation": "CALCULATION_READS_INPUT",
+      "to": "article2017:leg:pl"
+    },
+    {
+      "from": "article2017:calc:pnl:pl",
+      "relation": "CALCULATION_READS_INPUT",
+      "to": "article2017:spec:pl"
+    },
+    {
+      "from": "article2017:calc:pnl:pl",
+      "relation": "CALCULATION_READS_INPUT",
+      "to": "price:article2017:pl:entry"
+    },
+    {
+      "from": "article2017:calc:pnl:pl",
+      "relation": "CALCULATION_READS_INPUT",
+      "to": "price:article2017:pl:exit"
+    },
+    {
+      "from": "article2017:calc:pnl:pl",
+      "relation": "CALCULATION_PRODUCES_METRIC",
+      "to": "article2017:metric:pnl:pl"
+    },
+    {
+      "from": "article2017:metric:pnl:pl",
+      "relation": "METRIC_BELONGS_TO_SCENARIO",
+      "to": "article2017:scenario"
+    },
+    {
+      "from": "article2017:position",
+      "relation": "POSITION_CONTAINS_LEG",
+      "to": "article2017:leg:gc"
+    },
+    {
+      "from": "article2017:leg:gc",
+      "relation": "LEG_TRADES_FUTURES_CONTRACT",
+      "to": "article2017:contract:gc"
+    },
+    {
+      "from": "article2017:contract:gc",
+      "relation": "CONTRACT_HAS_SPECIFICATION",
+      "to": "article2017:spec:gc"
+    },
+    {
+      "from": "article2017:contract:gc",
+      "relation": "CONTRACT_ROOTED_IN_ASSET",
+      "to": "article2017:asset:gc"
+    },
+    {
+      "from": "article2017:event:entry",
+      "relation": "EVENT_HAS_ACTION",
+      "to": "action:article2017:gc:entry",
+      "ordering": "SIMULTANEOUS_WITH_OTHER_LEG"
+    },
+    {
+      "from": "action:article2017:gc:entry",
+      "relation": "ACTION_APPLIES_TO_LEG",
+      "to": "article2017:leg:gc"
+    },
+    {
+      "from": "action:article2017:gc:entry",
+      "relation": "ACTION_USES_PRICE",
+      "to": "price:article2017:gc:entry"
+    },
+    {
+      "from": "calc:notional:article2017:gc:entry",
+      "relation": "CALCULATION_READS_INPUT",
+      "to": "action:article2017:gc:entry"
+    },
+    {
+      "from": "calc:notional:article2017:gc:entry",
+      "relation": "CALCULATION_READS_INPUT",
+      "to": "article2017:spec:gc"
+    },
+    {
+      "from": "calc:notional:article2017:gc:entry",
+      "relation": "CALCULATION_READS_INPUT",
+      "to": "price:article2017:gc:entry"
+    },
+    {
+      "from": "calc:notional:article2017:gc:entry",
+      "relation": "CALCULATION_PRODUCES_METRIC",
+      "to": "metric:notional:article2017:gc:entry"
+    },
+    {
+      "from": "article2017:event:exit",
+      "relation": "EVENT_HAS_ACTION",
+      "to": "action:article2017:gc:exit",
+      "ordering": "SIMULTANEOUS_WITH_OTHER_LEG"
+    },
+    {
+      "from": "action:article2017:gc:exit",
+      "relation": "ACTION_APPLIES_TO_LEG",
+      "to": "article2017:leg:gc"
+    },
+    {
+      "from": "action:article2017:gc:exit",
+      "relation": "ACTION_USES_PRICE",
+      "to": "price:article2017:gc:exit"
+    },
+    {
+      "from": "calc:notional:article2017:gc:exit",
+      "relation": "CALCULATION_READS_INPUT",
+      "to": "action:article2017:gc:exit"
+    },
+    {
+      "from": "calc:notional:article2017:gc:exit",
+      "relation": "CALCULATION_READS_INPUT",
+      "to": "article2017:spec:gc"
+    },
+    {
+      "from": "calc:notional:article2017:gc:exit",
+      "relation": "CALCULATION_READS_INPUT",
+      "to": "price:article2017:gc:exit"
+    },
+    {
+      "from": "calc:notional:article2017:gc:exit",
+      "relation": "CALCULATION_PRODUCES_METRIC",
+      "to": "metric:notional:article2017:gc:exit"
+    },
+    {
+      "from": "article2017:calc:pnl:gc",
+      "relation": "CALCULATION_READS_INPUT",
+      "to": "article2017:leg:gc"
+    },
+    {
+      "from": "article2017:calc:pnl:gc",
+      "relation": "CALCULATION_READS_INPUT",
+      "to": "article2017:spec:gc"
+    },
+    {
+      "from": "article2017:calc:pnl:gc",
+      "relation": "CALCULATION_READS_INPUT",
+      "to": "price:article2017:gc:entry"
+    },
+    {
+      "from": "article2017:calc:pnl:gc",
+      "relation": "CALCULATION_READS_INPUT",
+      "to": "price:article2017:gc:exit"
+    },
+    {
+      "from": "article2017:calc:pnl:gc",
+      "relation": "CALCULATION_PRODUCES_METRIC",
+      "to": "article2017:metric:pnl:gc"
+    },
+    {
+      "from": "article2017:metric:pnl:gc",
+      "relation": "METRIC_BELONGS_TO_SCENARIO",
+      "to": "article2017:scenario"
+    },
+    {
+      "from": "article2017:calc:spread:entry",
+      "relation": "CALCULATION_READS_INPUT",
+      "to": "price:article2017:pl:entry",
+      "operand": "MINUEND"
+    },
+    {
+      "from": "article2017:calc:spread:entry",
+      "relation": "CALCULATION_READS_INPUT",
+      "to": "price:article2017:gc:entry",
+      "operand": "SUBTRAHEND"
+    },
+    {
+      "from": "article2017:calc:spread:entry",
+      "relation": "CALCULATION_PRODUCES_METRIC",
+      "to": "article2017:metric:spread:entry"
+    },
+    {
+      "from": "article2017:calc:spread:exit",
+      "relation": "CALCULATION_READS_INPUT",
+      "to": "price:article2017:pl:exit",
+      "operand": "MINUEND"
+    },
+    {
+      "from": "article2017:calc:spread:exit",
+      "relation": "CALCULATION_READS_INPUT",
+      "to": "price:article2017:gc:exit",
+      "operand": "SUBTRAHEND"
+    },
+    {
+      "from": "article2017:calc:spread:exit",
+      "relation": "CALCULATION_PRODUCES_METRIC",
+      "to": "article2017:metric:spread:exit"
+    },
+    {
+      "from": "article2017:calc:total_pnl",
+      "relation": "CALCULATION_READS_INPUT",
+      "to": "article2017:metric:pnl:pl"
+    },
+    {
+      "from": "article2017:calc:total_pnl",
+      "relation": "CALCULATION_READS_INPUT",
+      "to": "article2017:metric:pnl:gc"
+    },
+    {
+      "from": "article2017:calc:total_pnl",
+      "relation": "CALCULATION_PRODUCES_METRIC",
+      "to": "article2017:metric:total_pnl"
+    },
+    {
+      "from": "article2017:case",
+      "relation": "CASE_HAS_REPORT_METRIC",
+      "to": "article2017:metric:total_pnl"
+    },
+    {
+      "from": "article2017:case",
+      "relation": "CASE_HAS_MARGIN_COMPARISON",
+      "to": "article2017:margin:comparison"
+    },
+    {
+      "from": "article2017:margin:comparison",
+      "relation": "MARGIN_COMPARISON_USES_POLICY",
+      "to": "article2017:margin:policy"
+    },
+    {
+      "from": "article2017:calc:gross_margin",
+      "relation": "CALCULATION_READS_INPUT",
+      "to": "article2017:margin:pl"
+    },
+    {
+      "from": "article2017:calc:gross_margin",
+      "relation": "CALCULATION_READS_INPUT",
+      "to": "article2017:margin:gc"
+    },
+    {
+      "from": "article2017:calc:offset_margin",
+      "relation": "CALCULATION_READS_INPUT",
+      "to": "article2017:margin:gross"
+    },
+    {
+      "from": "article2017:calc:offset_margin",
+      "relation": "CALCULATION_READS_INPUT",
+      "to": "article2017:margin:policy"
+    },
+    {
+      "from": "article2017:calc:gross_margin",
+      "relation": "CALCULATION_PRODUCES_METRIC",
+      "to": "article2017:margin:gross"
+    },
+    {
+      "from": "article2017:calc:offset_margin",
+      "relation": "CALCULATION_PRODUCES_METRIC",
+      "to": "article2017:margin:offset"
+    },
+    {
+      "from": "article2017:margin:comparison",
+      "relation": "MARGIN_COMPARISON_USES_METRIC",
+      "to": "article2017:margin:gross",
+      "role": "BEFORE"
+    },
+    {
+      "from": "article2017:margin:comparison",
+      "relation": "MARGIN_COMPARISON_USES_METRIC",
+      "to": "article2017:margin:offset",
+      "role": "AFTER"
+    },
+    {
+      "from": "course:case",
+      "relation": "CASES_SHARE_ENTRY_STRUCTURE_WITH",
+      "to": "article2017:case",
+      "shared_only": [
+        "PL2_LONG",
+        "GC1_SHORT",
+        "ENTRY_QUOTE"
+      ],
+      "distinct_outcomes": true
+    },
+    {
+      "from": "cross:outcome_variation",
+      "relation": "OUTCOME_VARIATION_INVOLVES_CASE",
+      "to": "course:case"
+    },
+    {
+      "from": "cross:outcome_variation",
+      "relation": "OUTCOME_VARIATION_INVOLVES_CASE",
+      "to": "article2017:case"
+    },
+    {
+      "from": "article2017:conflict:direction",
+      "relation": "CONFLICT_HAS_CLAIM",
+      "to": "article2017:claim:both_fell"
+    },
+    {
+      "from": "article2017:conflict:direction",
+      "relation": "CONFLICT_HAS_CLAIM",
+      "to": "article2017:claim:gc_rise"
+    },
+    {
+      "from": "article2017:case",
+      "relation": "CASE_HAS_EVIDENCE_CONFLICT",
+      "to": "article2017:conflict:direction"
+    },
+    {
+      "from": "article2017:conflict:label",
+      "relation": "CONFLICT_HAS_CLAIM",
+      "to": "article2017:claim:gsr_label"
+    },
+    {
+      "from": "article2017:case",
+      "relation": "CASE_HAS_EVIDENCE_CONFLICT",
+      "to": "article2017:conflict:label"
+    },
+    {
+      "from": "course:case",
+      "relation": "CASE_HAS_ASSERTION",
+      "to": "course:claim:economic_path"
+    },
+    {
+      "from": "course:claim:economic_path",
+      "relation": "ASSERTION_EXPANDS_TO_ECONOMIC_EVENT",
+      "to": "model:econ:event"
+    },
+    {
+      "from": "course:case",
+      "relation": "CASE_EXPLAINS_SPREAD_BY_EVENT",
+      "to": "model:econ:event"
+    },
+    {
+      "from": "article2017:case",
+      "relation": "CASE_HAS_ASSERTION",
+      "to": "article2017:claim:economic_path"
+    },
+    {
+      "from": "article2017:claim:economic_path",
+      "relation": "ASSERTION_EXPANDS_TO_ECONOMIC_EVENT",
+      "to": "model:econ:event"
+    },
+    {
+      "from": "article2017:case",
+      "relation": "CASE_EXPLAINS_SPREAD_BY_EVENT",
+      "to": "model:econ:event"
+    },
+    {
+      "from": "article2017:calc:spread_change_pct",
+      "relation": "CALCULATION_READS_INPUT",
+      "to": "article2017:metric:spread:entry",
+      "operand": "ENTRY_BASE"
+    },
+    {
+      "from": "article2017:calc:spread_change_pct",
+      "relation": "CALCULATION_READS_INPUT",
+      "to": "article2017:metric:spread:exit",
+      "operand": "EXIT"
+    },
+    {
+      "from": "article2017:calc:spread_change_pct",
+      "relation": "CALCULATION_PRODUCES_METRIC",
+      "to": "article2017:metric:spread_change_pct_recomputed"
+    },
+    {
+      "from": "article2017:metric:spread_change_pct_reported",
+      "relation": "REPORTED_ROUNDED_METRIC_RECONCILES_WITH_COMPUTED",
+      "to": "article2017:metric:spread_change_pct_recomputed",
+      "approx_tolerance_percentage_points": 0.5,
+      "interpretation": "ROUND_TO_NEAREST_WHOLE_PERCENT"
+    },
+    {
+      "from": "article2017:case",
+      "relation": "CASE_HAS_REPORT_METRIC",
+      "to": "article2017:metric:spread_change_pct_reported"
+    },
+    {
+      "from": "model:strategy",
+      "relation": "STRATEGY_FOLLOWS_TRADING_APPROACH",
+      "to": "general:approach:intermarket"
+    },
+    {
+      "from": "general:approach:intermarket",
+      "relation": "APPROACH_COMPARED_WITH_CALENDAR",
+      "to": "general:approach:calendar"
+    },
+    {
+      "from": "general:approach:intermarket",
+      "relation": "APPROACH_HAS_EXECUTION_RISK",
+      "to": "general:risk:legging"
+    },
+    {
+      "from": "general:risk:legging",
+      "relation": "LEGGING_RISK_HAS_MITIGATION",
+      "to": "general:mitigation:dedicated"
+    },
+    {
+      "from": "general:risk:legging",
+      "relation": "LEGGING_RISK_HAS_MITIGATION",
+      "to": "general:mitigation:liquid"
+    },
+    {
+      "from": "general:risk:legging",
+      "relation": "LEGGING_RISK_HAS_MITIGATION",
+      "to": "general:mitigation:software"
+    },
+    {
+      "from": "general:approach:calendar",
+      "relation": "CALENDAR_SPREAD_CAN_USE_EXECUTION_METHOD",
+      "to": "general:calendar:CME_DIRECT"
+    },
+    {
+      "from": "general:approach:intermarket",
+      "relation": "APPROACH_TRANSFORMS_RISK_EXPOSURE",
+      "to": "general:risk:relative_exposure"
+    },
+    {
+      "from": "model:pair",
+      "relation": "PAIR_HAS_SOURCE_BACKGROUND_ASSERTION",
+      "to": "general:assumption:correlation"
+    },
+    {
+      "from": "course:asset:pl",
+      "relation": "ASSET_REFERS_TO_UNDERLYING",
+      "to": "general:commodity:pl"
+    },
+    {
+      "from": "article2017:asset:pl",
+      "relation": "ASSET_REFERS_TO_UNDERLYING",
+      "to": "general:commodity:pl"
+    },
+    {
+      "from": "course:asset:gc",
+      "relation": "ASSET_REFERS_TO_UNDERLYING",
+      "to": "general:commodity:gc"
+    },
+    {
+      "from": "article2017:asset:gc",
+      "relation": "ASSET_REFERS_TO_UNDERLYING",
+      "to": "general:commodity:gc"
+    },
+    {
+      "from": "general:commodity:pl",
+      "relation": "COMMODITY_HAS_USE_CHANNEL",
+      "to": "general:use:pl:automotive"
+    },
+    {
+      "from": "general:commodity:pl",
+      "relation": "COMMODITY_HAS_USE_CHANNEL",
+      "to": "general:use:pl:jewelry"
+    },
+    {
+      "from": "general:commodity:pl",
+      "relation": "COMMODITY_HAS_USE_CHANNEL",
+      "to": "general:use:pl:investment"
+    },
+    {
+      "from": "general:macro:distress",
+      "relation": "MACRO_REGIME_SUPPORTS_DEMAND",
+      "to": "general:macro:gold_demand"
+    },
+    {
+      "from": "general:macro:gold_demand",
+      "relation": "GOLD_DEMAND_SUPPORTS_RELATIVE_PRICE",
+      "to": "general:macro:gold_vs_pl"
+    },
+    {
+      "from": "general:macro:gold_vs_pl",
+      "relation": "RELATIVE_PRICE_AFFECTS_FUTURES_PAIR",
+      "to": "model:pair"
+    },
+    {
+      "from": "model:pair",
+      "relation": "PAIR_HAS_HISTORICAL_SOURCE_REGIME",
+      "to": "general:history:since2015"
+    },
+    {
+      "from": "general:metric:rarity_claim",
+      "relation": "RARITY_CLAIM_COMPARES_UNDERLYING",
+      "to": "general:commodity:pl",
+      "role": "DESCRIBED_RARER"
+    },
+    {
+      "from": "general:metric:rarity_claim",
+      "relation": "RARITY_CLAIM_COMPARES_UNDERLYING",
+      "to": "general:commodity:gc",
+      "role": "REFERENCE"
+    },
+    {
+      "from": "model:pair",
+      "relation": "PAIR_HAS_ELECTRONIC_TRADING_SOURCE_CLAIM",
+      "to": "general:market:globex_share"
+    },
+    {
+      "from": "general:market:2016_adv",
+      "relation": "LIQUIDITY_SNAPSHOT_HAS_PRODUCT_VALUE",
+      "to": "general:market:metric:2016_gc_adv"
+    },
+    {
+      "from": "general:market:metric:2016_gc_adv",
+      "relation": "MARKET_METRIC_BELONGS_TO_ASSET",
+      "to": "article2017:asset:gc"
+    },
+    {
+      "from": "general:market:2016_adv",
+      "relation": "LIQUIDITY_SNAPSHOT_HAS_PRODUCT_VALUE",
+      "to": "general:market:metric:2016_pl_adv"
+    },
+    {
+      "from": "general:market:metric:2016_pl_adv",
+      "relation": "MARKET_METRIC_BELONGS_TO_ASSET",
+      "to": "article2017:asset:pl"
+    },
+    {
+      "from": "general:market:2017_oi",
+      "relation": "LIQUIDITY_SNAPSHOT_HAS_PRODUCT_VALUE",
+      "to": "general:market:metric:2017_gc_oi"
+    },
+    {
+      "from": "general:market:metric:2017_gc_oi",
+      "relation": "MARKET_METRIC_BELONGS_TO_ASSET",
+      "to": "article2017:asset:gc"
+    },
+    {
+      "from": "general:market:2017_oi",
+      "relation": "LIQUIDITY_SNAPSHOT_HAS_PRODUCT_VALUE",
+      "to": "general:market:metric:2017_pl_oi"
+    },
+    {
+      "from": "general:market:metric:2017_pl_oi",
+      "relation": "MARKET_METRIC_BELONGS_TO_ASSET",
+      "to": "article2017:asset:pl"
+    },
+    {
+      "from": "article2017:case",
+      "relation": "CASE_HAS_HISTORICAL_LIQUIDITY_CONTEXT",
+      "to": "general:market:2016_adv"
+    },
+    {
+      "from": "article2017:case",
+      "relation": "CASE_HAS_HISTORICAL_LIQUIDITY_CONTEXT",
+      "to": "general:market:2017_oi"
+    }
+  ]
+}
