@@ -409,6 +409,122 @@
         "meaning": "optional cancel signal <0 closes long only",
         "source_locator": "TradingView public description line 37"
       }
+    },
+    {
+      "id": "tv01:state:FLAT",
+      "ontology_type": "N-141:PositionState",
+      "properties": {
+        "state": "FLAT",
+        "role": "ABSTRACT_POSITION_STATE_NOT_REAL_EXECUTION"
+      }
+    },
+    {
+      "id": "tv01:state:LONG",
+      "ontology_type": "N-141:PositionState",
+      "properties": {
+        "state": "LONG",
+        "role": "ABSTRACT_POSITION_STATE_NOT_REAL_EXECUTION"
+      }
+    },
+    {
+      "id": "tv01:state:SHORT",
+      "ontology_type": "N-141:PositionState",
+      "properties": {
+        "state": "SHORT",
+        "role": "ABSTRACT_POSITION_STATE_NOT_REAL_EXECUTION"
+      }
+    },
+    {
+      "id": "tv01:r_opposite:long_to_short",
+      "ontology_type": "N-108:TradingRule",
+      "properties": {
+        "role": "OPPOSITE_SIGNAL_TRANSITION",
+        "active_position_side": "LONG",
+        "incoming_signal_side": "SHORT",
+        "available_modes": [
+          "IGNORE",
+          "CLOSE",
+          "CLOSE_AND_REVERSE"
+        ],
+        "selected_mode": "NOT_DISCLOSED",
+        "condition_combinator": "AND"
+      }
+    },
+    {
+      "id": "tv01:transition:long_to_short:IGNORE",
+      "ontology_type": "N-142:PositionTransitionSpec",
+      "properties": {
+        "transition_mode": "IGNORE",
+        "event": "OPPOSITE_SIGNAL",
+        "actual_execution": false,
+        "action_count": 0
+      }
+    },
+    {
+      "id": "tv01:transition:long_to_short:CLOSE",
+      "ontology_type": "N-142:PositionTransitionSpec",
+      "properties": {
+        "transition_mode": "CLOSE",
+        "event": "OPPOSITE_SIGNAL",
+        "actual_execution": false,
+        "action_count": 1
+      }
+    },
+    {
+      "id": "tv01:transition:long_to_short:CLOSE_AND_REVERSE",
+      "ontology_type": "N-142:PositionTransitionSpec",
+      "properties": {
+        "transition_mode": "CLOSE_AND_REVERSE",
+        "event": "OPPOSITE_SIGNAL",
+        "actual_execution": false,
+        "action_count": 2
+      }
+    },
+    {
+      "id": "tv01:r_opposite:short_to_long",
+      "ontology_type": "N-108:TradingRule",
+      "properties": {
+        "role": "OPPOSITE_SIGNAL_TRANSITION",
+        "active_position_side": "SHORT",
+        "incoming_signal_side": "LONG",
+        "available_modes": [
+          "IGNORE",
+          "CLOSE",
+          "CLOSE_AND_REVERSE"
+        ],
+        "selected_mode": "NOT_DISCLOSED",
+        "condition_combinator": "AND"
+      }
+    },
+    {
+      "id": "tv01:transition:short_to_long:IGNORE",
+      "ontology_type": "N-142:PositionTransitionSpec",
+      "properties": {
+        "transition_mode": "IGNORE",
+        "event": "OPPOSITE_SIGNAL",
+        "actual_execution": false,
+        "action_count": 0
+      }
+    },
+    {
+      "id": "tv01:transition:short_to_long:CLOSE",
+      "ontology_type": "N-142:PositionTransitionSpec",
+      "properties": {
+        "transition_mode": "CLOSE",
+        "event": "OPPOSITE_SIGNAL",
+        "actual_execution": false,
+        "action_count": 1
+      }
+    },
+    {
+      "id": "tv01:transition:short_to_long:CLOSE_AND_REVERSE",
+      "ontology_type": "N-142:PositionTransitionSpec",
+      "properties": {
+        "transition_mode": "CLOSE_AND_REVERSE",
+        "event": "OPPOSITE_SIGNAL",
+        "actual_execution": false,
+        "action_count": 2
+      }
     }
   ],
   "edges": [
@@ -743,6 +859,202 @@
       "from": "tv01:r_cancel_negative_closes_long",
       "relation": "R-112:RULE_DECLARES_ACTION",
       "to": "tv01:a_close_long"
+    },
+    {
+      "from": "tv01:r_opposite",
+      "relation": "PROPOSED:POLICY_CONTAINS_RULE",
+      "to": "tv01:r_opposite:long_to_short",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:r_opposite:long_to_short",
+      "relation": "R-111:RULE_HAS_ATOMIC_CONDITION",
+      "to": "tv01:c_sell"
+    },
+    {
+      "from": "tv01:r_opposite:long_to_short",
+      "relation": "PROPOSED:RULE_REQUIRES_POSITION_STATE",
+      "to": "tv01:state:LONG",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:r_opposite:long_to_short",
+      "relation": "PROPOSED:RULE_HAS_TRANSITION",
+      "to": "tv01:transition:long_to_short:IGNORE",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:transition:long_to_short:IGNORE",
+      "relation": "PROPOSED:TRANSITION_FROM_STATE",
+      "to": "tv01:state:LONG",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:transition:long_to_short:IGNORE",
+      "relation": "PROPOSED:TRANSITION_TO_STATE",
+      "to": "tv01:state:LONG",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:r_opposite:long_to_short",
+      "relation": "PROPOSED:RULE_HAS_TRANSITION",
+      "to": "tv01:transition:long_to_short:CLOSE",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:transition:long_to_short:CLOSE",
+      "relation": "PROPOSED:TRANSITION_FROM_STATE",
+      "to": "tv01:state:LONG",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:transition:long_to_short:CLOSE",
+      "relation": "PROPOSED:TRANSITION_TO_STATE",
+      "to": "tv01:state:FLAT",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:transition:long_to_short:CLOSE",
+      "relation": "PROPOSED:TRANSITION_ORDERED_ACTION",
+      "to": "tv01:a_close_long",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7",
+      "sequence_index": 1
+    },
+    {
+      "from": "tv01:r_opposite:long_to_short",
+      "relation": "PROPOSED:RULE_HAS_TRANSITION",
+      "to": "tv01:transition:long_to_short:CLOSE_AND_REVERSE",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:transition:long_to_short:CLOSE_AND_REVERSE",
+      "relation": "PROPOSED:TRANSITION_FROM_STATE",
+      "to": "tv01:state:LONG",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:transition:long_to_short:CLOSE_AND_REVERSE",
+      "relation": "PROPOSED:TRANSITION_TO_STATE",
+      "to": "tv01:state:SHORT",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:transition:long_to_short:CLOSE_AND_REVERSE",
+      "relation": "PROPOSED:TRANSITION_ORDERED_ACTION",
+      "to": "tv01:a_close_long",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7",
+      "sequence_index": 1
+    },
+    {
+      "from": "tv01:transition:long_to_short:CLOSE_AND_REVERSE",
+      "relation": "PROPOSED:TRANSITION_ORDERED_ACTION",
+      "to": "tv01:a_open_short",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7",
+      "sequence_index": 2
+    },
+    {
+      "from": "tv01:r_opposite",
+      "relation": "PROPOSED:POLICY_CONTAINS_RULE",
+      "to": "tv01:r_opposite:short_to_long",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:r_opposite:short_to_long",
+      "relation": "R-111:RULE_HAS_ATOMIC_CONDITION",
+      "to": "tv01:c_buy"
+    },
+    {
+      "from": "tv01:r_opposite:short_to_long",
+      "relation": "PROPOSED:RULE_REQUIRES_POSITION_STATE",
+      "to": "tv01:state:SHORT",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:r_opposite:short_to_long",
+      "relation": "PROPOSED:RULE_HAS_TRANSITION",
+      "to": "tv01:transition:short_to_long:IGNORE",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:transition:short_to_long:IGNORE",
+      "relation": "PROPOSED:TRANSITION_FROM_STATE",
+      "to": "tv01:state:SHORT",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:transition:short_to_long:IGNORE",
+      "relation": "PROPOSED:TRANSITION_TO_STATE",
+      "to": "tv01:state:SHORT",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:r_opposite:short_to_long",
+      "relation": "PROPOSED:RULE_HAS_TRANSITION",
+      "to": "tv01:transition:short_to_long:CLOSE",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:transition:short_to_long:CLOSE",
+      "relation": "PROPOSED:TRANSITION_FROM_STATE",
+      "to": "tv01:state:SHORT",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:transition:short_to_long:CLOSE",
+      "relation": "PROPOSED:TRANSITION_TO_STATE",
+      "to": "tv01:state:FLAT",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:transition:short_to_long:CLOSE",
+      "relation": "PROPOSED:TRANSITION_ORDERED_ACTION",
+      "to": "tv01:a_close_short",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7",
+      "sequence_index": 1
+    },
+    {
+      "from": "tv01:r_opposite:short_to_long",
+      "relation": "PROPOSED:RULE_HAS_TRANSITION",
+      "to": "tv01:transition:short_to_long:CLOSE_AND_REVERSE",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:transition:short_to_long:CLOSE_AND_REVERSE",
+      "relation": "PROPOSED:TRANSITION_FROM_STATE",
+      "to": "tv01:state:SHORT",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:transition:short_to_long:CLOSE_AND_REVERSE",
+      "relation": "PROPOSED:TRANSITION_TO_STATE",
+      "to": "tv01:state:LONG",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:transition:short_to_long:CLOSE_AND_REVERSE",
+      "relation": "PROPOSED:TRANSITION_ORDERED_ACTION",
+      "to": "tv01:a_close_short",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7",
+      "sequence_index": 1
+    },
+    {
+      "from": "tv01:transition:short_to_long:CLOSE_AND_REVERSE",
+      "relation": "PROPOSED:TRANSITION_ORDERED_ACTION",
+      "to": "tv01:a_open_long",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7",
+      "sequence_index": 2
+    },
+    {
+      "from": "tv01:r_enter_long",
+      "relation": "PROPOSED:RULE_REQUIRES_POSITION_STATE",
+      "to": "tv01:state:FLAT",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
+    },
+    {
+      "from": "tv01:r_enter_short",
+      "relation": "PROPOSED:RULE_REQUIRES_POSITION_STATE",
+      "to": "tv01:state:FLAT",
+      "approval_status": "PROPOSED_EXTENSION_NOT_IN_V7"
     }
   ],
   "known_gaps": [
@@ -803,7 +1115,26 @@
         "signal_zero": "NO_CANCEL_ACTION"
       },
       "verification": "GRAPH_PATH_RECONSTRUCTABLE_NOT_INDEPENDENT_BLIND_PASS"
+    },
+    {
+      "iteration": 2,
+      "missing_knowledge": "An opposite signal rule listed three choices but had neither initial/current position state nor the executed actions and their sequence.",
+      "correction": "Create position states and six semantic transition specifications linked to the appropriate opposite signal and ordered actions; distinguish source-defined alternative modes from chosen runtime mode.",
+      "restored_from_graph": {
+        "when_long_and_sell_signal": {
+          "IGNORE": "LONG->LONG no action",
+          "CLOSE": "LONG->FLAT CLOSE_LONG",
+          "CLOSE_AND_REVERSE": "LONG->SHORT CLOSE_LONG then OPEN_SHORT"
+        },
+        "when_short_and_buy_signal": {
+          "IGNORE": "SHORT->SHORT no action",
+          "CLOSE": "SHORT->FLAT CLOSE_SHORT",
+          "CLOSE_AND_REVERSE": "SHORT->LONG CLOSE_SHORT then OPEN_LONG"
+        }
+      },
+      "unresolved": "The source description does not state the configured default opposite-signal mode; do not infer actual choice.",
+      "verification": "GRAPH_PATH_RECONSTRUCTABLE_NOT_INDEPENDENT_BLIND_PASS"
     }
   ],
-  "version": "TV-KG-ITERATIVE-v8.1"
+  "version": "TV-KG-ITERATIVE-v8.2"
 }
