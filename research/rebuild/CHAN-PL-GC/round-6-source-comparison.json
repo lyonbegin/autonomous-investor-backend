@@ -1,0 +1,236 @@
+{
+  "case_id": "CHAN-PL-GC",
+  "graph_round": 6,
+  "fact_registry_version": "v3",
+  "facts": 30,
+  "passed": 30,
+  "failed": 0,
+  "verdict": "SOURCE_FACT_COVERAGE_PASS",
+  "old_graph_integrity": {
+    "all_prior_nodes_unchanged": true,
+    "all_prior_edges_unchanged": true,
+    "prior_nodes": 56,
+    "prior_edges": 95
+  },
+  "new_facts_checks": {
+    "C27": true,
+    "C28": true,
+    "C29": true,
+    "C30": true
+  },
+  "rows": [
+    {
+      "id": "C01",
+      "source": "S2006",
+      "match": true,
+      "source_field": "strategy_class",
+      "graph_reconstruction_method": "PRESERVED_26_FACT_GRAPH_PATHS_V5"
+    },
+    {
+      "id": "C02",
+      "source": "S2006",
+      "match": true,
+      "source_field": "long_leg",
+      "graph_reconstruction_method": "PRESERVED_26_FACT_GRAPH_PATHS_V5"
+    },
+    {
+      "id": "C03",
+      "source": "S2006",
+      "match": true,
+      "source_field": "short_leg",
+      "graph_reconstruction_method": "PRESERVED_26_FACT_GRAPH_PATHS_V5"
+    },
+    {
+      "id": "C04",
+      "source": "S2006",
+      "match": true,
+      "source_field": "PL_contract_multiplier",
+      "graph_reconstruction_method": "PRESERVED_26_FACT_GRAPH_PATHS_V5"
+    },
+    {
+      "id": "C05",
+      "source": "S2006",
+      "match": true,
+      "source_field": "GC_contract_multiplier",
+      "graph_reconstruction_method": "PRESERVED_26_FACT_GRAPH_PATHS_V5"
+    },
+    {
+      "id": "C06",
+      "source": "S2006",
+      "match": true,
+      "source_field": "entry_window",
+      "graph_reconstruction_method": "PRESERVED_26_FACT_GRAPH_PATHS_V5"
+    },
+    {
+      "id": "C07",
+      "source": "S2006",
+      "match": true,
+      "source_field": "exit_window",
+      "graph_reconstruction_method": "PRESERVED_26_FACT_GRAPH_PATHS_V5"
+    },
+    {
+      "id": "C08",
+      "source": "S2006",
+      "match": true,
+      "source_field": "research_modes",
+      "graph_reconstruction_method": "PRESERVED_26_FACT_GRAPH_PATHS_V5"
+    },
+    {
+      "id": "C09",
+      "source": "S2006",
+      "match": true,
+      "source_field": "gold_demand_driver",
+      "graph_reconstruction_method": "PRESERVED_26_FACT_GRAPH_PATHS_V5"
+    },
+    {
+      "id": "C10",
+      "source": "S2006",
+      "match": true,
+      "source_field": "platinum_hedge_rationale",
+      "graph_reconstruction_method": "PRESERVED_26_FACT_GRAPH_PATHS_V5"
+    },
+    {
+      "id": "C11",
+      "source": "S2006",
+      "match": true,
+      "source_field": "average_annual_pnl",
+      "graph_reconstruction_method": "PRESERVED_26_FACT_GRAPH_PATHS_V5"
+    },
+    {
+      "id": "C12",
+      "source": "S2006",
+      "match": true,
+      "source_field": "best_year_pnl",
+      "graph_reconstruction_method": "PRESERVED_26_FACT_GRAPH_PATHS_V5"
+    },
+    {
+      "id": "C13",
+      "source": "S2006",
+      "match": true,
+      "source_field": "worst_year_pnl",
+      "graph_reconstruction_method": "PRESERVED_26_FACT_GRAPH_PATHS_V5"
+    },
+    {
+      "id": "C14",
+      "source": "S2006",
+      "match": true,
+      "source_field": "exchange_margin",
+      "graph_reconstruction_method": "PRESERVED_26_FACT_GRAPH_PATHS_V5"
+    },
+    {
+      "id": "C15",
+      "source": "S2006RISK",
+      "match": true,
+      "source_field": "historical_max_drawdown",
+      "graph_reconstruction_method": "PRESERVED_26_FACT_GRAPH_PATHS_V5"
+    },
+    {
+      "id": "C16",
+      "source": "S2006RISK",
+      "match": true,
+      "source_field": "author_max_margin_to_survive_drawdown",
+      "graph_reconstruction_method": "PRESERVED_26_FACT_GRAPH_PATHS_V5"
+    },
+    {
+      "id": "C17",
+      "source": "S2007CORR",
+      "match": true,
+      "source_field": "corrected_average_pnl",
+      "graph_reconstruction_method": "PRESERVED_26_FACT_GRAPH_PATHS_V5"
+    },
+    {
+      "id": "C18",
+      "source": "S2007CORR",
+      "match": true,
+      "source_field": "corrected_best_pnl",
+      "graph_reconstruction_method": "PRESERVED_26_FACT_GRAPH_PATHS_V5"
+    },
+    {
+      "id": "C19",
+      "source": "S2007CORR",
+      "match": true,
+      "source_field": "corrected_worst_pnl",
+      "graph_reconstruction_method": "PRESERVED_26_FACT_GRAPH_PATHS_V5"
+    },
+    {
+      "id": "C20",
+      "source": "S2007CORR",
+      "match": true,
+      "source_field": "corrected_max_drawdown",
+      "graph_reconstruction_method": "PRESERVED_26_FACT_GRAPH_PATHS_V5"
+    },
+    {
+      "id": "C21",
+      "source": "S2007CORR",
+      "match": true,
+      "source_field": "conditional_2007_result",
+      "graph_reconstruction_method": "PRESERVED_26_FACT_GRAPH_PATHS_V5"
+    },
+    {
+      "id": "C22",
+      "source": "S2007RISK",
+      "match": true,
+      "source_field": "hedge_neutrality",
+      "graph_reconstruction_method": "PRESERVED_26_FACT_GRAPH_PATHS_V5"
+    },
+    {
+      "id": "C23",
+      "source": "S2007RISK",
+      "match": true,
+      "source_field": "neutrality_risk_comment",
+      "graph_reconstruction_method": "PRESERVED_26_FACT_GRAPH_PATHS_V5"
+    },
+    {
+      "id": "C24",
+      "source": "S2007FEB",
+      "match": true,
+      "source_field": "not_cointegration",
+      "graph_reconstruction_method": "PRESERVED_26_FACT_GRAPH_PATHS_V5"
+    },
+    {
+      "id": "C25",
+      "source": "S2006",
+      "match": true,
+      "source_field": "intellectual_source",
+      "graph_reconstruction_method": "PRESERVED_26_FACT_GRAPH_PATHS_V5"
+    },
+    {
+      "id": "C26",
+      "source": "S2006RISK",
+      "match": true,
+      "source_field": "interim_risk_qualification",
+      "graph_reconstruction_method": "PRESERVED_26_FACT_GRAPH_PATHS_V5"
+    },
+    {
+      "id": "C27",
+      "source": "S2006",
+      "match": true,
+      "source_field": "reported_win_frequency",
+      "graph_reconstruction_method": "FRESH_R6_SOURCE_REDACTED_GRAPH_PATHS"
+    },
+    {
+      "id": "C28",
+      "source": "S2007RISK",
+      "match": true,
+      "source_field": "author_reported_leg_market_values",
+      "graph_reconstruction_method": "FRESH_R6_SOURCE_REDACTED_GRAPH_PATHS"
+    },
+    {
+      "id": "C29",
+      "source": "S2007METHOD",
+      "match": true,
+      "source_field": "author_stated_research_tools",
+      "graph_reconstruction_method": "FRESH_R6_SOURCE_REDACTED_GRAPH_PATHS"
+    },
+    {
+      "id": "C30",
+      "source": "S2007READER",
+      "match": true,
+      "source_field": "reader_ATR_risk_comparison",
+      "graph_reconstruction_method": "FRESH_R6_SOURCE_REDACTED_GRAPH_PATHS"
+    }
+  ],
+  "independent_clean_room_ChatGPT_blind_test": "NOT_EXECUTED",
+  "primary_source_exhaustiveness": "NOT_CERTIFIED",
+  "status": "SOURCE_FACT_COVERAGE_PASS_AND_BLIND_PENDING"
+}
