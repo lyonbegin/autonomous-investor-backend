@@ -1,0 +1,824 @@
+{
+  "source_case": "CHAN seasonal PL/GC",
+  "baseline": "Original 604 occurrence records; v7 140N/306P/132R proposed unique types; v8 and CME v9 candidates considered for name overlap",
+  "source_fact_count": 30,
+  "graph_nodes": 78,
+  "graph_edges": 159,
+  "unique_candidate_node_types": 16,
+  "unique_candidate_relation_types": 60,
+  "property_candidates": [
+    {
+      "term": "SourceReportedMetric.speaker_role",
+      "owner": "SourceReportedMetric",
+      "dtype": "AUTHOR|READER|EXCHANGE|DERIVED",
+      "why": "Do not treat reader ATR as author-confirmed backtest"
+    },
+    {
+      "term": "SourceReportedMetric.revision_status",
+      "owner": "SourceReportedMetric",
+      "dtype": "ORIGINAL_SUPERSEDED|CORRECTED|CURRENT|UNVERIFIED",
+      "why": "Preserve chronology of arithmetic correction"
+    },
+    {
+      "term": "MeasurementScope.window_precision",
+      "owner": "MeasurementScope",
+      "dtype": "EXACT|RELATIVE_YEAR_WINDOW|UNDISCLOSED",
+      "why": "Do not conflate since 2000 and last seven years"
+    },
+    {
+      "term": "ExposureBasisComparison.basis",
+      "owner": "ExposureBasisComparison",
+      "dtype": "OZ_QUANTITY|DOLLAR_NOTIONAL|VOLATILITY_DOLLAR_RISK",
+      "why": "Volume matching not market-risk neutrality"
+    },
+    {
+      "term": "SourceReportedMetric.quote_unit_reliability",
+      "owner": "SourceReportedMetric",
+      "dtype": "EXACT|AMBIGUOUS_SCALE|UNKNOWN",
+      "why": "Author 2007 $6650/$12260 quote has unclear denominator"
+    }
+  ],
+  "new_nodes": [
+    {
+      "provisional_id": "CHANv10-N01",
+      "term": "ExposureMeasure",
+      "necessary_semantic_role": "Distinct per-leg contract-multiplied ounce quantity, not a notional price",
+      "example_node": "exposure:PL",
+      "not_canonical": true
+    },
+    {
+      "provisional_id": "CHANv10-N02",
+      "term": "ExposureBasisComparison",
+      "necessary_semantic_role": "Type-safe comparison of ounce quantity, dollar value and market-risk exposure",
+      "example_node": "comparison:ounce",
+      "not_canonical": true
+    },
+    {
+      "provisional_id": "CHANv10-N03",
+      "term": "SeasonalEvent",
+      "necessary_semantic_role": "Economic/holiday-calendar event distinct from a strategy entry window",
+      "example_node": "event:cny_end",
+      "not_canonical": true
+    },
+    {
+      "provisional_id": "CHANv10-N04",
+      "term": "ModelApplicabilityFinding",
+      "necessary_semantic_role": "Explicit author rejection of cointegration for seasonal spread",
+      "example_node": "model:cointegration_exclusion",
+      "not_canonical": true
+    },
+    {
+      "provisional_id": "CHANv10-N05",
+      "term": "MeasurementScope",
+      "necessary_semantic_role": "Scope, publication basis and observation window of a reported metric",
+      "example_node": "scope:original",
+      "not_canonical": true
+    },
+    {
+      "provisional_id": "CHANv10-N06",
+      "term": "SourceCorrectionEvent",
+      "necessary_semantic_role": "Author-dated correction connecting superseded and corrected measurements",
+      "example_node": "correction:2007",
+      "not_canonical": true
+    },
+    {
+      "provisional_id": "CHANv10-N07",
+      "term": "ConditionalTradeScenario",
+      "necessary_semantic_role": "If-traded historical outcome without verified actual fills",
+      "example_node": "scenario:2007",
+      "not_canonical": true
+    },
+    {
+      "provisional_id": "CHANv10-N08",
+      "term": "ExchangeVenue",
+      "necessary_semantic_role": "Named exchange to attach historical quote and contract provenance",
+      "example_node": "venue:NYMEX",
+      "not_canonical": true
+    },
+    {
+      "provisional_id": "CHANv10-N09",
+      "term": "ExchangeMarginQuote",
+      "necessary_semantic_role": "Historically reported exchange margin scoped to specific spread and source date",
+      "example_node": "margin:historical_quote",
+      "not_canonical": true
+    },
+    {
+      "provisional_id": "CHANv10-N10",
+      "term": "CounterfactualHedgeConstruction",
+      "necessary_semantic_role": "Unpublished alternative dollar-neutral hedge specification",
+      "example_node": "counterfactual:dollar_neutral",
+      "not_canonical": true
+    },
+    {
+      "provisional_id": "CHANv10-N11",
+      "term": "CounterfactualPerformanceAssessment",
+      "necessary_semantic_role": "Author-described relative performance of alternative hedge vs base",
+      "example_node": "comparison:relative_performance",
+      "not_canonical": true
+    },
+    {
+      "provisional_id": "CHANv10-N12",
+      "term": "PathDependentRiskObservation",
+      "necessary_semantic_role": "Intraperiod drawdown coexisting with positive final-year PnL",
+      "example_node": "risk:interim",
+      "not_canonical": true
+    },
+    {
+      "provisional_id": "CHANv10-N13",
+      "term": "AnnualOutcomeSign",
+      "necessary_semantic_role": "Source reports direction of annual PnL without amount",
+      "example_node": "outcome:year2001",
+      "not_canonical": true
+    },
+    {
+      "provisional_id": "CHANv10-N14",
+      "term": "PriorWorkAttribution",
+      "necessary_semantic_role": "Independently reconstructable intellectual provenance after source removal",
+      "example_node": "attribution:original_inspiration",
+      "not_canonical": true
+    },
+    {
+      "provisional_id": "CHANv10-N15",
+      "term": "ResearchSoftwareDisclosure",
+      "necessary_semantic_role": "Used vs merely suggested author research tooling",
+      "example_node": "research:tool:MATLAB",
+      "not_canonical": true
+    },
+    {
+      "provisional_id": "CHANv10-N16",
+      "term": "VolatilityProxyComparison",
+      "necessary_semantic_role": "Reader-sourced per-contract and whole-spread ATR-risk approximation",
+      "example_node": "riskcomparison:reader_single_contract",
+      "not_canonical": true
+    }
+  ],
+  "new_relations": [
+    {
+      "provisional_id": "CHANv10-R01",
+      "term": "STRATEGY_HAS_POSITION_TEMPLATE",
+      "domain": "TradingStrategy",
+      "range": "TradePosition",
+      "example": {
+        "from": "strategy",
+        "to": "position"
+      },
+      "status": "MUST_CHECK_ALIASES_AND_CARDINALITY"
+    },
+    {
+      "provisional_id": "CHANv10-R02",
+      "term": "STRATEGY_TRADES_FUTURES_PAIR",
+      "domain": "TradingStrategy",
+      "range": "FuturesPair",
+      "example": {
+        "from": "strategy",
+        "to": "pair"
+      },
+      "status": "MUST_CHECK_ALIASES_AND_CARDINALITY"
+    },
+    {
+      "provisional_id": "CHANv10-R03",
+      "term": "PAIR_CONTAINS_LEG",
+      "domain": "FuturesPair",
+      "range": "TradeLeg",
+      "example": {
+        "from": "pair",
+        "to": "leg:PL"
+      },
+      "status": "MUST_CHECK_ALIASES_AND_CARDINALITY"
+    },
+    {
+      "provisional_id": "CHANv10-R04",
+      "term": "LEG_HAS_MEASURED_EXPOSURE",
+      "domain": "TradeLeg",
+      "range": "ExposureMeasure",
+      "example": {
+        "from": "leg:PL",
+        "to": "exposure:PL"
+      },
+      "status": "MUST_CHECK_ALIASES_AND_CARDINALITY"
+    },
+    {
+      "provisional_id": "CHANv10-R05",
+      "term": "EXPOSURE_DERIVES_FROM_CONTRACT_SPEC",
+      "domain": "ExposureMeasure",
+      "range": "ContractSpecification",
+      "example": {
+        "from": "exposure:PL",
+        "to": "spec:PL"
+      },
+      "status": "MUST_CHECK_ALIASES_AND_CARDINALITY"
+    },
+    {
+      "provisional_id": "CHANv10-R06",
+      "term": "POSITION_EVALUATED_ON_BASIS",
+      "domain": "TradePosition",
+      "range": "ExposureBasisComparison",
+      "example": {
+        "from": "position",
+        "to": "comparison:ounce"
+      },
+      "status": "MUST_CHECK_ALIASES_AND_CARDINALITY"
+    },
+    {
+      "provisional_id": "CHANv10-R07",
+      "term": "COMPARISON_LEFT_REFERENCE",
+      "domain": "ExposureBasisComparison",
+      "range": "ExposureMeasure",
+      "example": {
+        "from": "comparison:ounce",
+        "to": "exposure:PL"
+      },
+      "status": "MUST_CHECK_ALIASES_AND_CARDINALITY"
+    },
+    {
+      "provisional_id": "CHANv10-R08",
+      "term": "COMPARISON_RIGHT_REFERENCE",
+      "domain": "ExposureBasisComparison",
+      "range": "ExposureMeasure",
+      "example": {
+        "from": "comparison:ounce",
+        "to": "exposure:GC"
+      },
+      "status": "MUST_CHECK_ALIASES_AND_CARDINALITY"
+    },
+    {
+      "provisional_id": "CHANv10-R09",
+      "term": "SEASONAL_EVENT_REDUCES_DEMAND",
+      "domain": "SeasonalEvent",
+      "range": "SeasonalDemandDriver",
+      "example": {
+        "from": "event:cny_end",
+        "to": "demand:gold_jewelry"
+      },
+      "status": "MUST_CHECK_ALIASES_AND_CARDINALITY"
+    },
+    {
+      "provisional_id": "CHANv10-R10",
+      "term": "USE_CHANNEL_APPLIES_TO_ASSET",
+      "domain": "CommodityUseChannel",
+      "range": "Asset",
+      "example": {
+        "from": "commodity_use:platinum",
+        "to": "asset:PL"
+      },
+      "status": "MUST_CHECK_ALIASES_AND_CARDINALITY"
+    },
+    {
+      "provisional_id": "CHANv10-R11",
+      "term": "WEAKER_SEASONALITY_SUPPORTS_RELATIVE_PRICE",
+      "domain": "CommodityUseChannel",
+      "range": "RelativePriceExpectation",
+      "example": {
+        "from": "commodity_use:platinum",
+        "to": "relative_price"
+      },
+      "status": "MUST_CHECK_ALIASES_AND_CARDINALITY"
+    },
+    {
+      "provisional_id": "CHANv10-R12",
+      "term": "STRATEGY_EXCLUDES_MODEL",
+      "domain": "TradingStrategy",
+      "range": "ModelApplicabilityFinding",
+      "example": {
+        "from": "strategy",
+        "to": "model:cointegration_exclusion"
+      },
+      "status": "MUST_CHECK_ALIASES_AND_CARDINALITY"
+    },
+    {
+      "provisional_id": "CHANv10-R13",
+      "term": "CASE_HAS_BACKTEST_STUDY",
+      "domain": "TradeCase",
+      "range": "BacktestStudy",
+      "example": {
+        "from": "case",
+        "to": "study:backtest"
+      },
+      "status": "MUST_CHECK_ALIASES_AND_CARDINALITY"
+    },
+    {
+      "provisional_id": "CHANv10-R14",
+      "term": "STRATEGY_ORIGINALLY_ATTRIBUTED_TO",
+      "domain": "TradingStrategy",
+      "range": "SourceDocument",
+      "example": {
+        "from": "strategy",
+        "to": "citation:toepke"
+      },
+      "status": "MUST_CHECK_ALIASES_AND_CARDINALITY"
+    },
+    {
+      "provisional_id": "CHANv10-R15",
+      "term": "METRIC_HAS_MEASUREMENT_SCOPE",
+      "domain": "SourceReportedMetric",
+      "range": "MeasurementScope",
+      "example": {
+        "from": "metric:orig_avg",
+        "to": "scope:original"
+      },
+      "status": "MUST_CHECK_ALIASES_AND_CARDINALITY"
+    },
+    {
+      "provisional_id": "CHANv10-R16",
+      "term": "CORRECTION_ISSUED_IN_SOURCE",
+      "domain": "SourceCorrectionEvent",
+      "range": "SourceDocument",
+      "example": {
+        "from": "correction:2007",
+        "to": "src:2007corr"
+      },
+      "status": "MUST_CHECK_ALIASES_AND_CARDINALITY"
+    },
+    {
+      "provisional_id": "CHANv10-R17",
+      "term": "CORRECTION_REPLACES_METRIC",
+      "domain": "SourceCorrectionEvent",
+      "range": "SourceReportedMetric",
+      "example": {
+        "from": "correction:2007",
+        "to": "metric:orig_avg"
+      },
+      "status": "MUST_CHECK_ALIASES_AND_CARDINALITY"
+    },
+    {
+      "provisional_id": "CHANv10-R18",
+      "term": "CORRECTS_PREVIOUS_METRIC",
+      "domain": "SourceReportedMetric",
+      "range": "SourceReportedMetric",
+      "example": {
+        "from": "metric:new_avg",
+        "to": "metric:orig_avg"
+      },
+      "status": "MUST_CHECK_ALIASES_AND_CARDINALITY"
+    },
+    {
+      "provisional_id": "CHANv10-R19",
+      "term": "CONFLICT_LEFT_CLAIM",
+      "domain": "EvidenceConflict",
+      "range": "SourceReportedMetric",
+      "example": {
+        "from": "risk:drawdown_comparability",
+        "to": "metric:dd_2006"
+      },
+      "status": "MUST_CHECK_ALIASES_AND_CARDINALITY"
+    },
+    {
+      "provisional_id": "CHANv10-R20",
+      "term": "CONFLICT_RIGHT_CLAIM",
+      "domain": "EvidenceConflict",
+      "range": "SourceReportedMetric",
+      "example": {
+        "from": "risk:drawdown_comparability",
+        "to": "metric:dd_2007"
+      },
+      "status": "MUST_CHECK_ALIASES_AND_CARDINALITY"
+    },
+    {
+      "provisional_id": "CHANv10-R21",
+      "term": "EXPRESSION_READS_MARGIN",
+      "domain": "CalculationExpression",
+      "range": "SourceReportedMetric",
+      "example": {
+        "from": "capital:calc",
+        "to": "metric:margin_initial"
+      },
+      "status": "MUST_CHECK_ALIASES_AND_CARDINALITY"
+    },
+    {
+      "provisional_id": "CHANv10-R22",
+      "term": "EXPRESSION_READS_MAX_DRAWDOWN",
+      "domain": "CalculationExpression",
+      "range": "SourceReportedMetric",
+      "example": {
+        "from": "capital:calc",
+        "to": "metric:dd_2006"
+      },
+      "status": "MUST_CHECK_ALIASES_AND_CARDINALITY"
+    },
+    {
+      "provisional_id": "CHANv10-R23",
+      "term": "SCENARIO_USES_STRATEGY",
+      "domain": "ConditionalTradeScenario",
+      "range": "TradingStrategy",
+      "example": {
+        "from": "scenario:2007",
+        "to": "strategy"
+      },
+      "status": "MUST_CHECK_ALIASES_AND_CARDINALITY"
+    },
+    {
+      "provisional_id": "CHANv10-R24",
+      "term": "SCENARIO_HAS_RESULT",
+      "domain": "ConditionalTradeScenario",
+      "range": "SourceReportedMetric",
+      "example": {
+        "from": "scenario:2007",
+        "to": "metric:hypo_pnl"
+      },
+      "status": "MUST_CHECK_ALIASES_AND_CARDINALITY"
+    },
+    {
+      "provisional_id": "CHANv10-R25",
+      "term": "STRATEGY_HAS_CONDITIONAL_SCENARIO",
+      "domain": "TradingStrategy",
+      "range": "ConditionalTradeScenario",
+      "example": {
+        "from": "strategy",
+        "to": "scenario:2007"
+      },
+      "status": "MUST_CHECK_ALIASES_AND_CARDINALITY"
+    },
+    {
+      "provisional_id": "CHANv10-R26",
+      "term": "ASSERTION_SUPPORTED_BY_COMPARISON",
+      "domain": "EvidenceAssertion",
+      "range": "ExposureBasisComparison",
+      "example": {
+        "from": "assertion:neutrality",
+        "to": "comparison:dollar"
+      },
+      "status": "MUST_CHECK_ALIASES_AND_CARDINALITY"
+    },
+    {
+      "provisional_id": "CHANv10-R27",
+      "term": "SOURCE_REPORTS_ASSERTION",
+      "domain": "SourceDocument",
+      "range": "EvidenceAssertion",
+      "example": {
+        "from": "src:2007risk",
+        "to": "assertion:neutrality"
+      },
+      "status": "MUST_CHECK_ALIASES_AND_CARDINALITY"
+    },
+    {
+      "provisional_id": "CHANv10-R28",
+      "term": "SOURCE_REPORTS_FINDING",
+      "domain": "SourceDocument",
+      "range": "ModelApplicabilityFinding",
+      "example": {
+        "from": "src:2007coin",
+        "to": "model:cointegration_exclusion"
+      },
+      "status": "MUST_CHECK_ALIASES_AND_CARDINALITY"
+    },
+    {
+      "provisional_id": "CHANv10-R29",
+      "term": "SOURCE_REPORTS_STRATEGY",
+      "domain": "SourceDocument",
+      "range": "TradingStrategy",
+      "example": {
+        "from": "src:2006",
+        "to": "strategy"
+      },
+      "status": "MUST_CHECK_ALIASES_AND_CARDINALITY"
+    },
+    {
+      "provisional_id": "CHANv10-R30",
+      "term": "CONTRACT_LISTED_AT_VENUE",
+      "domain": "FuturesContract",
+      "range": "ExchangeVenue",
+      "example": {
+        "from": "contract:PL",
+        "to": "venue:NYMEX"
+      },
+      "status": "MUST_CHECK_ALIASES_AND_CARDINALITY"
+    },
+    {
+      "provisional_id": "CHANv10-R31",
+      "term": "MARGIN_QUOTE_REPORTED_BY",
+      "domain": "ExchangeMarginQuote",
+      "range": "SourceDocument",
+      "example": {
+        "from": "margin:historical_quote",
+        "to": "src:2006"
+      },
+      "status": "MUST_CHECK_ALIASES_AND_CARDINALITY"
+    },
+    {
+      "provisional_id": "CHANv10-R32",
+      "term": "MARGIN_QUOTE_ASSIGNED_TO_VENUE",
+      "domain": "ExchangeMarginQuote",
+      "range": "ExchangeVenue",
+      "example": {
+        "from": "margin:historical_quote",
+        "to": "venue:NYMEX"
+      },
+      "status": "MUST_CHECK_ALIASES_AND_CARDINALITY"
+    },
+    {
+      "provisional_id": "CHANv10-R33",
+      "term": "MARGIN_QUOTE_APPLIES_TO_POSITION",
+      "domain": "ExchangeMarginQuote",
+      "range": "TradePosition",
+      "example": {
+        "from": "margin:historical_quote",
+        "to": "position"
+      },
+      "status": "MUST_CHECK_ALIASES_AND_CARDINALITY"
+    },
+    {
+      "provisional_id": "CHANv10-R34",
+      "term": "MARGIN_QUOTE_MEASURES_METRIC",
+      "domain": "ExchangeMarginQuote",
+      "range": "SourceReportedMetric",
+      "example": {
+        "from": "margin:historical_quote",
+        "to": "metric:margin_initial"
+      },
+      "status": "MUST_CHECK_ALIASES_AND_CARDINALITY"
+    },
+    {
+      "provisional_id": "CHANv10-R35",
+      "term": "EXPRESSION_READS_MARGIN_QUOTE",
+      "domain": "CalculationExpression",
+      "range": "ExchangeMarginQuote",
+      "example": {
+        "from": "capital:calc",
+        "to": "margin:historical_quote"
+      },
+      "status": "MUST_CHECK_ALIASES_AND_CARDINALITY"
+    },
+    {
+      "provisional_id": "CHANv10-R36",
+      "term": "ALTERNATIVE_CONSTRUCTION_REFERENCES_POSITION",
+      "domain": "CounterfactualHedgeConstruction",
+      "range": "TradePosition",
+      "example": {
+        "from": "counterfactual:dollar_neutral",
+        "to": "position"
+      },
+      "status": "MUST_CHECK_ALIASES_AND_CARDINALITY"
+    },
+    {
+      "provisional_id": "CHANv10-R37",
+      "term": "NEUTRALITY_BASIS_MOTIVATES_ALTERNATIVE",
+      "domain": "ExposureBasisComparison",
+      "range": "CounterfactualHedgeConstruction",
+      "example": {
+        "from": "comparison:dollar",
+        "to": "counterfactual:dollar_neutral"
+      },
+      "status": "MUST_CHECK_ALIASES_AND_CARDINALITY"
+    },
+    {
+      "provisional_id": "CHANv10-R38",
+      "term": "PERFORMANCE_BASELINE_POSITION",
+      "domain": "CounterfactualPerformanceAssessment",
+      "range": "TradePosition",
+      "example": {
+        "from": "comparison:relative_performance",
+        "to": "position"
+      },
+      "status": "MUST_CHECK_ALIASES_AND_CARDINALITY"
+    },
+    {
+      "provisional_id": "CHANv10-R39",
+      "term": "PERFORMANCE_ALTERNATIVE_CONSTRUCTION",
+      "domain": "CounterfactualPerformanceAssessment",
+      "range": "CounterfactualHedgeConstruction",
+      "example": {
+        "from": "comparison:relative_performance",
+        "to": "counterfactual:dollar_neutral"
+      },
+      "status": "MUST_CHECK_ALIASES_AND_CARDINALITY"
+    },
+    {
+      "provisional_id": "CHANv10-R40",
+      "term": "AUTHOR_ASSESSMENT_SUPPORTED_BY_SOURCE",
+      "domain": "CounterfactualPerformanceAssessment",
+      "range": "SourceDocument",
+      "example": {
+        "from": "comparison:relative_performance",
+        "to": "src:2007risk"
+      },
+      "status": "MUST_CHECK_ALIASES_AND_CARDINALITY"
+    },
+    {
+      "provisional_id": "CHANv10-R41",
+      "term": "CASE_HAS_COUNTERFACTUAL_ASSESSMENT",
+      "domain": "TradeCase",
+      "range": "CounterfactualPerformanceAssessment",
+      "example": {
+        "from": "case",
+        "to": "comparison:relative_performance"
+      },
+      "status": "MUST_CHECK_ALIASES_AND_CARDINALITY"
+    },
+    {
+      "provisional_id": "CHANv10-R42",
+      "term": "CASE_HAS_PATH_RISK",
+      "domain": "TradeCase",
+      "range": "PathDependentRiskObservation",
+      "example": {
+        "from": "case",
+        "to": "risk:interim"
+      },
+      "status": "MUST_CHECK_ALIASES_AND_CARDINALITY"
+    },
+    {
+      "provisional_id": "CHANv10-R43",
+      "term": "INTERIM_RISK_OBSERVED_IN_METRIC",
+      "domain": "PathDependentRiskObservation",
+      "range": "SourceReportedMetric",
+      "example": {
+        "from": "risk:interim",
+        "to": "metric:dd_2006"
+      },
+      "status": "MUST_CHECK_ALIASES_AND_CARDINALITY"
+    },
+    {
+      "provisional_id": "CHANv10-R44",
+      "term": "PATH_RISK_CONTRASTS_WITH_ANNUAL_OUTCOME",
+      "domain": "PathDependentRiskObservation",
+      "range": "AnnualOutcomeSign",
+      "example": {
+        "from": "risk:interim",
+        "to": "outcome:year2001"
+      },
+      "status": "MUST_CHECK_ALIASES_AND_CARDINALITY"
+    },
+    {
+      "provisional_id": "CHANv10-R45",
+      "term": "PATH_RISK_SUPPORTED_BY_SOURCE",
+      "domain": "PathDependentRiskObservation",
+      "range": "SourceDocument",
+      "example": {
+        "from": "risk:interim",
+        "to": "src:2006risk"
+      },
+      "status": "MUST_CHECK_ALIASES_AND_CARDINALITY"
+    },
+    {
+      "provisional_id": "CHANv10-R46",
+      "term": "OUTCOME_RELATES_TO_STRATEGY",
+      "domain": "AnnualOutcomeSign",
+      "range": "TradingStrategy",
+      "example": {
+        "from": "outcome:year2001",
+        "to": "strategy"
+      },
+      "status": "MUST_CHECK_ALIASES_AND_CARDINALITY"
+    },
+    {
+      "provisional_id": "CHANv10-R47",
+      "term": "STRATEGY_ATTRIBUTES_ORIGINAL_IDEA_TO",
+      "domain": "TradingStrategy",
+      "range": "PriorWorkAttribution",
+      "example": {
+        "from": "strategy",
+        "to": "attribution:original_inspiration"
+      },
+      "status": "MUST_CHECK_ALIASES_AND_CARDINALITY"
+    },
+    {
+      "provisional_id": "CHANv10-R48",
+      "term": "ATTRIBUTION_REFERS_TO_BIBLIOGRAPHY",
+      "domain": "PriorWorkAttribution",
+      "range": "SourceDocument",
+      "example": {
+        "from": "attribution:original_inspiration",
+        "to": "citation:toepke"
+      },
+      "status": "MUST_CHECK_ALIASES_AND_CARDINALITY"
+    },
+    {
+      "provisional_id": "CHANv10-R49",
+      "term": "ATTRIBUTION_REPORTED_IN_SOURCE",
+      "domain": "PriorWorkAttribution",
+      "range": "SourceDocument",
+      "example": {
+        "from": "attribution:original_inspiration",
+        "to": "src:2006"
+      },
+      "status": "MUST_CHECK_ALIASES_AND_CARDINALITY"
+    },
+    {
+      "provisional_id": "CHANv10-R50",
+      "term": "BACKTEST_REPORTS_WIN_FREQUENCY",
+      "domain": "BacktestStudy",
+      "range": "SourceReportedMetric",
+      "example": {
+        "from": "study:backtest",
+        "to": "winfreq:2006"
+      },
+      "status": "MUST_CHECK_ALIASES_AND_CARDINALITY"
+    },
+    {
+      "provisional_id": "CHANv10-R51",
+      "term": "SOURCE_QUOTE_DESCRIBES_LEG",
+      "domain": "SourceReportedMetric",
+      "range": "TradeLeg",
+      "example": {
+        "from": "quote:oneGC",
+        "to": "leg:GC"
+      },
+      "status": "MUST_CHECK_ALIASES_AND_CARDINALITY"
+    },
+    {
+      "provisional_id": "CHANv10-R52",
+      "term": "COMPARISON_CITES_AUTHOR_VALUE",
+      "domain": "ExposureBasisComparison",
+      "range": "SourceReportedMetric",
+      "example": {
+        "from": "comparison:dollar",
+        "to": "quote:oneGC"
+      },
+      "status": "MUST_CHECK_ALIASES_AND_CARDINALITY"
+    },
+    {
+      "provisional_id": "CHANv10-R53",
+      "term": "RESEARCH_METHOD_USES_OR_MENTIONS_TOOL",
+      "domain": "BacktestStudy",
+      "range": "ResearchSoftwareDisclosure",
+      "example": {
+        "from": "study:backtest",
+        "to": "research:tool:MATLAB"
+      },
+      "status": "MUST_CHECK_ALIASES_AND_CARDINALITY"
+    },
+    {
+      "provisional_id": "CHANv10-R54",
+      "term": "RESEARCH_METHOD_SOURCE",
+      "domain": "ResearchSoftwareDisclosure",
+      "range": "SourceDocument",
+      "example": {
+        "from": "research:tool:MATLAB",
+        "to": "src:2007method"
+      },
+      "status": "MUST_CHECK_ALIASES_AND_CARDINALITY"
+    },
+    {
+      "provisional_id": "CHANv10-R55",
+      "term": "READER_METRIC_APPLIES_TO_LEG",
+      "domain": "SourceReportedMetric",
+      "range": "TradeLeg",
+      "example": {
+        "from": "reader:ATR:gc_quote",
+        "to": "leg:GC"
+      },
+      "status": "MUST_CHECK_ALIASES_AND_CARDINALITY"
+    },
+    {
+      "provisional_id": "CHANv10-R56",
+      "term": "EXPRESSION_READS_ATR_ESTIMATE",
+      "domain": "CalculationExpression",
+      "range": "SourceReportedMetric",
+      "example": {
+        "from": "calc:reader:GC",
+        "to": "reader:ATR:gc_quote"
+      },
+      "status": "MUST_CHECK_ALIASES_AND_CARDINALITY"
+    },
+    {
+      "provisional_id": "CHANv10-R57",
+      "term": "COMPARISON_READS_METRIC",
+      "domain": "VolatilityProxyComparison",
+      "range": "SourceReportedMetric",
+      "example": {
+        "from": "riskcomparison:reader_single_contract",
+        "to": "reader:ATR:gc_dollar_move"
+      },
+      "status": "MUST_CHECK_ALIASES_AND_CARDINALITY"
+    },
+    {
+      "provisional_id": "CHANv10-R58",
+      "term": "DERIVED_FROM_READER_SINGLE_CONTRACT_COMPARISON",
+      "domain": "VolatilityProxyComparison",
+      "range": "VolatilityProxyComparison",
+      "example": {
+        "from": "riskcomparison:twoPL_vs_oneGC",
+        "to": "riskcomparison:reader_single_contract"
+      },
+      "status": "MUST_CHECK_ALIASES_AND_CARDINALITY"
+    },
+    {
+      "provisional_id": "CHANv10-R59",
+      "term": "ASSESSMENT_FOR_POSITION",
+      "domain": "VolatilityProxyComparison",
+      "range": "TradePosition",
+      "example": {
+        "from": "riskcomparison:twoPL_vs_oneGC",
+        "to": "position"
+      },
+      "status": "MUST_CHECK_ALIASES_AND_CARDINALITY"
+    },
+    {
+      "provisional_id": "CHANv10-R60",
+      "term": "VOLATILITY_COMPARISON_HAS_READER_PROXY",
+      "domain": "ExposureBasisComparison",
+      "range": "VolatilityProxyComparison",
+      "example": {
+        "from": "comparison:volrisk",
+        "to": "riskcomparison:twoPL_vs_oneGC"
+      },
+      "status": "MUST_CHECK_ALIASES_AND_CARDINALITY"
+    }
+  ],
+  "status": "UNAPPROVED_CANDIDATES_ONLY",
+  "review_requirements": [
+    "Cross-check semantic aliases within all 604 original definitions and v7 additions, not just string names",
+    "Review overlap with v8 and CME v9 candidates",
+    "Validate all five previous scenario graphs before canonical promotion",
+    "Do not claim new unique totals until review"
+  ]
+}
