@@ -1,0 +1,89 @@
+{
+  "case": "CHAN-PL-GC",
+  "proposal_version": "R7_ROOT_PATH_DELTA",
+  "existing_ontology_policy": "Preserve original 604 occurrences, v7 and separate v10 candidate catalogs",
+  "new_node_type_count": 0,
+  "new_property_type_count": 0,
+  "distinct_relation_candidates": 7,
+  "definitions": [
+    {
+      "term": "STRATEGY_HAS_FUNDAMENTAL_SEASONAL_EVENT",
+      "domain": "TradingStrategy",
+      "range": "SeasonalEvent",
+      "example": {
+        "from": "strategy",
+        "to": "event:cny_end"
+      },
+      "why_required": "Restore directed source-free path from case to key financial concept",
+      "review": "CANDIDATE_ONLY_COMPARE_WITH_604_AND_V7_V10_ALIAS_SEMANTICS"
+    },
+    {
+      "term": "STRATEGY_CITES_COUNTERPART_INDUSTRIAL_USE",
+      "domain": "TradingStrategy",
+      "range": "CommodityUseChannel",
+      "example": {
+        "from": "strategy",
+        "to": "commodity_use:platinum"
+      },
+      "why_required": "Restore directed source-free path from case to key financial concept",
+      "review": "CANDIDATE_ONLY_COMPARE_WITH_604_AND_V7_V10_ALIAS_SEMANTICS"
+    },
+    {
+      "term": "CASE_HAS_PUBLICATION_CORRECTION",
+      "domain": "TradeCase",
+      "range": "SourceCorrectionEvent",
+      "example": {
+        "from": "case",
+        "to": "correction:2007"
+      },
+      "why_required": "Restore directed source-free path from case to key financial concept",
+      "review": "CANDIDATE_ONLY_COMPARE_WITH_604_AND_V7_V10_ALIAS_SEMANTICS"
+    },
+    {
+      "term": "CASE_HAS_DRAWDOWN_SCOPE_CONFLICT_WARNING",
+      "domain": "TradeCase",
+      "range": "EvidenceConflict",
+      "example": {
+        "from": "case",
+        "to": "risk:drawdown_comparability"
+      },
+      "why_required": "Restore directed source-free path from case to key financial concept",
+      "review": "CANDIDATE_ONLY_COMPARE_WITH_604_AND_V7_V10_ALIAS_SEMANTICS"
+    },
+    {
+      "term": "CASE_HAS_INTERIM_CAPITAL_BUFFER_CALCULATION",
+      "domain": "TradeCase",
+      "range": "CalculationExpression",
+      "example": {
+        "from": "case",
+        "to": "capital:calc"
+      },
+      "why_required": "Restore directed source-free path from case to key financial concept",
+      "review": "CANDIDATE_ONLY_COMPARE_WITH_604_AND_V7_V10_ALIAS_SEMANTICS"
+    },
+    {
+      "term": "POSITION_HAS_READER_ATR_PROXY_CALCULATION",
+      "domain": "TradePosition",
+      "range": "CalculationExpression",
+      "example": {
+        "from": "position",
+        "to": "calc:reader:GC"
+      },
+      "why_required": "Restore directed source-free path from case to key financial concept",
+      "review": "CANDIDATE_ONLY_COMPARE_WITH_604_AND_V7_V10_ALIAS_SEMANTICS"
+    },
+    {
+      "term": "CORRECTION_REPORTS_REVISED_COHORT_METRIC",
+      "domain": "SourceCorrectionEvent",
+      "range": "SourceReportedMetric",
+      "example": {
+        "from": "correction:2007",
+        "to": "metric:new_avg"
+      },
+      "why_required": "Preserve links between explicit 2007 correction and revised values without conflating other cohorts",
+      "review": "CANDIDATE_ONLY_COMPARE_WITH_604_AND_V7_V10_ALIAS_SEMANTICS"
+    }
+  ],
+  "approval_status": "UNAPPROVED_PENDING_SEMANTIC_ALIAS_AND_FIVE_OLDER_CASE_REGRESSION",
+  "note": "No duplicate new nodes proposed for already represented SeasonalEvent, SourceCorrectionEvent, CalculationExpression and SourceReportedMetric. R7 introduces navigational relations only; 11 instances across 8 distinct types."
+}
