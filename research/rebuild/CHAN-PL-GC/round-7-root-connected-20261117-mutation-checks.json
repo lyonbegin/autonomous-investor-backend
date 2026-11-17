@@ -1,0 +1,183 @@
+{
+  "case": "CHAN-PL-GC",
+  "graph": "R7",
+  "input": "round-7-root-connected-20261117-graph-only-input.json",
+  "test_scope": "11 individual new semantic edge removal tests, separate case-root reachability from corrected-metric attribution",
+  "tests": [
+    {
+      "id": "STRATEGY_HAS_FUNDAMENTAL_SEASONAL_EVENT|event:cny_end",
+      "kind": "CASE_ROOT_REACHABILITY",
+      "removed_edge": {
+        "from": "strategy",
+        "relation": "STRATEGY_HAS_FUNDAMENTAL_SEASONAL_EVENT",
+        "to": "event:cny_end"
+      },
+      "baseline_root_reachable": 70,
+      "after_root_reachable": 69,
+      "disconnected_nodes": [
+        "event:cny_end"
+      ],
+      "semantic_test_pass": true,
+      "interpretation": "Case root loses access to finance nodes"
+    },
+    {
+      "id": "STRATEGY_CITES_COUNTERPART_INDUSTRIAL_USE|commodity_use:platinum",
+      "kind": "CASE_ROOT_REACHABILITY",
+      "removed_edge": {
+        "from": "strategy",
+        "relation": "STRATEGY_CITES_COUNTERPART_INDUSTRIAL_USE",
+        "to": "commodity_use:platinum"
+      },
+      "baseline_root_reachable": 70,
+      "after_root_reachable": 69,
+      "disconnected_nodes": [
+        "commodity_use:platinum"
+      ],
+      "semantic_test_pass": true,
+      "interpretation": "Case root loses access to finance nodes"
+    },
+    {
+      "id": "CASE_HAS_PUBLICATION_CORRECTION|correction:2007",
+      "kind": "CASE_ROOT_REACHABILITY",
+      "removed_edge": {
+        "from": "case",
+        "relation": "CASE_HAS_PUBLICATION_CORRECTION",
+        "to": "correction:2007"
+      },
+      "baseline_root_reachable": 70,
+      "after_root_reachable": 69,
+      "disconnected_nodes": [
+        "correction:2007"
+      ],
+      "semantic_test_pass": true,
+      "interpretation": "Case root loses access to finance nodes"
+    },
+    {
+      "id": "CASE_HAS_DRAWDOWN_SCOPE_CONFLICT_WARNING|risk:drawdown_comparability",
+      "kind": "CASE_ROOT_REACHABILITY",
+      "removed_edge": {
+        "from": "case",
+        "relation": "CASE_HAS_DRAWDOWN_SCOPE_CONFLICT_WARNING",
+        "to": "risk:drawdown_comparability"
+      },
+      "baseline_root_reachable": 70,
+      "after_root_reachable": 69,
+      "disconnected_nodes": [
+        "risk:drawdown_comparability"
+      ],
+      "semantic_test_pass": true,
+      "interpretation": "Case root loses access to finance nodes"
+    },
+    {
+      "id": "CASE_HAS_INTERIM_CAPITAL_BUFFER_CALCULATION|capital:calc",
+      "kind": "CASE_ROOT_REACHABILITY",
+      "removed_edge": {
+        "from": "case",
+        "relation": "CASE_HAS_INTERIM_CAPITAL_BUFFER_CALCULATION",
+        "to": "capital:calc"
+      },
+      "baseline_root_reachable": 70,
+      "after_root_reachable": 68,
+      "disconnected_nodes": [
+        "capital:calc",
+        "margin:historical_quote"
+      ],
+      "semantic_test_pass": true,
+      "interpretation": "Case root loses access to finance nodes"
+    },
+    {
+      "id": "POSITION_HAS_READER_ATR_PROXY_CALCULATION|calc:reader:GC",
+      "kind": "CASE_ROOT_REACHABILITY",
+      "removed_edge": {
+        "from": "position",
+        "relation": "POSITION_HAS_READER_ATR_PROXY_CALCULATION",
+        "to": "calc:reader:GC"
+      },
+      "baseline_root_reachable": 70,
+      "after_root_reachable": 68,
+      "disconnected_nodes": [
+        "calc:reader:GC",
+        "reader:ATR:gc_quote"
+      ],
+      "semantic_test_pass": true,
+      "interpretation": "Case root loses access to finance nodes"
+    },
+    {
+      "id": "POSITION_HAS_READER_ATR_PROXY_CALCULATION|calc:reader:PL",
+      "kind": "CASE_ROOT_REACHABILITY",
+      "removed_edge": {
+        "from": "position",
+        "relation": "POSITION_HAS_READER_ATR_PROXY_CALCULATION",
+        "to": "calc:reader:PL"
+      },
+      "baseline_root_reachable": 70,
+      "after_root_reachable": 68,
+      "disconnected_nodes": [
+        "calc:reader:PL",
+        "reader:ATR:pl_quote"
+      ],
+      "semantic_test_pass": true,
+      "interpretation": "Case root loses access to finance nodes"
+    },
+    {
+      "id": "CORRECTION_REPORTS_REVISED_COHORT_METRIC|metric:new_avg",
+      "kind": "SCOPE_ATTRIBUTION",
+      "removed_edge": {
+        "from": "correction:2007",
+        "relation": "CORRECTION_REPORTS_REVISED_COHORT_METRIC",
+        "to": "metric:new_avg"
+      },
+      "baseline_root_reachable": 70,
+      "after_root_reachable": 70,
+      "disconnected_nodes": [],
+      "semantic_test_pass": true,
+      "interpretation": "Case→metric still exists but correction event→revised metric attribution is broken"
+    },
+    {
+      "id": "CORRECTION_REPORTS_REVISED_COHORT_METRIC|metric:new_best",
+      "kind": "SCOPE_ATTRIBUTION",
+      "removed_edge": {
+        "from": "correction:2007",
+        "relation": "CORRECTION_REPORTS_REVISED_COHORT_METRIC",
+        "to": "metric:new_best"
+      },
+      "baseline_root_reachable": 70,
+      "after_root_reachable": 70,
+      "disconnected_nodes": [],
+      "semantic_test_pass": true,
+      "interpretation": "Case→metric still exists but correction event→revised metric attribution is broken"
+    },
+    {
+      "id": "CORRECTION_REPORTS_REVISED_COHORT_METRIC|metric:new_worst",
+      "kind": "SCOPE_ATTRIBUTION",
+      "removed_edge": {
+        "from": "correction:2007",
+        "relation": "CORRECTION_REPORTS_REVISED_COHORT_METRIC",
+        "to": "metric:new_worst"
+      },
+      "baseline_root_reachable": 70,
+      "after_root_reachable": 70,
+      "disconnected_nodes": [],
+      "semantic_test_pass": true,
+      "interpretation": "Case→metric still exists but correction event→revised metric attribution is broken"
+    },
+    {
+      "id": "CORRECTION_REPORTS_REVISED_COHORT_METRIC|metric:dd_2007",
+      "kind": "SCOPE_ATTRIBUTION",
+      "removed_edge": {
+        "from": "correction:2007",
+        "relation": "CORRECTION_REPORTS_REVISED_COHORT_METRIC",
+        "to": "metric:dd_2007"
+      },
+      "baseline_root_reachable": 70,
+      "after_root_reachable": 70,
+      "disconnected_nodes": [],
+      "semantic_test_pass": true,
+      "interpretation": "Case→metric still exists but correction event→revised metric attribution is broken"
+    }
+  ],
+  "passes": 11,
+  "total": 11,
+  "results_are_not_independent_source_reconstruction": true,
+  "approval_status": "STRUCTURAL_REQUIREMENT_VERIFIED_TYPES_REMAIN_PROPOSED"
+}
