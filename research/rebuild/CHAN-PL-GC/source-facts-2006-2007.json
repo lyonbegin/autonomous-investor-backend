@@ -1,0 +1,349 @@
+{
+  "case_id": "CHAN-SEASONAL-PL-GC",
+  "source_set": [
+    {
+      "id": "S2006",
+      "url": "https://epchan.blogspot.com/2006/11/trading-platinum-gold-seasonal-spread.html",
+      "date": "2006-11-24",
+      "kind": "AUTHOR_BLOG_POST",
+      "claim_role": "ORIGINAL_STRATEGY_AND_INITIAL_METRICS"
+    },
+    {
+      "id": "S2006_COMMENT",
+      "url": "https://epchan.blogspot.com/2006/11/trading-platinum-gold-seasonal-spread.html",
+      "date": "2006-11-26",
+      "kind": "AUTHOR_COMMENT",
+      "claim_role": "DRAWNDOWN_AND_INTERIM_MARGIN_RESPONSE"
+    },
+    {
+      "id": "S2007_FEB",
+      "url": "https://epchan.blogspot.com/2007/02/platinum-gold-spread-revisited.html?m=1",
+      "date": "2007-02-27 to 2007-03-01",
+      "kind": "AUTHOR_FOLLOWUP_AND_COMMENT",
+      "claim_role": "NOT_COINTEGRATION_STATEMENT"
+    },
+    {
+      "id": "S2007_APR",
+      "url": "https://epchan.blogspot.com/2007/04/recap-platinum-gold-spread-trade.html?m=1",
+      "date": "2007-04-20",
+      "kind": "AUTHOR_REVISED_REPORT",
+      "claim_role": "HISTORICAL_GRAPH_CORRECTION_AND_2007_HYPOTHETICAL_TRADE"
+    },
+    {
+      "id": "S2007_AUG",
+      "url": "https://epchan.blogspot.com/2006/11/trading-platinum-gold-seasonal-spread.html",
+      "date": "2007-08-19",
+      "kind": "AUTHOR_COMMENT",
+      "claim_role": "DOLLAR_NEUTRALITY_AND_RISK_CORRECTION"
+    }
+  ],
+  "classification": "AUTHOR_STRATEGY_WITH_BACKTEST_AND_PAPER_TRADE_CLAIM_NOT_PROVEN_LIVE_FILLS",
+  "facts": [
+    {
+      "id": "F01",
+      "predicate": "STRATEGY_KIND",
+      "value": {
+        "kind": "SEASONAL_INTERMARKET_PLATINUM_GOLD_SPREAD",
+        "cointegration_based": false
+      },
+      "source_id": "S2006",
+      "source_locator": "main post opening"
+    },
+    {
+      "id": "F02",
+      "predicate": "PL_POSITION",
+      "value": {
+        "direction": "LONG",
+        "quantity": 2,
+        "contract_root": "PL",
+        "month": "JULY",
+        "multiplier_oz": 50
+      },
+      "source_id": "S2006",
+      "source_locator": "strategy definition"
+    },
+    {
+      "id": "F03",
+      "predicate": "GC_POSITION",
+      "value": {
+        "direction": "SHORT",
+        "quantity": 1,
+        "contract_root": "GC",
+        "month": "JUNE",
+        "multiplier_oz": 100
+      },
+      "source_id": "S2006",
+      "source_locator": "strategy definition"
+    },
+    {
+      "id": "F04",
+      "predicate": "ENTRY_WINDOW",
+      "value": {
+        "seasonal_description": "AROUND_END_OF_FEBRUARY",
+        "exact_calendar_day": null
+      },
+      "source_id": "S2006",
+      "source_locator": "strategy definition"
+    },
+    {
+      "id": "F05",
+      "predicate": "EXIT_WINDOW",
+      "value": {
+        "seasonal_description": "AROUND_MID_APRIL",
+        "exact_calendar_day": null
+      },
+      "source_id": "S2006",
+      "source_locator": "strategy definition"
+    },
+    {
+      "id": "F06",
+      "predicate": "BACKTEST_DESCRIPTION",
+      "value": {
+        "period_claim": "SINCE_1995",
+        "data_series_not_attached": true,
+        "real_fills_not_attached": true
+      },
+      "source_id": "S2006",
+      "source_locator": "backtest narrative"
+    },
+    {
+      "id": "F07",
+      "predicate": "PAPER_TRADE",
+      "value": {
+        "year": 2006,
+        "author_claimed_test": true,
+        "individual_fills_not_attached": true
+      },
+      "source_id": "S2006",
+      "source_locator": "paper trading claim"
+    },
+    {
+      "id": "F08",
+      "predicate": "INITIAL_STATISTICS",
+      "value": {
+        "average_annual_profit_usd": 6600,
+        "best_year_pnl_usd": 15400,
+        "worst_year_pnl_usd": -3810,
+        "reference_cohort": "SINCE_1995_AUTHOR_CLAIM",
+        "revision_status": "REVISED_BY_LATER_AUTHOR_POST"
+      },
+      "source_id": "S2006",
+      "source_locator": "initial results paragraph"
+    },
+    {
+      "id": "F09",
+      "predicate": "INITIAL_MARGIN",
+      "value": {
+        "margin_requirement_reported_usd": 743,
+        "venue_claim": "NYMEX",
+        "margin_not_max_loss": true
+      },
+      "source_id": "S2006",
+      "source_locator": "initial results paragraph"
+    },
+    {
+      "id": "F10",
+      "predicate": "SEASONAL_CAUSAL_DRIVER",
+      "value": {
+        "event": "CHINESE_NEW_YEAR_PERIOD_END",
+        "consumer_regions": [
+          "CHINA",
+          "INDIA",
+          "ASIAN_FESTIVAL_SEASON"
+        ],
+        "commodity_demand": "GOLD_JEWELRY",
+        "expected_change": "GOLD_DEMAND_SEASONALLY_DECLINES_AFTER_FESTIVALS"
+      },
+      "source_id": "S2006",
+      "source_locator": "economic mechanism"
+    },
+    {
+      "id": "F11",
+      "predicate": "PL_HEDGE_RATIONALE",
+      "value": {
+        "commodity": "PLATINUM",
+        "major_demand": "AUTOMOTIVE_CATALYTIC_CONVERTERS",
+        "seasonality": "WEAKER_THAN_GOLD_JEWELRY",
+        "role": "PARTIAL_HEDGE"
+      },
+      "source_id": "S2006",
+      "source_locator": "economic mechanism"
+    },
+    {
+      "id": "F12",
+      "predicate": "INTERIM_DRAWDOWN_COMMENT",
+      "value": {
+        "max_drawdown_usd": -10910,
+        "year_of_max": 2001,
+        "period": "SINCE_2000",
+        "speaker": "Ernie Chan",
+        "source_date": "2006-11-26"
+      },
+      "source_id": "S2006_COMMENT",
+      "source_locator": "author reply on risk"
+    },
+    {
+      "id": "F13",
+      "predicate": "INTERIM_MARGIN_COMMENT",
+      "value": {
+        "derived_required_margin_usd": 11653,
+        "derived_as": 11653,
+        "author_described": "MAXIMUM_MARGIN_REQUIREMENT",
+        "not_same_as_743_exchange_initial_requirement": true
+      },
+      "source_id": "S2006_COMMENT",
+      "source_locator": "author reply on risk"
+    },
+    {
+      "id": "F14",
+      "predicate": "NOT_COINTEGRATION",
+      "value": {
+        "is_cointegration_strategy": false,
+        "expected_spread_behavior": "DIVERGENCE_NOT_CONVERGENCE",
+        "comment_date": "2007-03-01"
+      },
+      "source_id": "S2007_FEB",
+      "source_locator": "author comment"
+    },
+    {
+      "id": "F15",
+      "predicate": "2007_HYPOTHETICAL_DATES",
+      "value": {
+        "entry_date": "2007-02-26",
+        "exit_date": "2007-04-19",
+        "conditional": "IF_TRADER_ENTERED_NEAR_CLOSE_AND_EXITED_NEAR_CLOSE",
+        "not_confirmed_realized_fill": true
+      },
+      "source_id": "S2007_APR",
+      "source_locator": "recap main text"
+    },
+    {
+      "id": "F16",
+      "predicate": "2007_HYPOTHETICAL_RESULT",
+      "value": {
+        "profit_usd_approx": 6610,
+        "result_type": "AUTHOR_HYPOTHETICAL_PRICE_COMPARISON",
+        "not_guaranteed_actual_execution": true
+      },
+      "source_id": "S2007_APR",
+      "source_locator": "recap main text"
+    },
+    {
+      "id": "F17",
+      "predicate": "EXPLICIT_PNL_CHART_CORRECTION",
+      "value": {
+        "author_admitted_previous_plot_calculation_error": true,
+        "correction_date": "2007-04-20",
+        "do_not_blend_old_and_new_metrics": true
+      },
+      "source_id": "S2007_APR",
+      "source_locator": "recap correction sentence"
+    },
+    {
+      "id": "F18",
+      "predicate": "REVISED_METRICS_LAST_SEVEN_YEARS",
+      "value": {
+        "period": "LAST_7_YEARS_AS_OF_2007-04-20",
+        "avg_profit_usd": 3064,
+        "max_profit_usd": 7320,
+        "max_loss_usd": -540,
+        "max_drawdown_usd": -4860,
+        "all_author_reported": true
+      },
+      "source_id": "S2007_APR",
+      "source_locator": "recap metric paragraph"
+    },
+    {
+      "id": "F19",
+      "predicate": "PHYSICAL_CONTRACT_QUANTITY_BALANCE",
+      "value": {
+        "pl_oz": 100,
+        "gc_oz": 100,
+        "computation": "2*50 vs 1*100",
+        "balance_kind": "OZ_UNIT_EQUIVALENCE",
+        "not_dollar_neutral": true
+      },
+      "source_id": "S2006",
+      "source_locator": "contract sizing explanation + Aug 2007 clarification"
+    },
+    {
+      "id": "F20",
+      "predicate": "AUTHOR_RISK_CLARIFICATION",
+      "value": {
+        "is_dollar_neutral": false,
+        "market_value_long_pl_vs_short_gc": "PL_EXPOSURE_LARGER",
+        "dollar_risk_description": "ALMOST_EQUIVALENT_TO_LONG_ONE_PL_CONTRACT",
+        "speaker": "Ernie Chan",
+        "date": "2007-08-19"
+      },
+      "source_id": "S2007_AUG",
+      "source_locator": "author risk clarification"
+    },
+    {
+      "id": "F21",
+      "predicate": "DOLLAR_NEUTRAL_ALTERNATIVE",
+      "value": {
+        "author_claims_less_profitable_if_DOLLAR_NEUTRAL": true,
+        "comparisons": [
+          "HISTORICAL",
+          "AUTHOR_REAL_TRADING_TEST"
+        ],
+        "raw_comparison_data": "UNAVAILABLE"
+      },
+      "source_id": "S2007_AUG",
+      "source_locator": "author risk clarification"
+    },
+    {
+      "id": "F22",
+      "predicate": "ATTRIBUTION",
+      "value": {
+        "first_strategy_idea": "Jerry Toepke",
+        "publication": "Stocks Futures and Options Magazine",
+        "issue": "JANUARY_2006",
+        "author_of_blog": "Ernie Chan"
+      },
+      "source_id": "S2006",
+      "source_locator": "further reading"
+    },
+    {
+      "id": "F23",
+      "predicate": "UNKNOWN_MECHANICS",
+      "value": {
+        "actual_historical_prices": null,
+        "individual_fills": null,
+        "commission_slippage": null,
+        "source_code": null,
+        "signal_thresholds": null,
+        "trade_entry_exit_day": "VARIABLE_APPROXIMATE_IN_2006_STRATEGY"
+      },
+      "source_id": "S2006",
+      "source_locator": "not disclosed in blog text"
+    },
+    {
+      "id": "F24",
+      "predicate": "DIFFERENT_SAMPLE_WINDOWS",
+      "value": {
+        "initial_metrics": "SINCE_1995",
+        "later_recapped_metrics": "LAST_7_YEARS_AS_OF_2007",
+        "earlier_risk_comment": "SINCE_2000",
+        "can_conclude_same_sample": false
+      },
+      "source_id": "S2006",
+      "source_locator": "cross-post audit"
+    },
+    {
+      "id": "F25",
+      "predicate": "NO_MANUAL_OVERWRITE",
+      "value": {
+        "original_2006_metrics_kept_as_reported": true,
+        "revised_2007_metrics_kept_separately": true,
+        "source_revision_relationship": "AUTHOR_ADMITS_EARLIER_GRAPH_ERROR"
+      },
+      "source_id": "S2007_APR",
+      "source_locator": "source revision graph requirement"
+    }
+  ],
+  "count": 25,
+  "research_policy": "Do not substitute later dates/returns for 2006 original trade window, and do not count paper trading as independently verified exchange fills",
+  "status": "SOURCE_FACTS_PREPARED_NOT_GRAPH_RECONSTRUCTED"
+}
