@@ -216,7 +216,11 @@ def run(manifest, position, out, expected_count=EXPECTED_A_COUNT, dry_run=False)
     import urllib.error
     # Dedicated idempotent room per source, rather than a polluted shared room for all A originals.
     room_name = "STOCK-KG-A-ONE-SHOT-" + src["source_id"] + "-" + str(src["a_order"]).zfill(4)
-    state["request_id"] = "stock-a-oneshot-" + digest(room_name+"|"+src["source_id"]+"|"+prompt_sha)[:40]
+    expected_request_id = "stock-a-oneshot-" + digest(room_name+"|"+src["source_id"]+"|"+prompt_sha)[:40]
+    if prev.get("request_id") not in (None,expected_request_id) or prev.get("room_name") not in (None,room_name):
+        raise RuntimeError("RESTORED_ONE_SHOT_ROOM_OR_REQUEST_ID_MISMATCH")
+    state["request_id"] = expected_request_id
+    state["room_name"] = room_name
     (out/"prompt.txt").write_text(prompt,encoding="utf-8")
     transport.save(status_path,state)
     if state.get("stage") in ("SUBMITTING_UNCERTAIN","SUBMISSION_AMBIGUOUS","FAILED","INVALID_JSON","BLOCKED"):
