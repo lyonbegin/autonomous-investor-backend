@@ -5,8 +5,11 @@ on:
     paths:
       - .github/workflows/stock-a-hitel-one-source-kg.yml
       - research/hitel_a_one_source.py
+      - research/hitel_a_recover_discovery.py
+      - research/sources/0LJUxO7T_published_description_facts.json
       - research/queue/a_one_source_pilot.json
       - tests/test_hitel_a_serial.py
+      - tests/test_hitel_a_recovery.py
   workflow_dispatch:
 permissions:
   contents: read
@@ -22,8 +25,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Validate exact one-item A pilot source and Python transport
         run: |
-          python3 -m py_compile research/hitel_a_one_source.py
-          python3 -m unittest discover -s tests -p 'test_hitel_a_serial.py' -v
+          python3 -m py_compile research/hitel_a_one_source.py research/hitel_a_recover_discovery.py
+          python3 -m unittest discover -s tests -p 'test_hitel_a_*.py' -v
           python3 - <<'PY'
           import json
           p=json.load(open('research/queue/a_one_source_pilot.json',encoding='utf-8'))
@@ -48,12 +51,12 @@ jobs:
               break
             fi
           done
-      - name: Continue previously accepted HITEL job up to two hours, without a duplicate send
+      - name: Verify original job and recover first A source in original room without repeating original question
         run: |
-          python3 research/hitel_a_one_source.py \
+          python3 research/hitel_a_recover_discovery.py \
             --input research/queue/a_one_source_pilot.json \
             --out a-hitel-kg-output \
-            --room-tag R3 --max-rounds 2 --poll-seconds 7200
+            --max-rounds 2 --poll-seconds 1200
       - name: Preserve ALL received responses, graph rounds, blind comparisons and checkpoint even on error
         if: always()
         uses: actions/upload-artifact@v4
@@ -68,6 +71,10 @@ jobs:
           if [ -f a-hitel-kg-output/status.json ]; then
             echo '### One A source: actual HITEL run evidence' >> "$GITHUB_STEP_SUMMARY"
             cat a-hitel-kg-output/status.json >> "$GITHUB_STEP_SUMMARY"
+            if [ -f a-hitel-kg-output/recovery_status.json ]; then
+              echo '### Recovery progress (same A room, original job retained)' >> "$GITHUB_STEP_SUMMARY"
+              cat a-hitel-kg-output/recovery_status.json >> "$GITHUB_STEP_SUMMARY"
+            fi
           else
             echo 'No HITEL checkpoint created.' >> "$GITHUB_STEP_SUMMARY"
           fi
