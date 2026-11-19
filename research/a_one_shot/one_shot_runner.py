@@ -120,8 +120,10 @@ def check_final_reply(result, src):
                     or not item.get("facts")
                     or not item.get("evidence_refs")):
                 errors.append(tag+":"+expected+":EMPTY_OR_UNEVIDENCED_PASS")
-            if item.get("status")!="PASS" and not item.get("limitations"):
-                errors.append(tag+":"+expected+":UNFINISHED_WITHOUT_REASON")
+            if item.get("status")!="PASS":
+                errors.append(tag+":"+expected+":NOT_COMPLETE")
+                if not item.get("limitations"):
+                    errors.append(tag+":"+expected+":UNFINISHED_WITHOUT_REASON")
     section_check(result.get("source_sections_01_to_10"),[f"{i:02d}" for i in range(1,11)],"ORIGINAL")
     if result.get("source_id") != src["source_id"] or result.get("a_order") != src["a_order"] or result.get("group") != "A":
         errors.append("REPLY_SOURCE_ID_ORDER_GROUP_MISMATCH")
