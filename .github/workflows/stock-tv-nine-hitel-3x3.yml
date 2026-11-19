@@ -1,0 +1,135 @@
+name: STOCK TV | REAL transaction case search 9 originals in three HITEL batches
+on:
+  push:
+    branches: [feature/hitel-a-kg-recovery-20261119]
+    paths:
+      - .github/workflows/stock-tv-nine-hitel-3x3.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: STOCK-TV-NINE-HITEL-3X3-20261119
+  cancel-in-progress: false
+jobs:
+  submit-and-recover:
+    name: HITEL batch of three originals - group ${{ matrix.group }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 315
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        group: [1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify exact real archive identifiers and compile the search-only client
+        run: |
+          set -euo pipefail
+          python3 -m py_compile research/search_only/hitel_three_by_three.py
+          python3 - <<'PY'
+          from sys import path
+          path.insert(0,'research/search_only')
+          from hitel_three_by_three import originals,research_prompt,BATCHES
+          rows=originals()
+          assert len(rows)==9 and len(BATCHES)==3 and all(len(x)==3 for x in BATCHES)
+          for i in range(1,4):
+              prompt=research_prompt(rows[(i-1)*3:i*3],i)
+              assert len(prompt)<20000, (i,len(prompt))
+              print('VALIDATED_GROUP',i,[r['script_id'] for r in rows[(i-1)*3:i*3]],
+                    'prompt_chars',len(prompt))
+          PY
+      - name: Restore matching previous group checkpoint if present
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GROUP: ${{ matrix.group }}
+        run: |
+          set -euo pipefail
+          ARTIFACT="stock-tv-nine-hitel-group-$GROUP"
+          ID=$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts?name=$ARTIFACT&per_page=100" \
+            --jq '[.artifacts[] | select(.expired == false)] | sort_by(.created_at) | reverse | .[0].workflow_run.id // empty')
+          if [ -n "$ID" ]; then
+            mkdir -p "search-nine-hitel/batch_$GROUP"
+            gh run download "$ID" --repo "$GITHUB_REPOSITORY" -n "$ARTIFACT" \
+              -D "search-nine-hitel/batch_$GROUP"
+            echo "RESTORED_EXISTING_JOB_FROM_RUN=$ID"
+          else
+            echo "NO_MATCHING_CHECKPOINT"
+          fi
+      - name: Three originals, ONE HITEL POST, then 10-second GET polling
+        env:
+          GROUP: ${{ matrix.group }}
+        run: |
+          set -euo pipefail
+          PYTHONUNBUFFERED=1 python3 research/search_only/hitel_three_by_three.py \
+            --batch "$GROUP" --output search-nine-hitel
+      - name: Preserve this group's room/request/job ID, response and poll trace even on errors
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stock-tv-nine-hitel-group-${{ matrix.group }}
+          path: search-nine-hitel/batch_${{ matrix.group }}/
+          retention-days: 90
+          if-no-files-found: warn
+      - name: Summary for this group
+        if: always()
+        env:
+          GROUP: ${{ matrix.group }}
+        run: |
+          echo "## HITEL group $GROUP" >> "$GITHUB_STEP_SUMMARY"
+          cat "search-nine-hitel/batch_$GROUP/state.json" >> "$GITHUB_STEP_SUMMARY" || true
+
+  verify-all-nine:
+    name: Verify nine unique originals from exactly three HITEL final JSONs
+    needs: submit-and-recover
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch all three independently saved final AI answers
+        uses: actions/download-artifact@v4
+        with:
+          pattern: stock-tv-nine-hitel-group-*
+          path: retrieved-three
+          merge-multiple: false
+      - name: Require all nine distinct originals and actual documented case lists
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+          expected=['02yfhjiz','03zgCMqx','04erUlJM','06s9ohae','06wt9GNj',
+                    '06zatx1k','07CF7RMb','07xDq1rh','089fmfw1']
+          results=[]
+          for group in (1,2,3):
+              p=Path(f'retrieved-three/stock-tv-nine-hitel-group-{group}/result.json')
+              if not p.exists():raise AssertionError(f'BATCH_{group}_NO_VALIDATED_AI_JSON')
+              obj=json.loads(p.read_text(encoding='utf-8'))
+              assert obj['batch_no']==group
+              rows=obj['source_results']
+              assert len(rows)==3
+              results.extend(rows)
+          assert [r['script_id'] for r in results]==expected
+          count=sum(len(r['cases']) for r in results)
+          documented=sum(1 for r in results if r['cases'])
+          status={'originals':len(results),'HITEL_post_count_planned':3,
+                  'documented_case_entries':count,
+                  'originals_with_case_entries':documented,
+                  'all_nine_retrieved':True,
+                  'verified_full_trade_execution_independently':False,
+                  'source_ids':expected}
+          Path('final-nine-status.json').write_text(json.dumps(status,ensure_ascii=False,indent=2))
+          print('FINAL_NINE_HITEL_SEARCH_STATUS',json.dumps(status,ensure_ascii=False))
+          assert documented==9, 'NOT_ALL_NINE_HAVE_ACTUAL_TRADE_EVIDENCE; INSPECT JSON'
+          PY
+      - name: Upload verified all-nine status (only if present)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stock-tv-nine-hitel-final-status
+          path: final-nine-status.json
+          if-no-files-found: ignore
+      - name: Final truthful run report
+        if: always()
+        run: |
+          echo '## All 9 TradingView originals: three HITEL ChatGPT requests' >> "$GITHUB_STEP_SUMMARY"
+          if test -f final-nine-status.json; then cat final-nine-status.json >> "$GITHUB_STEP_SUMMARY"; else echo 'NOT_ALL_NINE_COMPLETED'; fi
