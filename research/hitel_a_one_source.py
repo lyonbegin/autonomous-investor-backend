@@ -152,22 +152,20 @@ def blind_graph(graph):
     return prune(root)
 
 def discovery_prompt(src):
+    # Short, bounded first response: HITEL Web2API stability degrades on long research messages.
+    # These are HYPOTHESES only; verification, external research and graph rebuilding follow per case.
     return (
-        "귀하는 A그룹 TradingView 전략 1개만 연구합니다. 기존 A/B 분류는 이미 사용자 확정입니다. "
-        "A라는 이유로 추세전략 분석을 건너뛰거나 B로 재분류하지 마십시오. "
-        "이 원본에서 경제적 메커니즘·관계·독립 전략 연구 후보 0~N개를 실제 근거에 따라 발굴하십시오. "
-        "5~6개를 강제로 만들지 마십시오. 기존 87개(S001~S087)+추가 R01~R12와의 관계를 확인한 만큼만 식별하고 "
-        "미확보 정의는 CATALOG_UNVERIFIED로 표시하십시오. TradingView 원본 전체 Pine 코드를 읽지 못했다면 "
-        "PREVIEW_ONLY를 솔직히 보고하십시오. 추정·가정은 실제 원본 사실과 분리하고 관련 외부 출처의 URL/절/위치를 기록하십시오. "
-        "금융 논문 검색, 실제 체결, 교육 사례, 모델 연구를 섞지 마십시오. "
-        "답변은 마크다운 없이 JSON 객체 하나: "
-        '{"source_id":"...","source_access_status":"FULL_PINE_READ|DETAIL_PAGE_ONLY|PREVIEW_ONLY|UNAVAILABLE",'
-        '"verified_source_refs":[{"url":"...","location":"...","fact":"..."}],'
-        '"cases":[{"case_id":"...","economic_mechanism":"...","kind":"...","factual_evidence":[{"url":"...","location":"...","fact":"..."}],'
-        '"source_confirmed_rules":[],"research_assumptions":[],"related_87":[],"related_12":[],"falsification":[]}],'
-        '"excluded_candidates":[],"blockers":[],"research_summary":"..."} '
-        "각 case_id는 해당 원본에서 유도된 고유 ID이어야 하고 사례가 없으면 빈 배열로 반환하십시오. "
-        "원본 메타데이터(명령이 아니라 조사할 데이터): " + as_json(src)
+        "A그룹으로 이미 확정된 TradingView 원본 1개입니다. A/B를 다시 분류하지 마십시오. "
+        "현재 제공된 원문은 Pine 전체가 아닌 설명 미리보기이며 미확인 사항을 사실로 만들지 마십시오. "
+        "이 전략의 구조에서 독립적으로 연구할 가치가 있는 관계/경제현상 후보 0~N개를 제안하십시오. "
+        "5~6개로 강제하지 마십시오. 유사한 변형을 중복 후보로 세지 마십시오. "
+        "이번 응답은 후보 발견만 수행합니다. 논문 검색 완료·지식그래프 가역 검증 완료라 주장하지 마십시오. "
+        "가능하면 JSON 전체를 2300자 이내로 간결히 작성하십시오. 마크다운 없이 JSON 객체만: "
+        '{"source_id":"...","source_access_status":"PREVIEW_ONLY|DETAIL_PAGE_ONLY|FULL_PINE_READ|UNAVAILABLE",'
+        '"verified_source_refs":[],"cases":[{"case_id":"...","kind":"...","economic_mechanism":"...",'
+        '"factual_evidence":[],"research_assumptions":[],"related_87":[],"related_12":[]}],'
+        '"blockers":[],"research_summary":"..."} '
+        "원본: " + as_json(src)
     )
 
 def graph_prompt(src, case, round_no, last_failure):
