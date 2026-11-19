@@ -15,6 +15,7 @@ CONTRACT_DIR = Path(__file__).resolve().parent
 ROOM_NAME = "STOCK-KG-A-ONE-SHOT-20261119"
 EXPECTED_A_COUNT = 1814
 MAX_PROMPT = 19500
+POLL_INTERVAL_SECONDS = 10
 
 def digest(s):
     return hashlib.sha256(s.encode("utf-8")).hexdigest()
@@ -64,6 +65,54 @@ def compose_prompt(source):
     if len(prompt) > MAX_PROMPT:
         raise RuntimeError(f"PROMPT_TOO_LARGE_FOR_ONE_HITEL_REQUEST length={len(prompt)} limit={MAX_PROMPT}")
     return prompt
+
+def parse_reply_for_exact_source(raw, src):
+    """Accept a complete single JSON object, or old complete JSON followed by current.
+    Reject mixed, duplicate, future, partial or ambiguous current-source objects.
+    Always persist the raw reply before invoking this parser.
+    """
+    if not isinstance(raw, str) or not raw.strip():
+        raise ValueError("AI_REPLY_EMPTY")
+    value = raw.strip()
+    if value.startswith("```"):
+        # Only a single outer Markdown fence is supported.
+        lines = value.splitlines()
+        if len(lines) < 3 or lines[-1].strip() != "```":
+            raise ValueError("INCOMPLETE_JSON_FENCE")
+        value = "\n".join(lines[1:-1]).strip()
+    decoder = json.JSONDecoder()
+    index = 0
+    objects = []
+    while index < len(value):
+        while index < len(value) and value[index].isspace():
+            index += 1
+        if index == len(value):
+            break
+        try:
+            item, index = decoder.raw_decode(value, index)
+        except json.JSONDecodeError as exc:
+            raise ValueError("INCOMPLETE_OR_MALFORMED_AI_JSON") from exc
+        if not isinstance(item, dict):
+            raise ValueError("AI_JSON_OBJECT_REQUIRED")
+        objects.append(item)
+    if not objects:
+        raise ValueError("AI_REPLY_WITHOUT_JSON")
+    current = []
+    for obj in objects:
+        order = obj.get("a_order")
+        if obj.get("group") != "A" or type(order) != int or not isinstance(obj.get("source_id"), str):
+            raise ValueError("AMBIGUOUS_AI_REPLY_MISSING_SOURCE_ID")
+        if order == src["a_order"] and obj["source_id"] == src["source_id"]:
+            current.append(obj)
+        elif order >= src["a_order"]:
+            raise ValueError("UNEXPECTED_FUTURE_OR_CONFLICTING_SOURCE_JSON")
+        # Historical object must be a strictly earlier A-group original.
+    if len(current) != 1:
+        raise ValueError("CURRENT_SOURCE_JSON_MISSING_OR_DUPLICATE")
+    if objects[-1] is not current[0]:
+        raise ValueError("CURRENT_SOURCE_JSON_NOT_LAST")
+    return current[0]
+
 
 def schema_errors(value, schema):
     errors = []
@@ -342,7 +391,7 @@ def run(manifest, position, out, expected_count=EXPECTED_A_COUNT, dry_run=False)
             status,reply=transport.get("/integrations/v1/public/jobs/"+state["job_id"])
         except (urllib.error.URLError, TimeoutError) as exc:
             log_observation({"status":"poll_transport_error","error_type":type(exc).__name__})
-            sleep(10)
+            sleep(POLL_INTERVAL_SECONDS)
             continue
         if (status!=200 or reply.get("job_id")!=state["job_id"]
                 or reply.get("request_id")!=state["request_id"]
@@ -381,9 +430,7 @@ def run(manifest, position, out, expected_count=EXPECTED_A_COUNT, dry_run=False)
             state["stage"]="RAW_FINAL_REPLY_PRESERVED"
             transport.save(status_path,state)
             try:
-                response=json.loads(raw)
-                if not isinstance(response,dict):
-                    raise ValueError("FINAL_JSON_OBJECT_REQUIRED")
+                response=parse_reply_for_exact_source(raw,src)
             except Exception:
                 state["stage"]="INVALID_JSON"
                 transport.save(status_path,state)
@@ -399,7 +446,7 @@ def run(manifest, position, out, expected_count=EXPECTED_A_COUNT, dry_run=False)
                           "result_length_bytes":reply["result_length_bytes"]})
             transport.save(status_path,state)
             return state
-        sleep(10)
+        sleep(POLL_INTERVAL_SECONDS)
     state["stage"]="POLL_TIMEOUT_JOB_PRESERVED"
     transport.save(status_path,state)
     raise TimeoutError("ONE_SHOT_JOB_UNFINISHED_PRESERVE_ID "+state["job_id"])
