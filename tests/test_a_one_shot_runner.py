@@ -18,6 +18,7 @@ def source(has_pine=True):
       "title":"Unit test","description_preview":"test only",
       "pine_source":pine if has_pine else "",
       "pine_source_sha256":hashlib.sha256(pine.encode()).hexdigest() if has_pine else None,
+      "pine_provenance_verified":bool(has_pine),
       "prior_87_catalog_excerpt":"test verified reference",
       "prior_12_catalog_excerpt":"test verified reference",
       "ontology_definitions":"test",
