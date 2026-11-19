@@ -1,0 +1,51 @@
+name: STOCK TV first 3 sources - REAL papers search only
+on:
+  push:
+    branches: [feature/hitel-a-kg-recovery-20261119]
+    paths:
+      - .github/workflows/stock-tv-first-three-search.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: STOCK-TV-THREE-SCHOLARLY-SEARCH
+  cancel-in-progress: false
+jobs:
+  search-three:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify actual original order from checked-in TradingView catalogue
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          rows=[json.loads(s) for s in Path('research/queue/seed.jsonl').read_text().splitlines() if s.strip()]
+          expected=['02yfhjiz','03zgCMqx','04erUlJM']
+          assert [x['strategy_id'] for x in rows[:3]]==expected
+          print('OFFICIAL_CATALOG_FIRST_THREE_SOURCE_IDS',expected)
+          PY
+      - name: Search first then second then third actual scholarly index entries (NO CHAT REQUEST)
+        run: |
+          set -euo pipefail
+          python3 -m py_compile research/search_only/search_first_three_openalex.py
+          PYTHONUNBUFFERED=1 python3 research/search_only/search_first_three_openalex.py
+      - name: Preserve each source list and all three-search summary even if one search failed
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stock-tv-real-paper-search-001-003
+          path: research/search_only/batch_001_003/
+          if-no-files-found: warn
+          retention-days: 90
+      - name: Report measured per-original research results
+        if: always()
+        run: |
+          echo '## TradingView first three real scholarly search results' >> "$GITHUB_STEP_SUMMARY"
+          if test -s research/search_only/batch_001_003/summary.json; then
+            cat research/search_only/batch_001_003/summary.json >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo 'SEARCH_ABORTED_BEFORE_RESULTS' >> "$GITHUB_STEP_SUMMARY"
+          fi
