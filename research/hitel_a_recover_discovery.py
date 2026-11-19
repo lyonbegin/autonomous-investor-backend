@@ -38,6 +38,8 @@ def run(src: dict, out: Path, per_stage_seconds: int, max_rounds: int) -> dict:
         or old.get("request_id") != ORIGINAL_REQUEST_ID
         or old.get("stage") != "0LJUxO7T-DISCOVER"):
         raise RuntimeError("ORIGINAL_JOB_IDENTITY_MISMATCH")
+    previous_recovery = out / "recovery_status.json"
+    prior = json.loads(previous_recovery.read_text("utf-8")) if previous_recovery.exists() else {}
     result = {
         "source_id": src["source_id"], "group": "A",
         "original_job_id": ORIGINAL_JOB_ID,
@@ -49,6 +51,8 @@ def run(src: dict, out: Path, per_stage_seconds: int, max_rounds: int) -> dict:
         "official_a_order_verified": False,
         "pine_full_verified": False,
         "source_completion_count": 0,
+        "prior_recovery_status": prior.get("status"),
+        "previous_recovery_job_id": prior.get("recovery_job_id"),
     }
     checkpoint(out, "recovery_status.json", result)
     code, obj = kg.get("/integrations/v1/public/jobs/" + ORIGINAL_JOB_ID)
@@ -93,6 +97,7 @@ def run(src: dict, out: Path, per_stage_seconds: int, max_rounds: int) -> dict:
             "답변이 없다면 제공된 TradingView 게시 설명의 검증 사실만으로 연구 후보 0~N개를 도출하십시오. "
             "Pine 원문이 제공되지 않았으므로 source_access_status는 PREVIEW_ONLY입니다. "
             "중복·근거 없는 사례를 만들지 말고 5~6개로 억지로 채우지 마십시오. "
+            "검증하지 못한 87개 전략과 추가 12개와의 관계는 임의로 연결하지 말고 배열을 비워두십시오. "
             "이 단계는 후보 발굴일 뿐 그래프·가역 검증 성공으로 선언하지 마십시오. "
             "JSON 객체 하나만 반환하며 3000자 이내로 작성하십시오. "
             "스키마: "
@@ -130,7 +135,7 @@ def run(src: dict, out: Path, per_stage_seconds: int, max_rounds: int) -> dict:
         progress = json.loads(progress_file.read_text("utf-8")) if progress_file.exists() else {
             "case_id": case_id, "status":"REBUILD_REQUIRED", "rounds":[]
         }
-        if progress.get("status") == "MODEL_REPORTED_REVERSIBLE":
+        if progress.get("status") in ("MODEL_REPORTED_REVERSIBLE", "MODEL_REPORTED_REVERSIBLE_NOT_PINE_VERIFIED"):
             result["cases"].append(progress)
             checkpoint(out, "recovery_status.json", result)
             continue
