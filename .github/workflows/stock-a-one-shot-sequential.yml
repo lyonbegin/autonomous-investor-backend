@@ -51,15 +51,27 @@ jobs:
           test -s research/a_one_shot/OFFICIAL_A_MANIFEST.jsonl || {
             echo 'OFFICIAL_A_MANIFEST_MISSING: no API request sent'; exit 2;
           }
-      - name: Restore exact earlier job checkpoint if manually specified
-        if: ${{ inputs.resume_run_id != '' }}
+      - name: Restore latest exact A-order checkpoint before new question
         env:
           GH_TOKEN: ${{ github.token }}
           RESUME_RUN: ${{ inputs.resume_run_id }}
+          POSITION: ${{ inputs.position }}
         run: |
-          [[ "$RESUME_RUN" =~ ^[0-9]{6,15}$ ]] || { echo BAD_RESUME_RUN; exit 2; }
-          gh run download "$RESUME_RUN" --repo "$GITHUB_REPOSITORY" \
-            -n stock-a-one-shot-checkpoint -D a-one-shot-output
+          set -euo pipefail
+          NAME="stock-a-one-shot-checkpoint-$POSITION"
+          if [ -n "$RESUME_RUN" ]; then
+            [[ "$RESUME_RUN" =~ ^[0-9]{6,15}$ ]] || { echo BAD_RESUME_RUN; exit 2; }
+            gh run download "$RESUME_RUN" --repo "$GITHUB_REPOSITORY" -n "$NAME" -D a-one-shot-output
+          else
+            RUN_ID=$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts?name=$NAME&per_page=100" \
+              --jq '[.artifacts[] | select(.expired == false)] | sort_by(.created_at) | reverse | .[0].workflow_run.id // empty')
+            if [ -n "$RUN_ID" ]; then
+              gh run download "$RUN_ID" --repo "$GITHUB_REPOSITORY" -n "$NAME" -D a-one-shot-output
+              echo "RESTORED_A_SOURCE_CHECKPOINT_RUN=$RUN_ID"
+            else
+              echo "NO_PREVIOUS_SOURCE_CHECKPOINT"
+            fi
+          fi
       - name: One A original one instruction one JSON result
         env:
           POSITION: ${{ inputs.position }}
@@ -72,7 +84,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: stock-a-one-shot-checkpoint
+          name: stock-a-one-shot-checkpoint-${{ inputs.position }}
           path: a-one-shot-output/
           if-no-files-found: warn
           retention-days: 90
