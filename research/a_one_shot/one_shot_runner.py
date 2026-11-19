@@ -234,6 +234,24 @@ def run(manifest, position, out, expected_count=EXPECTED_A_COUNT, dry_run=False)
         state["room_id"] = transport.open_named_room(room_name,out)
         transport.save(status_path,state)
     room_id=state["room_id"]
+    if not state.get("job_id") and state.get("stage") not in (
+            "SUBMITTING_UNCERTAIN","SUBMISSION_AMBIGUOUS"):
+        # A fresh Actions runner may have lost the previous run's artifact.
+        # Deterministically look up the request BEFORE any possible new POST.
+        try:
+            lookup_code,lookup=transport.get(
+                "/integrations/v1/public/requests/"+expected_request_id)
+        except urllib.error.HTTPError as exc:
+            if exc.code!=404:
+                raise RuntimeError("PRE_SUBMIT_LOOKUP_ERROR_DO_NOT_SEND") from exc
+            lookup=None  # definitive read-only 404 permits the FIRST POST
+        if lookup is not None:
+            if (lookup_code!=200 or lookup.get("room_id")!=room_id
+                    or not lookup.get("job_id")):
+                raise RuntimeError("PRE_SUBMIT_LOOKUP_MISMATCH_DO_NOT_SEND")
+            state["job_id"]=lookup["job_id"]
+            state["stage"]="POLLING_RECOVERED_BY_REQUEST_ID"
+            transport.save(status_path,state)
     if not state.get("job_id"):
         if state.get("stage") in ("SUBMITTING_UNCERTAIN","SUBMISSION_AMBIGUOUS"):
             # A lost 202 response is NOT permission to repeat the POST.
