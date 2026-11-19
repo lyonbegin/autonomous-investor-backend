@@ -1,0 +1,103 @@
+name: STOCK A | one original one whole AI prompt one JSON
+on:
+  push:
+    branches: [feature/hitel-a-kg-recovery-20261119]
+    paths: [.github/workflows/stock-a-one-shot-sequential.yml]
+  workflow_dispatch:
+    inputs:
+      position:
+        description: "Official A order from verified 1814 row manifest"
+        required: true
+        type: string
+        default: "1"
+      auto_advance:
+        description: "Dispatch next A original after full internal validation"
+        required: true
+        type: boolean
+        default: false
+      resume_run_id:
+        description: "Previous same-source run ID to restore checkpoint"
+        required: false
+        type: string
+        default: ""
+permissions:
+  contents: read
+  actions: write
+concurrency:
+  group: STOCK-A-ONE-SHOT-SERIAL
+  cancel-in-progress: false
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile and test one-shot source without making any API requests
+        run: |
+          python3 -m py_compile research/a_one_shot/one_shot_runner.py
+          python3 -m unittest discover -s tests -p 'test_a_one_shot_runner.py' -v
+  one-source:
+    needs: regression
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+      - name: Require official A manifest before any AI question
+        run: |
+          test -s research/a_one_shot/OFFICIAL_A_MANIFEST.jsonl || {
+            echo 'OFFICIAL_A_MANIFEST_MISSING: no API request sent'; exit 2;
+          }
+      - name: Restore exact earlier job checkpoint if manually specified
+        if: ${{ inputs.resume_run_id != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RESUME_RUN: ${{ inputs.resume_run_id }}
+        run: |
+          [[ "$RESUME_RUN" =~ ^[0-9]{6,15}$ ]] || { echo BAD_RESUME_RUN; exit 2; }
+          gh run download "$RESUME_RUN" --repo "$GITHUB_REPOSITORY" \
+            -n stock-a-one-shot-checkpoint -D a-one-shot-output
+      - name: One A original one instruction one JSON result
+        env:
+          POSITION: ${{ inputs.position }}
+        run: |
+          [[ "$POSITION" =~ ^[1-9][0-9]*$ ]] || { echo BAD_A_ORDER; exit 2; }
+          python3 research/a_one_shot/one_shot_runner.py \
+            --manifest research/a_one_shot/OFFICIAL_A_MANIFEST.jsonl \
+            --position "$POSITION" --out a-one-shot-output
+      - name: Preserve raw JSON final response and every job/checkpoint on error or success
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stock-a-one-shot-checkpoint
+          path: a-one-shot-output/
+          if-no-files-found: warn
+          retention-days: 90
+      - name: Report truthfully
+        if: always()
+        run: |
+          if test -f a-one-shot-output/state.json; then
+            echo '## Official A group one-source report' >> "$GITHUB_STEP_SUMMARY"
+            cat a-one-shot-output/state.json >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Continue with next A original ONLY after final result and artifact
+        if: ${{ success() && inputs.auto_advance == true }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          POSITION: ${{ inputs.position }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json,os
+          from pathlib import Path
+          state=json.loads(Path('a-one-shot-output/state.json').read_text())
+          verdict=json.loads(Path('a-one-shot-output/validation.json').read_text())
+          assert state['a_order']==int(os.environ['POSITION'])
+          assert state['stage']=='VALIDATED' and state['next_source_allowed'] is True
+          assert verdict['can_advance'] is True and verdict['status']=='INTERNAL_COMPLETE'
+          PY
+          if [ "$POSITION" -ge 1814 ]; then echo 'ALL_VERIFIED_A_ITEMS_DONE'; exit 0; fi
+          NEXT=$((POSITION+1))
+          gh workflow run stock-a-one-shot-sequential.yml --ref "$GITHUB_REF_NAME" \
+            -f position="$NEXT" -f auto_advance=true -f resume_run_id=''
+          echo "NEXT_A_ORDER=$NEXT"
