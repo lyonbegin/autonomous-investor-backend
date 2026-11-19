@@ -141,6 +141,24 @@ class OneShotLiveContractTests(unittest.TestCase):
             self.assertEqual(len(calls["posts"]),1)
             self.assertEqual(json.loads((out/"state.json").read_text())["job_id"],"job_test")
 
+    def test_previous_complete_json_then_current_matches_by_source(self):
+        current=result(source())
+        previous={**current,"source_id":"Zyz98765","a_order":0}
+        raw=json.dumps(previous)+ "\n" + json.dumps(current)
+        observed=a.parse_reply_for_exact_source(raw,source())
+        self.assertEqual(observed["source_id"],source()["source_id"])
+
+    def test_duplicate_current_json_rejected_without_guessing(self):
+        current=json.dumps(result(source()))
+        with self.assertRaisesRegex(ValueError,"DUPLICATE"):
+            a.parse_reply_for_exact_source(current+"\n"+current,source())
+
+    def test_future_or_conflicting_json_rejected(self):
+        current=result(source())
+        future={**current,"source_id":"Xyz99999","a_order":2}
+        with self.assertRaisesRegex(ValueError,"FUTURE_OR_CONFLICTING"):
+            a.parse_reply_for_exact_source(json.dumps(future)+"\n"+json.dumps(current),source())
+
     def test_hash_is_not_pine_proof(self):
         s=source();s["pine_provenance_verified"]=False
         verdict=a.check_final_reply(result(s),s)
