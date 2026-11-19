@@ -1,0 +1,51 @@
+name: STOCK TV second source SEARCH ONLY real HITEL
+on:
+  push:
+    branches: [feature/hitel-a-kg-recovery-20261119]
+    paths:
+      - .github/workflows/stock-tv-row02-search-only.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: STOCK-TV-ROW02-SEARCH-ONLY
+  cancel-in-progress: false
+jobs:
+  search-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile and confirm the second original source
+        run: |
+          set -euo pipefail
+          python3 -m py_compile research/search_only/search_row02.py
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          rows=[json.loads(s) for s in Path('research/queue/seed.jsonl').read_text().splitlines() if s.strip()]
+          assert rows[1]['strategy_id']=='03zgCMqx'
+          assert rows[1]['title']=='PROP_Scalper_V2 FINAL'
+          print('EXACT_SOURCE_ROW_2_CONFIRMED',rows[1]['url'])
+          PY
+      - name: ONE real ChatGPT search instruction and final JSON only
+        run: |
+          set -euo pipefail
+          PYTHONUNBUFFERED=1 python3 research/search_only/search_row02.py
+      - name: Preserve job ID, 10-second poll trace, source and actual AI JSON
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stock-tv-row02-search-only-checkpoint
+          path: search-only-output/
+          retention-days: 90
+          if-no-files-found: warn
+      - name: Truthful search-only summary
+        if: always()
+        run: |
+          echo '## TradingView Strategy Row 2 HITEL SEARCH ONLY' >> "$GITHUB_STEP_SUMMARY"
+          if test -f search-only-output/state.json; then
+            cat search-only-output/state.json >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo 'NO_SEARCH_JOB_CREATED' >> "$GITHUB_STEP_SUMMARY"
+          fi
