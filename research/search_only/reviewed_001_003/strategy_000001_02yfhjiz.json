@@ -1,0 +1,73 @@
+{
+  "schema_version": "TV-THREE-REVIEWED-SEARCH-v1",
+  "source_order": 1,
+  "source_id": "02yfhjiz",
+  "source_title": "Complex Single Trade Strategy",
+  "source_url": "https://www.tradingview.com/script/02yfhjiz-Complex-Single-Trade-Strategy/",
+  "source_asset_note": "원본에서 특정 자산 확인되지 않음",
+  "source_facts_preview": "1포지션만 허용, 고정 손절/초기 추적손절/추적손절, 4단계 부분익절, 반대 시그널 처리",
+  "verification_level": "PUBLISHED_ABSTRACT_OR_PUBLIC_CASE_PAGE_NOT_FULL_PAPER",
+  "evidence_count": 5,
+  "items": [
+    {
+      "title": "Trading to Stops",
+      "year": 2014,
+      "kind": "PEER_REVIEWED_FINANCIAL_MATH",
+      "url": "https://epubs.siam.org/doi/10.1137/130911706",
+      "doi": "10.1137/130911706",
+      "evidence": "고정 손절과 이동 손절 규칙을 거래비용이 있는 환경에서 비교하고, 최적 정지 수준을 분석합니다.",
+      "evidence_location": "SIAM 출판사 초록",
+      "related": "원본의 정지손실 3종과 추적손절 전환",
+      "limit": "원본의 4단계 부분익절 성능을 직접 시험하지 않은 모형 연구"
+    },
+    {
+      "title": "Risk reduction using trailing stop-loss rules",
+      "year": 2021,
+      "kind": "PEER_REVIEWED_EMPIRICAL_RESEARCH",
+      "url": "https://onlinelibrary.wiley.com/doi/10.1111/irfi.12328",
+      "doi": "10.1111/irfi.12328",
+      "evidence": "추적 손절은 평균-분산 최적 벤치마크보다 평균 수익은 낮지만 총위험과 하방위험을 줄이며 하락장에서 위험 감소에 효과적이라는 결과를 보고합니다.",
+      "evidence_location": "출판사 공개 초록",
+      "related": "원본 추적 손절의 위험 완화 가설",
+      "limit": "네 단계 이익실현이나 동일 Pine 전략에 대한 연구가 아님"
+    },
+    {
+      "title": "Optimal Trading with a Trailing Stop",
+      "year": 2020,
+      "kind": "THEORETICAL_OPTIMAL_STOPPING",
+      "url": "https://papers.ssrn.com/sol3/papers.cfm?abstract_id=2895437",
+      "doi": "10.1007/s00245-019-09559-0",
+      "evidence": "지정된 가격 하락폭을 기준으로 매도하는 추적손절 조건 아래 최적 청산 규칙을 유도하며 지정가 매도와의 결합을 연구합니다.",
+      "evidence_location": "SSRN 공개 초록",
+      "related": "초기 추적손절·일반 추적손절에 대한 수리적 검증 사례",
+      "limit": "완성된 다단계 분할익절 백테스트가 아닌 이론 연구"
+    },
+    {
+      "title": "Optimization of Setting Take-Profit Levels for Derivative Trading",
+      "year": 2017,
+      "kind": "OPTIMAL_TAKE_PROFIT_MODEL",
+      "url": "https://www.mdpi.com/2297-8747/22/1/1",
+      "doi": "10.3390/mca22010001",
+      "evidence": "이익실현 수준을 결정하기 위한 최적 정지 규칙과 폐쇄형 수익성 함수를 제시하고 임계값 설정을 최적화합니다.",
+      "evidence_location": "MDPI 출판사 공개 초록",
+      "related": "원본 4개 TP 임계값의 설계·비교 근거",
+      "limit": "대상은 파생거래 이익실현 모형이며 해당 TradingView 전략 자체가 아님"
+    },
+    {
+      "title": "A simple computational model for analyzing the properties of stop-loss, take-profit, and price breakout trading strategies",
+      "year": 2005,
+      "kind": "TRADING_RULES_COMPUTATIONAL_STUDY",
+      "url": "https://www.sciencedirect.com/science/article/pii/S0305054804001194",
+      "doi": null,
+      "evidence": "손절·이익실현·가격 돌파·추적손절 및 보유 기간 조건이 종단 수익 분포에 주는 영향을 계산하는 접근법을 제시합니다.",
+      "evidence_location": "ScienceDirect 공개 초록",
+      "related": "단일 포지션에서 손절과 이익실현 규칙 조합에 대한 구조적 사례",
+      "limit": "실제 체결을 제시한 것은 아님"
+    }
+  ],
+  "search_method": "EXTERNAL_PUBLIC_WEB_VERIFICATION_PLUS_GITHUB_OPENALEX_INDEXED_ABSTRACTS",
+  "limitations": [
+    "동일 TradingView 전략 실증 논문이 아닌 메커니즘 관련 문헌 포함",
+    "전체 Pine 전문과 실제 매매 재현은 검증하지 않음"
+  ]
+}
