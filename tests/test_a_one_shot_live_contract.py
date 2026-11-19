@@ -64,5 +64,45 @@ class OneShotLiveContractTests(unittest.TestCase):
         self.assertFalse(verdict["can_advance"])
         self.assertIn("PINE_FULL_SOURCE_UNVERIFIED",verdict["schema_issues"])
 
+    def test_previous_complete_json_then_current_matches_by_source(self):
+        current=result(source())
+        previous={**current,"source_id":"Zyz98765","a_order":0}
+        raw=json.dumps(previous)+ "\n" + json.dumps(current)
+        observed=a.parse_reply_for_exact_source(raw,source())
+        self.assertEqual(observed["source_id"],source()["source_id"])
+
+    def test_duplicate_current_json_rejected_without_guessing(self):
+        current=json.dumps(result(source()))
+        with self.assertRaisesRegex(ValueError,"DUPLICATE"):
+            a.parse_reply_for_exact_source(current+"\n"+current,source())
+
+    def test_future_or_conflicting_json_rejected(self):
+        current=result(source())
+        future={**current,"source_id":"Xyz99999","a_order":2}
+        with self.assertRaisesRegex(ValueError,"FUTURE_OR_CONFLICTING"):
+            a.parse_reply_for_exact_source(json.dumps(future)+"\n"+json.dumps(current),source())
+
+    def test_job_poll_records_running_then_completed_without_second_post(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            manifest=self.setup_source(tmp)
+            out=Path(tmp)/"out"
+            payload=json.dumps(result(source()),ensure_ascii=False)
+            calls=iter([
+                {"room_id":"room_test","job_id":"job_test","status":"running",
+                 "stage":"web2api_running","updated_at":111},
+                {"room_id":"room_test","job_id":"job_test","status":"completed",
+                 "stage":"assistant_reply_stable","result_text":payload,"updated_at":222},
+            ])
+            with patch.object(a.transport,"open_named_room",return_value="room_test"),\
+                 patch.object(a.transport,"post",return_value=(202,{"room_id":"room_test","job_id":"job_test"})) as post,\
+                 patch.object(a.transport,"get",side_effect=lambda _: (200,next(calls))),\
+                 patch("time.sleep",return_value=None):
+                state=a.run(manifest,1,out,expected_count=1)
+            self.assertEqual(post.call_count,1)
+            audit=[json.loads(x) for x in (out/"poll_audit.jsonl").read_text().splitlines()]
+            self.assertEqual([x["status"] for x in audit],["running","completed"])
+            self.assertEqual(state["last_observation"]["stage"],"assistant_reply_stable")
+            self.assertEqual(a.POLL_INTERVAL_SECONDS,10)
+
 if __name__=="__main__":
     unittest.main()
