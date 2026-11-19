@@ -90,9 +90,10 @@ def run(src: dict, out: Path, per_stage_seconds: int, max_rounds: int) -> dict:
         facts_path = Path("research/sources/0LJUxO7T_published_description_facts.json")
         facts = json.loads(facts_path.read_text("utf-8"))
         prompt = (
-            "기존 A그룹 0LJUxO7T 연구 방의 복구용 후속 요청입니다. "
+            "[복구확인 2차: 기존 답변 우선] 기존 A그룹 0LJUxO7T 연구 방의 후속 요청입니다. "
             "새 A/B 분류를 하지 마십시오. 직전 연구 요청은 서버 재시작으로 API에서 failed가 되었으나 "
-            "ChatGPT 대화에 답변이 남았는지 확인하지 못했습니다. "
+            앞선 복구 질문도 Web2API HTTP 500으로 API 회수에 실패했습니다. "
+            "기존 대화의 앞선 질문/답변이 이미 존재한다면 새 후보를 다시 발굴하지 말고 해당 답변을 요약·복원하십시오. "
             "이 방의 직전 연구 답변이 이미 있다면 그 답변에서 사례 후보 결과를 복구하여 반환하십시오. "
             "답변이 없다면 제공된 TradingView 게시 설명의 검증 사실만으로 연구 후보 0~N개를 도출하십시오. "
             "Pine 원문이 제공되지 않았으므로 source_access_status는 PREVIEW_ONLY입니다. "
@@ -109,7 +110,7 @@ def run(src: dict, out: Path, per_stage_seconds: int, max_rounds: int) -> dict:
             "게시 설명 기반 확인 사실: " + kg.as_json(facts.get("source_facts", []))
         )
         # kg.ask uses a deterministic request_id and checkpoints before the POST.
-        discovered = kg.ask(EXPECTED_ROOM_ID, "0LJUxO7T-DISCOVERY-RECOVERY-FOLLOWUP-V1",
+        discovered = kg.ask(EXPECTED_ROOM_ID, "0LJUxO7T-DISCOVERY-RECOVERY-FOLLOWUP-V2-HTTP500-DIAG",
                             prompt, out, per_stage_seconds)
     else:
         raise RuntimeError("ORIGINAL_JOB_UNRECOGNIZED_STATUS_" + str(obj.get("status")))
