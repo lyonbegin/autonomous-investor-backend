@@ -71,9 +71,9 @@ class OneShotLiveContractTests(unittest.TestCase):
             payload=payload[:-1]+',"long_unicode":"'+("연구결과"*14000)+'"}'
             post,get,calls,_=self.make_transport(
                 payload,["queued","running","running","completed"])
-            with patch.object(a.transport,"open_named_room",return_value="room_test"),\\
-                 patch.object(a.transport,"post",side_effect=post),\\
-                 patch.object(a.transport,"get",side_effect=get),\\
+            with patch.object(a.transport,"open_named_room",return_value="room_test"),\
+                 patch.object(a.transport,"post",side_effect=post),\
+                 patch.object(a.transport,"get",side_effect=get),\
                  patch("time.sleep") as pause:
                 state=a.run(manifest,1,out,expected_count=1)
                 replay=a.run(manifest,1,out,expected_count=1)
@@ -95,8 +95,8 @@ class OneShotLiveContractTests(unittest.TestCase):
             manifest=self.setup_source(tmp)
             out=Path(tmp)/"out"
             post,get,calls,_=self.make_transport("{bad JSON",invalid=True)
-            with patch.object(a.transport,"open_named_room",return_value="room_test"),\\
-                 patch.object(a.transport,"post",side_effect=post),\\
+            with patch.object(a.transport,"open_named_room",return_value="room_test"),\
+                 patch.object(a.transport,"post",side_effect=post),\
                  patch.object(a.transport,"get",side_effect=get):
                 with self.assertRaisesRegex(RuntimeError,"NOT_COMPLETE_JSON"):
                     a.run(manifest,1,out,expected_count=1)
@@ -115,8 +115,8 @@ class OneShotLiveContractTests(unittest.TestCase):
                 request_id[0]=body["request_id"]
                 calls["posts"].append((path,body))
                 raise urllib.error.URLError("post response lost")
-            with patch.object(a.transport,"open_named_room",return_value="room_test"),\\
-                 patch.object(a.transport,"post",side_effect=first_post),\\
+            with patch.object(a.transport,"open_named_room",return_value="room_test"),\
+                 patch.object(a.transport,"post",side_effect=first_post),\
                  patch.object(a.transport,"get",side_effect=get):
                 with self.assertRaises(urllib.error.URLError):
                     a.run(manifest,1,out,expected_count=1)
@@ -129,8 +129,8 @@ class OneShotLiveContractTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             manifest=self.setup_source(tmp);out=Path(tmp)/"out"
             post,get,calls,_=self.make_transport("{}",polls=["stalled"])
-            with patch.object(a.transport,"open_named_room",return_value="room_test"),\\
-                 patch.object(a.transport,"post",side_effect=post),\\
+            with patch.object(a.transport,"open_named_room",return_value="room_test"),\
+                 patch.object(a.transport,"post",side_effect=post),\
                  patch.object(a.transport,"get",side_effect=get):
                 with self.assertRaisesRegex(RuntimeError,"UNCERTAIN_PRESERVE_ID"):
                     a.run(manifest,1,out,expected_count=1)
