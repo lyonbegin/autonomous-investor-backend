@@ -1,0 +1,504 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "One A source; one AI ChatGPT request; one final structured JSON",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "group",
+    "source_id",
+    "a_order",
+    "source_verification",
+    "case_discovery",
+    "summary",
+    "independent_blind_verified"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "A-ONE-SHOT-v1"
+    },
+    "group": {
+      "const": "A"
+    },
+    "source_id": {
+      "type": "string",
+      "minLength": 8
+    },
+    "a_order": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "source_verification": {
+      "type": "object",
+      "required": [
+        "pine_verified",
+        "pine_sha256",
+        "source_access_status",
+        "source_facts",
+        "unverified_source_items"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "pine_verified": {
+          "type": "boolean"
+        },
+        "pine_sha256": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "source_access_status": {
+          "enum": [
+            "FULL_PINE",
+            "DETAIL_PAGE_ONLY",
+            "PREVIEW_ONLY",
+            "UNAVAILABLE"
+          ]
+        },
+        "source_facts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "fact_id",
+              "claim",
+              "evidence"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "fact_id": {
+                "type": "string"
+              },
+              "claim": {
+                "type": "string"
+              },
+              "evidence": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "source_url",
+                    "location",
+                    "verified"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "source_url": {
+                      "type": "string"
+                    },
+                    "location": {
+                      "type": "string"
+                    },
+                    "verified": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "unverified_source_items": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "case_discovery": {
+      "type": "object",
+      "required": [
+        "method",
+        "candidates_considered",
+        "cases_discovered",
+        "cases"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "method": {
+          "type": "string"
+        },
+        "candidates_considered": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cases_discovered": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cases": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "case_id",
+              "kind",
+              "economic_mechanism",
+              "factual_evidence",
+              "inferences",
+              "prior_87_links",
+              "prior_12_links",
+              "indicator_links",
+              "fact_register",
+              "rounds",
+              "final_graph",
+              "final_reconstruction",
+              "final_comparison",
+              "internal_verdict",
+              "independent_blind_verified",
+              "unresolved"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "case_id": {
+                "type": "string"
+              },
+              "kind": {
+                "enum": [
+                  "REAL_EXECUTED_TRADE",
+                  "EDUCATIONAL_WORKED_TRADE",
+                  "SPECIFIED_BACKTEST",
+                  "MODEL_RESEARCH",
+                  "NO_CONCRETE_TRADE",
+                  "UNVERIFIED"
+                ]
+              },
+              "economic_mechanism": {
+                "type": "string"
+              },
+              "factual_evidence": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "source_url",
+                    "location",
+                    "claim",
+                    "access_status"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "source_url": {
+                      "type": "string"
+                    },
+                    "location": {
+                      "type": "string"
+                    },
+                    "claim": {
+                      "type": "string"
+                    },
+                    "access_status": {
+                      "enum": [
+                        "VERIFIED",
+                        "NOT_VERIFIED",
+                        "NOT_AVAILABLE"
+                      ]
+                    }
+                  }
+                }
+              },
+              "inferences": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "prior_87_links": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              },
+              "prior_12_links": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              },
+              "indicator_links": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              },
+              "fact_register": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "fact_id",
+                    "fact",
+                    "verification"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "fact_id": {
+                      "type": "string"
+                    },
+                    "fact": {
+                      "type": "string"
+                    },
+                    "verification": {
+                      "enum": [
+                        "VERIFIED",
+                        "INFERRED",
+                        "NOT_VERIFIED"
+                      ]
+                    }
+                  }
+                }
+              },
+              "rounds": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "round_no",
+                    "previous_graph_state",
+                    "error_types",
+                    "failure_matrix",
+                    "graph_rebuild_changes",
+                    "internal_reconstruction_summary",
+                    "comparison_summary",
+                    "verdict"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "round_no": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "previous_graph_state": {
+                      "enum": [
+                        "NONE",
+                        "SUPERSEDED"
+                      ]
+                    },
+                    "error_types": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "failure_matrix": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    },
+                    "graph_rebuild_changes": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "internal_reconstruction_summary": {
+                      "type": "string"
+                    },
+                    "comparison_summary": {
+                      "type": "string"
+                    },
+                    "verdict": {
+                      "enum": [
+                        "SELF_CHECK_PASS",
+                        "FAIL",
+                        "BLOCKED"
+                      ]
+                    }
+                  }
+                }
+              },
+              "final_graph": {
+                "type": "object",
+                "required": [
+                  "nodes",
+                  "edges"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "nodes": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "type",
+                        "properties",
+                        "source_fact_ids"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "type": {
+                          "type": "string"
+                        },
+                        "properties": {
+                          "type": "object"
+                        },
+                        "source_fact_ids": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "edges": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "source",
+                        "target",
+                        "relation",
+                        "properties"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "source": {
+                          "type": "string"
+                        },
+                        "target": {
+                          "type": "string"
+                        },
+                        "relation": {
+                          "type": "string"
+                        },
+                        "properties": {
+                          "type": "object"
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "final_reconstruction": {
+                "type": "object"
+              },
+              "final_comparison": {
+                "type": "object",
+                "required": [
+                  "checks",
+                  "source_coverage_pass",
+                  "self_check_pass"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "checks": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "fact_id",
+                        "graph_path",
+                        "reconstructed_value",
+                        "match",
+                        "reasoning"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "fact_id": {
+                          "type": "string"
+                        },
+                        "graph_path": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "reconstructed_value": {},
+                        "match": {
+                          "type": "boolean"
+                        },
+                        "reasoning": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "source_coverage_pass": {
+                    "type": "boolean"
+                  },
+                  "self_check_pass": {
+                    "type": "boolean"
+                  }
+                }
+              },
+              "internal_verdict": {
+                "enum": [
+                  "SELF_CHECK_PASS",
+                  "FAIL",
+                  "BLOCKED"
+                ]
+              },
+              "independent_blind_verified": {
+                "const": false
+              },
+              "unresolved": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "required": [
+        "total_cases",
+        "internally_passed",
+        "blocked",
+        "incomplete",
+        "unresolved_claims",
+        "overall",
+        "report_ko"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "total_cases": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "internally_passed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "blocked": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "incomplete": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unresolved_claims": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "overall": {
+          "enum": [
+            "INTERNAL_COMPLETE",
+            "BLOCKED",
+            "INCOMPLETE"
+          ]
+        },
+        "report_ko": {
+          "type": "string"
+        }
+      }
+    },
+    "independent_blind_verified": {
+      "const": false
+    }
+  }
+}
