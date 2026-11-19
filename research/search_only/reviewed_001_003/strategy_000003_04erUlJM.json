@@ -1,0 +1,73 @@
+{
+  "schema_version": "TV-THREE-REVIEWED-SEARCH-v1",
+  "source_order": 3,
+  "source_id": "04erUlJM",
+  "source_title": "LINK Above $12.20: Is $15 Back on the Table?",
+  "source_url": "https://www.tradingview.com/script/04erUlJM-LINK-Above-12-20-Is-15-Back-on-the-Table/",
+  "source_asset_note": "LINK 암호화폐; 원본 게시 차트 실증 미검증",
+  "source_facts_preview": "LINK $12.00–$12.20 돌파구간 되돌림 확인 후 진입 가설; 저항 돌파 및 추세 필터",
+  "verification_level": "PUBLISHED_ABSTRACT_OR_PUBLIC_CASE_PAGE_NOT_FULL_PAPER",
+  "evidence_count": 5,
+  "items": [
+    {
+      "title": "The effectiveness of technical trading rules in cryptocurrency markets",
+      "year": 2019,
+      "kind": "EMPIRICAL_HIGH_FREQUENCY_RESEARCH",
+      "url": "https://www.sciencedirect.com/science/article/pii/S1544612319300315",
+      "doi": null,
+      "evidence": "비트코인 고빈도 수익률에서 이동평균 오실레이터와 trading range breakout 규칙을 적용하여 지지·저항 수준 기반 거래 성능을 비교합니다.",
+      "evidence_location": "출판사 공개 초록",
+      "related": "LINK $12.20 저항 돌파 논리와 같은 규칙 계열",
+      "limit": "Bitcoin 대상 연구이므로 LINK 또는 $12.20 성능 증명이 아님"
+    },
+    {
+      "title": "Technical trading and cryptocurrencies",
+      "year": 2019,
+      "kind": "EMPIRICAL_MULTICOINS_RESEARCH",
+      "url": "https://link.springer.com/article/10.1007/s10479-019-03357-1",
+      "doi": "10.1007/s10479-019-03357-1",
+      "evidence": "복수 암호화폐 시장에서 이동평균·필터·지지저항·채널 돌파 규칙을 비교합니다. 여러 시장에서 필터와 채널 돌파 규칙의 상대성과가 높다고 보고합니다.",
+      "evidence_location": "Springer 공개 초록·실증 결과",
+      "related": "LINK 돌파·장기 추세 확인 조건을 비교할 수 있는 기술매매 연구",
+      "limit": "LINK 고유 거래 수익을 실증한 논문 아님"
+    },
+    {
+      "title": "Sequential Learning of Cryptocurrency Volatility Dynamics: Evidence Based on a Stochastic Volatility Model with Jumps in Returns and Volatility",
+      "year": 2021,
+      "kind": "CHAINLINK_SPECIFIC_VOLATILITY_STUDY",
+      "url": "https://pure.psu.edu/en/publications/sequential-learning-of-cryptocurrency-volatility-dynamics-evidenc/",
+      "doi": "10.1142/S2010139221500105",
+      "evidence": "BTC·ETH·LTC·LINK 네 자산의 일봉에서 가격수익과 변동성의 점프를 분석합니다. LINK에서는 양의 수익률·변동성 관계가 나타난다고 보고합니다.",
+      "evidence_location": "Penn State 리포지터리 초록",
+      "related": "LINK 돌파 시 변동성 급등 및 위험을 해석하는 배경 근거",
+      "limit": "지지선 돌파 매매의 수익을 직접 테스트하지 않은 변동성 연구"
+    },
+    {
+      "title": "Algorithmic crypto trading using information-driven bars, triple barrier labeling and deep learning",
+      "year": 2025,
+      "kind": "CRYPTO_RULE_BASED_BACKTEST",
+      "url": "https://link.springer.com/article/10.1186/s40854-025-00866-w",
+      "doi": "10.1186/s40854-025-00866-w",
+      "evidence": "CUSUM 샘플링과 Triple Barrier(익절·손절·시간 종료) 라벨을 결합해 BTC·ETH 중심의 알고리즘 거래를 시험했습니다. 문헌에는 LINKUSDT 종목 정의도 나옵니다.",
+      "evidence_location": "본문 Method, Results, Conclusion 및 약어 표",
+      "related": "LINK 돌파 후 이익실현·손실제한에 활용 가능한 사건 기준 평가",
+      "limit": "주요 본실험은 BTC·ETH이므로 LINK에 대한 동일 성과가 입증된 것은 아님"
+    },
+    {
+      "title": "Chainlink Volume-Confirmed Range Breakout Paper Trading",
+      "year": null,
+      "kind": "NON_PEER_REVIEWED_PAPER_TRADING_CASE",
+      "url": "https://zengtrade.in/strategies/volume-breakout/chainlink/",
+      "doi": null,
+      "evidence": "LINKUSDT 20일 고점 종가 돌파와 거래량 20일 평균 대비 2.5배를 신호로 제시하고 거래비용 가정 35bp를 적용한 paper-first 백테스트 사례입니다.",
+      "evidence_location": "공개 연구/전략 페이지",
+      "related": "원본 LINK $12.20 돌파에 필요한 거래량 검증과 비용 반영 사례",
+      "limit": "동료심사 학술논문이나 검증된 실거래 내역이 아님"
+    }
+  ],
+  "search_method": "EXTERNAL_PUBLIC_WEB_VERIFICATION_PLUS_GITHUB_OPENALEX_INDEXED_ABSTRACTS",
+  "limitations": [
+    "동일 TradingView 전략 실증 논문이 아닌 메커니즘 관련 문헌 포함",
+    "전체 Pine 전문과 실제 매매 재현은 검증하지 않음"
+  ]
+}
