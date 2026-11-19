@@ -89,9 +89,14 @@ def schema_errors(value, schema):
                 errors.append(path+":extra")
             for key in set(data)&set(fields):
                 visit(data[key],fields[key],path+"."+key)
-        if isinstance(data,list) and "items" in shape:
-            for i,v in enumerate(data):
-                visit(v,shape["items"],f"{path}[{i}]")
+        if isinstance(data,list):
+            if "minItems" in shape and len(data)<shape["minItems"]:
+                errors.append(path+":minItems")
+            if "maxItems" in shape and len(data)>shape["maxItems"]:
+                errors.append(path+":maxItems")
+            if "items" in shape:
+                for i,v in enumerate(data):
+                    visit(v,shape["items"],f"{path}[{i}]")
         if isinstance(data,(int,float)) and "minimum" in shape and data < shape["minimum"]:
             errors.append(path+":minimum")
         if isinstance(data,str) and "minLength" in shape and len(data)<shape["minLength"]:
@@ -102,6 +107,22 @@ def schema_errors(value, schema):
 def check_final_reply(result, src):
     schema = json.loads((CONTRACT_DIR/"result_schema.json").read_text("utf-8"))
     errors = schema_errors(result,schema)
+    def section_check(items, expected_ids, tag):
+        if not isinstance(items,list) or len(items)!=len(expected_ids):
+            errors.append(tag+":section_count")
+            return
+        for item, expected in zip(items, expected_ids):
+            if not isinstance(item,dict) or item.get("section_id")!=expected:
+                errors.append(tag+":section_order_or_id")
+                continue
+            if item.get("status")=="PASS" and (
+                    len(str(item.get("summary","")).strip())<25
+                    or not item.get("facts")
+                    or not item.get("evidence_refs")):
+                errors.append(tag+":"+expected+":EMPTY_OR_UNEVIDENCED_PASS")
+            if item.get("status")!="PASS" and not item.get("limitations"):
+                errors.append(tag+":"+expected+":UNFINISHED_WITHOUT_REASON")
+    section_check(result.get("source_sections_01_to_10"),[f"{i:02d}" for i in range(1,11)],"ORIGINAL")
     if result.get("source_id") != src["source_id"] or result.get("a_order") != src["a_order"] or result.get("group") != "A":
         errors.append("REPLY_SOURCE_ID_ORDER_GROUP_MISMATCH")
     discovery=result.get("case_discovery") or {}
@@ -116,6 +137,8 @@ def check_final_reply(result, src):
         if not isinstance(case,dict):
             errors.append(f"CASE_{i}_NOT_OBJECT")
             continue
+        section_check(case.get("case_sections_11_to_20"),
+                      [f"{j:02d}" for j in range(11,21)],f"CASE_{i}")
         cid=case.get("case_id")
         if not cid or cid in unique:errors.append(f"CASE_{i}_ID_INVALID")
         unique.add(cid)
