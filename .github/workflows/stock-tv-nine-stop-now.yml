@@ -1,0 +1,19 @@
+name: STOP CURRENT STOCK TV NINE HITEL SEARCH RUN
+on:
+  push:
+    branches: [feature/hitel-a-kg-recovery-20261119]
+    paths:
+      - .github/workflows/stock-tv-nine-stop-now.yml
+permissions:
+  contents: read
+concurrency:
+  group: STOCK-TV-NINE-HITEL-3X3-20261119
+  cancel-in-progress: true
+jobs:
+  stop-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Terminate prior 9-original polling workflow with shared concurrency key
+        run: |
+          echo 'STOP_ONLY: no HITEL POST, no polling, no research. Shared concurrency cancels prior active run.'
