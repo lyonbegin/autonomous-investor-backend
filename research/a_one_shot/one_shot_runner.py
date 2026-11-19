@@ -179,30 +179,78 @@ def run(manifest, position, out, expected_count=EXPECTED_A_COUNT, dry_run=False)
         (out/"prompt.txt").write_text(prompt,encoding="utf-8")
         state["stage"]="DRY_RUN_NO_AI_REQUEST";transport.save(status_path,state)
         return state
-    # This is the sole AI ChatGPT question for the selected TradingView original.
-    # transport.ask polls the same job_id; it does NOT create graph-stage AI turns.
-    room_id=transport.open_named_room(ROOM_NAME,out)
-    state["room_id"]=room_id;transport.save(status_path,state)
-    stage=src["source_id"]+"-ONE-SHOT-FULL-RESEARCH"
-    response=transport.ask(room_id,stage,prompt,out,timeout_s=17000)
-    job_hash=digest(room_id+"|"+stage+"|"+prompt)[:24]
-    job_state=json.loads((out/"jobs"/(job_hash+".json")).read_text("utf-8"))
-    job_id=job_state["job_id"]
-    state["job_id"]=job_id
-    code,job=transport.get("/integrations/v1/public/jobs/"+job_id)
-    if code!=200 or job.get("status")!="completed" or job.get("room_id")!=room_id:
-        raise RuntimeError("ONE_SHOT_COMPLETED_REPLY_NOT_CONFIRMED")
-    raw=job.get("result_text")
-    if not isinstance(raw,str) or not raw.strip():raise RuntimeError("ONE_SHOT_EMPTY_REPLY")
-    (out/"result.raw.txt").write_text(raw,encoding="utf-8")
-    transport.save(out/"result.json",response)
-    verdict=check_final_reply(response,src)
-    transport.save(out/"validation.json",verdict)
-    state.update({"stage":"VALIDATED","status":verdict["status"],
-                  "next_source_allowed":verdict["can_advance"],"can_advance":verdict["can_advance"],
-                  "job_id":job_id,"case_count":verdict["cases"]})
+
+    # ONE request, ONE final reply. POST only once; every later request is GET.
+    # Save the raw result *before* JSON parse, ensuring malformed JSON is still
+    # recoverable without another AI request.
+    from time import monotonic, sleep
+    import urllib.error
+    room_name = ROOM_NAME
+    state["request_id"] = "stock-a-oneshot-" + digest(room_name+"|"+src["source_id"]+"|"+prompt_sha)[:40]
+    (out/"prompt.txt").write_text(prompt,encoding="utf-8")
     transport.save(status_path,state)
-    return state
+    if state.get("stage") in ("SUBMITTING_UNCERTAIN","FAILED","INVALID_JSON","BLOCKED"):
+        raise RuntimeError("PREVIOUS_ATTEMPT_AMBIGUOUS_OR_FAILED_DO_NOT_REPEAT")
+    if state.get("stage") == "VALIDATED":
+        return state
+    if not state.get("room_id"):
+        room_id = transport.open_named_room(room_name,out)
+        state["room_id"] = room_id
+        transport.save(status_path,state)
+    room_id=state["room_id"]
+    if not state.get("job_id"):
+        state["stage"]="SUBMITTING_UNCERTAIN"
+        transport.save(status_path,state)
+        code,accepted=transport.post("/integrations/v1/public/chat",{
+            "room_id":room_id,"text":prompt,"request_id":state["request_id"]})
+        if code != 202 or not accepted.get("job_id") or accepted.get("room_id") != room_id:
+            state["stage"]="SUBMISSION_AMBIGUOUS"
+            transport.save(status_path,state)
+            raise RuntimeError("ONE_SHOT_CHAT_NOT_ACCEPTED_OR_ROOM_CHANGED")
+        state["job_id"]=accepted["job_id"]
+        state["stage"]="POLLING"
+        transport.save(status_path,state)
+    deadline=monotonic()+1200
+    while monotonic()<deadline:
+        try:
+            status,reply=transport.get("/integrations/v1/public/jobs/"+state["job_id"])
+        except (urllib.error.URLError, TimeoutError):
+            sleep(5)
+            continue
+        if status != 200 or reply.get("job_id") != state["job_id"] or reply.get("room_id") != room_id:
+            raise RuntimeError("ONE_SHOT_RESULT_JOB_OR_ROOM_MISMATCH")
+        if reply.get("status")=="failed":
+            state["stage"]="FAILED"
+            state["last_job_error"]=str(reply.get("error",""))[:500]
+            transport.save(status_path,state)
+            raise RuntimeError("ONE_SHOT_FINAL_JOB_FAILED "+state["last_job_error"])
+        if reply.get("status")=="completed":
+            raw=reply.get("result_text")
+            if not isinstance(raw,str) or not raw.strip():
+                state["stage"]="INVALID_JSON"
+                transport.save(status_path,state)
+                raise RuntimeError("COMPLETED_BUT_EMPTY_RESULT_TEXT")
+            (out/"result.raw.txt").write_text(raw,encoding="utf-8")
+            state["stage"]="RAW_FINAL_REPLY_PRESERVED"
+            transport.save(status_path,state)
+            try:
+                response=transport.parse_json(raw)
+            except Exception:
+                state["stage"]="INVALID_JSON"
+                transport.save(status_path,state)
+                raise
+            transport.save(out/"result.json",response)
+            verdict=check_final_reply(response,src)
+            transport.save(out/"validation.json",verdict)
+            state.update({"stage":"VALIDATED","status":verdict["status"],
+                          "next_source_allowed":verdict["can_advance"],"can_advance":verdict["can_advance"],
+                          "case_count":verdict["cases"]})
+            transport.save(status_path,state)
+            return state
+        sleep(5)
+    state["stage"]="POLL_TIMEOUT_JOB_PRESERVED"
+    transport.save(status_path,state)
+    raise TimeoutError("ONE_SHOT_JOB_UNFINISHED_PRESERVE_ID "+state["job_id"])
 
 def main():
     p=argparse.ArgumentParser()
