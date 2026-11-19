@@ -48,12 +48,12 @@ jobs:
               break
             fi
           done
-      - name: ChatGPT via HITEL | exactly one A source, all related cases, per-case blind replay and iterative rebuilding
+      - name: Continue previously accepted HITEL job up to two hours, without a duplicate send
         run: |
           python3 research/hitel_a_one_source.py \
             --input research/queue/a_one_source_pilot.json \
             --out a-hitel-kg-output \
-            --room-tag R3 --max-rounds 2 --poll-seconds 900
+            --room-tag R3 --max-rounds 2 --poll-seconds 7200
       - name: Preserve ALL received responses, graph rounds, blind comparisons and checkpoint even on error
         if: always()
         uses: actions/upload-artifact@v4
