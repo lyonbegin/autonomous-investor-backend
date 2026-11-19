@@ -1,0 +1,13 @@
+{
+  "group": "A",
+  "source_order": "PILOT_CONFIRMED_A_NOT_OFFICIAL_A_FIRST",
+  "source_id": "0LJUxO7T",
+  "source_type": "strategy",
+  "title": "[Pt] Premarket Breakout Strategy",
+  "url": "https://www.tradingview.com/script/0LJUxO7T-Pt-Premarket-Breakout-Strategy/",
+  "description_preview": "Designed for SPY or QQQ. One trade per day, 1-minute default. Pre-market high/low 9:00–9:30 EST; breakout above high = long; below low = short; Stochastic RSI D involved. This is a truncated preview, not full Pine source.",
+  "classification_basis": "Previous user-confirmed A-group example (SPY/QQQ ETF price direction). Not reclassified.",
+  "published_chart_symbol": "UNVERIFIED",
+  "pine_source_status": "NOT_VERIFIED",
+  "official_a_order_verified": false
+}
