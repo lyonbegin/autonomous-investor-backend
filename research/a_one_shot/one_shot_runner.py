@@ -4,6 +4,8 @@ import argparse
 import hashlib
 import json
 import os
+import time
+import urllib.error
 from pathlib import Path
 import re
 import sys
@@ -15,6 +17,8 @@ CONTRACT_DIR = Path(__file__).resolve().parent
 ROOM_NAME = "STOCK-KG-A-ONE-SHOT-20261119"
 EXPECTED_A_COUNT = 1814
 MAX_PROMPT = 19500
+POLL_INTERVAL_SECONDS = 10
+SUBMIT_RETRIES = 3
 
 def digest(s):
     return hashlib.sha256(s.encode("utf-8")).hexdigest()
@@ -64,6 +68,54 @@ def compose_prompt(source):
     if len(prompt) > MAX_PROMPT:
         raise RuntimeError(f"PROMPT_TOO_LARGE_FOR_ONE_HITEL_REQUEST length={len(prompt)} limit={MAX_PROMPT}")
     return prompt
+
+def parse_reply_for_exact_source(raw, src):
+    """Accept a complete single JSON object, or old complete JSON followed by current.
+    Reject mixed, duplicate, future, partial or ambiguous current-source objects.
+    Always persist the raw reply before invoking this parser.
+    """
+    if not isinstance(raw, str) or not raw.strip():
+        raise ValueError("AI_REPLY_EMPTY")
+    value = raw.strip()
+    if value.startswith("```"):
+        # Only a single outer Markdown fence is supported.
+        lines = value.splitlines()
+        if len(lines) < 3 or lines[-1].strip() != "```":
+            raise ValueError("INCOMPLETE_JSON_FENCE")
+        value = "\n".join(lines[1:-1]).strip()
+    decoder = json.JSONDecoder()
+    index = 0
+    objects = []
+    while index < len(value):
+        while index < len(value) and value[index].isspace():
+            index += 1
+        if index == len(value):
+            break
+        try:
+            item, index = decoder.raw_decode(value, index)
+        except json.JSONDecodeError as exc:
+            raise ValueError("INCOMPLETE_OR_MALFORMED_AI_JSON") from exc
+        if not isinstance(item, dict):
+            raise ValueError("AI_JSON_OBJECT_REQUIRED")
+        objects.append(item)
+    if not objects:
+        raise ValueError("AI_REPLY_WITHOUT_JSON")
+    current = []
+    for obj in objects:
+        order = obj.get("a_order")
+        if obj.get("group") != "A" or type(order) != int or not isinstance(obj.get("source_id"), str):
+            raise ValueError("AMBIGUOUS_AI_REPLY_MISSING_SOURCE_ID")
+        if order == src["a_order"] and obj["source_id"] == src["source_id"]:
+            current.append(obj)
+        elif order >= src["a_order"]:
+            raise ValueError("UNEXPECTED_FUTURE_OR_CONFLICTING_SOURCE_JSON")
+        # Historical object must be a strictly earlier A-group original.
+    if len(current) != 1:
+        raise ValueError("CURRENT_SOURCE_JSON_MISSING_OR_DUPLICATE")
+    if objects[-1] is not current[0]:
+        raise ValueError("CURRENT_SOURCE_JSON_NOT_LAST")
+    return current[0]
+
 
 def schema_errors(value, schema):
     errors = []
@@ -223,7 +275,7 @@ def run(manifest, position, out, expected_count=EXPECTED_A_COUNT, dry_run=False)
     state["room_name"] = room_name
     (out/"prompt.txt").write_text(prompt,encoding="utf-8")
     transport.save(status_path,state)
-    if state.get("stage") in ("SUBMITTING_UNCERTAIN","SUBMISSION_AMBIGUOUS","FAILED","INVALID_JSON","BLOCKED"):
+    if state.get("stage") in ("SUBMISSION_AMBIGUOUS","FAILED","INVALID_JSON","BLOCKED"):
         raise RuntimeError("PREVIOUS_ATTEMPT_AMBIGUOUS_OR_FAILED_DO_NOT_REPEAT")
     if state.get("stage") == "VALIDATED":
         return state
@@ -233,26 +285,60 @@ def run(manifest, position, out, expected_count=EXPECTED_A_COUNT, dry_run=False)
         transport.save(status_path,state)
     room_id=state["room_id"]
     if not state.get("job_id"):
+        # Safe even after restart: stable room + exact body hash + deterministic
+        # request_id. The HITEL server returns the same job_id on replay.
         state["stage"]="SUBMITTING_UNCERTAIN"
         transport.save(status_path,state)
-        code,accepted=transport.post("/integrations/v1/public/chat",{
-            "room_id":room_id,"text":prompt,"request_id":state["request_id"]})
-        if code != 202 or not accepted.get("job_id") or accepted.get("room_id") != room_id:
+        accepted = None
+        for attempt in range(SUBMIT_RETRIES):
+            try:
+                code, candidate = transport.post("/integrations/v1/public/chat", {
+                    "room_id":room_id,"text":prompt,"request_id":state["request_id"]})
+                if code != 202:
+                    raise RuntimeError("HITEL_CHAT_NOT_ACCEPTED_HTTP_"+str(code))
+                accepted = candidate
+                break
+            except urllib.error.HTTPError as exc:
+                if exc.code not in (502,503,504) or attempt == SUBMIT_RETRIES-1:
+                    raise
+            except (urllib.error.URLError, TimeoutError):
+                if attempt == SUBMIT_RETRIES-1:
+                    raise
+            sleep(5 * (attempt+1))
+        if not isinstance(accepted,dict) or not accepted.get("job_id") or accepted.get("room_id") != room_id:
             state["stage"]="SUBMISSION_AMBIGUOUS"
             transport.save(status_path,state)
             raise RuntimeError("ONE_SHOT_CHAT_NOT_ACCEPTED_OR_ROOM_CHANGED")
+        if accepted.get("request_id") not in (None,state["request_id"]):
+            raise RuntimeError("HITEL_REPLAYED_WRONG_REQUEST_ID")
         state["job_id"]=accepted["job_id"]
         state["stage"]="POLLING"
         transport.save(status_path,state)
     deadline=monotonic()+12600
+    poll_count=0
     while monotonic()<deadline:
         try:
             status,reply=transport.get("/integrations/v1/public/jobs/"+state["job_id"])
         except (urllib.error.URLError, TimeoutError):
-            sleep(5)
+            sleep(POLL_INTERVAL_SECONDS)
             continue
         if status != 200 or reply.get("job_id") != state["job_id"] or reply.get("room_id") != room_id:
             raise RuntimeError("ONE_SHOT_RESULT_JOB_OR_ROOM_MISMATCH")
+        poll_count+=1
+        observation={
+            "time_utc":time.strftime("%Y-%m-%dT%H:%M:%SZ",time.gmtime()),
+            "job_id":state["job_id"],
+            "room_id":room_id,
+            "status":reply.get("status"),
+            "stage":reply.get("stage"),
+            "server_updated_at":reply.get("updated_at"),
+            "poll_count":poll_count
+        }
+        with (out/"poll_audit.jsonl").open("a",encoding="utf-8") as stream:
+            stream.write(json.dumps(observation,ensure_ascii=False)+"\n")
+        state["last_observation"]=observation
+        transport.save(status_path,state)
+        print("A_ONE_SHOT_JOB_POLL "+json.dumps(observation,ensure_ascii=False),flush=True)
         if reply.get("status")=="failed":
             state["stage"]="FAILED"
             state["last_job_error"]=str(reply.get("error",""))[:500]
@@ -268,9 +354,7 @@ def run(manifest, position, out, expected_count=EXPECTED_A_COUNT, dry_run=False)
             state["stage"]="RAW_FINAL_REPLY_PRESERVED"
             transport.save(status_path,state)
             try:
-                response=json.loads(raw)
-                if not isinstance(response,dict):
-                    raise ValueError("FINAL_JSON_OBJECT_REQUIRED")
+                response=parse_reply_for_exact_source(raw,src)
             except Exception:
                 state["stage"]="INVALID_JSON"
                 transport.save(status_path,state)
@@ -283,7 +367,7 @@ def run(manifest, position, out, expected_count=EXPECTED_A_COUNT, dry_run=False)
                           "case_count":verdict["cases"]})
             transport.save(status_path,state)
             return state
-        sleep(5)
+        sleep(POLL_INTERVAL_SECONDS)
     state["stage"]="POLL_TIMEOUT_JOB_PRESERVED"
     transport.save(status_path,state)
     raise TimeoutError("ONE_SHOT_JOB_UNFINISHED_PRESERVE_ID "+state["job_id"])
