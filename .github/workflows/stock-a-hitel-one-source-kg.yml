@@ -1,14 +1,16 @@
 name: STOCK A | HITEL single-source KG -> blind replay -> compare (pilot)
 on:
   push:
-    branches: [feature/hitel-a-kg-serial-20261119]
+    branches: [feature/hitel-a-kg-recovery-20261119]
     paths:
       - .github/workflows/stock-a-hitel-one-source-kg.yml
       - research/hitel_a_one_source.py
       - research/queue/a_one_source_pilot.json
+      - tests/test_hitel_a_serial.py
   workflow_dispatch:
 permissions:
   contents: read
+  actions: read
 concurrency:
   group: stock-a-hitel-single-source-pilot
   cancel-in-progress: false
@@ -21,6 +23,7 @@ jobs:
       - name: Validate exact one-item A pilot source and Python transport
         run: |
           python3 -m py_compile research/hitel_a_one_source.py
+          python3 -m unittest discover -s tests -p 'test_hitel_a_serial.py' -v
           python3 - <<'PY'
           import json
           p=json.load(open('research/queue/a_one_source_pilot.json',encoding='utf-8'))
@@ -29,12 +32,28 @@ jobs:
           assert p['pine_source_status']=='NOT_VERIFIED'
           print('A_CONFIRMED_SAMPLE_NOT_OFFICIAL_FIRST',p['source_id'])
           PY
+      - name: Restore same-branch per-job HITEL checkpoints without repeating completed posts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for previous in $(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/stock-a-hitel-one-source-kg.yml/runs?branch=$GITHUB_REF_NAME&per_page=20" --jq '.workflow_runs[].id'); do
+            if [ "$previous" = "$GITHUB_RUN_ID" ]; then continue; fi
+            count=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$previous/artifacts?name=stock-a-one-source-hitel-graph-checkpoint" --jq '.artifacts | length')
+            if [ "$count" -gt 0 ]; then
+              mkdir -p a-hitel-kg-output
+              gh run download "$previous" --repo "$GITHUB_REPOSITORY"                 --name stock-a-one-source-hitel-graph-checkpoint --dir a-hitel-kg-output
+              echo "RESTORED_HITEL_CHECKPOINT_RUN=$previous"
+              break
+            fi
+          done
       - name: ChatGPT via HITEL | exactly one A source, all related cases, per-case blind replay and iterative rebuilding
         run: |
           python3 research/hitel_a_one_source.py \
             --input research/queue/a_one_source_pilot.json \
             --out a-hitel-kg-output \
-            --max-rounds 2 --poll-seconds 900
+            --room-tag R3 --max-rounds 2 --poll-seconds 900
       - name: Preserve ALL received responses, graph rounds, blind comparisons and checkpoint even on error
         if: always()
         uses: actions/upload-artifact@v4
