@@ -223,48 +223,141 @@ def run(manifest, position, out, expected_count=EXPECTED_A_COUNT, dry_run=False)
     state["room_name"] = room_name
     (out/"prompt.txt").write_text(prompt,encoding="utf-8")
     transport.save(status_path,state)
-    if state.get("stage") in ("SUBMITTING_UNCERTAIN","SUBMISSION_AMBIGUOUS","FAILED","INVALID_JSON","BLOCKED"):
-        raise RuntimeError("PREVIOUS_ATTEMPT_AMBIGUOUS_OR_FAILED_DO_NOT_REPEAT")
     if state.get("stage") == "VALIDATED":
         return state
+    if state.get("stage") in ("FAILED","INVALID_JSON","BLOCKED",
+                              "STALLED_UNCERTAIN","UNKNOWN_DELIVERY"):
+        raise RuntimeError("PRIOR_UNCERTAIN_OR_FAILED_JOB_DO_NOT_REPEAT")
     if not state.get("room_id"):
-        room_id = transport.open_named_room(room_name,out)
-        state["room_id"] = room_id
+        if state.get("stage") in ("SUBMITTING_UNCERTAIN","SUBMISSION_AMBIGUOUS"):
+            raise RuntimeError("ROOM_UNCERTAIN_DO_NOT_CREATE_OR_RESEND")
+        state["room_id"] = transport.open_named_room(room_name,out)
         transport.save(status_path,state)
     room_id=state["room_id"]
     if not state.get("job_id"):
-        state["stage"]="SUBMITTING_UNCERTAIN"
-        transport.save(status_path,state)
-        code,accepted=transport.post("/integrations/v1/public/chat",{
-            "room_id":room_id,"text":prompt,"request_id":state["request_id"]})
-        if code != 202 or not accepted.get("job_id") or accepted.get("room_id") != room_id:
-            state["stage"]="SUBMISSION_AMBIGUOUS"
+        if state.get("stage") in ("SUBMITTING_UNCERTAIN","SUBMISSION_AMBIGUOUS"):
+            # A lost 202 response is NOT permission to repeat the POST.
+            # Query the original request_id, and preserve uncertainty if absent.
+            try:
+                code,prior=transport.get("/integrations/v1/public/requests/"+expected_request_id)
+            except urllib.error.HTTPError as exc:
+                state["stage"]="SUBMISSION_AMBIGUOUS"
+                transport.save(status_path,state)
+                raise RuntimeError("REQUEST_ID_LOOKUP_UNAVAILABLE_NO_RESEND") from exc
+            if code!=200 or prior.get("room_id")!=room_id or not prior.get("job_id"):
+                state["stage"]="SUBMISSION_AMBIGUOUS"
+                transport.save(status_path,state)
+                raise RuntimeError("REQUEST_LOOKUP_MISMATCH_NO_RESEND")
+            state["job_id"]=prior["job_id"]
+            state["stage"]="POLLING_RECOVERED"
             transport.save(status_path,state)
-            raise RuntimeError("ONE_SHOT_CHAT_NOT_ACCEPTED_OR_ROOM_CHANGED")
-        state["job_id"]=accepted["job_id"]
-        state["stage"]="POLLING"
-        transport.save(status_path,state)
+        else:
+            state["stage"]="SUBMITTING_UNCERTAIN"
+            transport.save(status_path,state)
+            try:
+                code,accepted=transport.post("/integrations/v1/public/chat",{
+                    "room_id":room_id,"text":prompt,"request_id":state["request_id"]})
+            except Exception:
+                state["stage"]="SUBMISSION_AMBIGUOUS"
+                transport.save(status_path,state)
+                raise
+            if (code!=202 or not accepted.get("job_id")
+                    or accepted.get("room_id")!=room_id
+                    or accepted.get("request_id")!=state["request_id"]):
+                state["stage"]="SUBMISSION_AMBIGUOUS"
+                transport.save(status_path,state)
+                raise RuntimeError("ONE_SHOT_CHAT_NOT_ACCEPTED_OR_ROOM_CHANGED")
+            state["job_id"]=accepted["job_id"]
+            state["stage"]="POLLING"
+            transport.save(status_path,state)
+
+    def get_completed_reply(job, status_obj):
+        import base64
+        url=status_obj.get("result_url")
+        if not url:
+            raise RuntimeError("NO_VERIFIED_RESULT_BYTES_URL")
+        if url!="/integrations/v1/public/jobs/"+job+"/result":
+            raise RuntimeError("UNTRUSTED_RESULT_URL")
+        total=status_obj.get("result_length_bytes")
+        expected_sha=status_obj.get("result_sha256")
+        if type(total)!=int or total<1 or not isinstance(expected_sha,str):
+            raise RuntimeError("FINAL_RESULT_METADATA_MISSING")
+        raw=bytearray()
+        while len(raw)<total:
+            offset=len(raw)
+            code,chunk=transport.get(url+"?offset="+str(offset)+"&limit=65536")
+            if (code!=200 or chunk.get("job_id")!=job
+                    or chunk.get("room_id")!=room_id
+                    or chunk.get("request_id")!=state["request_id"]
+                    or chunk.get("offset")!=offset
+                    or chunk.get("result_length_bytes")!=total
+                    or chunk.get("result_sha256")!=expected_sha):
+                raise RuntimeError("RESULT_CHUNK_JOB_OR_DIGEST_MISMATCH")
+            part=base64.b64decode(chunk["content_base64"],validate=True)
+            if (not part or len(part)!=chunk.get("bytes_returned")
+                    or chunk.get("next_offset")!=offset+len(part)):
+                raise RuntimeError("RESULT_CHUNK_LENGTH_MISMATCH")
+            raw.extend(part)
+        # Persist the exact reply before attempting interpretation or validation.
+        (out/"result.raw.txt").write_bytes(raw)
+        if len(raw)!=total or hashlib.sha256(raw).hexdigest()!=expected_sha:
+            raise RuntimeError("FINAL_RESULT_SHA256_MISMATCH")
+        if status_obj.get("result_json_complete") is not True:
+            raise RuntimeError("ASSISTANT_REPLY_NOT_COMPLETE_JSON")
+        return raw.decode("utf-8",errors="strict")
+
+    def log_observation(payload):
+        from datetime import datetime,timezone
+        line={"polled_at":datetime.now(timezone.utc).isoformat(),
+              "job_id":state["job_id"],"request_id":state["request_id"],
+              **payload}
+        with (out/"polling.jsonl").open("a",encoding="utf-8") as handle:
+            handle.write(json.dumps(line,ensure_ascii=False)+"\\n")
+            handle.flush()
+        print("HITEL_A_POLL "+json.dumps(line,ensure_ascii=False),flush=True)
+
     deadline=monotonic()+12600
     while monotonic()<deadline:
         try:
             status,reply=transport.get("/integrations/v1/public/jobs/"+state["job_id"])
-        except (urllib.error.URLError, TimeoutError):
-            sleep(5)
+        except (urllib.error.URLError, TimeoutError) as exc:
+            log_observation({"status":"poll_transport_error","error_type":type(exc).__name__})
+            sleep(10)
             continue
-        if status != 200 or reply.get("job_id") != state["job_id"] or reply.get("room_id") != room_id:
-            raise RuntimeError("ONE_SHOT_RESULT_JOB_OR_ROOM_MISMATCH")
-        if reply.get("status")=="failed":
+        if (status!=200 or reply.get("job_id")!=state["job_id"]
+                or reply.get("request_id")!=state["request_id"]
+                or reply.get("room_id")!=room_id):
+            raise RuntimeError("ONE_SHOT_RESULT_JOB_REQUEST_OR_ROOM_MISMATCH")
+        current=reply.get("status")
+        log_observation({
+            "status":current,"stage":reply.get("stage"),
+            "worker_connected":reply.get("worker_connected"),
+            "worker_heartbeat_at":reply.get("worker_heartbeat_at"),
+            "job_last_progress_at":reply.get("job_last_progress_at"),
+            "chatgpt_send_confirmed":reply.get("chatgpt_send_confirmed"),
+            "assistant_reply_observed":reply.get("assistant_reply_observed"),
+            "result_ready":reply.get("result_ready"),
+            "error_code":reply.get("error_code"),
+            "error_stage":reply.get("error_stage"),
+        })
+        state["last_observed_status"]=current
+        state["last_observed_stage"]=reply.get("stage")
+        state["job_last_progress_at"]=reply.get("job_last_progress_at")
+        transport.save(status_path,state)
+        if current in ("stalled","unknown"):
+            state["stage"]="STALLED_UNCERTAIN" if current=="stalled" else "UNKNOWN_DELIVERY"
+            state["next_source_allowed"]=False
+            transport.save(status_path,state)
+            raise RuntimeError("ONE_SHOT_UNCERTAIN_PRESERVE_ID_"+str(current))
+        if current=="failed":
             state["stage"]="FAILED"
+            state["last_job_error_code"]=reply.get("error_code")
+            state["last_job_error_stage"]=reply.get("error_stage")
             state["last_job_error"]=str(reply.get("error",""))[:500]
             transport.save(status_path,state)
             raise RuntimeError("ONE_SHOT_FINAL_JOB_FAILED "+state["last_job_error"])
-        if reply.get("status")=="completed":
-            raw=reply.get("result_text")
-            if not isinstance(raw,str) or not raw.strip():
-                state["stage"]="INVALID_JSON"
-                transport.save(status_path,state)
-                raise RuntimeError("COMPLETED_BUT_EMPTY_RESULT_TEXT")
-            (out/"result.raw.txt").write_text(raw,encoding="utf-8")
+        if current=="completed":
+            raw=get_completed_reply(state["job_id"],reply)
             state["stage"]="RAW_FINAL_REPLY_PRESERVED"
             transport.save(status_path,state)
             try:
@@ -279,11 +372,14 @@ def run(manifest, position, out, expected_count=EXPECTED_A_COUNT, dry_run=False)
             verdict=check_final_reply(response,src)
             transport.save(out/"validation.json",verdict)
             state.update({"stage":"VALIDATED","status":verdict["status"],
-                          "next_source_allowed":verdict["can_advance"],"can_advance":verdict["can_advance"],
-                          "case_count":verdict["cases"]})
+                          "next_source_allowed":verdict["can_advance"],
+                          "can_advance":verdict["can_advance"],
+                          "case_count":verdict["cases"],
+                          "result_sha256":reply["result_sha256"],
+                          "result_length_bytes":reply["result_length_bytes"]})
             transport.save(status_path,state)
             return state
-        sleep(5)
+        sleep(10)
     state["stage"]="POLL_TIMEOUT_JOB_PRESERVED"
     transport.save(status_path,state)
     raise TimeoutError("ONE_SHOT_JOB_UNFINISHED_PRESERVE_ID "+state["job_id"])
