@@ -235,7 +235,8 @@ def main():
         raise ValueError("CONFIRMED_A_SOURCE_REQUIRED")
     state = {"source_id": source_id, "group": "A", "prompt_version": PROMPT_VERSION,
              "source_order": src["source_order"], "cases": [], "status": "RUNNING",
-             "official_a_order_verified": src["official_a_order_verified"]}
+             "official_a_order_verified": src["official_a_order_verified"],
+             "room_tag": args.room_tag, "next_source_allowed": False}
     save(out / "status.json", state)
     try:
         researcher = open_named_room("STOCK-KG-A-RESEARCH-20261119-" + args.room_tag, out)
@@ -268,6 +269,10 @@ def main():
             }
             if case_state.get("case_id") != case_id:
                 raise RuntimeError("CASE_CHECKPOINT_ID_MISMATCH")
+            if case_state.get("status") == "MODEL_REPORTED_REVERSIBLE":
+                state["cases"].append(case_state)
+                save(out / "status.json", state)
+                continue
             last_failure = None
             for saved_round in reversed(case_state["rounds"]):
                 compare_path = folder / ("comparison_" + str(saved_round["round"]) + ".json")
