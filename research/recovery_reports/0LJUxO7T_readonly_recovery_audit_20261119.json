@@ -1,0 +1,80 @@
+{
+  "schema_version": "A-READONLY-RECOVERY-AUDIT-20261119-v1",
+  "target": {
+    "repository": "lyonbegin/autonomous-investor-backend",
+    "branch": "feature/hitel-a-kg-recovery-20261119",
+    "group": "A",
+    "source_id": "0LJUxO7T",
+    "room_name": "STOCK-KG-A-RESEARCH-20261119-R3",
+    "room_id": "room_e43054eed81d46fba991b946ede92d1b"
+  },
+  "evidence_cutoff": "2026-11-19",
+  "audit_type": "READ_ONLY_EVIDENCE; NO_NEW_CHAT_POST",
+  "original_handshake": {
+    "status": "completed",
+    "job_id": "job_d1bcac5c967746409044b58be8543b20",
+    "verified_response": {
+      "ready": true,
+      "group": "A"
+    },
+    "evidence": "https://github.com/lyonbegin/autonomous-investor-backend/actions/runs/44479183344/artifacts/14508335058"
+  },
+  "jobs": [
+    {
+      "id": "job_60a34b62bf5f418fa44b202bc9461f42",
+      "stage": "0LJUxO7T-DISCOVER",
+      "status": "failed",
+      "error": "Server restarted; delivery unknown; not automatically retried",
+      "chatgpt_actual_reply_verified": false
+    },
+    {
+      "id": "job_018a975b22e745179e8fb1c42dd19ccb",
+      "stage": "0LJUxO7T-DISCOVERY-RECOVERY-FOLLOWUP-V1",
+      "status": "failed",
+      "error": "WEB2API_ADAPTER_HTTP_500",
+      "chatgpt_actual_reply_verified": false
+    },
+    {
+      "id": "job_2f45b795965e4a9f8cd7bc0fb3222aa1",
+      "stage": "0LJUxO7T-DISCOVERY-RECOVERY-FOLLOWUP-V2-HTTP500-DIAG",
+      "status": "failed",
+      "error": "WEB2API_ADAPTER_HTTP_504",
+      "chatgpt_actual_reply_verified": false
+    }
+  ],
+  "checkpoint": {
+    "latest_artifact_url": "https://github.com/lyonbegin/autonomous-investor-backend/actions/runs/44479183344/artifacts/14508335058",
+    "restored_read_only_run": "https://github.com/lyonbegin/autonomous-investor-backend/actions/runs/44481023950",
+    "all_existing_files_preserved": true
+  },
+  "public_api_capability": {
+    "job_status_read": true,
+    "room_linked_bool_read": true,
+    "room_chat_history_read": false,
+    "existing_conversation_url_read": false,
+    "authentication_bypass_attempted": false
+  },
+  "independent_transport_test": {
+    "run": "https://github.com/lyonbegin/procureflow/actions/runs/44485683402",
+    "result": "success",
+    "scope": "separate synthetic A-shaped JSON reply and Scribd20-shaped response; not original A room"
+  },
+  "verified": {
+    "a_strategy_completed": 0,
+    "research_case_result_count": 0,
+    "graph_count": 0,
+    "blind_reconstruction_count": 0,
+    "reversibility_verified": 0
+  },
+  "unverified": [
+    "Whether ChatGPT original browser conversation contains assistant answers for any failed job",
+    "Full original Pine source and SHA256",
+    "Official A-group original ordering",
+    "Original 87+12 full ontology exact mapping"
+  ],
+  "next_step": "Read-only, authenticated existing Chrome room audit for the three failed A job requests. Only if matching assistant reply can be recovered, put its raw result into the original checkpoint, then continue discovery→graph→blind replay→compare. Do not auto-resend original request.",
+  "developer_issue": "https://github.com/lyonbegin/procureflow/issues/58",
+  "next_source_allowed": false,
+  "railway_modified": false,
+  "recurring_github_workflow_created": false
+}
