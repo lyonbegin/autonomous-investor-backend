@@ -147,13 +147,16 @@ def check_final_reply(result, src):
     if (summary.get("internally_passed"),summary.get("blocked"),summary.get("incomplete")) != (passed,blocked,failed):
         errors.append("CASE_SUMMARY_COUNTS_MISMATCH")
     pine=src.get("pine_source") or ""
-    pine_valid=bool(pine and src.get("pine_source_sha256")==digest(pine))
+    pine_valid=bool(pine and src.get("pine_source_sha256")==digest(pine)
+                    and src.get("pine_provenance_verified") is True)
     if not pine_valid:errors.append("PINE_FULL_SOURCE_UNVERIFIED")
     source_verification=result.get("source_verification") or {}
     if not pine_valid and source_verification.get("pine_verified"):
         errors.append("FALSE_PINE_VERIFICATION_CLAIM")
     if result.get("independent_blind_verified") is not False:
         errors.append("FALSE_INDEPENDENT_BLIND_CLAIM")
+    if not bool(src.get("official_a_source_verified")):
+        errors.append("OFFICIAL_A_CLASSIFICATION_NOT_PROVEN")
     for name in ("prior_87_catalog_excerpt","prior_12_catalog_excerpt","strategy_indicator_edges","ontology_definitions"):
         if name not in src:errors.append("MISSING_RESEARCH_CONTEXT:"+name)
     passed_all = bool(cases) and passed==len(cases) and not errors and summary.get("overall")=="INTERNAL_COMPLETE" and source_verification.get("pine_verified") is True and source_verification.get("pine_sha256")==src.get("pine_source_sha256")
@@ -234,7 +237,9 @@ def run(manifest, position, out, expected_count=EXPECTED_A_COUNT, dry_run=False)
             state["stage"]="RAW_FINAL_REPLY_PRESERVED"
             transport.save(status_path,state)
             try:
-                response=transport.parse_json(raw)
+                response=json.loads(raw)
+                if not isinstance(response,dict):
+                    raise ValueError("FINAL_JSON_OBJECT_REQUIRED")
             except Exception:
                 state["stage"]="INVALID_JSON"
                 transport.save(status_path,state)
