@@ -194,7 +194,7 @@ def run(manifest, position, out, expected_count=EXPECTED_A_COUNT, dry_run=False)
     state["request_id"] = "stock-a-oneshot-" + digest(room_name+"|"+src["source_id"]+"|"+prompt_sha)[:40]
     (out/"prompt.txt").write_text(prompt,encoding="utf-8")
     transport.save(status_path,state)
-    if state.get("stage") in ("SUBMITTING_UNCERTAIN","FAILED","INVALID_JSON","BLOCKED"):
+    if state.get("stage") in ("SUBMITTING_UNCERTAIN","SUBMISSION_AMBIGUOUS","FAILED","INVALID_JSON","BLOCKED"):
         raise RuntimeError("PREVIOUS_ATTEMPT_AMBIGUOUS_OR_FAILED_DO_NOT_REPEAT")
     if state.get("stage") == "VALIDATED":
         return state
@@ -273,8 +273,9 @@ def main():
         out=Path(args.out);out.mkdir(parents=True,exist_ok=True)
         state_path=out/"state.json"
         state=json.loads(state_path.read_text("utf-8")) if state_path.exists() else {}
-        state.update({"stage":"BLOCKED_PRESERVE_CHECKPOINT","error_type":type(exc).__name__,
-                      "error":str(exc)[:500],"next_source_allowed":False})
+        state.update({"last_error_type":type(exc).__name__,
+                      "last_error":str(exc)[:500],"next_source_allowed":False})
+        # Never erase FAILED/SUBMITTING_UNCERTAIN: resumption must not resend.
         transport.save(state_path,state)
         raise
 
