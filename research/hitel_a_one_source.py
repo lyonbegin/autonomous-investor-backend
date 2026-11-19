@@ -236,7 +236,9 @@ def main():
     try:
         researcher = open_named_room("STOCK-KG-A-RESEARCH-20261119-R2", out)
         # First verify the new independent A room can deliver an actual short ChatGPT answer.
-        handshake = ask(researcher, source_id + "-TRANSPORT-READY",\n                        '연구용 HITEL 연결 확인입니다. 반드시 JSON 객체 {"ready":true,"group":"A"}만 응답하십시오.',\n                        out, args.poll_seconds)
+        handshake = ask(researcher, source_id + "-TRANSPORT-READY",
+                        '연구용 HITEL 연결 확인입니다. 반드시 JSON 객체 {"ready":true,"group":"A"}만 응답하십시오.',
+                        out, args.poll_seconds)
         if handshake.get("ready") is not True or handshake.get("group") != "A":
             raise RuntimeError("A_ROOM_CHATGPT_HANDSHAKE_NOT_VERIFIED")
         save(out / "transport_handshake.json", handshake)
