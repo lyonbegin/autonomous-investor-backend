@@ -169,6 +169,7 @@ def run(manifest, position, out, expected_count=EXPECTED_A_COUNT, dry_run=False)
     if position<1 or position>len(sources):raise RuntimeError("A_ORDER_OUT_OF_RANGE")
     src=sources[position-1]
     out=Path(out);out.mkdir(parents=True,exist_ok=True)
+    transport.save(out/"source.json",src)
     prompt=compose_prompt(src)
     prompt_sha=digest(prompt)
     status_path=out/"state.json"
@@ -188,7 +189,8 @@ def run(manifest, position, out, expected_count=EXPECTED_A_COUNT, dry_run=False)
     # recoverable without another AI request.
     from time import monotonic, sleep
     import urllib.error
-    room_name = ROOM_NAME
+    # Dedicated idempotent room per source, rather than a polluted shared room for all A originals.
+    room_name = "STOCK-KG-A-ONE-SHOT-" + src["source_id"] + "-" + str(src["a_order"]).zfill(4)
     state["request_id"] = "stock-a-oneshot-" + digest(room_name+"|"+src["source_id"]+"|"+prompt_sha)[:40]
     (out/"prompt.txt").write_text(prompt,encoding="utf-8")
     transport.save(status_path,state)
@@ -213,7 +215,7 @@ def run(manifest, position, out, expected_count=EXPECTED_A_COUNT, dry_run=False)
         state["job_id"]=accepted["job_id"]
         state["stage"]="POLLING"
         transport.save(status_path,state)
-    deadline=monotonic()+1200
+    deadline=monotonic()+12600
     while monotonic()<deadline:
         try:
             status,reply=transport.get("/integrations/v1/public/jobs/"+state["job_id"])
