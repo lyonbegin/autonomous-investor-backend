@@ -35,6 +35,8 @@ class OneShotLiveContractTests(unittest.TestCase):
         def fake_get(path):
             calls["gets"].append(path)
             if path.startswith("/integrations/v1/public/requests/"):
+                if not calls["posts"]:
+                    raise urllib.error.HTTPError(path,404,"Not found",None,None)
                 return 200,{"request_id":path.rsplit("/",1)[-1],
                             "room_id":"room_test","job_id":"job_test","status":"running"}
             if "/result?" in path:
