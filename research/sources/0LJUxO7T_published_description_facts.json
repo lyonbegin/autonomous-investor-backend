@@ -1,0 +1,93 @@
+{
+  "source_id": "0LJUxO7T",
+  "source_group": "A",
+  "origin": "TradingView author-published description",
+  "url": "https://www.tradingview.com/script/0LJUxO7T-Pt-Premarket-Breakout-Strategy/",
+  "title": "[Pt] Premarket Breakout Strategy",
+  "author": "PtGambler",
+  "published_date": "2022-06-30",
+  "license_status": "OPEN_SOURCE_SCRIPT_FLAG; full Pine not retrieved",
+  "verified_pine_sha256": null,
+  "chart_symbol": null,
+  "extraction_level": "PUBLISHED_DESCRIPTION_NOT_PINE",
+  "source_facts": [
+    {
+      "id": "F01",
+      "category": "asset",
+      "fact": "Strategy described for SPY or QQQ.",
+      "evidence_location": "How it works introduction"
+    },
+    {
+      "id": "F02",
+      "category": "timeframe",
+      "fact": "Default intended 1-minute timeframe.",
+      "evidence_location": "Introduction"
+    },
+    {
+      "id": "F03",
+      "category": "trade_limit",
+      "fact": "One trade per day strategy.",
+      "evidence_location": "Introduction"
+    },
+    {
+      "id": "F04",
+      "category": "session",
+      "fact": "Premarket high and low defined over 09:00–09:30 EST as written; daylight-saving behavior not verified.",
+      "evidence_location": "How it works"
+    },
+    {
+      "id": "F05",
+      "category": "signal",
+      "fact": "First breakout above premarket high supplies prospective long direction.",
+      "evidence_location": "How it works"
+    },
+    {
+      "id": "F06",
+      "category": "signal",
+      "fact": "First breakout below premarket low supplies prospective short direction.",
+      "evidence_location": "How it works"
+    },
+    {
+      "id": "F07",
+      "category": "long_filter",
+      "fact": "For long, waits until Stochastic RSI D reaches lower threshold (default 18), then enters on K crossing above D.",
+      "evidence_location": "How it works"
+    },
+    {
+      "id": "F08",
+      "category": "short_filter",
+      "fact": "For short, waits until Stochastic RSI D reaches upper threshold (default 82), then enters on K crossing below D.",
+      "evidence_location": "How it works"
+    },
+    {
+      "id": "F09",
+      "category": "risk",
+      "fact": "Long stop described using premarket low or range plus ATR percentage buffer, conditional on entry location; exact Pine formula not verified.",
+      "evidence_location": "Stop loss for long"
+    },
+    {
+      "id": "F10",
+      "category": "risk",
+      "fact": "Short stop described using premarket high or range plus ATR percentage buffer, conditional on entry location; exact Pine formula not verified.",
+      "evidence_location": "Stop loss for short"
+    },
+    {
+      "id": "F11",
+      "category": "risk_reward",
+      "fact": "Default profit target = twice risk.",
+      "evidence_location": "Profit target"
+    },
+    {
+      "id": "F12",
+      "category": "caveat",
+      "fact": "Different Stochastic RSI lengths suggested for 5-minute timeframe; actual values not supplied in page text.",
+      "evidence_location": "Note"
+    }
+  ],
+  "evidence_boundaries": [
+    "Description is not the Pine source; thresholds and rules must be verified against executable code.",
+    "The author describes historical profitability without independently verified market backtest.",
+    "The chart's exact symbol/timeframe and Pine full code remain to be obtained."
+  ],
+  "analysis_status": "DESCRIPTION_FACT_REGISTER_ONLY; GRAPH_NOT_BUILT; REVERSIBILITY_NOT_VERIFIED"
+}
