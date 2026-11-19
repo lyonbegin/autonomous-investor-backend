@@ -303,6 +303,8 @@ def run(manifest, position, out, expected_count=EXPECTED_A_COUNT, dry_run=False)
         if len(raw)!=total or hashlib.sha256(raw).hexdigest()!=expected_sha:
             raise RuntimeError("FINAL_RESULT_SHA256_MISMATCH")
         if status_obj.get("result_json_complete") is not True:
+            state["stage"]="INVALID_JSON"
+            transport.save(status_path,state)
             raise RuntimeError("ASSISTANT_REPLY_NOT_COMPLETE_JSON")
         return raw.decode("utf-8",errors="strict")
 
