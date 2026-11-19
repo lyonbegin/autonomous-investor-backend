@@ -17,8 +17,8 @@ import urllib.request
 BASE = "https://hitel-integration-api-production.up.railway.app"
 HTTP = urllib.request.build_opener(urllib.request.ProxyHandler({}))
 BRANCH_REFERENCE = "feature/chatgpt-kg-research-orchestration-20261117"
-PROMPT_VERSION = "A-SERIAL-KG-20261119-v1"
-MAX_PROMPT = 26000
+PROMPT_VERSION = "A-SERIAL-KG-20261119-v2"
+MAX_PROMPT = 20000  # HITEL public API rejects text longer than 24,000 characters
 
 def save(path, payload):
     path = Path(path)
@@ -74,6 +74,9 @@ def ask(room_id, stage, text, out, timeout_s):
         "request_id": "stock-a-kg-" + key[:40], "room_id": room_id
     }
     save(path, state)
+    if state.get("status") == "failed":
+        # Terminal failure might have delivered text in ChatGPT's browser. Never silently retry.
+        raise RuntimeError("PRIOR_TERMINAL_JOB_FAILED_REQUIRES_VERIFIED_RECOVERY " + str(state.get("error", ""))[:160])
     if not state.get("job_id"):
         # Use the same request_id on transport ambiguity, never a newly generated ID.
         for attempt in range(3):
@@ -218,9 +221,12 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--input", default="research/queue/a_one_source_pilot.json")
     parser.add_argument("--out", default="a-hitel-kg-output")
-    parser.add_argument("--max-rounds", type=int, default=2)
+    parser.add_argument("--max-rounds", type=int, default=2, help="Maximum repair attempts per run; remaining gaps are checkpointed")
+    parser.add_argument("--room-tag", default="R3", help="Explicit recovery-room tag; change only after a verified terminal failure")
     parser.add_argument("--poll-seconds", type=int, default=900)
     args = parser.parse_args()
+    if not re.fullmatch(r"[A-Za-z0-9-]{2,24}", args.room_tag):
+        raise ValueError("INVALID_EXPLICIT_RECOVERY_ROOM_TAG")
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
     src = json.loads(Path(args.input).read_text("utf-8"))
@@ -232,7 +238,7 @@ def main():
              "official_a_order_verified": src["official_a_order_verified"]}
     save(out / "status.json", state)
     try:
-        researcher = open_named_room("STOCK-KG-A-RESEARCH-20261119-R2", out)
+        researcher = open_named_room("STOCK-KG-A-RESEARCH-20261119-" + args.room_tag, out)
         # First verify the new independent A room can deliver an actual short ChatGPT answer.
         handshake = ask(researcher, source_id + "-TRANSPORT-READY",
                         '연구용 HITEL 연결 확인입니다. 반드시 JSON 객체 {"ready":true,"group":"A"}만 응답하십시오.',
@@ -256,9 +262,20 @@ def main():
                 raise ValueError("BAD_CASE_ID")
             folder = out / "cases" / (f"{idx+1:02d}_" + re.sub(r"[^A-Za-z0-9_-]","_",case_id))
             folder.mkdir(parents=True, exist_ok=True)
+            existing = folder / "case_status.json"
+            case_state = json.loads(existing.read_text("utf-8")) if existing.exists() else {
+                "case_id": case_id, "status": "REBUILD_REQUIRED", "rounds": []
+            }
+            if case_state.get("case_id") != case_id:
+                raise RuntimeError("CASE_CHECKPOINT_ID_MISMATCH")
             last_failure = None
-            case_state = {"case_id": case_id, "status": "REBUILD_REQUIRED", "rounds": []}
-            for round_no in range(1, args.max_rounds + 1):
+            for saved_round in reversed(case_state["rounds"]):
+                compare_path = folder / ("comparison_" + str(saved_round["round"]) + ".json")
+                if compare_path.exists():
+                    last_failure = json.loads(compare_path.read_text("utf-8"))
+                    break
+            first_round = len(case_state["rounds"]) + 1
+            for round_no in range(first_round, first_round + args.max_rounds):
                 graph = ask(researcher, case_id + f"-GRAPH-R{round_no}",
                             graph_prompt(src, case, round_no, last_failure), out, args.poll_seconds)
                 save(folder / f"graph_round_{round_no}.json", graph)
