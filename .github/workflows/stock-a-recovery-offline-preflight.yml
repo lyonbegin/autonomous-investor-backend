@@ -1,0 +1,68 @@
+name: STOCK A | one-source recovery evidence only (NO CHAT POST)
+on:
+  push:
+    branches: [feature/hitel-a-kg-recovery-20261119]
+    paths: [.github/workflows/stock-a-recovery-offline-preflight.yml]
+permissions:
+  contents: read
+  actions: read
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile and run existing no-send recovery safety checks
+        run: |
+          python3 -m py_compile research/hitel_a_one_source.py research/hitel_a_recover_discovery.py
+          python3 -m unittest discover -s tests -p 'test_hitel_a_*.py' -v
+      - name: Recover actual last failed A original and recovery checkpoint
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p a-hitel-kg-output
+          gh run download 44479183344 --repo "$GITHUB_REPOSITORY" \
+            -n stock-a-one-source-hitel-graph-checkpoint -D a-hitel-kg-output
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          o=Path("a-hitel-kg-output")
+          src=json.loads(Path("research/queue/a_one_source_pilot.json").read_text())
+          assert src["group"]=="A" and src["source_id"]=="0LJUxO7T"
+          assert src["pine_source_status"]=="NOT_VERIFIED"
+          assert src["official_a_order_verified"] is False
+          original=o/"jobs"/"decf010fd3557bb8c55c7a24.json"
+          assert original.exists(),"ORIGINAL_A_JOB_CHECKPOINT_NOT_FOUND"
+          saved=json.loads(original.read_text())
+          assert saved["job_id"]=="job_60a34b62bf5f418fa44b202bc9461f42"
+          assert saved["room_id"]=="room_e43054eed81d46fba991b946ede92d1b"
+          assert saved["stage"]=="0LJUxO7T-DISCOVER"
+          recovery=o/"recovery_status.json"
+          assert recovery.exists(),"RECOVERY_STATUS_NOT_SAVED"
+          state=json.loads(recovery.read_text())
+          assert state["next_source_allowed"] is False
+          assert state["source_id"]=="0LJUxO7T"
+          print("PASS_A_ORIGINAL_CHECKPOINT_AND_FAILED_RECOVERY_PRESERVED")
+          print("A_CASES_COMPLETED",state.get("case_full_pine_replay_verified",0))
+          print("A_PINE_NOT_VERIFIED_AND_NOT_ADVANCING")
+          PY
+      - name: Check true server status by GET only; never create a new A question
+        run: |
+          python3 - <<'PY'
+          import json,urllib.request
+          base="https://hitel-integration-api-production.up.railway.app"
+          ids=["job_60a34b62bf5f418fa44b202bc9461f42",
+               "job_2f45b795965e4a9f8cd7bc0fb3222aa1"]
+          for jid in ids:
+              with urllib.request.urlopen(base+"/integrations/v1/public/jobs/"+jid,timeout=25) as h:
+                  state=json.load(h)
+              assert state["job_id"]==jid
+              assert state["room_id"]=="room_e43054eed81d46fba991b946ede92d1b"
+              print("A_READ_ONLY_JOB",jid,state["status"],state["stage"],state.get("error"))
+          with urllib.request.urlopen(base+"/integrations/v1/public/rooms",timeout=25) as h:
+              rooms=json.load(h)["rooms"]
+          linked=[x for x in rooms if x.get("room_id")=="room_e43054eed81d46fba991b946ede92d1b"]
+          print("A_ORIGINAL_ROOM_LINKED",bool(linked and linked[0].get("conversation_linked")))
+          assert linked and linked[0].get("conversation_linked"),"A_ORIGINAL_ROOM_NOT_LINKED_NO_RETRY"
+          PY
