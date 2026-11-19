@@ -10,7 +10,8 @@
     "source_verification",
     "case_discovery",
     "summary",
-    "independent_blind_verified"
+    "independent_blind_verified",
+    "source_sections_01_to_10"
   ],
   "additionalProperties": false,
   "properties": {
@@ -148,7 +149,8 @@
               "final_comparison",
               "internal_verdict",
               "independent_blind_verified",
-              "unresolved"
+              "unresolved",
+              "case_sections_11_to_20"
             ],
             "additionalProperties": false,
             "properties": {
@@ -444,6 +446,76 @@
                 "items": {
                   "type": "string"
                 }
+              },
+              "case_sections_11_to_20": {
+                "type": "array",
+                "minItems": 10,
+                "maxItems": 10,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "section_id",
+                    "title",
+                    "status",
+                    "summary",
+                    "facts",
+                    "evidence_refs",
+                    "limitations",
+                    "artifact_paths"
+                  ],
+                  "properties": {
+                    "section_id": {
+                      "type": "string",
+                      "minLength": 2
+                    },
+                    "title": {
+                      "type": "string",
+                      "minLength": 2
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "PASS",
+                        "PARTIAL",
+                        "FAIL",
+                        "BLOCKED",
+                        "NOT_RUN",
+                        "NOT_VERIFIED"
+                      ]
+                    },
+                    "summary": {
+                      "type": "string"
+                    },
+                    "facts": {
+                      "type": "array",
+                      "items": {
+                        "type": [
+                          "object",
+                          "string"
+                        ]
+                      }
+                    },
+                    "evidence_refs": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "limitations": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "artifact_paths": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
               }
             }
           }
@@ -499,6 +571,76 @@
     },
     "independent_blind_verified": {
       "const": false
+    },
+    "source_sections_01_to_10": {
+      "type": "array",
+      "minItems": 10,
+      "maxItems": 10,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "section_id",
+          "title",
+          "status",
+          "summary",
+          "facts",
+          "evidence_refs",
+          "limitations",
+          "artifact_paths"
+        ],
+        "properties": {
+          "section_id": {
+            "type": "string",
+            "minLength": 2
+          },
+          "title": {
+            "type": "string",
+            "minLength": 2
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PASS",
+              "PARTIAL",
+              "FAIL",
+              "BLOCKED",
+              "NOT_RUN",
+              "NOT_VERIFIED"
+            ]
+          },
+          "summary": {
+            "type": "string"
+          },
+          "facts": {
+            "type": "array",
+            "items": {
+              "type": [
+                "object",
+                "string"
+              ]
+            }
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "limitations": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "artifact_paths": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
     }
   }
 }
