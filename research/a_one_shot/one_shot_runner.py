@@ -312,7 +312,7 @@ def run(manifest, position, out, expected_count=EXPECTED_A_COUNT, dry_run=False)
               "job_id":state["job_id"],"request_id":state["request_id"],
               **payload}
         with (out/"polling.jsonl").open("a",encoding="utf-8") as handle:
-            handle.write(json.dumps(line,ensure_ascii=False)+"\\n")
+            handle.write(json.dumps(line,ensure_ascii=False)+"\n")
             handle.flush()
         print("HITEL_A_POLL "+json.dumps(line,ensure_ascii=False),flush=True)
 
