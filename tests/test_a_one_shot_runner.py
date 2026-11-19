@@ -25,8 +25,16 @@ def source(has_pine=True):
       "strategy_indicator_edges":[]
     }
 
+def test_sections(first,last):
+    return [{"section_id":f"{i:02d}","title":f"Section {i:02d}","status":"PASS",
+             "summary":"검증에 필요한 진입 청산 및 근거 자료의 설명과 체크를 충분히 작성한 모의 시험 항목입니다.",
+             "facts":["실제 테스트에서 제공된 가상 근거"],"evidence_refs":["fixture://synthetic"],
+             "limitations":[],"artifact_paths":["fixture://synthetic"]}
+            for i in range(first,last+1)]
+
 def result(src):
     case={
+      "case_sections_11_to_20":test_sections(11,20),
       "case_id":"AbC12345-C01","kind":"SPECIFIED_BACKTEST","economic_mechanism":"Test",
       "factual_evidence":[{"source_url":"https://example.org/paper","location":"§1","claim":"entry","access_status":"VERIFIED"}],
       "inferences":[],"prior_87_links":[],"prior_12_links":[],"indicator_links":[],
@@ -44,6 +52,7 @@ def result(src):
       "internal_verdict":"SELF_CHECK_PASS","independent_blind_verified":False,"unresolved":[]
     }
     return {"schema_version":"A-ONE-SHOT-v1","group":"A","source_id":src["source_id"],"a_order":1,
+       "source_sections_01_to_10":test_sections(1,10),
        "source_verification":{"pine_verified":bool(src["pine_source"]), "pine_sha256":src["pine_source_sha256"],
          "source_access_status":"FULL_PINE" if src["pine_source"] else "PREVIEW_ONLY",
          "source_facts":[],"unverified_source_items":[]},
@@ -79,6 +88,21 @@ class Tests(unittest.TestCase):
         r=result(s)
         r["case_discovery"]["cases"][0]["final_graph"]["edges"]=[]
         self.assertFalse(a.check_final_reply(r,s)["can_advance"])
+    def test_incomplete_20_section_blocks_advance(self):
+        s=source()
+        output=result(s)
+        output["case_discovery"]["cases"][0]["case_sections_11_to_20"][6]["status"]="NOT_RUN"
+        output["case_discovery"]["cases"][0]["case_sections_11_to_20"][6]["limitations"]=["Python 실행증거 없음"]
+        v=a.check_final_reply(output,s)
+        self.assertFalse(v["can_advance"])
+        self.assertIn("CASE_0:17:NOT_COMPLETE",v["schema_issues"])
+    def test_missing_common_10_section_rejected(self):
+        s=source()
+        output=result(s)
+        output["source_sections_01_to_10"].pop()
+        v=a.check_final_reply(output,s)
+        self.assertFalse(v["can_advance"])
+        self.assertIn("ORIGINAL:section_count",v["schema_issues"])
     def test_blind_false_claim_blocks(self):
         s=source()
         r=result(s)
