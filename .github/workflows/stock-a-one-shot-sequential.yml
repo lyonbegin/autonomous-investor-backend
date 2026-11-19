@@ -1,7 +1,7 @@
 name: STOCK A | one original one whole AI prompt one JSON
 on:
   push:
-    branches: [feature/hitel-a-kg-recovery-20261119]
+    branches: [feature/hitel-a-kg-recovery-20261119, fix/stock-a-long-poll-20261119]
     paths:
       - .github/workflows/stock-a-one-shot-sequential.yml
       - research/a_one_shot/**
