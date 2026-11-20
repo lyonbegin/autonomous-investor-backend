@@ -27,7 +27,7 @@ def originals():
         raise ValueError("SOURCE_MANIFEST_CHANGED")
     rows=[]
     for p in m["chunk_files"]:
-        rows.extend(json.loads(line) for line in Path(p).read_text(encoding="utf-8").splitlines() if line.strip())
+        rows.extend(json.loads(line) for line in Path(p).read_text(encoding="utf-8").split("\n") if line.strip())
     if len(rows)!=4428:raise ValueError("SOURCE_COUNT_MISMATCH")
     ids=[]
     for i,row in enumerate(rows,1):
