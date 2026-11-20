@@ -1,10 +1,6 @@
 name: STOCK TV | CLEAN WS10 STRICT SERIAL REAL EVIDENCE
 # Clean retry: JSONL Unicode line separators handled as data (not record separators).
 on:
-  push:
-    branches: [feature/hitel-a-kg-recovery-20261119]
-    paths:
-      - research/serial10/launch_ws10_retry_fresh_20261121.txt
   workflow_dispatch:
     inputs:
       batch_number:
@@ -73,15 +69,6 @@ jobs:
               gh api -X DELETE "repos/$GITHUB_REPOSITORY/actions/artifacts/$ID"
               echo "REMOVED_LEGACY_HTTP_CHECKPOINT_ARTIFACT_ID=$ID"
             done
-      - name: Delete ONLY confirmed server-rejected batch-0001 artifact from failed run #44791846048
-        if: github.event_name == 'push' && env.REQUEST_BATCH == '1'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          gh api "repos/$GITHUB_REPOSITORY/actions/runs/44791846048/artifacts" --jq '.artifacts[] | select(.id == 14656777571 and .name == "stock-ws10-clean-state-0001") | .id' | grep -Fx 14656777571
-          gh api -X DELETE "repos/$GITHUB_REPOSITORY/actions/artifacts/14656777571"
-          echo "DELETED_ONLY_PREVIOUS_TERMINAL_REJECTED_CHECKPOINT_14656777571"
       - name: Restore only same clean WS10 batch checkpoint, never old HTTP run
         env:
           GH_TOKEN: ${{ github.token }}
