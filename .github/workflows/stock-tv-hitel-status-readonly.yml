@@ -2,7 +2,8 @@ name: STOCK TV | exact old HITEL job stages read only
 on:
   push:
     branches: [feature/hitel-a-kg-recovery-20261119]
-    paths: [.github/workflows/stock-tv-hitel-status-readonly.yml]
+    paths:
+      - .github/workflows/stock-tv-hitel-status-readonly.yml
 permissions:
   contents: read
 jobs:
