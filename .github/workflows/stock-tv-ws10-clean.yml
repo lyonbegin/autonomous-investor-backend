@@ -21,6 +21,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   one-ten-only:
+    if: ${{ false }} # Retired failed research epoch. Never dispatch old batch 2.
     runs-on: ubuntu-latest
     timeout-minutes: 300
     env:
