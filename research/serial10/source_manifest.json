@@ -1,0 +1,21 @@
+{
+  "schema": "TV-STRATEGY-4428-SOURCE-20261108-v1",
+  "original_count": 4428,
+  "batch_size": 10,
+  "expected_batches": 443,
+  "original_source": "TradingView_Recursive_33890_20261108.zip:strategies.csv",
+  "master_drive_file": "01_TradingView_33890_전체원장_원본보존_20261110.xlsx",
+  "drive_url": "https://drive.google.com/file/d/11mUvfBa4ekhXImUYxZaMFajRBqy-wNHX/view",
+  "note": "Only original public TradingView id/title/URL/author/description_preview retained. No private research conclusions. Order from 2026-11-08 master; no claimed A/B asset classification or verified Pine code.",
+  "chunk_files": [
+    "research/serial10/sources/strategies_0001_0500.jsonl",
+    "research/serial10/sources/strategies_0501_1000.jsonl",
+    "research/serial10/sources/strategies_1001_1500.jsonl",
+    "research/serial10/sources/strategies_1501_2000.jsonl",
+    "research/serial10/sources/strategies_2001_2500.jsonl",
+    "research/serial10/sources/strategies_2501_3000.jsonl",
+    "research/serial10/sources/strategies_3001_3500.jsonl",
+    "research/serial10/sources/strategies_3501_4000.jsonl",
+    "research/serial10/sources/strategies_4001_4428.jsonl"
+  ]
+}
