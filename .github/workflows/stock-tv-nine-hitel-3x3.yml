@@ -1,4 +1,4 @@
-name: STOCK TV | REAL transaction case search 9 originals in three HITEL batches
+name: STOCK TV | repaired HITEL checkpoint recovery, 9 originals
 on:
   push:
     branches: [feature/hitel-a-kg-recovery-20261119]
@@ -55,6 +55,23 @@ jobs:
           else
             echo "NO_MATCHING_CHECKPOINT"
           fi
+      - name: Require original checkpoint; NO new HITEL POST in this recovery test
+        env:
+          GROUP: ${{ matrix.group }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os,json
+          from pathlib import Path
+          group=int(os.environ["GROUP"])
+          p=Path(f"search-nine-hitel/batch_{group}/state.json")
+          assert p.is_file(), "NO_PREVIOUS_CHECKPOINT_ABORT_WITHOUT_NEW_POST"
+          x=json.loads(p.read_text(encoding="utf-8"))
+          assert x.get("batch_no")==group, "CHECKPOINT_WRONG_GROUP"
+          assert x.get("job_id") and x.get("room_id"), "NO_EXISTING_JOB_ABORT_WITHOUT_NEW_POST"
+          assert x.get("request_id") and x.get("prompt_hash"), "MISSING_IDEMPOTENCY_KEY"
+          print("RECOVER_EXISTING_JOB_ONLY",group,x["job_id"],"prior_phase",x.get("phase"))
+          PY
       - name: Three originals, ONE HITEL POST, then 10-second GET polling
         env:
           GROUP: ${{ matrix.group }}
