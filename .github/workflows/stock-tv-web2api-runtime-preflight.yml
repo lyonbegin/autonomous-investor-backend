@@ -1,0 +1,37 @@
+name: STOCK TV | HITEL existing Web2API read-only runtime preflight
+on:
+  push:
+    branches:
+      - feature/hitel-a-kg-recovery-20261119
+    paths:
+      - .github/workflows/stock-tv-web2api-runtime-preflight.yml
+permissions:
+  contents: read
+jobs:
+  inspect-existing-worker:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Read actual Railway HITEL status and protected room health; NO send
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json,urllib.request,urllib.error
+          base="https://hitel-integration-api-production.up.railway.app/integrations/v1/public"
+          def get(path):
+              req=urllib.request.Request(base+path,headers={"Accept":"application/json","User-Agent":"Stock-TV-Existing-Web2API-ReadOnly"})
+              with urllib.request.urlopen(req,timeout=20) as r:
+                  return json.load(r)
+          s=get("/status")
+          keys=("worker_connected","worker_heartbeat_recent","worker_heartbeat_age_seconds","worker_active_jobs_count","worker_capacity","worker_bootstrap_ready","prewarmed_room_count","worker_available_for_new_job")
+          safe={k:s.get(k) for k in keys}
+          print("HITEL_REAL_SERVER_PREFLIGHT="+json.dumps(safe,ensure_ascii=False,sort_keys=True),flush=True)
+          r=get("/rooms")
+          rows=r.get("rooms",[])
+          print("HITEL_RESEARCH_ROOMS_TOTAL="+str(len(rows)),flush=True)
+          originals={"STOCK-KG-A-RESEARCH-20261119-R3":"room_e43054eed81d46fba991b946ede92d1b","HITEL-SCRIBD-18109-TITLE-CLASSIFY-G003":"room_e31b6755688748f6a9ddb5a0f6b3cdaf"}
+          for name,rid in originals.items():
+              match=[x for x in rows if x.get("room_name")==name and x.get("room_id")==rid]
+              print("PRESERVED_"+("STOCK_RESEARCH" if name.startswith("STOCK") else "SCRIBD")+"="+str(bool(match and match[0].get("conversation_linked"))),flush=True)
+          print("READ_ONLY_NO_CHATGPT_SEND_NO_ROOM_WRITE",flush=True)
+          PY
