@@ -141,7 +141,31 @@ def preflight():
     if status.get("worker_available_for_new_job") is not True:
         raise RuntimeError("WORKER_NOT_READY_NO_CHAT_SEND")
 
-def execute(batch,out,client,dry_run=False):
+def validate_capacity_failure_without_chat_send(state):
+    """Only a verified worker-tab allocation rejection permits a fresh recovery room.
+    Generic timeout, dropped socket, or ambiguous answer can NEVER authorize resending.
+    """
+    jid=state.get("job_id")
+    if not isinstance(jid,str) or not jid.startswith("job_"):
+        raise RuntimeError("NO_PREVIOUS_JOB_ID_FOR_SAFE_RECOVERY")
+    if state.get("status")!="unverified" or state.get("error_code")!="web2api_failed":
+        raise RuntimeError("PREVIOUS_JOB_NOT_PROVEN_CAPACITY_FAILURE")
+    with urlopen(BASE+"/jobs/"+jid,timeout=20) as resp:
+        old=json.load(resp)
+    if (old.get("job_id"),old.get("room_id"),old.get("request_id"))!=(
+            jid,state.get("room_id"),state.get("request_id")):
+        raise RuntimeError("REMOTE_REQUEST_SCOPE_MISMATCH_ABORT")
+    if not (old.get("status")=="failed" and old.get("stage")=="web2api_failed"
+            and old.get("error")=="ROOM_TAB_CAPACITY_EXCEEDED"
+            and old.get("result_ready") is not True
+            and old.get("chatgpt_send_confirmed") is not True
+            and old.get("assistant_reply_observed") is not True):
+        raise RuntimeError("NO_PROOF_REQUEST_FAILED_BEFORE_ANY_CHAT_SEND")
+    return {k:old.get(k) for k in (
+        "job_id","room_id","request_id","status","stage","error",
+        "chatgpt_send_confirmed","assistant_reply_observed","result_ready")}
+
+def execute(batch,out,client,dry_run=False,recover_capacity=False):
     rows=originals()
     verify_previous(rows,batch)
     selected=group(rows,batch)
@@ -168,6 +192,21 @@ def execute(batch,out,client,dry_run=False):
             raise RuntimeError("CHECKPOINT_IDENTITY_MISMATCH")
     else:atomic(intent_path,intent)
     (folder/"prompt.txt").write_text(prompt,encoding="utf-8")
+    # An explicit manual recovery may change the room ONLY if the server proves
+    # a terminal ROOM_TAB_CAPACITY_EXCEEDED before any ChatGPT send. Preserve
+    # the original job/client_state.json and immutable recovery audit.
+    recovery_state=folder/"client_state_capacity_recovery1.json"
+    recovery_proof=folder/"capacity_recovery1_verified.json"
+    if recover_capacity and not recovery_proof.exists():
+        initial=json.loads(state_path.read_text(encoding="utf-8")) if state_path.exists() else {}
+        proof=validate_capacity_failure_without_chat_send(initial)
+        atomic(recovery_proof,proof)
+        print("PROVEN_NO_MODEL_SEND_CAPACITY_FAILURE_RECOVERY_ALLOWED",proof["job_id"],flush=True)
+    if recovery_proof.exists():
+        if not (folder/"client_state.json").exists():
+            raise RuntimeError("RECOVERY_PROOF_WITHOUT_ORIGINAL_CHECKPOINT")
+        name=room_name(batch)+"-CAPACITY-RECOVERY1"
+        state_path=recovery_state
     state=json.loads(state_path.read_text(encoding="utf-8")) if state_path.exists() else {}
     if state and (state.get("room_name")!=name or state.get("text_sha256") not in (None,checksum(prompt))):
         raise RuntimeError("SAVED_CLIENT_STATE_WRONG_ROOM_OR_PROMPT")
@@ -214,6 +253,7 @@ def main():
     p.add_argument("--out",default="stock-ws10-checkpoints")
     p.add_argument("--client",default="hitel-client/tools/hitel_chat.py")
     p.add_argument("--dry-run",action="store_true")
+    p.add_argument("--recover-capacity-no-send",action="store_true",help="Explicitly create a new room ONLY after verifying remote worker rejected the previous job before ChatGPT send")
     p.add_argument("--verify-file")
     a=p.parse_args()
     if not 1<=a.batch<=443:raise ValueError("BATCH_INVALID")
@@ -221,6 +261,6 @@ def main():
         validate(Path(a.verify_file).read_text(encoding="utf-8"),
                  group(originals(),a.batch),a.batch)
         print("PERSISTED_TEN_BATCH_IDENTITY_VALIDATED",a.batch,flush=True)
-    else:execute(a.batch,Path(a.out),Path(a.client),a.dry_run)
+    else:execute(a.batch,Path(a.out),Path(a.client),a.dry_run,a.recover_capacity_no_send)
 
 if __name__=="__main__":main()
