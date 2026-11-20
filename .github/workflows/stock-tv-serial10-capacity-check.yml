@@ -1,0 +1,42 @@
+name: STOCK TV | diagnose HITEL room capacity without new ChatGPT request
+on:
+  push:
+    branches: [feature/hitel-a-kg-recovery-20261119]
+    paths:
+      - .github/workflows/stock-tv-serial10-capacity-check.yml
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Read-only current HITEL worker and documented room routes
+        run: |
+          python3 - <<'PY'
+          import json,urllib.request,urllib.error
+          base="https://hitel-integration-api-production.up.railway.app"
+          for path in ("/integrations/v1/public/status","/openapi.json",
+                       "/integrations/v1/public/jobs/job_c60be8b348f44e94aee3c40dcad6a3de"):
+              try:
+                  req=urllib.request.Request(base+path,headers={"Accept":"application/json"})
+                  with urllib.request.urlopen(req,timeout=18) as r:
+                      obj=json.load(r)
+                  if path.endswith("openapi.json"):
+                      paths=obj.get("paths",{})
+                      related={k:sorted(list(v.keys())) for k,v in paths.items()
+                               if "room" in k or "worker" in k or "jobs/" in k}
+                      print("OPENAPI_ROOM_JOB_ENDPOINTS",json.dumps(related,ensure_ascii=False))
+                  elif path.endswith("/status"):
+                      # Limit disclosure to status or worker field names only.
+                      clean={k:v for k,v in obj.items()
+                         if k in ("status","server","worker","worker_status","workerConnected",
+                                  "capacity","queue","queued","active_jobs","active_rooms","room_capacity")}
+                      print("HITEL_CAPACITY_STATUS",json.dumps(clean,ensure_ascii=False)[:2500])
+                      print("STATUS_ROOT_KEYS",list(obj))
+                  else:
+                      clean={k:obj.get(k) for k in ("job_id","status","stage","error","room_id")}
+                      print("FAILED_BATCH1_JOB",json.dumps(clean,ensure_ascii=False))
+              except Exception as exc:
+                  print("READONLY_DIAGNOSTIC_ERROR",path,type(exc).__name__,str(exc)[:230])
+          PY
