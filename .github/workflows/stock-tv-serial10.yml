@@ -1,0 +1,146 @@
+name: STOCK TV | SEQUENTIAL 10 originals per HITEL reply, durable result then next
+on:
+  push:
+    branches: [feature/hitel-a-kg-recovery-20261119]
+    paths:
+      - .github/workflows/stock-tv-serial10.yml
+  workflow_dispatch:
+    inputs:
+      batch_number:
+        description: "1-based exact ten-original group (1..443). No skipping preceding batch"
+        required: true
+        default: "1"
+permissions:
+  contents: write
+  actions: write
+concurrency:
+  group: STOCK-TV-STRICT-10-SERIAL-20261120
+  cancel-in-progress: false
+jobs:
+  one-batch-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    env:
+      BATCH_NO: ${{ inputs.batch_number || '1' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/hitel-a-kg-recovery-20261119
+          persist-credentials: true
+      - name: Set exact group boundaries and reject invalid batch
+        run: |
+          set -euo pipefail
+          case "$BATCH_NO" in *[!0-9]*|"") echo INVALID_BATCH; exit 1 ;; esac
+          BATCH=$((10#$BATCH_NO))
+          test "$BATCH" -ge 1
+          test "$BATCH" -le 443
+          echo "BATCH_NUMBER=$BATCH" >> "$GITHUB_ENV"
+          echo "BATCH_PAD=$(printf '%04d' "$BATCH")" >> "$GITHUB_ENV"
+          FROM=$(( (BATCH-1)*10+1 ))
+          TO=$(( BATCH*10 ))
+          if [ "$TO" -gt 4428 ]; then TO=4428; fi
+          echo "SERIAL_BATCH=$BATCH ORIGINALS=$FROM..$TO"
+      - name: Verify original corpus and strict one-at-a-time runner with offline tests
+        run: |
+          set -euo pipefail
+          python3 -m py_compile research/serial10/ten_source_runner.py
+          python3 -m unittest discover -s tests -p 'test_tradingview_serial10.py' -v
+          python3 research/serial10/ten_source_runner.py --batch "$BATCH_NUMBER" --dry-run
+      - name: Prove all preceding groups are already permanently saved
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os, json, sys
+          from pathlib import Path
+          sys.path.insert(0,"research/serial10")
+          import ten_source_runner as t
+          b=int(os.environ["BATCH_NUMBER"])
+          if b>1:
+              previous=Path(f"research/serial10/results/batch_{b-1:04d}.json")
+              assert previous.is_file(), f"PREVIOUS_GROUP_{b-1}_NOT_SAVED_NO_NEXT_HITEL_POST"
+              rows=t.source_rows()
+              t.parse_reply(previous.read_text(encoding="utf-8"),
+                  t.batch_rows(rows,b-1),b-1)
+              print("PRECEDING_GROUP_COMMITTED_AND_VERIFIED",b-1)
+          else:
+              print("START_FIRST_GROUP_ONLY")
+          PY
+      - name: Restore same-group prior job_id checkpoint from previous runs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          ARTIFACT="tv-serial10-state-$BATCH_PAD"
+          ID=$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts?name=$ARTIFACT&per_page=100" \
+            --jq '[.artifacts[] | select(.expired == false)] | sort_by(.created_at) | reverse | .[0].workflow_run.id // empty')
+          if [ -n "$ID" ]; then
+            mkdir -p "serial10-checkpoints/batch_$BATCH_PAD"
+            gh run download "$ID" --repo "$GITHUB_REPOSITORY" -n "$ARTIFACT" \
+              -D "serial10-checkpoints/batch_$BATCH_PAD"
+            echo "RESTORED_SAME_JOB_PREVIOUS_RUN=$ID"
+          else
+            echo "FIRST_REQUEST_FOR_GROUP=$BATCH_NUMBER"
+          fi
+      - name: Submit exactly one HITEL ChatGPT request for the ten originals and poll to final JSON
+        id: search
+        run: |
+          set -euo pipefail
+          PYTHONUNBUFFERED=1 python3 research/serial10/ten_source_runner.py \
+            --batch "$BATCH_NUMBER" \
+            --output-dir serial10-checkpoints \
+            --wait-seconds 16800
+      - name: Save room/job IDs and all intermediate evidence after every group
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tv-serial10-state-${{ env.BATCH_PAD }}
+          path: serial10-checkpoints/batch_${{ env.BATCH_PAD }}/
+          retention-days: 90
+          if-no-files-found: warn
+      - name: Permanently commit the fully received exact ten-source response before any next request
+        id: persist
+        if: steps.search.outcome == 'success'
+        run: |
+          set -euo pipefail
+          SRC="serial10-checkpoints/batch_$BATCH_PAD"
+          test -s "$SRC/result.json"
+          test -s "$SRC/summary.json"
+          mkdir -p research/serial10/results
+          cp "$SRC/result.json" "research/serial10/results/batch_$BATCH_PAD.json"
+          cp "$SRC/summary.json" "research/serial10/results/batch_$BATCH_PAD.summary.json"
+          git config user.name "tv-serial10-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add "research/serial10/results/batch_$BATCH_PAD.json" \
+            "research/serial10/results/batch_$BATCH_PAD.summary.json"
+          if ! git diff --cached --quiet; then
+            git commit -m "HITEL ten originals group $BATCH_NUMBER real-case research response saved"
+            git push origin HEAD:feature/hitel-a-kg-recovery-20261119
+          else
+            echo "EXACT_RESULT_ALREADY_PERMANENTLY_COMMITTED"
+          fi
+          test -s "research/serial10/results/batch_$BATCH_PAD.json"
+          echo "PERSISTED_RESULT_GROUP=$BATCH_NUMBER"
+      - name: Request the NEXT ten ONLY after current ten have final verified and committed JSON
+        if: steps.persist.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          NEXT=$(( BATCH_NUMBER+1 ))
+          echo "## Serial10 actual completed group $BATCH_NUMBER" >> "$GITHUB_STEP_SUMMARY"
+          cat "serial10-checkpoints/batch_$BATCH_PAD/summary.json" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$NEXT" -le 443 ]; then
+            gh workflow run stock-tv-serial10.yml \
+              --ref feature/hitel-a-kg-recovery-20261119 \
+              -f batch_number="$NEXT"
+            echo "NEXT_10_DISPATCHED_ONLY_AFTER_RESULT_SAVED=$NEXT"
+          else
+            echo "ALL_4428_ORIGINALS_SERIAL_10_COMPLETED"
+          fi
+      - name: Explicit failure note if response was not completed
+        if: failure()
+        run: |
+          echo '## Search did not finish; next group was NOT submitted' >> "$GITHUB_STEP_SUMMARY"
+          if test -s "serial10-checkpoints/batch_$BATCH_PAD/state.json"; then
+            cat "serial10-checkpoints/batch_$BATCH_PAD/state.json" >> "$GITHUB_STEP_SUMMARY"
+          fi
