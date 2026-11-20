@@ -43,3 +43,4 @@ jobs:
           print("STOCKTV_BATCH1_C_ROOM_LINKED="+str(bool(matching and matching[0].get("conversation_linked"))),flush=True)
           print("READ_ONLY_NO_CHATGPT_SEND_NO_ROOM_WRITE",flush=True)
           PY
+# 2026-11-21: verify runtime readiness after existing Web2API updated worker #44792995053 connected. No request sent.
