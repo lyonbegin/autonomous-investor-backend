@@ -1,0 +1,32 @@
+name: STOCK TV | Purge only old FAILED Web2API checkpoint artifacts
+on:
+  push:
+    branches: [feature/stocktv-web2api-fresh-reset-20261121]
+    paths:
+      - .github/workflows/stocktv-purge-failed-artifacts-once.yml
+permissions:
+  contents: read
+  actions: write
+jobs:
+  remove-old-failures-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Purge old terminal-failure stock checkpoint artifacts (not original sources)
+        run: |
+          set -euo pipefail
+          for RUN in 44777371449 44777062730 44791846048 44792272487 44793351898; do
+            STATUS="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$RUN" --jq '.status + "/" + (.conclusion // "")')"
+            if [[ "$STATUS" != "completed/failure" ]]; then
+              echo "SKIP_NOT_PROVEN_TERMINAL_FAILURE run=$RUN status=$STATUS"
+              continue
+            fi
+            gh api "repos/$GITHUB_REPOSITORY/actions/runs/$RUN/artifacts?per_page=100"               --jq '.artifacts[] | select(.name | test("^(stock-ws10-clean-state-0001|tv-serial10-state-0001)$")) | [.id,.name] | @tsv' |             while IFS=$'\t' read -r ID NAME; do
+              [[ "$ID" =~ ^[0-9]+$ ]] || exit 1
+              gh api -X DELETE "repos/$GITHUB_REPOSITORY/actions/artifacts/$ID"
+              echo "DELETED_OLD_FAILED_STOCK_CHECKPOINT run=$RUN id=$ID name=$NAME"
+            done
+          done
+          echo "OLD_FAILED_CHECKPOINT_ARTIFACT_PURGE_DONE"
