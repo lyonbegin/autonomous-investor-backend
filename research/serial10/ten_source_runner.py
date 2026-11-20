@@ -41,7 +41,7 @@ def source_rows():
     for p in paths:
         if not p.exists():
             raise FileNotFoundError("MISSING_TRADINGVIEW_MASTER_CHUNK " + str(p))
-        rows.extend(json.loads(line) for line in p.read_text(encoding="utf-8").splitlines() if line.strip())
+        rows.extend(json.loads(line) for line in p.read_text(encoding="utf-8").split("\n") if line.strip())
     if len(rows) != TOTAL:
         raise ValueError("EXPECTED_4428_GOT_" + str(len(rows)))
     ids = []
