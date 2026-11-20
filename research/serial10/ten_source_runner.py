@@ -165,6 +165,47 @@ def result_summary(reply, group, batch_no, state):
         "independent_real_trade_proof_verified": False
     }
 
+def wait_for_spare_browser_tab(state, state_path, deadline):
+    """Avoid a known HITEL ROOM_TAB_CAPACITY_EXCEEDED before making a ChatGPT POST."""
+    previous = None
+    while time.monotonic() < deadline:
+        try:
+            code, info = transport.get(API + "/status")
+        except (urllib.error.URLError, TimeoutError) as exc:
+            state["capacity_poll_error"] = type(exc).__name__
+            save(state_path, state)
+            time.sleep(POLL_SECONDS)
+            continue
+        if code != 200 or not isinstance(info, dict):
+            raise RuntimeError("HITEL_STATUS_NOT_AVAILABLE; NO_POST")
+        cap = info.get("worker_capacity")
+        ready = info.get("prewarmed_room_count")
+        active = info.get("worker_active_jobs_count")
+        connected = info.get("worker_connected")
+        if not all(isinstance(x, int) and not isinstance(x, bool)
+                   for x in (cap, ready, active)):
+            raise RuntimeError("HITEL_CAPACITY_UNKNOWN; NO_CHAT_POST")
+        spare = cap - ready - active
+        current = (connected, cap, ready, active)
+        state["capacity_snapshot"] = {
+            "worker_connected": connected, "worker_capacity": cap,
+            "prewarmed_room_count": ready, "worker_active_jobs_count": active,
+            "spare_room_tabs": spare
+        }
+        if connected is True and spare >= 1:
+            state["phase"] = "ROOM_SLOT_AVAILABLE"
+            save(state_path, state)
+            print("HITEL_ROOM_CAPACITY_AVAILABLE",state["capacity_snapshot"],flush=True)
+            return
+        state["phase"] = "WAIT_ROOM_CAPACITY"
+        save(state_path, state)
+        if previous != current:
+            print("WAIT_ROOM_TAB_CAPACITY_NO_CHAT_POST",state["capacity_snapshot"],flush=True)
+            previous = current
+        time.sleep(min(30, max(1, deadline-time.monotonic())))
+    raise TimeoutError("ROOM_SLOT_NOT_AVAILABLE; NO_NEW_CHAT_POST")
+
+
 def execute(batch_no, root, dry_run=False, wait_seconds=MAX_WAIT_S):
     rows = source_rows()
     group = batch_rows(rows, batch_no)
@@ -189,10 +230,16 @@ def execute(batch_no, root, dry_run=False, wait_seconds=MAX_WAIT_S):
     request_id = "tv-serial10-" + hash_text(room_name + "|" + prompt)[:45]
     state_path = target/"state.json"
     state = json.loads(state_path.read_text(encoding="utf-8")) if state_path.exists() else {}
-    if state and (state.get("request_id") != request_id or
+    attempt = int(state.get("capacity_retry_attempt", 0))
+    expected_id = request_id if attempt == 0 else (
+        "tv-serial10-" + hash_text(room_name + "|" + prompt +
+                                  "|capacity-retry-" + str(attempt))[:45]
+    )
+    if state and (state.get("request_id") != expected_id or
                   state.get("prompt_sha") != hash_text(prompt) or
                   state.get("batch_number") != batch_no):
         raise ValueError("CHECKPOINT_NOT_SAME_EXACT_REQUEST")
+    request_id = expected_id
     state.update({"batch_number":batch_no,"source_ids":[x["id"] for x in group],
                   "request_id":request_id,"prompt_sha":hash_text(prompt),"room_name":room_name})
     save(state_path,state)
@@ -209,8 +256,36 @@ def execute(batch_no, root, dry_run=False, wait_seconds=MAX_WAIT_S):
         state["phase"]="RESULT_VALIDATED"
         save(state_path,state)
         return
-    if state.get("phase") in ("FAILED","STALLED","SUBMISSION_UNCERTAIN"):
+    deadline = time.monotonic() + wait_seconds
+    if state.get("phase") in ("FAILED", "STALLED") and \
+            state.get("error") == "ROOM_TAB_CAPACITY_EXCEEDED":
+        # The vendor definitively rejected opening a tab before ChatGPT ran.
+        old_job = state.get("job_id")
+        if not old_job:
+            raise RuntimeError("CAPACITY_REJECTION_MISSING_JOB_ID")
+        code, prior = transport.get(API + "/jobs/" + old_job)
+        if code != 200 or prior.get("job_id") != old_job or \
+                prior.get("status") != "failed" or \
+                prior.get("error") != "ROOM_TAB_CAPACITY_EXCEEDED":
+            raise RuntimeError("CAPACITY_REJECTION_NOT_INDEPENDENTLY_CONFIRMED")
+        retry = int(state.get("capacity_retry_attempt", 0)) + 1
+        if retry > 3:
+            raise RuntimeError("MAX_VERIFIED_CAPACITY_RETRIES_EXCEEDED")
+        state.setdefault("previous_capacity_jobs", []).append(old_job)
+        state["capacity_retry_attempt"] = retry
+        state["request_id"] = "tv-serial10-" + hash_text(
+            room_name + "|" + prompt + "|capacity-retry-" + str(retry)
+        )[:45]
+        state["job_id"] = None
+        state["error"] = None
+        state["phase"] = "WAIT_ROOM_CAPACITY"
+        save(state_path,state)
+        print("CONFIRMED_NO_MODEL_EXECUTION_CAPACITY_RETRY",retry,old_job,flush=True)
+    elif state.get("phase") in ("FAILED","STALLED","SUBMISSION_UNCERTAIN"):
         raise RuntimeError("PREVIOUS_TERMINAL_OR_UNCERTAIN_DO_NOT_REPOST")
+
+    if not state.get("job_id"):
+        wait_for_spare_browser_tab(state,state_path,deadline)
     if not state.get("room_id"):
         state["room_id"]=transport.open_named_room(room_name,target)
         state["phase"]="ROOM_READY"
@@ -220,7 +295,7 @@ def execute(batch_no, root, dry_run=False, wait_seconds=MAX_WAIT_S):
         save(state_path,state)
         # Exactly one HTTP POST /chat; no automatic duplicate submissions.
         code,resp=transport.post(API+"/chat",{
-            "room_id":state["room_id"],"request_id":request_id,"text":prompt
+            "room_id":state["room_id"],"request_id":state["request_id"],"text":prompt
         })
         if code!=202 or not isinstance(resp.get("job_id"),str) or \
                 resp.get("room_id")!=state["room_id"]:
@@ -231,7 +306,6 @@ def execute(batch_no, root, dry_run=False, wait_seconds=MAX_WAIT_S):
         print("TEN_ORIGINAL_ONE_CHAT_ACCEPTED",batch_no,state["job_id"],flush=True)
     else:
         print("SAME_SAVED_JOB_ID_NO_POST",batch_no,state["job_id"],flush=True)
-    deadline=time.monotonic()+wait_seconds
     last=None
     while time.monotonic()<deadline:
         try:
@@ -280,6 +354,10 @@ def execute(batch_no, root, dry_run=False, wait_seconds=MAX_WAIT_S):
             state["phase"]="STALLED" if status=="stalled" else "FAILED"
             state["error"]=str(job.get("error") or stage or "unknown")[:600]
             save(state_path,state)
+            if status=="failed" and state["error"]=="ROOM_TAB_CAPACITY_EXCEEDED":
+                remaining=int(deadline-time.monotonic())
+                if remaining>45:
+                    return execute(batch_no,root,False,remaining)
             raise RuntimeError("HITEL_TERMINAL_"+str(status)+": "+state["error"])
         time.sleep(POLL_SECONDS)
     state["phase"]="POLL_TIMEOUT_SAME_JOB_ID"
