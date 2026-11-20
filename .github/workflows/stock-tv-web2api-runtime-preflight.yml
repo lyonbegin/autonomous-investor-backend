@@ -33,5 +33,10 @@ jobs:
           for name,rid in originals.items():
               match=[x for x in rows if x.get("room_name")==name and x.get("room_id")==rid]
               print("PRESERVED_"+("STOCK_RESEARCH" if name.startswith("STOCK") else "SCRIBD")+"="+str(bool(match and match[0].get("conversation_linked"))),flush=True)
+          job=get("/jobs/job_fa6cf7785e864fab8b9b7ce00f81df9d")
+          safe_job={k:job.get(k) for k in ("job_id","room_id","request_id","status","stage","error_code","error_stage","result_ready","chatgpt_send_confirmed","assistant_reply_observed","worker_connected")}
+          print("STOCKTV_BATCH1_FRESH_C_REAL_JOB="+json.dumps(safe_job,ensure_ascii=False,sort_keys=True),flush=True)
+          matching=[x for x in rows if x.get("room_name")=="HITEL-STOCKTV-RESEARCH-WS20261121-C0001"]
+          print("STOCKTV_BATCH1_C_ROOM_LINKED="+str(bool(matching and matching[0].get("conversation_linked"))),flush=True)
           print("READ_ONLY_NO_CHATGPT_SEND_NO_ROOM_WRITE",flush=True)
           PY
