@@ -108,4 +108,44 @@ class CleanNativeSerialTenTests(unittest.TestCase):
             with self.assertRaises(RuntimeError):mod.execute(1,root,client)
             self.assertFalse((folder/"result.json").exists())
 
+    def test_capacity_recovery_must_have_remote_proof_and_new_room(self):
+        g=mod.group(self.rows,1)
+        prompt=mod.question(g,1)
+        old={"status":"unverified","error_code":"web2api_failed","room_name":mod.room_name(1),
+             "text_sha256":mod.checksum(prompt),"request_id":"req_veryold",
+             "room_id":"room_old","job_id":"job_veryold"}
+        remote={"job_id":"job_veryold","room_id":"room_old","request_id":"req_veryold",
+                "status":"failed","stage":"web2api_failed","error":"ROOM_TAB_CAPACITY_EXCEEDED",
+                "chatgpt_send_confirmed":None,"assistant_reply_observed":None,"result_ready":False}
+        class Response:
+            def __enter__(self):return self
+            def __exit__(self,*args):pass
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d);native=root/"client.py";native.write_text("# exists",encoding="utf-8")
+            folder=root/"batch_0001";folder.mkdir()
+            mod.atomic(folder/"client_state.json",old)
+            mod.atomic(folder/"intent.json",{"batch":1,"room_name":mod.room_name(1),
+                "source_ids":[x["id"] for x in g],"prompt_sha256":mod.checksum(prompt),
+                "transport":"HITEL_PUBLIC_WEBSOCKET"})
+            with patch.object(mod,"urlopen",return_value=Response()),patch.object(mod.json,"load",return_value=remote),patch.object(mod,"preflight"),patch.object(mod.subprocess,"run",return_value=type("R",(),{"returncode":1})()) as called:
+                with self.assertRaises(RuntimeError):mod.execute(1,root,native,recover_capacity=True)
+            self.assertTrue((folder/"capacity_recovery1_verified.json").exists())
+            cmd=called.call_args.args[0]
+            self.assertIn(mod.room_name(1)+"-CAPACITY-RECOVERY1",cmd)
+            self.assertIn("--text",cmd)
+            self.assertNotIn("--resume",cmd)
+            self.assertFalse((folder/"result.json").exists())
+
+    def test_unverified_or_ambiguous_failure_never_allows_new_room(self):
+        base={"status":"unverified","error_code":"web2api_failed",
+              "request_id":"req_test","room_id":"room_test","job_id":"job_test"}
+        class Response:
+            def __enter__(self):return self
+            def __exit__(self,*args):pass
+        remote={"job_id":"job_test","room_id":"room_test","request_id":"req_test",
+                "status":"failed","stage":"web2api_failed","error":"ROOM_TAB_CAPACITY_EXCEEDED",
+                "chatgpt_send_confirmed":True,"assistant_reply_observed":None,"result_ready":False}
+        with patch.object(mod,"urlopen",return_value=Response()),patch.object(mod.json,"load",return_value=remote):
+            with self.assertRaises(RuntimeError):mod.validate_capacity_failure_without_chat_send(base)
+
 if __name__=="__main__":unittest.main()
