@@ -38,8 +38,8 @@ jobs:
           sys.path.insert(0, 'research/serial10')
           import ws_ten_runner as mod
           assert len(mod.originals())==4428
-          assert mod.room_name(1)=='HITEL-STOCKTV-FRESH-20261121-R1-0001'
-          assert str(mod.RUN_ROOT)=='research/serial10/fresh_runs/reset_20261121_r1'
+          assert mod.room_name(1)=='HITEL-STOCKTV-FRESH-20261121-R2-0001'
+          assert str(mod.RUN_ROOT)=='research/serial10/fresh_runs/reset_20261121_r2'
           assert not (mod.RUN_ROOT/'results'/'batch_0001.json').exists()
           print('PASS_UNMODIFIED_4428_ORIGINALS_FRESH_EMPTY_RESULT_NAMESPACE',flush=True)
           PY
