@@ -1,0 +1,32 @@
+name: STOCK TV WS10 | Read-only diagnosis of first native API failure
+on:
+  push:
+    branches: [feature/hitel-a-kg-recovery-20261119]
+    paths:
+      - .github/workflows/stock-tv-ws10-readonly-diagnose.yml
+permissions:
+  contents: read
+jobs:
+  read-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Read existing immutable HITEL job and current worker readiness without sending
+        run: |
+          python3 - <<'PY'
+          import urllib.request,json
+          base="https://hitel-integration-api-production.up.railway.app/integrations/v1/public"
+          paths=["/jobs/job_c2bab0d463794b49ba91d1b2cc9bff33","/status"]
+          for path in paths:
+              with urllib.request.urlopen(base+path,timeout=20) as r:
+                  result=json.load(r)
+              fields=(("job_id","room_id","request_id","status","stage","error","error_code",
+                       "chatgpt_send_confirmed","assistant_reply_observed","result_ready",
+                       "result_length_bytes","updated_at","last_error") if path.startswith("/jobs/")
+                      else ("worker_connected","worker_heartbeat_recent",
+                            "worker_bootstrap_ready","worker_available_for_new_job",
+                            "worker_active_jobs_count","worker_capacity","prewarmed_room_count"))
+              print("READONLY_HITEL_JOB_DIAGNOSTIC",path,
+                    json.dumps({k:str(result.get(k))[:500] for k in fields},
+                               ensure_ascii=False),flush=True)
+          PY
