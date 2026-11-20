@@ -1,18 +1,24 @@
-name: STOP current fixed HITEL nine research, no new request
+name: STOP wrong-parallel HITEL searches now
 on:
   push:
-    branches: [feature/hitel-a-kg-recovery-20261119]
+    branches:
+      - feature/hitel-a-kg-recovery-20261119
     paths:
       - .github/workflows/stock-tv-nine-fixed-stop-now-20261120.yml
 permissions:
   contents: read
+  actions: write
 concurrency:
   group: STOCK-TV-FIXED-NINE-LIVE-20261120
   cancel-in-progress: true
 jobs:
   stop-only:
     runs-on: ubuntu-latest
-    timeout-minutes: 2
+    timeout-minutes: 3
     steps:
-      - name: Cancel active wrong-parallel nine-source HITEL workflow
-        run: echo 'STOP_ONLY: cancel wrong parallel run, never POST HITEL or execute research.'
+      - name: Cancel previous nine-original parallel research run without submitting any new HITEL jobs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          echo 'STOP_ONLY. No new HITEL chat request.'
+          gh api -X POST "repos/$GITHUB_REPOSITORY/actions/runs/44686296522/cancel" || true
