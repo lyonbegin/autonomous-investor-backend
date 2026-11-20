@@ -157,7 +157,10 @@ def run_group(batch_no,rows,out):
     bdir=out/("batch_"+str(batch_no))
     bdir.mkdir(parents=True,exist_ok=True)
     prompt=research_prompt(group,batch_no)
-    room_name="STOCK-TV-CASESEARCH-NINE-20261119-B"+str(batch_no)
+    epoch=os.getenv("STOCK_HITEL_FRESH_EPOCH","20261119")
+    if not epoch.isdigit() or len(epoch)!=8:
+        raise RuntimeError("BAD_FRESH_EPOCH")
+    room_name="STOCK-TV-CASESEARCH-NINE-"+epoch+"-B"+str(batch_no)
     request_id="stock-tv-nine-b"+str(batch_no)+"-"+sha(room_name+"|"+prompt)[:42]
     state_file=bdir/"state.json"
     saved=json.loads(state_file.read_text("utf-8")) if state_file.exists() else {}
@@ -196,7 +199,9 @@ def run_group(batch_no,rows,out):
         save(state_file,state)
         print("HITEL_TRIPLE_SUBMITTED",batch_no,state["job_id"],flush=True)
     else:print("HITEL_TRIPLE_RESUMED",batch_no,state["job_id"],flush=True)
-    deadline=time.monotonic()+POLL_TIMEOUT
+    timeout_s=int(os.getenv("STOCK_HITEL_POLL_TIMEOUT",str(POLL_TIMEOUT)))
+    if not (60 <= timeout_s <= POLL_TIMEOUT):raise RuntimeError("BAD_POLL_TIMEOUT")
+    deadline=time.monotonic()+timeout_s
     last=None
     while time.monotonic()<deadline:
         try:
