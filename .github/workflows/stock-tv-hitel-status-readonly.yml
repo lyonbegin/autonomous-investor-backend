@@ -1,4 +1,4 @@
-name: STOCK TV | exact old HITEL job stages read only
+name: STOCK TV | post-fix three HITEL job stages read only
 on:
   push:
     branches: [feature/hitel-a-kg-recovery-20261119]
@@ -16,9 +16,9 @@ jobs:
           python3 - <<'PY'
           import urllib.request,json,time
           base="https://hitel-integration-api-production.up.railway.app/integrations/v1/public"
-          for n,j in enumerate(["job_f6a95e41fef84819b62e138e5e2bd523",
-                                "job_59d53116ca654e8fbb86ed96e45b610f",
-                                "job_f725f5c88b6149ebaf0eb5e9b241032d"],1):
+          for n,j in enumerate(["job_86dd881246f94626823feb6b26ba8d07",
+                                "job_5dbabf2c4e514301bd15240a3f5aa0e4",
+                                "job_116fa149fa364d4a819203e7ba73c406"],1):
               req=urllib.request.Request(base+"/jobs/"+j,headers={"Accept":"application/json"})
               with urllib.request.urlopen(req,timeout=20) as res:
                   x=json.load(res)
