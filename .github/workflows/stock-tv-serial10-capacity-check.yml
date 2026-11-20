@@ -30,8 +30,11 @@ jobs:
                   elif path.endswith("/status"):
                       # Limit disclosure to status or worker field names only.
                       clean={k:v for k,v in obj.items()
-                         if k in ("status","server","worker","worker_status","workerConnected",
-                                  "capacity","queue","queued","active_jobs","active_rooms","room_capacity")}
+                         if k in ("worker_connected","worker_busy","worker_active_jobs_count","worker_capacity",
+                                  "worker_available_for_new_job","worker_heartbeat_recent",
+                                  "prewarmed_room_count","new_conversation_per_question",
+                                  "same_room_name_reuses_conversation","default_room_name",
+                                  "worker_autostart_configured","github_action_manual_start_required")}
                       print("HITEL_CAPACITY_STATUS",json.dumps(clean,ensure_ascii=False)[:2500])
                       print("STATUS_ROOT_KEYS",list(obj))
                   else:
