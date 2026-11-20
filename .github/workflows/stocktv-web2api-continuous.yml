@@ -190,7 +190,7 @@ jobs:
 
       - name: Inspect prior job safely after an unverified result
         id: continuation
-        if: failure()
+        if: always() && steps.research.outcome == 'failure'
         env:
           CONTINUATION_ATTEMPT: ${{ inputs.attempt || '0' }}
         run: |
@@ -220,7 +220,7 @@ jobs:
               print("SAFE_GET_ONLY_RESUME_ALLOWED",flush=True)
           PY
       - name: Automatically retry read-only receipt of same prior request
-        if: steps.continuation.outputs.resume == 'true'
+        if: always() && steps.continuation.outputs.resume == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           CONTINUATION_ATTEMPT: ${{ inputs.attempt || '0' }}
