@@ -17,7 +17,7 @@ permissions:
   contents: write
   actions: write
 concurrency:
-  group: STOCK-TV-WS10-CLEAN-STRICT-SERIAL-20261121
+  group: STOCK-TV-WS10-FRESH-RESET-20261121-R1
   cancel-in-progress: false
 jobs:
   one-ten-only:
@@ -28,7 +28,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: feature/hitel-a-kg-recovery-20261119
+          ref: feature/stocktv-web2api-fresh-reset-20261121
           persist-credentials: true
       - name: Load verified official HITEL WebSocket client pinned to tested procureflow main commit
         uses: actions/checkout@v4
@@ -74,13 +74,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          NAME="stock-ws10-clean-state-$BATCH_PAD"
+          NAME="stock-ws10-fresh-reset-20261121-$BATCH_PAD"
           PREV_RUN=$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts?name=$NAME&per_page=100" \
             --jq '[.artifacts[] | select(.expired == false)] | sort_by(.created_at) | reverse | .[0].workflow_run.id // empty')
           if [[ -n "$PREV_RUN" ]]; then
-            mkdir -p "stock-ws10-checkpoints/batch_$BATCH_PAD"
+            mkdir -p "stock-ws10-fresh-20261121-checkpoints/batch_$BATCH_PAD"
             gh run download "$PREV_RUN" --repo "$GITHUB_REPOSITORY" -n "$NAME" \
-              -D "stock-ws10-checkpoints/batch_$BATCH_PAD"
+              -D "stock-ws10-fresh-20261121-checkpoints/batch_$BATCH_PAD"
             echo "RECOVER_SAME_BATCH_CHECKPOINT_RUN=$PREV_RUN"
           else
             echo "FRESH_WS10_CLIENT_STATE_FOR_BATCH=$BATCH_NUMBER"
@@ -94,14 +94,14 @@ jobs:
             args+=(--recover-capacity-no-send)
           fi
           PYTHONUNBUFFERED=1 python3 research/serial10/ws_ten_runner.py \
-            --batch "$BATCH_NUMBER" --out stock-ws10-checkpoints \
+            --batch "$BATCH_NUMBER" --out stock-ws10-fresh-20261121-checkpoints \
             --client hitel-client/tools/hitel_chat.py "${args[@]}"
       - name: Save exact client room/job IDs and any raw answer even when incomplete
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: stock-ws10-clean-state-${{ env.BATCH_PAD }}
-          path: stock-ws10-checkpoints/batch_${{ env.BATCH_PAD }}/
+          name: stock-ws10-fresh-reset-20261121-${{ env.BATCH_PAD }}
+          path: stock-ws10-fresh-20261121-checkpoints/batch_${{ env.BATCH_PAD }}/
           retention-days: 90
           if-no-files-found: warn
       - name: Git-commit verified full ten-source AI reply BEFORE any next HITEL request
@@ -109,24 +109,24 @@ jobs:
         if: steps.research.outcome == 'success'
         run: |
           set -euo pipefail
-          SRC="stock-ws10-checkpoints/batch_$BATCH_PAD"
+          SRC="stock-ws10-fresh-20261121-checkpoints/batch_$BATCH_PAD"
           test -s "$SRC/result.json"
           test -s "$SRC/summary.json"
           python3 research/serial10/ws_ten_runner.py --batch "$BATCH_NUMBER" \
             --verify-file "$SRC/result.json"
-          mkdir -p research/serial10/results
-          cp "$SRC/result.json" "research/serial10/results/batch_$BATCH_PAD.json"
-          cp "$SRC/summary.json" "research/serial10/results/batch_$BATCH_PAD.summary.json"
+          mkdir -p research/serial10/fresh_runs/reset_20261121_r1/results
+          cp "$SRC/result.json" "research/serial10/fresh_runs/reset_20261121_r1/results/batch_$BATCH_PAD.json"
+          cp "$SRC/summary.json" "research/serial10/fresh_runs/reset_20261121_r1/results/batch_$BATCH_PAD.summary.json"
           git config user.name "stock-ws10-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add "research/serial10/results/batch_$BATCH_PAD.json" \
-                  "research/serial10/results/batch_$BATCH_PAD.summary.json"
+          git add "research/serial10/fresh_runs/reset_20261121_r1/results/batch_$BATCH_PAD.json" \
+                  "research/serial10/fresh_runs/reset_20261121_r1/results/batch_$BATCH_PAD.summary.json"
           if ! git diff --cached --quiet; then
             git commit -m "Preserve verified HITEL WebSocket trading case results for source group $BATCH_NUMBER"
-            git push origin HEAD:feature/hitel-a-kg-recovery-20261119
+            git push origin HEAD:feature/stocktv-web2api-fresh-reset-20261121
           fi
-          git fetch origin feature/hitel-a-kg-recovery-20261119
-          git cat-file -e "FETCH_HEAD:research/serial10/results/batch_$BATCH_PAD.json"
+          git fetch origin feature/stocktv-web2api-fresh-reset-20261121
+          git cat-file -e "FETCH_HEAD:research/serial10/fresh_runs/reset_20261121_r1/results/batch_$BATCH_PAD.json"
           echo "REMOTE_TEN_RESULT_COMMITTED_AND_PRESENT=$BATCH_NUMBER"
       - name: Request next ten ONLY after verified answer has been durably committed
         if: steps.persist.outcome == 'success'
@@ -135,11 +135,11 @@ jobs:
         run: |
           set -euo pipefail
           echo "### Verified and committed full ten-source result batch $BATCH_NUMBER" >> "$GITHUB_STEP_SUMMARY"
-          cat "stock-ws10-checkpoints/batch_$BATCH_PAD/summary.json" >> "$GITHUB_STEP_SUMMARY"
+          cat "stock-ws10-fresh-20261121-checkpoints/batch_$BATCH_PAD/summary.json" >> "$GITHUB_STEP_SUMMARY"
           NEXT=$(( BATCH_NUMBER+1 ))
           if (( NEXT <= 443 )); then
             gh workflow run stock-tv-ws10-clean.yml \
-              --ref feature/hitel-a-kg-recovery-20261119 \
+              --ref feature/stocktv-web2api-fresh-reset-20261121 \
               -f batch_number="$NEXT"
             echo "NEXT_BATCH_DISPATCHED_ONLY_AFTER_REMOTE_COMMIT=$NEXT"
           else
@@ -149,11 +149,11 @@ jobs:
         if: failure()
         run: |
           echo "SEARCH_INCOMPLETE_NO_NEXT_HITEL_REQUEST" >> "$GITHUB_STEP_SUMMARY"
-          if test -f "stock-ws10-checkpoints/batch_$BATCH_PAD/client_state.json"; then
+          if test -f "stock-ws10-fresh-20261121-checkpoints/batch_$BATCH_PAD/client_state.json"; then
             python3 - <<'PY'
           import json,os
           from pathlib import Path
-          p=Path(f"stock-ws10-checkpoints/batch_{os.environ['BATCH_PAD']}/client_state.json")
+          p=Path(f"stock-ws10-fresh-20261121-checkpoints/batch_{os.environ['BATCH_PAD']}/client_state.json")
           s=json.loads(p.read_text(encoding="utf-8"))
           print("PRESERVED_CLIENT_JOB_SCOPE", {k:s.get(k) for k in (
             "room_name","room_id","request_id","job_id","status","error_code")})
