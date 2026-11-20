@@ -72,10 +72,13 @@ class TenSourceSequentialTests(unittest.TestCase):
                  patch.object(sut.transport,"post",return_value=(202,{
                      "job_id":"job_test_123","room_id":"room_test_123"
                  })) as chat, \
-                 patch.object(sut.transport,"get",return_value=(200,get_result)) as status:
+                 patch.object(sut.transport,"get",side_effect=lambda url: (200,{
+                     "worker_connected":True,"worker_capacity":3,
+                     "prewarmed_room_count":1,"worker_active_jobs_count":0
+                 }) if url.endswith("/status") else (200,get_result)) as status:
                 sut.execute(1,p,False,5)
                 self.assertEqual(chat.call_count,1)
-                self.assertEqual(status.call_count,1)
+                self.assertEqual(status.call_count,2)
                 self.assertTrue((p/"batch_0001"/"result.json").is_file())
                 self.assertTrue((p/"batch_0001"/"summary.json").is_file())
                 summary=json.loads((p/"batch_0001"/"summary.json").read_text())
@@ -93,7 +96,10 @@ class TenSourceSequentialTests(unittest.TestCase):
                  patch.object(sut.transport,"post",return_value=(202,{
                      "job_id":"job_test_1","room_id":"room_test_1"
                  })) as post, \
-                 patch.object(sut.transport,"get",return_value=(200,{
+                 patch.object(sut.transport,"get",side_effect=lambda url: (200,{
+                     "worker_connected":True,"worker_capacity":3,
+                     "prewarmed_room_count":1,"worker_active_jobs_count":0
+                 }) if url.endswith("/status") else (200,{
                      "job_id":"job_test_1","room_id":"room_test_1",
                      "status":"completed",
                      "result_text":json.dumps(incomplete,ensure_ascii=False)
