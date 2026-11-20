@@ -1,0 +1,45 @@
+name: STOCK TV | Fresh original Web2API reset offline validation
+on:
+  push:
+    branches:
+      - feature/stocktv-web2api-fresh-reset-20261121
+    paths:
+      - research/serial10/ws_ten_runner.py
+      - .github/workflows/stock-tv-ws10-clean.yml
+      - .github/workflows/stocktv-web2api-reset-offline.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate-original-hitel:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/stocktv-web2api-fresh-reset-20261121
+      - uses: actions/checkout@v4
+        with:
+          repository: lyonbegin/procureflow
+          ref: 13d854ad60b9fa30406f2974cff73b47617e78d5
+          path: hitel-client
+      - name: Compile existing Web2API client and renamed runner
+        run: python3 -m py_compile research/serial10/ws_ten_runner.py hitel-client/tools/hitel_chat.py
+      - name: Run original 10-strategy regression tests (no network send)
+        run: python3 -m unittest discover -s tests -p test_stock_ws10_clean.py -v
+      - name: Verify 4,428 source originals without mutation
+        run: python3 research/serial10/ws_ten_runner.py --batch 1 --dry-run
+      - name: Assert fresh result and checkpoint namespace
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import sys
+          sys.path.insert(0, 'research/serial10')
+          import ws_ten_runner as mod
+          assert len(mod.originals())==4428
+          assert mod.room_name(1)=='HITEL-STOCKTV-FRESH-20261121-R1-0001'
+          assert str(mod.RUN_ROOT)=='research/serial10/fresh_runs/reset_20261121_r1'
+          assert not (mod.RUN_ROOT/'results'/'batch_0001.json').exists()
+          print('PASS_UNMODIFIED_4428_ORIGINALS_FRESH_EMPTY_RESULT_NAMESPACE',flush=True)
+          PY
