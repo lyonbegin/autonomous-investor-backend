@@ -1,0 +1,36 @@
+name: STOCK TV | Live Web2API fresh batch readonly verification
+on:
+  push:
+    branches: [feature/stocktv-web2api-fresh-reset-20261121]
+    paths:
+      - .github/workflows/stocktv-fresh-live-readonly.yml
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: GET-only live worker and new room status
+        run: |
+          python3 - <<'PY'
+          import json, urllib.request, urllib.error
+          base="https://hitel-integration-api-production.up.railway.app/integrations/v1/public"
+          def get(path):
+              request=urllib.request.Request(base+path,headers={"Accept":"application/json","User-Agent":"STOCKTV-GET-ONLY-DIAG"})
+              with urllib.request.urlopen(request,timeout=20) as response:
+                  return json.load(response)
+          status=get("/status")
+          print("EXISTING_WEB2API_RUNTIME="+json.dumps({k:status.get(k) for k in (
+              "worker_connected","worker_heartbeat_recent","worker_bootstrap_ready",
+              "worker_available_for_new_job","worker_active_jobs_count","worker_capacity"
+          )},ensure_ascii=False,sort_keys=True),flush=True)
+          rooms=get("/rooms").get("rooms",[])
+          names=["HITEL-STOCKTV-FRESH-20261121-R1-0001","HITEL-STOCKTV-RESEARCH-WS20261121-C0001"]
+          for name in names:
+              found=next((r for r in rooms if r.get("room_name")==name),None)
+              print(("FRESH" if "-FRESH-" in name else "OLD")+"_ROOM="+json.dumps(
+                 {"exists":bool(found),"linked":found.get("conversation_linked") if found else None,"id":found.get("room_id") if found else None}
+              ),flush=True)
+          print("NO_POST_NO_ROOM_CREATION_NO_MODEL_SEND",flush=True)
+          PY
