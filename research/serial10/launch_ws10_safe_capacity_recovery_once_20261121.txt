@@ -1,1 +1,0 @@
-Existing HITEL Web2API recovery of original Strategy rows 1-10, via strict prior failure verification. Job job_fa6cf7785e864fab8b9b7ce00f81df9d error ROOM_TAB_CAPACITY_EXCEEDED, no confirmed ChatGPT send. Wait for queued updated main worker run 44792847863 to be connected with no active jobs. No HTTP/new API/unguarded resend.
