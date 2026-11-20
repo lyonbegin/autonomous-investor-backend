@@ -1,11 +1,6 @@
 name: STOCK TV | CLEAN WS10 STRICT SERIAL REAL EVIDENCE
 # Clean retry: JSONL Unicode line separators handled as data (not record separators).
 on:
-  push:
-    branches:
-      - feature/hitel-a-kg-recovery-20261119
-    paths:
-      - .github/workflows/stock-tv-ws10-clean.yml
   workflow_dispatch:
     inputs:
       batch_number:
@@ -25,30 +20,7 @@ concurrency:
   group: STOCK-TV-WS10-CLEAN-STRICT-SERIAL-20261121
   cancel-in-progress: false
 jobs:
-  remove-old-failed-checkpoints:
-    if: github.event_name == 'push'
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - name: Remove only legacy failed batch-0001 result artifacts, not source data
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          for NAME in stock-ws10-clean-state-0001 tv-serial10-state-0001; do
-            IDs=$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts?name=$NAME&per_page=100" --jq '.artifacts[] | select(.name == "'$NAME'") | .id')
-            if [[ -z "$IDs" ]]; then
-              echo "NO_STALE_BATCH1_ARTIFACT_$NAME"
-            else
-              while IFS= read -r ID; do
-                [[ "$ID" =~ ^[0-9]+$ ]] || exit 1
-                gh api -X DELETE "repos/$GITHUB_REPOSITORY/actions/artifacts/$ID"
-                echo "DELETED_FAILED_BATCH1_ARTIFACT=$NAME ID=$ID"
-              done <<< "$IDs"
-            fi
-          done
   one-ten-only:
-    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 300
     env:
