@@ -1,4 +1,4 @@
-name: STOCK TV | SERIAL TEN fixed Unicode JSONL 4428 original research
+name: STOCK TV | SERIAL TEN with room-capacity recovery and strict source order
 on:
   push:
     branches: [feature/hitel-a-kg-recovery-20261119]
