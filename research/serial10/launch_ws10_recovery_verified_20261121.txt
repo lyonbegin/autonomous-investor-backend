@@ -1,0 +1,1 @@
+One-time safe recovery of existing HITEL Web2API batch 1 (original source rows 1..10). Prior job job_fa6cf7785e864fab8b9b7ce00f81df9d proven failed ROOM_TAB_CAPACITY_EXCEEDED without confirmed send; updated existing main Web2API worker connected and zero active jobs at 2026-11-20 18:31 UTC. Must use --recover-capacity-no-send and never resend if proof fails.
