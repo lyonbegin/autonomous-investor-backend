@@ -1,0 +1,1 @@
+2026-11-21 new continuous HITEL Web2API research, source Strategy 1..4428. Exactly ONE user question for each group of 10; verify and commit all results before next. Restart at group 1 in isolated R2 room; keep prior stalled jobs as audit and never touch other HITEL rooms.
