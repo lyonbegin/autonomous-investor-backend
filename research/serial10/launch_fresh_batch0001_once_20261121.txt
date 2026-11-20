@@ -1,0 +1,1 @@
+User-authorized fresh first ten TradingView Strategy originals (source order 1..10) with the existing HITEL Web2API WebSocket. No old job checkpoint, no old research room, no OpenAI Responses API. First ten must be fully validated and saved before 11..20.
