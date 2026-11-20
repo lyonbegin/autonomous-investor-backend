@@ -8,8 +8,9 @@ from pathlib import Path
 from urllib.request import urlopen
 
 ROOT=Path("research/serial10")
+RUN_ROOT=ROOT/"fresh_runs"/"reset_20261121_r1"
 SCHEMA="TV-TRADE-EVIDENCE-10-v2"
-ROOM_PREFIX="HITEL-STOCKTV-RESEARCH-WS20261121-C"
+ROOM_PREFIX="HITEL-STOCKTV-FRESH-20261121-R1-"
 BASE="https://hitel-integration-api-production.up.railway.app/integrations/v1/public"
 PENDING={"sending","running","unverified"}
 TYPES={"EXECUTED_TRADE","MARKET_TRANSACTION_EVENT","HISTORICAL_DATA_BACKTEST"}
@@ -128,7 +129,7 @@ def validate(raw,group_rows,batch):
 
 def verify_previous(rows,batch):
     if batch==1:return
-    p=ROOT/"results"/f"batch_{batch-1:04d}.json"
+    p=RUN_ROOT/"results"/f"batch_{batch-1:04d}.json"
     if not p.exists():raise RuntimeError("PREVIOUS_BATCH_NOT_PERSISTED_NO_NEXT_SEND")
     validate(p.read_text(encoding="utf-8"),group(rows,batch-1),batch-1)
     print("PREVIOUS_BATCH_PERSISTED_AND_VALIDATED",batch-1,flush=True)
@@ -176,7 +177,7 @@ def execute(batch,out,client,dry_run=False,recover_capacity=False):
        "source_ids":[x["id"] for x in selected],"prompt_chars":len(prompt)},ensure_ascii=False),flush=True)
     if dry_run:return
     if not client.is_file():raise FileNotFoundError("OFFICIAL_HITEL_CLIENT_MISSING")
-    done=ROOT/"results"/f"batch_{batch:04d}.json"
+    done=RUN_ROOT/"results"/f"batch_{batch:04d}.json"
     if done.exists():
         validate(done.read_text(encoding="utf-8"),selected,batch)
         print("RESULT_ALREADY_COMMITTED_NO_SEND",batch,flush=True)
@@ -250,7 +251,7 @@ def execute(batch,out,client,dry_run=False,recover_capacity=False):
 def main():
     p=argparse.ArgumentParser()
     p.add_argument("--batch",type=int,required=True)
-    p.add_argument("--out",default="stock-ws10-checkpoints")
+    p.add_argument("--out",default="stock-ws10-fresh-20261121-checkpoints")
     p.add_argument("--client",default="hitel-client/tools/hitel_chat.py")
     p.add_argument("--dry-run",action="store_true")
     p.add_argument("--recover-capacity-no-send",action="store_true",help="Explicitly create a new room ONLY after verifying remote worker rejected the previous job before ChatGPT send")
