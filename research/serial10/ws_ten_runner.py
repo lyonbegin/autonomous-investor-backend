@@ -8,9 +8,9 @@ from pathlib import Path
 from urllib.request import urlopen
 
 ROOT=Path("research/serial10")
-RUN_ROOT=ROOT/"fresh_runs"/"reset_20261121_r1"
+RUN_ROOT=ROOT/"fresh_runs"/"reset_20261121_r2"
 SCHEMA="TV-TRADE-EVIDENCE-10-v2"
-ROOM_PREFIX="HITEL-STOCKTV-FRESH-20261121-R1-"
+ROOM_PREFIX="HITEL-STOCKTV-FRESH-20261121-R2-"
 BASE="https://hitel-integration-api-production.up.railway.app/integrations/v1/public"
 PENDING={"sending","running","unverified"}
 TYPES={"EXECUTED_TRADE","MARKET_TRANSACTION_EVENT","HISTORICAL_DATA_BACKTEST"}
@@ -251,7 +251,7 @@ def execute(batch,out,client,dry_run=False,recover_capacity=False):
 def main():
     p=argparse.ArgumentParser()
     p.add_argument("--batch",type=int,required=True)
-    p.add_argument("--out",default="stock-ws10-fresh-20261121-checkpoints")
+    p.add_argument("--out",default="stock-ws10-fresh-20261121-r2-checkpoints")
     p.add_argument("--client",default="hitel-client/tools/hitel_chat.py")
     p.add_argument("--dry-run",action="store_true")
     p.add_argument("--recover-capacity-no-send",action="store_true",help="Explicitly create a new room ONLY after verifying remote worker rejected the previous job before ChatGPT send")
