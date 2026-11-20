@@ -1,10 +1,6 @@
 name: STOCK TV | CLEAN WS10 STRICT SERIAL REAL EVIDENCE
 # Clean retry: JSONL Unicode line separators handled as data (not record separators).
 on:
-  push:
-    branches: [feature/hitel-a-kg-recovery-20261119]
-    paths:
-      - .github/workflows/stock-tv-ws10-clean.yml
   workflow_dispatch:
     inputs:
       batch_number:
@@ -12,6 +8,11 @@ on:
         type: string
         required: true
         default: "1"
+      recover_capacity_no_send:
+        description: "Opt-in fresh room ONLY after remote proof old job failed before any ChatGPT send"
+        type: boolean
+        required: false
+        default: false
 permissions:
   contents: write
   actions: write
@@ -88,9 +89,13 @@ jobs:
         id: research
         run: |
           set -euo pipefail
+          args=()
+          if [[ "${{ inputs.recover_capacity_no_send }}" == "true" ]]; then
+            args+=(--recover-capacity-no-send)
+          fi
           PYTHONUNBUFFERED=1 python3 research/serial10/ws_ten_runner.py \
             --batch "$BATCH_NUMBER" --out stock-ws10-checkpoints \
-            --client hitel-client/tools/hitel_chat.py
+            --client hitel-client/tools/hitel_chat.py "${args[@]}"
       - name: Save exact client room/job IDs and any raw answer even when incomplete
         if: always()
         uses: actions/upload-artifact@v4
