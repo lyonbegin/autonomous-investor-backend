@@ -1,0 +1,33 @@
+name: STOCK TV | Web2API prior-job read-only status
+on:
+  push:
+    branches: [feature/stocktv-web2api-fresh-reset-20261121]
+    paths: [.github/workflows/stocktv-prior-job-status.yml]
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Read-only prior job delivery and runtime
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, urllib.request
+          base="https://hitel-integration-api-production.up.railway.app/integrations/v1/public"
+          def get(path):
+              req=urllib.request.Request(base+path,headers={"User-Agent":"stocktv-readonly-probe","Accept":"application/json"})
+              with urllib.request.urlopen(req,timeout=25) as r:return json.load(r)
+          for id in ("job_fe2e7d639b5048709ee94a96b8d4736c","job_cdde44f10927452eb97867ff55a2100b"):
+              try:
+                  d=get("/jobs/"+id)
+                  keys=("job_id","request_id","room_id","status","stage","error","error_code",
+                    "chatgpt_send_confirmed","assistant_reply_observed","result_ready","result_sha256")
+                  print("PRIOR_JOB_SAFE_STATUS="+json.dumps({k:d.get(k) for k in keys},ensure_ascii=False),flush=True)
+              except Exception as e: print("PRIOR_JOB_GET_ERROR="+type(e).__name__,flush=True)
+          d=get("/status")
+          keys=("worker_connected","worker_heartbeat_recent","worker_bootstrap_ready",
+            "worker_active_jobs_count","worker_capacity","worker_available_for_new_job")
+          print("SERVER_STATUS="+json.dumps({k:d.get(k) for k in keys},ensure_ascii=False),flush=True)
+          PY
