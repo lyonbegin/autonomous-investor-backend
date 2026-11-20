@@ -9,7 +9,7 @@ from urllib.request import urlopen
 
 ROOT=Path("research/serial10")
 SCHEMA="TV-TRADE-EVIDENCE-10-v2"
-ROOM_PREFIX="HITEL-STOCKTV-RESEARCH-WS20261121-B"
+ROOM_PREFIX="HITEL-STOCKTV-RESEARCH-WS20261121-C"
 BASE="https://hitel-integration-api-production.up.railway.app/integrations/v1/public"
 PENDING={"sending","running","unverified"}
 TYPES={"EXECUTED_TRADE","MARKET_TRANSACTION_EVENT","HISTORICAL_DATA_BACKTEST"}
