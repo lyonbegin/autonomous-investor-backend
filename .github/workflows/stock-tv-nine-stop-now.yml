@@ -1,4 +1,4 @@
-name: STOP CURRENT STOCK TV NINE HITEL SEARCH RUN
+name: STOP stale checkpoint poll before new fixed-worker test
 on:
   push:
     branches: [feature/hitel-a-kg-recovery-20261119]
