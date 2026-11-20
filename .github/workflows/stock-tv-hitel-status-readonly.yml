@@ -1,0 +1,30 @@
+name: STOCK TV | exact old HITEL job stages read only
+on:
+  push:
+    branches: [feature/hitel-a-kg-recovery-20261119]
+    paths: [.github/workflows/stock-tv-hitel-status-readonly.yml]
+permissions:
+  contents: read
+jobs:
+  statuses:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Read exactly three old job stages; never post a chat
+        run: |
+          python3 - <<'PY'
+          import urllib.request,json,time
+          base="https://hitel-integration-api-production.up.railway.app/integrations/v1/public"
+          for n,j in enumerate(["job_f6a95e41fef84819b62e138e5e2bd523",
+                                "job_59d53116ca654e8fbb86ed96e45b610f",
+                                "job_f725f5c88b6149ebaf0eb5e9b241032d"],1):
+              req=urllib.request.Request(base+"/jobs/"+j,headers={"Accept":"application/json"})
+              with urllib.request.urlopen(req,timeout=20) as res:
+                  x=json.load(res)
+              print("REAL_HITEL_OLD_JOB_STATUS",json.dumps({
+                  "batch":n,"job_id":j,"http_status":200,
+                  "status":x.get("status"),"stage":x.get("stage"),
+                  "result_bytes":len(x.get("result_text") or ""),
+                  "error":str(x.get("error") or "")[:200]
+                  },ensure_ascii=False),flush=True)
+          PY
