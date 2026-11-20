@@ -1,10 +1,6 @@
 name: STOCK TV | CLEAN WS10 STRICT SERIAL REAL EVIDENCE
 # Clean retry: JSONL Unicode line separators handled as data (not record separators).
 on:
-  push:
-    branches: [feature/stocktv-web2api-fresh-reset-20261121]
-    paths:
-      - research/serial10/launch_fresh_batch0001_once_20261121.txt
   workflow_dispatch:
     inputs:
       batch_number:
