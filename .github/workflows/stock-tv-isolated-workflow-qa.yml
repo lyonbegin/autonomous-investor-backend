@@ -39,6 +39,10 @@ jobs:
           url="https://hitel-integration-api-production.up.railway.app/integrations/v1/public/isolated/tasks/pending"
           request=urllib.request.Request(url,headers={"Accept":"application/json"})
           with urllib.request.urlopen(request,timeout=25) as r:d=json.load(r)
+          shared="https://hitel-integration-api-production.up.railway.app/integrations/v1/public/status"
+          with urllib.request.urlopen(shared,timeout=25) as r:old=json.load(r)
+          print("LEGACY_SHARED_STATUS",json.dumps({k:old.get(k) for k in (
+              "worker_connected","worker_active_jobs_count","worker_heartbeat_recent")},ensure_ascii=False),flush=True)
           for t in d.get("tasks",[]):
               print("TASK_HEALTH",json.dumps({k:t.get(k) for k in (
                   "task_id","worker_connected","queued_jobs_count","worker_active_jobs_count","worker_run_id")},ensure_ascii=False),flush=True)
