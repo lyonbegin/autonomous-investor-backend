@@ -43,6 +43,14 @@ jobs:
           with urllib.request.urlopen(shared,timeout=25) as r:old=json.load(r)
           print("LEGACY_SHARED_STATUS",json.dumps({k:old.get(k) for k in (
               "worker_connected","worker_active_jobs_count","worker_heartbeat_recent")},ensure_ascii=False),flush=True)
+          jid="job_78154db7ed1e4d4d9690545c5610a313"
+          try:
+              job_url="https://hitel-integration-api-production.up.railway.app/integrations/v1/public/jobs/"+jid
+              with urllib.request.urlopen(job_url,timeout=25) as r:job=json.load(r)
+              keys=("job_id","status","stage","result_ready","result_sha256","chatgpt_send_confirmed","assistant_reply_observed","error_code")
+              print("STOCKTV_FIRST_10_JOB_STATE",json.dumps({k:job.get(k) for k in keys},ensure_ascii=False),flush=True)
+          except Exception as exc:
+              print("STOCKTV_FIRST_10_JOB_STATUS_LOOKUP_FAILED",type(exc).__name__,flush=True)
           for t in d.get("tasks",[]):
               print("TASK_HEALTH",json.dumps({k:t.get(k) for k in (
                   "task_id","worker_connected","queued_jobs_count","worker_active_jobs_count","worker_run_id")},ensure_ascii=False),flush=True)
