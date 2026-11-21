@@ -24,7 +24,7 @@ ROOT = "https://hitel-integration-api-production.up.railway.app"
 API = "/integrations/v1/public"
 SUBMIT_PATH = API + "/isolated/tasks/stock-tv/chat"
 AUDIENCE = "urn:lyonbegin:procureflow:hitel-isolated-task-submit"
-RESULT_ROOT = Path("research/serial10/fresh_runs/isolated_stock_tv_r3/results")
+RESULT_ROOT = Path(os.environ.get("STOCK_TV_RESULT_DIR", "research/serial10/fresh_runs/isolated_stock_tv_r3/results"))
 DEFAULT_OUT = Path("stock-tv-isolated-r3-checkpoints")
 MAX_RESULT_BYTES = 2_000_000
 
@@ -78,12 +78,17 @@ def post_isolated(payload):
 
 
 def identity(batch, selected, prompt):
+    # New reset epoch gets a genuinely new Railway room and immutable request.
+    # R3 remains the test/backward-compatible default; no old job is replayed.
+    epoch = os.environ.get("STOCK_TV_EPOCH", "r3").strip().lower()
+    if epoch not in ("r3", "r4"):
+        raise RuntimeError("INVALID_STOCK_TV_EPOCH")
     return {
         "task_id": TASK_ID,
         "batch_number": batch,
         "source_ids": [r["id"] for r in selected],
-        "room_name": f"TV-STRATEGY-R3-{batch:04d}",
-        "request_id": f"stock-tv-r3-{batch:04d}-{digest(prompt)[:40]}",
+        "room_name": f"TV-STRATEGY-{epoch.upper()}-{batch:04d}",
+        "request_id": f"stock-tv-{epoch}-{batch:04d}-{digest(prompt)[:40]}",
         "prompt_sha256": digest(prompt),
     }
 
