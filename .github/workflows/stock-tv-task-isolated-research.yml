@@ -86,6 +86,31 @@ jobs:
             python3 research/serial10/task_isolated_client.py \
             --batch "$BATCH_NUMBER" --out stock-tv-isolated-r3-checkpoints \
             --max-seconds 15000 "${args[@]}"
+      - name: Read already completed JSON from existing stock-tv job before saving
+        id: salvage
+        if: always() && steps.research.outcome == 'failure'
+        run: |
+          set -euo pipefail
+          DIR="stock-tv-isolated-r3-checkpoints/batch_$BATCH_PAD"
+          if [[ ! -s "$DIR/client_state.json" ]]; then
+            echo "NO_EXISTING_JOB_CHECKPOINT_NO_NEW_CHATGPT_SEND"
+            exit 0
+          fi
+          # This is the EXISTING client, not another transport. --resume-only
+          # cannot POST a new ChatGPT question: it performs GET-only recovery
+          # using the immutable request/job ID and validates all ten source IDs.
+          if python3 research/serial10/task_isolated_client.py \
+              --batch "$BATCH_NUMBER" --out stock-tv-isolated-r3-checkpoints \
+              --resume-only --max-seconds 30 --poll-seconds 3; then
+            test -s "$DIR/result.json"
+            test -s "$DIR/summary.json"
+            python3 research/serial10/task_isolated_client.py \
+              --batch "$BATCH_NUMBER" --verify-file "$DIR/result.json"
+            echo "valid=true" >> "$GITHUB_OUTPUT"
+            echo "EXISTING_JOB_COMPLETED_JSON_RECOVERED_WITHOUT_NEW_SEND=$BATCH_NUMBER"
+          else
+            echo "NO_COMPLETED_VALID_JSON_YET_NO_FALSE_PERMANENT_STORAGE"
+          fi
       - name: Save exact client room/job IDs and any raw answer even when incomplete
         if: always()
         uses: actions/upload-artifact@v4
@@ -96,7 +121,7 @@ jobs:
           if-no-files-found: warn
       - name: Git-commit verified full ten-source AI reply BEFORE any next HITEL request
         id: persist
-        if: steps.research.outcome == 'success'
+        if: always() && (steps.research.outcome == 'success' || steps.salvage.outputs.valid == 'true')
         run: |
           set -euo pipefail
           SRC="stock-tv-isolated-r3-checkpoints/batch_$BATCH_PAD"
@@ -136,7 +161,7 @@ jobs:
             echo "ALL_4428_STRATEGIES_RESEARCH_RESPONSES_SAVED"
           fi
       - name: Recover SAME job ID without another ChatGPT question
-        if: always() && steps.research.outcome == 'failure'
+        if: always() && steps.research.outcome == 'failure' && steps.salvage.outputs.valid != 'true'
         id: resume
         env:
           RECOVERY_ATTEMPT: ${{ inputs.attempt || '0' }}
