@@ -9,6 +9,7 @@ on:
         default: "0LJUxO7T"
 permissions:
   contents: read
+  id-token: write
 concurrency:
   group: stock-a-railway-task-isolated-worker-v1
   cancel-in-progress: false
