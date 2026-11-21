@@ -18,11 +18,6 @@ on:
         type: string
         required: false
         default: "0"
-      recover_capacity_no_send:
-        description: "Opt-in fresh room ONLY after remote proof old job failed before any ChatGPT send"
-        type: boolean
-        required: false
-        default: false
 permissions:
   contents: write
   actions: write
