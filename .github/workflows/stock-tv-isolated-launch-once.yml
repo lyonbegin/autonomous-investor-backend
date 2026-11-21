@@ -23,7 +23,17 @@ jobs:
           assert status.get("task_id")=="stock-tv"
           print("PASS_STOCK_TV_DEDICATED_TASK_REGISTERED",flush=True)
           PY
-      - name: Start just one first batch; remaining 442 batches are auto-chained after verified storage
+      - name: Assert previous stock-TV research and Chrome Actions both terminated
+        run: |
+          set -euo pipefail
+          OLD_RESEARCH=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/44887757108" --jq '.status')
+          OLD_CHROME=$(gh api "repos/lyonbegin/procureflow/actions/runs/44887843360" --jq '.status')
+          if [[ "$OLD_RESEARCH" != "completed" || "$OLD_CHROME" != "completed" ]]; then
+            echo "REFUSE_RESTART_WHILE_OLD_STOCKTV_RUN_ACTIVE research=$OLD_RESEARCH chrome=$OLD_CHROME"
+            exit 1
+          fi
+          echo "PASS_STOCKTV_R3_RESEARCH_AND_CHROME_STOPPED"
+      - name: Start R4 first 10 from clean task namespace; never replay R3 request ID
         run: |
           set -euo pipefail
           ACTIVE=$(gh run list --repo "$GITHUB_REPOSITORY"             --workflow stock-tv-task-isolated-research.yml --limit 15             --json status --jq '[.[]|select(.status=="in_progress" or .status=="queued" or .status=="waiting" or .status=="pending")]|length')
@@ -32,4 +42,4 @@ jobs:
             exit 0
           fi
           gh workflow run stock-tv-task-isolated-research.yml --repo "$GITHUB_REPOSITORY"             --ref main -f batch_number=1 -f resume_only=false -f attempt=0
-          echo "ISOLATED_STOCK_TV_FIRST_10_DISPATCHED"
+          echo "NEW_R4_STOCK_TV_FIRST_TEN_DISPATCHED_WITH_CLEAN_CHECKPOINTS"
