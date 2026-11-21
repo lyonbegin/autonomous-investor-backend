@@ -1,0 +1,35 @@
+name: STOCK TV | one-time launch of isolated ten-source research
+on:
+  push:
+    branches: [main]
+    paths: [.github/workflows/stock-tv-isolated-launch-once.yml]
+permissions:
+  contents: read
+  actions: write
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Verify stock-tv work ID exists on the newly deployed Railway relay
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json,urllib.request
+          url="https://hitel-integration-api-production.up.railway.app/integrations/v1/public/isolated/tasks/stock-tv/status"
+          with urllib.request.urlopen(url,timeout=30) as r: status=json.load(r)
+          assert status.get("task_id")=="stock-tv"
+          print("PASS_STOCK_TV_DEDICATED_TASK_REGISTERED",flush=True)
+          PY
+      - name: Start just one first batch; remaining 442 batches are auto-chained after verified storage
+        run: |
+          set -euo pipefail
+          ACTIVE=$(gh run list --repo "$GITHUB_REPOSITORY"             --workflow stock-tv-task-isolated-research.yml --limit 15             --json status --jq '[.[]|select(.status=="in_progress" or .status=="queued" or .status=="waiting" or .status=="pending")]|length')
+          if [[ "$ACTIVE" != "0" ]]; then
+            echo "ALREADY_ACTIVE_ISOLATED_STOCK_TV_RUN_NO_DUPLICATE_LAUNCH=$ACTIVE"
+            exit 0
+          fi
+          gh workflow run stock-tv-task-isolated-research.yml --repo "$GITHUB_REPOSITORY"             --ref main -f batch_number=1 -f resume_only=false -f attempt=0
+          echo "ISOLATED_STOCK_TV_FIRST_10_DISPATCHED"
