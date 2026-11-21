@@ -1,0 +1,21 @@
+name: STOCK A | automatic single-run isolated Chrome boot smoke
+on:
+  push:
+    branches: [main]
+    paths: [.github/workflows/stock-a-isolated-smoke-autostart-20261121.yml]
+permissions:
+  contents: read
+  actions: write
+jobs:
+  invoke-once:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Start dedicated stock-a workflow without user action
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh api -X POST "repos/$GITHUB_REPOSITORY/actions/workflows/stock-a-task-isolated-chrome.yml/dispatches" \
+            -f ref=main -f 'inputs[mode]=smoke' -f 'inputs[source_id]=0LJUxO7T'
+          echo PASS_AUTO_DISPATCH_STOCK_A_ONE_REAL_ISOLATED_CHROME_SMOKE
