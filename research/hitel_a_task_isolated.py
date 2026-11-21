@@ -13,6 +13,7 @@ import sys
 import time
 import urllib.error
 import urllib.request
+import urllib.parse
 
 BASE = "https://hitel-integration-api-production.up.railway.app"
 HTTP = urllib.request.build_opener(urllib.request.ProxyHandler({}))
@@ -30,11 +31,36 @@ def save(path, payload):
     temporary.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
     os.replace(temporary, path)
 
+TASK_PRODUCER_AUDIENCE = "urn:lyonbegin:procureflow:hitel-isolated-task-submit"
+
+
+def signed_workflow_token():
+    """GitHub Actions OIDC token is automatic, scoped and short-lived.
+
+    Never persist it in artifacts, log messages or Railway variables.
+    """
+    url=os.environ.get("ACTIONS_ID_TOKEN_REQUEST_URL","")
+    bearer=os.environ.get("ACTIONS_ID_TOKEN_REQUEST_TOKEN","")
+    if not url.startswith("https://") or not bearer:
+        raise RuntimeError("SIGNED_GITHUB_WORKFLOW_REQUIRED_FOR_STOCK_TASK")
+    joiner="&" if "?" in url else "?"
+    request=urllib.request.Request(
+        url+joiner+"audience="+urllib.parse.quote(TASK_PRODUCER_AUDIENCE,safe=""),
+        headers={"Authorization":"Bearer "+bearer})
+    with HTTP.open(request,timeout=20) as response:
+        token=json.load(response).get("value")
+    if not isinstance(token,str) or len(token)<50:
+        raise RuntimeError("GITHUB_OIDC_TOKEN_NOT_ISSUED")
+    return token
+
+
 def post(path, data):
     raw = json.dumps(data, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
-    req = urllib.request.Request(BASE + path, data=raw, headers={
-        "Content-Type": "application/json", "Accept": "application/json"
-    }, method="POST")
+    headers={"Content-Type":"application/json","Accept":"application/json"}
+    if path==TASK_ENDPOINT:
+        headers["X-HITEL-Producer-OIDC"]=signed_workflow_token()
+    req = urllib.request.Request(BASE + path, data=raw, headers=headers,
+                                 method="POST")
     with HTTP.open(req, timeout=45) as resp:
         return resp.status, json.loads(resp.read().decode("utf-8"))
 
