@@ -150,7 +150,7 @@ jobs:
               print("NO_SAVED_REQUEST_REFUSE_DUPLICATE_SEND")
               raise SystemExit(0)
           state=json.loads(p.read_text())
-          if state.get("phase") in ("TERMINAL_FAILED", "VERIFIED_LOCALLY"):
+          if state.get("phase") in ("TERMINAL_FAILED", "VERIFIED_LOCALLY", "PRODUCER_REJECTED_NO_JOB"):
               print("TERMINAL_OR_COMPLETED_NO_RETRY")
               raise SystemExit(0)
           if state.get("post_attempted") is not True:
