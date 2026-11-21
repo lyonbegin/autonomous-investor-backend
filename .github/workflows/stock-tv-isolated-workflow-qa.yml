@@ -1,4 +1,5 @@
 name: STOCK TV | isolated workflow and task readiness QA
+# Observe stock-tv first 10 immutable job after Chrome connected; GET only.
 on:
   push:
     branches: [main]
