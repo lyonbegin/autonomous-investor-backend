@@ -1,0 +1,53 @@
+name: STOCK A | isolated Railway task -> separate GitHub Chrome
+on:
+  workflow_dispatch:
+    inputs:
+      source_id:
+        description: "A-group verified single source"
+        type: string
+        required: true
+        default: "0LJUxO7T"
+permissions:
+  contents: read
+concurrency:
+  group: stock-a-railway-task-isolated-worker-v1
+  cancel-in-progress: false
+jobs:
+  research-isolated:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 200
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/hitel-a-kg-serial-20261119
+      - name: Validate 1-source and unique stock task transport
+        run: |
+          set -euo pipefail
+          python3 -m py_compile research/hitel_a_task_isolated.py
+          python3 - <<'PY'
+          from pathlib import Path
+          s=Path("research/hitel_a_task_isolated.py").read_text()
+          assert 'ISOLATED_TASK_ID = "stock-a"' in s
+          assert '/integrations/v1/public/isolated/tasks/' in s
+          assert 'ROOM_NAME_BY_ID' in s
+          assert 'stock-a-task-' in s
+          assert 'code, data = post(TASK_ENDPOINT' in s
+          print("PASS_STOCK_TASK_A_SEPARATE_GITHUB_CHROME_TRANSPORT")
+          PY
+      - name: Submit one A-source research to dedicated Railway task queue
+        run: |
+          set -euo pipefail
+          test "${{ inputs.source_id }}" = "0LJUxO7T"
+          python3 research/hitel_a_task_isolated.py \
+            --input research/queue/a_one_source_pilot.json \
+            --out stock-a-isolated-checkpoint \
+            --max-rounds 2 \
+            --poll-seconds 15000
+      - name: Preserve independent A-source checkpoint even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stock-a-independent-chrome-checkpoint
+          path: stock-a-isolated-checkpoint/
+          if-no-files-found: warn
+          retention-days: 90
