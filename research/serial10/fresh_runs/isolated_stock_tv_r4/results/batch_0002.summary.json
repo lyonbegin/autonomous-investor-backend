@@ -1,0 +1,27 @@
+{
+  "batch": 2,
+  "case_counts": [
+    0,
+    1,
+    0,
+    0,
+    1,
+    0,
+    0,
+    1,
+    0,
+    1
+  ],
+  "first": 11,
+  "independently_verified_trade_facts": false,
+  "job_id": "job_f6b7ddddb513464d8bfdbe381957209e",
+  "last": 20,
+  "reply_sha256": "a6accd77a746c6cb387bf6c8d203472fe357979d52756c403932058fcf0f9c2b",
+  "request_id": "stock-tv-r4-0002-77b81eb2f6f5d89125d5b41e851175b9a338af3e",
+  "result_sha256": "7e9eec9bf7eba92fed2101e8fc8c7f8073b877494b338afde2ed6b20251faab9",
+  "room_id": "room_5d7c8f25f5ac458c8fd9c75b992a7d32",
+  "source_count": 10,
+  "task_id": "stock-tv",
+  "total_cases": 4,
+  "validation": "server_verified_reply_sha256_and_all_original_source_ids"
+}

@@ -1,0 +1,325 @@
+{
+  "batch_number": 2,
+  "research_only": true,
+  "schema": "TV-TRADE-EVIDENCE-10-v2",
+  "source_results": [
+    {
+      "cases": [],
+      "exclusions": [
+        {
+          "reason": "https://wild.pynesys.io/scripts/drm-strategy-08eSyDlq — 동일 원본 ID를 대상으로 수행한 제3자 백테스트 비교 보고서이다. BINANCE:BTCUSDT 30분봉, 2025-01-01부터 2026-08-29까지 29,074개 봉, 모의거래 74건, 진입·청산 시점 일치율 100%, 순손익 -80,211을 보고한다. 그러나 개별 거래의 날짜·진입가·청산가 및 거래비용 명세를 확인하지 못하여 엄격한 사례 채택 기준에서는 제외하였다. 순손익 표시 통화도 확정하지 않았다.",
+          "title": "DRM Strategy by QuantNomad: PyneCore vs TradingView"
+        },
+        {
+          "reason": "https://www.tradingview.com/script/08eSyDlq-DRM-Strategy/ — 원본 설명에서 가격과 모멘텀의 상관관계에 따라 RSI 기간을 조정하는 구조를 확인하였다. 작성자가 장기 백테스트 성과가 우수하지 않다고 설명하지만 개별 거래명세가 없다.",
+          "title": "DRM Strategy"
+        }
+      ],
+      "limitations": "동일 전략을 대상으로 한 구체적인 역사적 백테스트 비교 자료는 발견하였다. 거래별 원장과 브로커 실체결 증빙은 확인하지 못하였다. 새로운 백테스트나 Pine 변환은 수행하지 않았다.",
+      "research_status": "SEARCHED",
+      "script_id": "08eSyDlq",
+      "search_queries": [
+        "TradingView 08eSyDlq DRM Strategy QuantNomad dynamic RSI correlation momentum backtest actual trades Sofien Kaabar",
+        "DRM Strategy QuantNomad PyneCore TradingView BTCUSDT historical trade comparison"
+      ],
+      "source_order": 11,
+      "title": "DRM Strategy"
+    },
+    {
+      "cases": [
+        {
+          "access_level": "FULL_TEXT",
+          "case_type": "HISTORICAL_DATA_BACKTEST",
+          "document_url": "https://ripbacktest.com/posts/order-block-fair-value-gap-strategy-eurusd/",
+          "economic_mechanism": "가격이 이전 고점이나 저점을 넘어섰다가 복귀하고 구조적 방향 전환을 나타낼 때 되돌림 가격으로 외환 포지션을 취하는 방식이다. 이후 가격 회복 또는 하락에서 발생하는 환율 차익을 추구한다. 거래비용이 좁은 손절폭 대비 크게 작용한다.",
+          "entry_exit": "기존 고점·저점 돌파와 복귀, 시장구조 돌파, 오더블록 또는 FVG 되돌림을 확인하여 진입한다. 공격적 방식은 지정가 주문, 보수적 방식은 추가 가격 확인 후 진입한다. 위험 대비 목표수익은 2R이며 주말 전에 청산한다.",
+          "evidence_location": "본문 01 The SMC model, 02 How we made the rules mechanical, 03 How we tested it, 04 Results, 06 Change of character, 11 Check our arithmetic 및 12 Data notes. 거래원장 URL: https://ripbacktest.com/posts/order-block-fair-value-gap-strategy-eurusd/ob_trades_OB-FVG-A.csv",
+          "instrument": "EUR/USD 현물 외환 가격 데이터 기반 모의거래. 외환선물이나 주식 거래가 아니다.",
+          "limitations": "FULL_TEXT는 공개 연구보고서 본문에 대한 열람 상태이다. CSV 원장 자체는 열람하지 못하였다. 데모 서버 가격 기반 모의체결이며 실제 고객계좌 주문이 아니다. 기관 주문의 존재를 직접 입증하지 못한다.",
+          "publisher": "RIP Backtest",
+          "relationship_to_source": "원본 BigBeluga의 오더블록, 시장구조 변화, 복수 조건 결합과 직접 연결되는 실증 비교 사례이다. BigBeluga 자체 실행 결과는 아니다.",
+          "reported_numbers": "공격적 방식 13,544건, 승률 32.3%, 비용 차감 후 -3,947R, 거래당 -0.291R, profit factor 0.67. 보수적 방식 4,945건, 승률 31.9%, 비용 차감 후 -844R, profit factor 0.77. 기본 왕복 거래비용 1pip.",
+          "title": "Order Block Strategy Backtest: SMC Sweep + FVG on EUR/USD",
+          "trade_period": "2004년 1월부터 2026년 9월 28일까지",
+          "transaction_evidence": "IC Markets MetaTrader 4 데모 서버의 1분봉 매수호가 기준 가격 이력을 5분봉으로 집계하였다. 보고서에는 거래별 날짜, 방향, 진입가, 청산가, 손절가, 목표가, 손익을 포함하는 CSV가 첨부되어 있다. CSV 직접 열람은 지원되지 않아 개별 행은 확인하지 못하였다."
+        }
+      ],
+      "exclusions": [
+        {
+          "reason": "https://www.tradingview.com/script/095hwTxJ-BigBeluga-Backtesting/ — 다단계 전략 구성 및 진입·청산 예시를 제공하나 개별 실체결 명세가 확인되지 않는다.",
+          "title": "BigBeluga - Backtesting"
+        },
+        {
+          "reason": "https://docs.bigbeluga.com/backtesters/backtesting-system-smc — 기능과 설정에 대한 공식 설명서이며 독립된 거래 실증보고서가 아니다.",
+          "title": "Backtesting System (SMC)"
+        }
+      ],
+      "limitations": "관련 역사적 백테스트는 확보하였으나 BigBeluga 원본으로 실행된 브로커 거래원장 및 개별 CSV 행은 확인하지 못하였다.",
+      "research_status": "SEARCHED",
+      "script_id": "095hwTxJ",
+      "search_queries": [
+        "TradingView 095hwTxJ BigBeluga Backtesting smart money concepts order block historical backtest entry exit trades",
+        "Smart money concepts break of structure order block CHoCH backtest historical trades dates entry exit ledger",
+        "Order Block Strategy Backtest SMC Sweep FVG EUR/USD historical trade logs"
+      ],
+      "source_order": 12,
+      "title": "BigBeluga - Backtesting"
+    },
+    {
+      "cases": [],
+      "exclusions": [
+        {
+          "reason": "https://c.mql5.com/forextsd/forum/89/trading_the_trend_-_andrew_abraham.pdf — Technical Analysis Inc. 발행, Technical Analysis of Stocks & Commodities 제16권 제9호, 425~427쪽. 원문 PDF 3페이지와 도표를 확인하였다. Figure 2에는 옥수수 선물의 1997년 11월 매도 및 1998년 1월 청산 사례가 있고, Figure 3에는 1997년 4월 스위스프랑 매도 후 6월 이익 청산 사례가 있다. Figure 4~5에는 S&P 500 시장의 분봉 거래 사례가 있다. 원본 전략의 직접적인 이론 출처이나 정확한 개별 체결가격, 거래비용, 브로커 명세 및 실거래 여부를 확정할 수 없어 제외하였다.",
+          "title": "Trading the Trend"
+        },
+        {
+          "reason": "https://www.tradingview.com/script/w1ecsySl-Trend-Trader-Strategy-Backtest/ — HPotter의 관련 전략이다. Andrew Abraham의 변동성 추세 지표와 연결되지만 검증 가능한 개별 거래원장을 확보하지 못하였다.",
+          "title": "Trend Trader Strategy Backtest"
+        }
+      ],
+      "limitations": "09joRRrB 원본 페이지 직접 열람은 접근 제한으로 실패하였다. 원본이 인용한 1998년 출판물은 전문과 도표를 확인하였다. 해당 사례를 암호화폐 실거래로 전환하여 해석하지 않았다.",
+      "research_status": "PARTIAL",
+      "script_id": "09joRRrB",
+      "search_queries": [
+        "TradingView 09joRRrB Trend Strategy Andrew Abraham trading the trend empirical backtest trades",
+        "09joRRrB melihtuna Trend Strategy TradingView",
+        "Andrew Abraham Trading the Trend September 1998 corn Swiss franc trading examples"
+      ],
+      "source_order": 13,
+      "title": "Trend Strategy"
+    },
+    {
+      "cases": [],
+      "exclusions": [
+        {
+          "reason": "https://www.tradingview.com/script/0BHGOwdj-15min50MA/ — 15분봉과 50기간 EMA에 관한 짧은 설명만 확인되며 거래 대상, 거래기간, 청산 조건 및 성과 명세가 부족하다.",
+          "title": "15min50MA"
+        },
+        {
+          "reason": "https://daytradingtoolkit.com/strategies/trend-following-moving-averages-strategy — 복수 EMA를 활용한 매매 규칙 설명이다. 동일 원본을 대상으로 한 거래 실증자료가 아니다.",
+          "title": "Moving Average Trend Following: 9, 21 and 50 EMA Strategy"
+        },
+        {
+          "reason": "https://ripbacktest.com/posts/gold-5-minute-trend-pullback-strategy/ — 실제 역사적 가격 기반 연구이지만 5분봉의 20·50 EMA 조합과 1시간봉 200 EMA 필터를 사용한다. 원본 15분봉 50 EMA 전략과의 연결을 입증하기 부족하다.",
+          "title": "Gold 5-Minute Trend Pullback Strategy Backtest: EMA 20/50 With a 200 EMA Filter on XAUUSD"
+        }
+      ],
+      "limitations": "ripster47의 매매 관련 공개 교육자료와 전략 설명은 발견하였다. 해당 원본 신호에 귀속되는 실제 주문·체결 자료 및 동일 조건의 거래별 백테스트는 확보하지 못하였다.",
+      "research_status": "SEARCHED",
+      "script_id": "0BHGOwdj",
+      "search_queries": [
+        "TradingView 0BHGOwdj 15min50MA ripster47 15 minute 50 EMA actual trading backtest entry exit",
+        "15 minute 50 EMA Ripster trading strategy trade recap entry exit date price",
+        "site:wild.pynesys.io/scripts 15min50MA"
+      ],
+      "source_order": 14,
+      "title": "15min50MA"
+    },
+    {
+      "cases": [
+        {
+          "access_level": "FULL_TEXT",
+          "case_type": "HISTORICAL_DATA_BACKTEST",
+          "document_url": "https://backtester.daenadigital.com/strategies/sector-relative-strength-rotation/",
+          "economic_mechanism": "벤치마크 ETF 대비 상대적으로 강한 산업 섹터에 자산을 배분하고 정기 리밸런싱을 통해 섹터별 가격 상승에서 수익을 추구한다. 상대적 모멘텀에 기반한 주식 ETF 자산배분 구조이다.",
+          "entry_exit": "매월 첫 거래일에 최근 3개월간 SPY 대비 상대성과가 높은 섹터 ETF 3개를 선정하고 다음 거래일 종가에 매매한다. XLK는 2015-05-04에 43.14달러 매수, 2015-06-02에 43.40달러 매도하였다. 같은 기간 XLE는 82.66달러 매수 후 78.73달러에 매도하였다.",
+          "evidence_location": "The rule, Results, Every trade 및 Every fill in this backtest, in time order 표.",
+          "instrument": "미국 주식 섹터 ETF 9종. 거래 예시 XLE, XLK, XLY, XLF, XLU, XLV. 비교 기준 SPY ETF.",
+          "limitations": "정확한 원본 알고리즘을 검증한 결과가 아닌 경제적 메커니즘 비교 사례이다. 모의거래이며 실제 ETF 매매계좌의 증빙은 없다. 무비용 체결 가정은 실거래 성과를 과대평가할 수 있다.",
+          "publisher": "Daena Digital BACKTESTER",
+          "relationship_to_source": "두 자산 사이의 상대적 가격 관계를 이용하여 거래 방향이나 보유 자산을 결정한다는 공통점이 있다. 원본의 로그 가격비율 Z-score 방식과 달리 상대수익률 순위 및 월별 리밸런싱을 사용한다.",
+          "reported_numbers": "보고서 기준 거래 132건, 모의체결 477건, 누적수익률 +88.7%, SPY 보유수익률 +185.3%, 최대 낙폭 31.3%. 수수료 및 슬리피지 각각 0bp 가정.",
+          "title": "Sector relative-strength rotation",
+          "trade_period": "2015-01-02부터 2024-12-31까지",
+          "transaction_evidence": "본문 Every trade 표에서 실제 역사적 가격을 이용한 모의 주문의 신호일, 체결 가정일, ETF 종목, 매매 방향 및 가격을 확인하였다."
+        }
+      ],
+      "exclusions": [
+        {
+          "reason": "https://blog.tradingstudio.finance/zscore-pairs-trading-backtest-us-convergence-profitability/ — 두 주식의 로그 가격 스프레드를 이용한 동시 매수·공매도 수렴 거래이다. 상대강도 회전을 관찰하면서 별도의 단일 자산을 거래하는 원본 구조와 다르다.",
+          "title": "Z-Score Pairs Trading Backtest: US Stocks 2005-2024"
+        }
+      ],
+      "limitations": "원본 페이지 검색 결과에서 63개 봉 기준 로그 가격비율 Z-score 구조를 확인하였으나 직접 원문 열람은 제한되었다. 채택 사례의 ETF 매매 표는 열람하였다.",
+      "research_status": "PARTIAL",
+      "script_id": "0BcdTWoV",
+      "search_queries": [
+        "TradingView 0BcdTWoV Sector Rotation Z-Score Strategy log ratio relative strength actual historical backtest trades",
+        "Sector rotation z score ratio ETF backtest trade log entry exit dates relative strength pairs ETF rotation zscore",
+        "Sector relative-strength rotation backtest every trade historical ETF fill prices"
+      ],
+      "source_order": 15,
+      "title": "Sector Rotation Z-Score Strategy"
+    },
+    {
+      "cases": [],
+      "exclusions": [
+        {
+          "reason": "https://es.tradingview.com/script/0CVvd49h-MASU-v7-2-NW-ELM-BOS/ — 시장구조 분석, 머신러닝 필터 및 적응형 위험관리 결합에 관한 검색 결과는 확인하였다. 원본 전문 및 거래별 성과 명세는 확보하지 못하였다.",
+          "title": "MASU+ v7.2 (NW+ELM+BOS)"
+        },
+        {
+          "reason": "https://tradingeducationplatform.com/patterns/break-of-structure — 29개 암호화폐 관련 시장의 2020-06-03~2026-09-23 역사적 모의거래 9,373건을 분석한다. 시장구조 돌파 요소는 관련되지만 NW와 ELM 결합을 검증하지 않으며 개별 거래가격과 자산별 원장을 충분히 확인하지 못하였다.",
+          "title": "Break of structure and CHoCH: does it work after costs?"
+        },
+        {
+          "reason": "https://ripbacktest.com/posts/change-of-character-choch-strategy-nq/ — Nasdaq-100 선물의 역사적 가격으로 구조 전환을 실증 분석한 보고서이나 추세 방향 BOS와 반대 방향 CHoCH의 구분이 존재하며 NW·ELM 필터를 사용하지 않는다. 원본 통합 전략의 증거로 채택하기 부족하다.",
+          "title": "Change of Character (ChoCh) Strategy Backtest on NQ"
+        }
+      ],
+      "limitations": "원본 페이지 직접 접근이 제한되었다. 세 가지 핵심 구성요소가 함께 적용된 거래 실증자료를 발견하지 못하였다. 유사한 단일 지표 연구를 원본 전략의 성과로 간주하지 않았다.",
+      "research_status": "PARTIAL",
+      "script_id": "0CVvd49h",
+      "search_queries": [
+        "TradingView 0CVvd49h MASU v7.2 NW ELM BOS Mark Novak trade backtest",
+        "Nadaraya Watson extreme learning machine break of structure trading strategy actual historical trades backtest Mark Novak MASU",
+        "Smart money concepts BOS machine learning adaptive risk management historical trade ledger"
+      ],
+      "source_order": 16,
+      "title": "MASU+ v7.2 (NW+ELM+BOS)"
+    },
+    {
+      "cases": [],
+      "exclusions": [
+        {
+          "reason": "https://www.tradingview.com/script/0CdpxY6o-Chart-Formation-Detection/ — 원본 작성자는 1~15분봉의 상승형 차트 패턴 검출 및 금 시장에서의 상대적 유용성을 주장하지만 구체적인 거래별 성과 자료가 없다.",
+          "title": "Chart Formation Detection"
+        },
+        {
+          "reason": "https://ripbacktest.com/posts/head-and-shoulders-pattern-gold/ — 금 가격 15분봉에 대한 실제 역사적 데이터 연구이다. 원본 GrantPeace가 검출하는 구체적 패턴이 역헤드앤숄더라는 증거가 없어 제외하였다.",
+          "title": "Head and Shoulders Pattern Backtest: Gold (XAUUSD), 15-Minute Bars, 2004 to 2026"
+        },
+        {
+          "reason": "https://ikelim.dev/projects/xauusd-backtest — 과거 금 가격을 이용한 유동성 스윕 전략 연구이다. 원본 상승형 차트 패턴과 동일한 구조라는 근거가 없다.",
+          "title": "XAUUSD Backtester"
+        }
+      ],
+      "limitations": "원본의 정확한 패턴 정의와 신호 발생 조건을 확정할 수 없었다. 고빈도 거래 알고리즘으로 인해 패턴이 발생한다는 작성자의 설명 역시 독립적인 주문장 자료로 입증되지 않았다.",
+      "research_status": "SEARCHED",
+      "script_id": "0CdpxY6o",
+      "search_queries": [
+        "TradingView 0CdpxY6o Chart Formation Detection GrantPeace gold bullish formation actual trade backtest",
+        "XAUUSD bullish chart formation 1 minute 15 minute historical backtest entry exit trade log",
+        "GrantPeace Chart Formation Detection gold US30 transaction evidence"
+      ],
+      "source_order": 17,
+      "title": "Chart Formation Detection"
+    },
+    {
+      "cases": [
+        {
+          "access_level": "FULL_TEXT",
+          "case_type": "HISTORICAL_DATA_BACKTEST",
+          "document_url": "https://ripbacktest.com/posts/rsi-30-70-strategy-gold/",
+          "economic_mechanism": "금 가격의 단기 과매수·과매도 이후 평균회귀에서 가격 차익을 추구한다. 장기 EMA로 방향을 제한하고 손절로 역행 위험을 관리한다. 잦은 거래와 좁은 손절폭으로 인해 스프레드 성격의 거래비용이 손익에 크게 영향을 미친다.",
+          "entry_exit": "RSI(14)가 30을 상향 돌파할 때 매수하고 70을 하향 돌파할 때 매도한다. 보호형 전략은 200기간 EMA 방향 필터와 ATR의 1.5배에 해당하는 1R 손절을 적용한다. 반대편 RSI 기준 도달 또는 손절 시 청산한다.",
+          "evidence_location": "01 What we tested, 02 Data and costs, 03 Results, 04 A high win rate, and what it hides, 10 Check our arithmetic, 11 Data notes. 거래원장 URL: https://ripbacktest.com/posts/rsi-30-70-strategy-gold/rs_trades_RS-M5-LS-F.csv",
+          "instrument": "XAUUSD 현물 금 가격 기반 모의거래. IC Markets MT4 데모 서버 데이터이며 COMEX 금 선물 GC가 아니다.",
+          "limitations": "연구보고서 본문은 열람하였으나 CSV 개별 거래행은 확인하지 못하였다. 1분봉 원본 전략의 직접적인 성과 검증은 아니다. 초기 금 가격 데이터 결측과 슬리피지 미반영 문제가 존재한다.",
+          "publisher": "RIP Backtest",
+          "relationship_to_source": "동일한 XAUUSD 시장, RSI(14), 30·70 기준, 200 EMA 필터 및 손절관리를 실증 분석한다. 원본과 비교 가능한 5분봉 변형이다. 다만 RSI 극단 영역 진입과 극단 영역 이탈 신호는 구분되며 청산 규칙도 동일하지 않다.",
+          "reported_numbers": "5분봉 EMA 필터 및 손절 적용 양방향 전략 RS-M5-LS-F: 3,590건, 누적 -800R, 거래당 -0.22R, 승률 21.5%, profit factor 0.79. 5분봉 기본 양방향 전략: 10,881건, 누적 -4,382R. 거래비용 왕복 온스당 0.30달러, 슬리피지 미반영.",
+          "title": "RSI 30/70 Strategy Backtest: Gold, 5-Minute and 1-Hour Bars, 2004 to 2026",
+          "trade_period": "2004년 6월부터 2026년 10월 7일까지",
+          "transaction_evidence": "1분봉 금 매수호가 데이터를 이용하여 5분봉 및 1시간봉 RSI 전략 8개 변형을 검증하였다. 보고서에서 개별 진입·청산 시각, 손절가 및 손익을 기록한 CSV 파일을 제공한다. CSV 직접 열람은 실패하였다."
+        }
+      ],
+      "exclusions": [
+        {
+          "reason": "https://www.tradingview.com/script/0DLK91nb-XAUUSD-1-Minute-Scalping-Strategy-Advanced-Strategy-for-Exits/ — 작성자가 예상 승률 약 55~70% 및 우호적인 시장환경의 profit factor 수치를 제시하지만 특정 거래기간에 대한 검증된 실현성과로 확인되지 않는다.",
+          "title": "XAUUSD 1-Minute Scalping Strategy - Advanced Strategy for Exits"
+        },
+        {
+          "reason": "https://www.tradingview.com/script/braXKo74-Gold-Spread-Algo/ — 동일 작성자의 관련 RSI 단기매매 전략이나 독립적인 거래 원장이 확보되지 않았다.",
+          "title": "Gold/Spread Algo"
+        }
+      ],
+      "limitations": "원본 설명과 직접 관련된 역사적 실증보고서를 확보하였다. 원본 작성자의 예상 성과를 실제 수익으로 처리하지 않았으며 1분봉 원본 전략에 대한 새로운 백테스트도 수행하지 않았다.",
+      "research_status": "SEARCHED",
+      "script_id": "0DLK91nb",
+      "search_queries": [
+        "TradingView 0DLK91nb XAUUSD 1-Minute Scalping Strategy Advanced Strategy for Exits RSI EMA backtest trade dates",
+        "XAUUSD RSI 30 70 200 EMA scalping historical backtest trade list entry exit dates 1 minute",
+        "RSI 30/70 Strategy Backtest Gold 5 Minute 200 EMA historical trade logs"
+      ],
+      "source_order": 18,
+      "title": "XAUUSD 1-Minute Scalping Strategy - Advanced Strategy for Exits"
+    },
+    {
+      "cases": [],
+      "exclusions": [
+        {
+          "reason": "https://ar.tradingview.com/script/0DZs55gP-Combo-Backtest-123-Reversal-Average-True-Range-Trailing-Stops/ — 두 전략의 방향이 일치할 때 신호를 발생시키는 구조와 Ulf Jensen의 출판물 인용을 확인하였다. 실제 거래 명세는 확보하지 못하였다.",
+          "title": "Combo Backtest 123 Reversal & Average True Range Trailing Stops"
+        },
+        {
+          "reason": "https://www.tradingview.com/script/wnsfKaTP-Combo-Strategy-123-Reversal-Average-True-Range-Trailing-Stops/ — 동일 작성자의 관련 지표이며 원본 전략 ID와 다르다. 실제 체결이나 거래별 백테스트 증거가 없다.",
+          "title": "Combo Strategy 123 Reversal & Average True Range Trailing Stops"
+        },
+        {
+          "reason": "Ulf Jensen의 저서로 원본 전략이 183쪽을 인용한다. 해당 페이지의 원문을 직접 열람하지 못하였으므로 거래기간, 수익금액, 진입·청산가격 또는 실제 수익률을 인용하지 않았다.",
+          "title": "How I Tripled My Money In The Futures Market"
+        },
+        {
+          "reason": "https://wild.pynesys.io/scripts/page-28 — 관련 복합 전략의 역사적 모의거래 비교 기록은 있으나 ATR trailing stop 대신 RSI 조건을 사용하여 원본과 다르다.",
+          "title": "Combo Backtest 123 Reversal & RSI"
+        }
+      ],
+      "limitations": "123 반전 조건과 ATR 추적손절이 동시에 적용된 원본의 거래별 실증자료를 확보하지 못하였다. 출판물 제목에 포함된 수익 주장을 객관적인 실거래 성과로 인정하지 않았다.",
+      "research_status": "SEARCHED",
+      "script_id": "0DZs55gP",
+      "search_queries": [
+        "TradingView 0DZs55gP Combo Backtest 123 Reversal Average True Range Trailing Stops HPotter actual trades Ulf Jensen",
+        "123 reversal stochastic ATR trailing stop HPotter Ulf Jensen backtest trade log",
+        "site:wild.pynesys.io/scripts 123 Reversal Average True Range Trailing Stops"
+      ],
+      "source_order": 19,
+      "title": "Combo Backtest 123 Reversal & Average True Range Trailing Stops"
+    },
+    {
+      "cases": [
+        {
+          "access_level": "FULL_TEXT",
+          "case_type": "HISTORICAL_DATA_BACKTEST",
+          "document_url": "https://cemarketsolutions.com/research/strategies/hammer-shooting-star",
+          "economic_mechanism": "가격 상승 시도가 긴 윗꼬리를 남기고 실패한 패턴을 단기 매도 신호로 해석하여 선물 가격 하락에서 차익을 추구한다. 손절과 목표가를 사전에 설정해 거래당 위험을 제한한다.",
+          "entry_exit": "최근 10개 봉 고점에서 Shooting Star가 발생하면 다음 봉 시가에 매도하며 윗꼬리 바깥에 손절, 2R에 목표가를 설정한다. 예시: NQ 2026-10-05 뉴욕시간 15:30에 31,354.25 매도 진입, 15:50에 31,320.25 목표가 청산, 비용 차감 전 +34포인트. 2026-09-21 12:45에 30,670.25 매도 진입, 13:44에 30,704.50 손절, -34.25포인트.",
+          "evidence_location": "What it is, How it was tested, Results, Long and short 및 All trades (348) 표의 2026-10-05와 2026-09-21 거래행.",
+          "instrument": "E-mini Nasdaq-100 선물 NQ 및 E-mini S&P 500 선물 ES. 미국 주가지수 선물이며 XAUUSD 현물 금이나 금 선물이 아니다.",
+          "limitations": "다른 자산군에 적용된 비교 사례이므로 XAUUSD에서의 수익성을 입증하지 않는다. 실제 선물계좌 체결이 아닌 모의체결이다. 거래비용을 반영하지 않았다.",
+          "publisher": "CE Market Solutions",
+          "relationship_to_source": "Shooting Star 반전 패턴과 15분봉 매도 진입이라는 핵심 메커니즘의 역사적 실증 비교 사례이다. 거래 자산은 원본 금 시장과 다르며 원본 코드와 동일하다는 의미가 아니다.",
+          "reported_numbers": "NQ 15분봉 매도 전략 164건, 승률 32.3%, 비용 차감 전 -1,928포인트 및 -38,560달러. ES 15분봉 매도 전략 185건, 승률 37.3%, -92.25포인트. 수수료 및 슬리피지 미반영.",
+          "title": "Hammer and shooting star Backtest: Results on NQ and ES Futures (2024-2026)",
+          "trade_period": "NQ: 2024-10-08~2026-10-07. ES: 2024-08-28~2026-08-27.",
+          "transaction_evidence": "15분봉 신호를 역사적 1분봉 데이터와 대조하며 거래별 날짜, 진입·청산 시각, 가격, 방향, 청산 사유 및 손익 포인트를 공개하였다. NQ 거래표의 개별 행을 확인하였다."
+        }
+      ],
+      "exclusions": [
+        {
+          "reason": "https://www.tradingview.com/script/0EIrk0Vm-Shooting-Star-Reversal-XAUUSD-15m/ — 작성자의 테스트 소감은 확인하였으나 구체적인 거래기간, 진입·청산가격 및 성과를 확인할 수 없다.",
+          "title": "Shooting Star Reversal [XAUUSD 15m]"
+        },
+        {
+          "reason": "https://t-goldream.com/en-us/gold-candlestick-patterns/shooting-star — XAUUSD 일봉 패턴 검출 사례를 제공한다. 원본 15분봉 전략과 동일한 거래기간 및 완결된 거래원장을 확인하지 못하였다.",
+          "title": "Shooting Star candlestick pattern"
+        },
+        {
+          "reason": "https://thinridge.io/s/hammer-and-shooting-star-gc — COMEX 금 선물 관련 후보이다. 개별 거래의 진입·청산 명세를 충분히 확인하지 못하였으며 GC 선물을 XAUUSD 현물 금으로 간주하지 않았다.",
+          "title": "Hammer and shooting star on GC: does it work?"
+        }
+      ],
+      "limitations": "동일 시간봉과 캔들 반전 메커니즘을 가진 주가지수 선물의 개별 모의거래를 확인하였다. 원본 XAUUSD 시장에서 동일 조건으로 수행된 거래별 실증자료 및 브로커 실체결 자료는 확보하지 못하였다.",
+      "research_status": "SEARCHED",
+      "script_id": "0EIrk0Vm",
+      "search_queries": [
+        "TradingView 0EIrk0Vm Shooting Star Reversal XAUUSD 15m backtest actual trades",
+        "XAUUSD shooting star reversal 15 minute backtest trade list dates entry exit gold",
+        "Shooting star candlestick gold XAUUSD backtest trade log shooting star gold",
+        "Hammer and shooting star backtest 15 minute futures individual trade prices"
+      ],
+      "source_order": 20,
+      "title": "Shooting Star Reversal [XAUUSD 15m]"
+    }
+  ]
+}
