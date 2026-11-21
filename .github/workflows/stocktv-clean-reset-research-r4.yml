@@ -1,0 +1,76 @@
+name: RESET only stock-tv research runs artifacts and variables R4
+on:
+  push:
+    branches: [ops/stocktv-clean-reset-r4-20261121]
+    paths: [.github/workflows/stocktv-clean-reset-research-r4.yml]
+permissions:
+  contents: read
+  actions: write
+jobs:
+  cleanup-stock-tv:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 9
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Cancel only in-progress stock-TV research, never stock-A
+        run: |
+          set -euo pipefail
+          ids=$(gh api --paginate "repos/$GITHUB_REPOSITORY/actions/runs?status=in_progress&per_page=100" \
+            --jq '.workflow_runs[] | select(.name|startswith("STOCK TV |")) | .id')
+          ids="$(printf '%s\n44887757108\n' "$ids" | awk '/^[0-9]+$/ {print}' | sort -u)"
+          for id in $ids; do
+            name=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$id" --jq '.name')
+            [[ "$name" == "STOCK TV |"* ]] || {
+              echo "REFUSE_CANCEL_UNRELATED_JOB=$id:$name"; exit 1;
+            }
+            status=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$id" --jq '.status')
+            if [[ "$status" != "completed" ]]; then
+              gh run cancel "$id" --repo "$GITHUB_REPOSITORY"
+              echo "CANCEL_REQUESTED_STOCK_TV_RESEARCH_RUN=$id"
+            fi
+          done
+          for i in $(seq 1 48); do
+            remaining=0
+            for id in $ids; do
+              status=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$id" --jq '.status')
+              [[ "$status" == "completed" ]] || remaining=$((remaining+1))
+            done
+            if ((remaining==0)); then
+              echo "PASS_OLD_STOCKTV_RESEARCH_STOPPED"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "FAIL_STOCK_TV_STILL_RUNNING_ABORT_RESET"
+          exit 1
+      - name: Purge old stock-TV artifacts only, including batch checkpoints
+        run: |
+          set -euo pipefail
+          count=0
+          while IFS=$'\t' read -r artifact_id artifact_name; do
+            [[ -n "$artifact_id" ]] || continue
+            case "$artifact_name" in
+              stocktv-*|stock-tv-*|stock-ws10-*)
+                gh api --method DELETE "repos/$GITHUB_REPOSITORY/actions/artifacts/$artifact_id" >/dev/null
+                echo "DELETED_OLD_STOCKTV_ARTIFACT=$artifact_name"
+                count=$((count+1));;
+              *) : ;;
+            esac
+          done < <(gh api --paginate "repos/$GITHUB_REPOSITORY/actions/artifacts?per_page=100" --jq '.artifacts[]|[.id,.name]|@tsv')
+          echo "PURGED_STOCKTV_ARTIFACT_COUNT=$count"
+      - name: Reset stock-TV nonsecret workflow variables only
+        run: |
+          set -euo pipefail
+          count=0
+          while IFS= read -r name; do
+            case "$name" in
+              STOCKTV_*|STOCK_TV_*|HITEL_STOCKTV_*|STOCK_WS10_*)
+                gh api --method DELETE "repos/$GITHUB_REPOSITORY/actions/variables/$name" >/dev/null
+                echo "RESET_STOCK_TV_VAR=$name"
+                count=$((count+1));;
+              *) : ;;
+            esac
+          done < <(gh api --paginate "repos/$GITHUB_REPOSITORY/actions/variables?per_page=100" --jq '.variables[].name')
+          echo "PURGED_STOCKTV_VARIABLE_COUNT=$count"
+          echo "PASS_4428_ORIGINALS_PRESERVED_NO_STOCK_A_SCRIBD_OR_GITHUB_SECRETS_TOUCHED"
