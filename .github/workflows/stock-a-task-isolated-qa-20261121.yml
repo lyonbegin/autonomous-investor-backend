@@ -1,0 +1,50 @@
+name: STOCK A independent Chrome adapter offline safety QA
+on:
+  push:
+    branches: [feature/hitel-a-kg-serial-20261119]
+    paths: [.github/workflows/stock-a-task-isolated-qa-20261121.yml]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify A-source task route, idempotent HTTP request, room fencing
+        run: |
+          set -euo pipefail
+          python3 -m py_compile research/hitel_a_task_isolated.py
+          python3 - <<'PY'
+          import json
+          import tempfile
+          from pathlib import Path
+          from unittest.mock import patch
+          import research.hitel_a_task_isolated as m
+          with tempfile.TemporaryDirectory() as temp:
+              folder=Path(temp)
+              observed=[]
+              def post(path,body):
+                  observed.append((path,body))
+                  if path.endswith("/rooms"):
+                      assert body["name"]=="HITEL-ISOLATED-STOCK-A-SAMPLE-ROOM"
+                      return 201,{"room_id":"room_"+"a"*32}
+                  assert path==m.TASK_ENDPOINT
+                  assert body["room_name"]=="SAMPLE-ROOM"
+                  return 202,{"task_id":"stock-a","job_id":"job_"+"b"*32,
+                              "room_id":"room_"+"a"*32}
+              def get(path):
+                  assert path.endswith("job_"+"b"*32)
+                  return 200,{"room_id":"room_"+"a"*32,"status":"completed",
+                              "result_text":'{"ready":true}'}
+              with patch.object(m,"post",side_effect=post),patch.object(m,"get",side_effect=get):
+                  room=m.open_named_room("SAMPLE-ROOM",folder)
+                  result=m.ask(room,"test-stage",'{"test":"isolation"}',folder,60)
+                  assert result["ready"] is True
+              assert len(observed)==2
+              assert observed[1][0]==m.TASK_ENDPOINT
+              assert observed[1][1]["request_id"].startswith("stock-a-task-")
+              recorded=list((folder/"jobs").glob("*.json"))
+              assert len(recorded)==1
+              assert json.loads(recorded[0].read_text())["task_id"]=="stock-a"
+              print("PASS_STOCK_A_ONE_TASK_ONE_CHROME_NO_LEGACY_REQUEST_MIX")
+          PY
