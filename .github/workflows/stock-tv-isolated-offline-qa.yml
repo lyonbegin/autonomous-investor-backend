@@ -1,0 +1,22 @@
+name: STOCK TV | isolated task 10-source offline QA
+on:
+  push:
+    branches: [feature/stocktv-web2api-fresh-reset-20261121]
+    paths:
+      - research/serial10/task_isolated_client.py
+      - research/serial10/test_task_isolated_client.py
+      - .github/workflows/stock-tv-isolated-offline-qa.yml
+permissions:
+  contents: read
+jobs:
+  offline:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile existing strategy core and isolated transport
+        run: python3 -m py_compile research/serial10/ws_ten_runner.py research/serial10/task_isolated_client.py research/serial10/test_task_isolated_client.py
+      - name: Verify original 4,428 source records and no-network job deduplication
+        run: python3 -m unittest discover -s research/serial10 -p test_task_isolated_client.py -v
+      - name: Confirm exact first-ten one prompt and final-eight
+        run: python3 research/serial10/task_isolated_client.py --batch 1 --dry-run && python3 research/serial10/task_isolated_client.py --batch 443 --dry-run
