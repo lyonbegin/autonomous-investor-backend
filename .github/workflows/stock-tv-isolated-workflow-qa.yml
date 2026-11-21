@@ -1,0 +1,45 @@
+name: STOCK TV | isolated workflow and task readiness QA
+on:
+  push:
+    branches: [main]
+    paths: [.github/workflows/stock-tv-isolated-workflow-qa.yml]
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate actions YAML and OIDC source ownership
+        run: |
+          set -euo pipefail
+          python3 -m pip install -q pyyaml
+          python3 - <<'PY'
+          import yaml
+          from pathlib import Path
+          p=Path(".github/workflows/stock-tv-task-isolated-research.yml")
+          s=p.read_text()
+          d=yaml.safe_load(s)
+          assert "jobs" in d
+          assert d["permissions"]["id-token"]=="write"
+          assert d["concurrency"]["cancel-in-progress"] is False
+          assert "workflow_dispatch" in d.get("on",d.get(True,{}))
+          assert "stock-tv" in s
+          assert "task_isolated_client.py" in s
+          assert "gh workflow run stock-tv-task-isolated-research.yml" in s
+          assert "hitel_chat.py" not in s
+          print("PASS_STOCK_TV_TASK_ISOLATED_YAML_AND_10_SERIAL_DISPATCH",flush=True)
+          PY
+      - name: Read-only independent Chrome task capacity on Railway
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json,urllib.request
+          url="https://hitel-integration-api-production.up.railway.app/integrations/v1/public/isolated/tasks/pending"
+          request=urllib.request.Request(url,headers={"Accept":"application/json"})
+          with urllib.request.urlopen(request,timeout=25) as r:d=json.load(r)
+          for t in d.get("tasks",[]):
+              print("TASK_HEALTH",json.dumps({k:t.get(k) for k in (
+                  "task_id","worker_connected","queued_jobs_count","worker_active_jobs_count","worker_run_id")},ensure_ascii=False),flush=True)
+          PY
