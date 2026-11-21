@@ -192,6 +192,18 @@ def execute(batch, out, poll_seconds=10, max_seconds=15600, resume_only=False, d
                        "room_name": state["room_name"], "text": prompt}
             try:
                 reply = post_isolated(payload)
+            except urllib.error.HTTPError as exc:
+                # These responses are rejected before a task job is created.
+                # Preserve proof and stop instead of treating them as an ambiguous send.
+                if exc.code in (401, 403, 404, 422):
+                    state["phase"] = "PRODUCER_REJECTED_NO_JOB"
+                    state["error_http_status"] = exc.code
+                    atomic(state_file, state)
+                    raise RuntimeError("PRODUCER_AUTH_OR_API_REJECTED_NO_JOB") from None
+                state["phase"] = "UNKNOWN_DELIVERY"
+                state["last_http_status"] = exc.code
+                atomic(state_file, state)
+                raise RuntimeError("POST_OUTCOME_UNKNOWN_RESOLVE_BY_GET_ONLY") from None
             except Exception as exc:
                 state["phase"] = "UNKNOWN_DELIVERY"
                 state["last_error_class"] = type(exc).__name__
