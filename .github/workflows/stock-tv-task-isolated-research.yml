@@ -1,0 +1,181 @@
+name: STOCK TV | Isolated task 10 strategy research
+# Clean retry: JSONL Unicode line separators handled as data (not record separators).
+on:
+  workflow_dispatch:
+    inputs:
+      batch_number:
+        description: "Sequential group 1..443; previous result must already be committed"
+        type: string
+        required: true
+        default: "1"
+      resume_only:
+        description: "Safely resume prior request ID (never new question)"
+        type: boolean
+        required: false
+        default: false
+      attempt:
+        description: "Read-only recovery attempt"
+        type: string
+        required: false
+        default: "0"
+      recover_capacity_no_send:
+        description: "Opt-in fresh room ONLY after remote proof old job failed before any ChatGPT send"
+        type: boolean
+        required: false
+        default: false
+permissions:
+  contents: write
+  actions: write
+  id-token: write
+concurrency:
+  group: stocktv-new-isolated-r3-10-serial
+  cancel-in-progress: false
+jobs:
+  one-ten-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    env:
+      REQUEST_BATCH: ${{ inputs.batch_number || '1' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/stocktv-web2api-fresh-reset-20261121
+          persist-credentials: true
+      - name: Set exact one-ten group (source order not arbitrary A or B)
+        run: |
+          set -euo pipefail
+          [[ "$REQUEST_BATCH" =~ ^[0-9]{1,3}$ ]] || exit 1
+          GROUP=$((10#$REQUEST_BATCH))
+          (( GROUP >= 1 && GROUP <= 443 )) || exit 1
+          echo "BATCH_NUMBER=$GROUP" >> "$GITHUB_ENV"
+          echo "BATCH_PAD=$(printf '%04d' "$GROUP")" >> "$GITHUB_ENV"
+          FIRST=$(( (GROUP-1)*10+1 ))
+          LAST=$(( GROUP*10 ))
+          (( LAST <= 4428 )) || LAST=4428
+          echo "EXACT_ONE_JOB_ORIGINALS_$FIRST-$LAST"
+      - name: Verify clean source manifest and native WebSocket regression offline before any request
+        run: |
+          set -euo pipefail
+          python3 -m py_compile research/serial10/ws_ten_runner.py research/serial10/task_isolated_client.py
+          python3 -m unittest discover -s research/serial10 -p test_task_isolated_client.py -v
+          python3 research/serial10/task_isolated_client.py --batch "$BATCH_NUMBER" --dry-run
+      - name: Restore exact R3 isolated task checkpoint if present
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          NAME="stocktv-isolated-r3-$BATCH_PAD"
+          PREV_RUN=$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts?name=$NAME&per_page=100" \
+            --jq '[.artifacts[] | select(.expired == false)] | sort_by(.created_at) | reverse | .[0].workflow_run.id // empty')
+          if [[ -n "$PREV_RUN" ]]; then
+            mkdir -p "stock-tv-isolated-r3-checkpoints/batch_$BATCH_PAD"
+            gh run download "$PREV_RUN" --repo "$GITHUB_REPOSITORY" -n "$NAME" \
+              -D "stock-tv-isolated-r3-checkpoints/batch_$BATCH_PAD"
+            echo "RECOVER_SAME_BATCH_CHECKPOINT_RUN=$PREV_RUN"
+          elif [[ "${{ inputs.resume_only }}" == "true" ]]; then
+            echo "NO_IMMUTABLE_CHECKPOINT_CANNOT_RESUME"
+            exit 1
+          else
+            echo "FRESH_STOCK_TV_ISOLATED_TASK_BATCH=$BATCH_NUMBER"
+          fi
+      - name: Submit ONE stock-tv task containing exactly ten Strategy originals
+        id: research
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          args=()
+          if [[ "${{ inputs.resume_only }}" == "true" ]]; then
+            args+=(--resume-only)
+          fi
+          timeout --signal=INT --kill-after=15s 15300s \
+            python3 research/serial10/task_isolated_client.py \
+            --batch "$BATCH_NUMBER" --out stock-tv-isolated-r3-checkpoints \
+            --max-seconds 15000 "${args[@]}"
+      - name: Save exact client room/job IDs and any raw answer even when incomplete
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stocktv-isolated-r3-${{ env.BATCH_PAD }}
+          path: stock-tv-isolated-r3-checkpoints/batch_${{ env.BATCH_PAD }}/
+          retention-days: 90
+          if-no-files-found: warn
+      - name: Git-commit verified full ten-source AI reply BEFORE any next HITEL request
+        id: persist
+        if: steps.research.outcome == 'success'
+        run: |
+          set -euo pipefail
+          SRC="stock-tv-isolated-r3-checkpoints/batch_$BATCH_PAD"
+          test -s "$SRC/result.json"
+          test -s "$SRC/summary.json"
+          python3 research/serial10/task_isolated_client.py --batch "$BATCH_NUMBER" \
+            --verify-file "$SRC/result.json"
+          mkdir -p research/serial10/fresh_runs/isolated_stock_tv_r3/results
+          cp "$SRC/result.json" "research/serial10/fresh_runs/isolated_stock_tv_r3/results/batch_$BATCH_PAD.json"
+          cp "$SRC/summary.json" "research/serial10/fresh_runs/isolated_stock_tv_r3/results/batch_$BATCH_PAD.summary.json"
+          git config user.name "stock-ws10-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add "research/serial10/fresh_runs/isolated_stock_tv_r3/results/batch_$BATCH_PAD.json" \
+                  "research/serial10/fresh_runs/isolated_stock_tv_r3/results/batch_$BATCH_PAD.summary.json"
+          if ! git diff --cached --quiet; then
+            git commit -m "Preserve verified HITEL WebSocket trading case results for source group $BATCH_NUMBER"
+            git push origin HEAD:feature/stocktv-web2api-fresh-reset-20261121
+          fi
+          git fetch origin feature/stocktv-web2api-fresh-reset-20261121
+          git cat-file -e "FETCH_HEAD:research/serial10/fresh_runs/isolated_stock_tv_r3/results/batch_$BATCH_PAD.json"
+          echo "REMOTE_TEN_RESULT_COMMITTED_AND_PRESENT=$BATCH_NUMBER"
+      - name: Request next ten ONLY after verified answer has been durably committed
+        if: steps.persist.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          echo "### Verified and committed full ten-source result batch $BATCH_NUMBER" >> "$GITHUB_STEP_SUMMARY"
+          cat "stock-tv-isolated-r3-checkpoints/batch_$BATCH_PAD/summary.json" >> "$GITHUB_STEP_SUMMARY"
+          NEXT=$(( BATCH_NUMBER+1 ))
+          if (( NEXT <= 443 )); then
+            gh workflow run stock-tv-task-isolated-research.yml \
+              --ref main \
+              -f batch_number="$NEXT" -f resume_only=false -f attempt=0
+            echo "NEXT_BATCH_DISPATCHED_ONLY_AFTER_REMOTE_COMMIT=$NEXT"
+          else
+            echo "ALL_4428_STRATEGIES_RESEARCH_RESPONSES_SAVED"
+          fi
+      - name: Recover SAME job ID without another ChatGPT question
+        if: always() && steps.research.outcome == 'failure'
+        id: resume
+        env:
+          RECOVERY_ATTEMPT: ${{ inputs.attempt || '0' }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json,os
+          from pathlib import Path
+          p=Path("stock-tv-isolated-r3-checkpoints")/f"batch_{os.environ['BATCH_PAD']}"/"client_state.json"
+          if not p.exists():
+              print("NO_SAVED_REQUEST_REFUSE_DUPLICATE_SEND")
+              raise SystemExit(0)
+          state=json.loads(p.read_text())
+          if state.get("phase") in ("TERMINAL_FAILED", "VERIFIED_LOCALLY"):
+              print("TERMINAL_OR_COMPLETED_NO_RETRY")
+              raise SystemExit(0)
+          if state.get("post_attempted") is not True:
+              print("NO_POST_ATTEMPT_NO_AUTOMATIC_SEND")
+              raise SystemExit(0)
+          with open(os.environ["GITHUB_OUTPUT"],"a") as f:
+              f.write("continue=true\n")
+          print("GET_ONLY_RETRY_SAME_IMMUTABLE_REQUEST")
+          PY
+      - name: Queue GET-only recovery of previously submitted request
+        if: steps.resume.outputs.continue == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RECOVERY_ATTEMPT: ${{ inputs.attempt || '0' }}
+        run: |
+          set -euo pipefail
+          [[ "$RECOVERY_ATTEMPT" =~ ^[0-9]{1,2}$ ]] || exit 1
+          N=$((10#$RECOVERY_ATTEMPT))
+          (( N<24 )) || { echo "READ_ONLY_RECOVERY_LIMIT_REACHED"; exit 1; }
+          sleep 120
+          gh workflow run stock-tv-task-isolated-research.yml --ref main \
+            -f batch_number="$BATCH_NUMBER" -f resume_only=true -f attempt="$((N+1))"
+          echo "SAME_JOB_READ_ONLY_RECOVERY_QUEUED=$BATCH_NUMBER"
