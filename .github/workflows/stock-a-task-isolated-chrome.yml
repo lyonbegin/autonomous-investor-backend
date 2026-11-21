@@ -1,0 +1,77 @@
+name: STOCK A | isolated Railway task -> separate GitHub Chrome
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Smoke transport first; full source only after explicit choice"
+        type: choice
+        options: [smoke, full]
+        default: smoke
+      source_id:
+        description: "A-group verified single source"
+        type: string
+        required: true
+        default: "0LJUxO7T"
+permissions:
+  contents: read
+  id-token: write
+concurrency:
+  group: stock-a-railway-task-isolated-worker-v1
+  cancel-in-progress: false
+jobs:
+  research-isolated:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 200
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/hitel-a-kg-serial-20261119
+      - name: Validate 1-source and unique stock task transport
+        run: |
+          set -euo pipefail
+          python3 -m py_compile research/hitel_a_task_isolated.py
+          python3 - <<'PY'
+          from pathlib import Path
+          s=Path("research/hitel_a_task_isolated.py").read_text()
+          assert 'ISOLATED_TASK_ID = "stock-a"' in s
+          assert '/integrations/v1/public/isolated/tasks/' in s
+          assert 'ROOM_NAME_BY_ID' in s
+          assert 'stock-a-task-' in s
+          assert 'code, data = post(TASK_ENDPOINT' in s
+          print("PASS_STOCK_TASK_A_SEPARATE_GITHUB_CHROME_TRANSPORT")
+          PY
+      - name: Verify isolated stock worker with exactly one ChatGPT handshake
+        if: ${{ inputs.mode == 'smoke' || github.event_name == 'push' }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import research.hitel_a_task_isolated as m
+          out=Path("stock-a-isolated-smoke")
+          room=m.open_named_room("STOCK-A-ISOLATED-SMOKE-20261121",out)
+          answer=m.ask(room,"A-SOURCE-ISOLATED-ONE-QUESTION",
+              '연구용 HITEL 연결 확인입니다. 반드시 JSON 객체 {"ready":true,"group":"A"}만 응답하십시오.',
+              out,900)
+          assert answer.get("ready") is True and answer.get("group")=="A"
+          print("PASS_REAL_ISOLATED_STOCK_CHROME_AI_REPLY",flush=True)
+          PY
+      - name: Submit one A-source research to dedicated Railway task queue
+        if: ${{ inputs.mode == 'full' }}
+        run: |
+          set -euo pipefail
+          test "${{ inputs.source_id }}" = "0LJUxO7T"
+          python3 research/hitel_a_task_isolated.py \
+            --input research/queue/a_one_source_pilot.json \
+            --out stock-a-isolated-checkpoint \
+            --max-rounds 2 \
+            --poll-seconds 15000
+      - name: Preserve independent A-source checkpoint even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stock-a-independent-chrome-checkpoint
+          path: |
+            stock-a-isolated-checkpoint/
+            stock-a-isolated-smoke/
+          if-no-files-found: warn
+          retention-days: 90
