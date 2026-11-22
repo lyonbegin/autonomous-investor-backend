@@ -4,6 +4,7 @@ Transport/checkpoint only; financial reasoning is performed in HITEL ChatGPT roo
 The pilot source does not contain a verified complete Pine file or an official A row order.
 """
 import argparse
+import base64
 import hashlib
 import json
 import os
@@ -57,7 +58,7 @@ def signed_workflow_token():
 def post(path, data):
     raw = json.dumps(data, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
     headers={"Content-Type":"application/json","Accept":"application/json"}
-    if path==TASK_ENDPOINT:
+    if path in (TASK_ENDPOINT,TASK_ENDPOINT.rsplit("/",1)[0]+"/recover"):
         headers["X-HITEL-Producer-OIDC"]=signed_workflow_token()
     req = urllib.request.Request(BASE + path, data=raw, headers=headers,
                                  method="POST")
@@ -97,6 +98,66 @@ def parse_json(text):
         raise ValueError("CHATGPT_OBJECT_REQUIRED")
     return result
 
+def read_verified_answer(job):
+    if job.get("result_ready") is not True:
+        raise RuntimeError("A_RESULT_NOT_VERIFIED")
+    raw=job.get("result_text")
+    if not isinstance(raw,str):
+        result=bytearray()
+        while True:
+            _,chunk=get("/integrations/v1/public/jobs/"+job["job_id"]+"/result?offset="+str(len(result))+"&limit=65536")
+            if chunk.get("job_id")!=job["job_id"] or chunk.get("offset")!=len(result):
+                raise RuntimeError("A_RESULT_CHUNK_SCOPE_MISMATCH")
+            block=base64.b64decode(chunk["content_base64"],validate=True)
+            if not block or len(block)!=chunk.get("bytes_returned"):
+                raise RuntimeError("A_RESULT_CHUNK_CORRUPT")
+            result.extend(block)
+            if len(result)>2000000:
+                raise RuntimeError("A_RESULT_TOO_LARGE")
+            if chunk.get("complete") is True:
+                break
+        raw=result.decode("utf-8")
+    if (len(raw.encode("utf-8"))!=job.get("result_length_bytes") or
+        hashlib.sha256(raw.encode("utf-8")).hexdigest()!=job.get("result_sha256")):
+        raise RuntimeError("A_RESULT_HASH_MISMATCH")
+    return raw
+
+
+def recover_clean_worker(state, job, path):
+    request_id=state.get("active_request_id",state["request_id"])
+    current_room=state.get("active_room_id",state["room_id"])
+    if (job.get("job_id")!=state.get("job_id") or job.get("request_id")!=request_id
+            or job.get("room_id")!=current_room or
+            job.get("status") not in ("unknown","stalled","failed") or
+            job.get("error_code")!="WORKER_CONNECTION_LOST" or
+            job.get("result_ready") is not False):
+        return False
+    state["status"]="CLEAN_RESTART_PENDING"
+    save(path,state)
+    code,data=post(TASK_ENDPOINT.rsplit("/",1)[0]+"/recover",{
+        "previous_job_id":state["job_id"],"previous_request_id":request_id})
+    if code!=202 or data.get("task_id")!=ISOLATED_TASK_ID:
+        raise RuntimeError("A_CLEAN_RECOVERY_SCOPE_MISMATCH")
+    if data.get("pending") is True and data.get("accepted") is False:
+        if data.get("previous_job_id")!=state["job_id"]:
+            raise RuntimeError("A_CLEAN_RECOVERY_PENDING_JOB_MISMATCH")
+        return True
+    if (data.get("accepted") is not True or
+            not str(data.get("request_id","")).startswith("hitel-clean-stock-a-") or
+            not str(data.get("job_id","")).startswith("job_") or
+            not str(data.get("room_id","")).startswith("room_") or
+            data["job_id"]==state["job_id"]):
+        raise RuntimeError("A_CLEAN_RECOVERY_RECEIPT_INVALID")
+    state.setdefault("recovery_audit",[]).append({
+        "previous_job_id":state["job_id"],"previous_request_id":request_id,
+        "previous_room_id":current_room,"previous_delivery_unknown":True})
+    state.update({"job_id":data["job_id"],"active_room_id":data["room_id"],
+                  "active_request_id":data["request_id"],"status":"accepted"})
+    save(path,state)
+    print("STOCK_A_CLEAN_RESTART_SAME_STAGE",state["stage"],state["job_id"],flush=True)
+    return True
+
+
 def ask(room_id, stage, text, out, timeout_s):
     if len(text) > MAX_PROMPT:
         raise ValueError("PROMPT_TOO_LARGE_" + stage)
@@ -107,6 +168,11 @@ def ask(room_id, stage, text, out, timeout_s):
         "request_id": "stock-a-task-" + key[:40], "room_id": room_id,
          "task_id": ISOLATED_TASK_ID
     }
+    if (state.get("room_id")!=room_id or state.get("stage")!=stage or
+            state.get("prompt_sha256")!=hashlib.sha256(text.encode()).hexdigest() or
+            state.get("request_id")!="stock-a-task-"+key[:40] or
+            state.get("task_id")!=ISOLATED_TASK_ID):
+        raise RuntimeError("A_CHECKPOINT_SCOPE_MISMATCH")
     save(path, state)
     if not state.get("job_id"):
         # Use the same request_id on transport ambiguity, never a newly generated ID.
@@ -139,16 +205,29 @@ def ask(room_id, stage, text, out, timeout_s):
         except (urllib.error.URLError, TimeoutError):
             time.sleep(6)
             continue
-        if obj.get("room_id") not in (None, room_id):
+        if (obj.get("job_id")!=state["job_id"] or
+            obj.get("request_id")!=state.get("active_request_id",state["request_id"]) or
+            obj.get("room_id")!=state.get("active_room_id",room_id)):
             raise RuntimeError("JOB_ROOM_MISMATCH")
         if obj.get("status") == "completed":
             state["status"] = "completed"
             save(path, state)
-            result = parse_json(obj.get("result_text"))
+            result = parse_json(read_verified_answer(obj))
             save(out / "replies" / (key[:24] + ".json"), {
                 "stage": stage, "job_id": state["job_id"], "response": result
             })
             return result
+        if obj.get("status") in ("unknown","stalled","failed") and obj.get("error_code")=="WORKER_CONNECTION_LOST":
+            try:
+                recovering=recover_clean_worker(state,obj,path)
+            except (urllib.error.URLError,TimeoutError) as exc:
+                if isinstance(exc,urllib.error.HTTPError) and exc.code not in (500,502,503,504):
+                    raise
+                time.sleep(5)
+                continue
+            if recovering:
+                time.sleep(5)
+                continue
         if obj.get("status") == "failed":
             state["status"] = "failed"
             state["error"] = str(obj.get("error", ""))[:2000]
