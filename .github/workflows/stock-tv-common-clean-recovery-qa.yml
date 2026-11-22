@@ -1,0 +1,17 @@
+name: stock-tv common clean recovery QA
+on:
+  push:
+    branches: [fix/stock-tv-clean-worker-recovery-20261122]
+permissions:
+  contents: read
+jobs:
+  offline:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify exact task recovery and checkpoint invariants
+        run: |
+          set -euo pipefail
+          python3 -m py_compile research/serial10/task_isolated_client.py
+          python3 -m unittest discover -s research/serial10 -p test_task_isolated_client.py -v

@@ -113,5 +113,38 @@ class IsolatedStockTV(unittest.TestCase):
                 self.assertEqual(post.call_count, 0)
 
 
+    def test_clean_restart_keeps_root_identity_and_does_not_repeat_batch(self):
+        with tempfile.TemporaryDirectory() as t:
+            path=Path(t)/"state.json"
+            state={"request_id":"stock-tv-root","room_id":"room_old","job_id":"job_old",
+                   "batch_number":3,"phase":"ACCEPTED"}
+            job={"request_id":"stock-tv-root","room_id":"room_old","job_id":"job_old",
+                 "status":"unknown","error_code":"WORKER_CONNECTION_LOST","result_ready":False}
+            with mock.patch.object(m,"post_isolated",side_effect=[
+                {"accepted":False,"pending":True,"task_id":"stock-tv","previous_job_id":"job_old"},
+                {"accepted":True,"task_id":"stock-tv","job_id":"job_new",
+                 "room_id":"room_new","request_id":"hitel-clean-stock-tv-receipt"}]) as post:
+                self.assertTrue(m.recover_clean_worker(state,job,path))
+                self.assertEqual(state["job_id"],"job_old")
+                self.assertTrue(m.recover_clean_worker(state,job,path))
+                self.assertEqual(state["job_id"],"job_new")
+                self.assertEqual(state["request_id"],"stock-tv-root")
+                self.assertEqual(state["batch_number"],3)
+                self.assertEqual(state["recovery_audit"][0]["previous_job_id"],"job_old")
+                self.assertEqual(post.call_count,2)
+                self.assertEqual(post.call_args_list[0],post.call_args_list[1])
+
+    def test_clean_restart_refuses_rate_limit_or_completed_or_wrong_room(self):
+        with tempfile.TemporaryDirectory() as t:
+            state={"request_id":"original","room_id":"room_old","job_id":"job_old","batch_number":3}
+            job={"request_id":"original","room_id":"room_old","job_id":"job_old",
+                 "status":"unknown","error_code":"WORKER_CONNECTION_LOST","result_ready":False}
+            with mock.patch.object(m,"post_isolated") as post:
+                for wrong in ({"error_code":"UPSTREAM_RATE_LIMITED"},{"status":"completed"},
+                              {"result_ready":True},{"room_id":"wrong"}):
+                    self.assertFalse(m.recover_clean_worker(state,{**job,**wrong},Path(t)/"state.json"))
+                post.assert_not_called()
+
+
 if __name__ == "__main__":
     unittest.main()
