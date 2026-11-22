@@ -62,11 +62,11 @@ def signed_oidc():
     return key
 
 
-def post_isolated(payload):
+def post_isolated(payload, path=SUBMIT_PATH):
     token = signed_oidc()
     data = json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
     req = urllib.request.Request(
-        ROOT + SUBMIT_PATH,
+        ROOT + path,
         data=data,
         method="POST",
         headers={"Content-Type": "application/json", "Accept": "application/json",
@@ -122,6 +122,46 @@ def resolve_immutable_request(state):
     if state.get("job_id") and state["job_id"] != d["job_id"]:
         raise RuntimeError("IMMUTABLE_JOB_CHANGED")
     return d
+
+
+def recover_clean_worker(state, job, state_file):
+    """Explicit, signed restart of the same missing batch, not the next one.
+    The server verifies old/new runner ownership, preserves audit and refuses
+    completed jobs, rate limits, live owners and unproven failures.
+    """
+    active_request=state.get("active_request_id",state["request_id"])
+    if (job.get("job_id")!=state.get("job_id") or
+        job.get("request_id")!=active_request or
+        job.get("room_id")!=state.get("room_id") or
+        job.get("status") not in ("unknown","stalled","failed") or
+        job.get("error_code")!="WORKER_CONNECTION_LOST" or
+        job.get("result_ready") is not False):
+        return False
+    state["phase"]="CLEAN_RESTART_PENDING"
+    atomic(state_file,state)
+    result=post_isolated({"previous_job_id":state["job_id"],
+                          "previous_request_id":active_request},
+                         SUBMIT_PATH.rsplit("/",1)[0]+"/recover")
+    if result.get("task_id")!=TASK_ID:
+        raise RuntimeError("CLEAN_RECOVERY_WRONG_TASK")
+    if result.get("pending") is True and result.get("accepted") is False:
+        if result.get("previous_job_id")!=state["job_id"]:
+            raise RuntimeError("CLEAN_RECOVERY_PENDING_WRONG_JOB")
+        return True
+    if (result.get("accepted") is not True or
+        not str(result.get("job_id","")).startswith("job_") or
+        not str(result.get("room_id","")).startswith("room_") or
+        not str(result.get("request_id","")).startswith("hitel-clean-stock-tv-") or
+        result["job_id"]==state["job_id"]):
+        raise RuntimeError("CLEAN_RECOVERY_RECEIPT_INVALID")
+    state.setdefault("recovery_audit",[]).append({
+        "previous_job_id":state["job_id"],"previous_request_id":active_request,
+        "previous_room_id":state["room_id"],"previous_delivery_unknown":True})
+    state.update({"job_id":result["job_id"],"room_id":result["room_id"],
+                  "active_request_id":result["request_id"],"phase":"ACCEPTED"})
+    atomic(state_file,state)
+    print("STOCK_TV_CLEAN_RESTART_SAME_BATCH",state["batch_number"],state["job_id"],flush=True)
+    return True
 
 
 def read_reply(job_id, meta):
@@ -233,7 +273,7 @@ def execute(batch, out, poll_seconds=10, max_seconds=15600, resume_only=False, d
         except (urllib.error.URLError, TimeoutError):
             time.sleep(poll_seconds)
             continue
-        if job.get("job_id") != state["job_id"] or job.get("request_id") != state["request_id"]:
+        if job.get("job_id") != state["job_id"] or job.get("request_id") != state.get("active_request_id",state["request_id"]):
             raise RuntimeError("JOB_RESULT_SCOPE_MISMATCH")
         if state.get("room_id") and job.get("room_id") != state["room_id"]:
             raise RuntimeError("JOB_RESULT_ROOM_MISMATCH")
@@ -252,7 +292,8 @@ def execute(batch, out, poll_seconds=10, max_seconds=15600, resume_only=False, d
                 "case_counts": [len(x["cases"]) for x in parsed["source_results"]],
                 "total_cases": sum(len(x["cases"]) for x in parsed["source_results"]),
                 "job_id": state["job_id"], "room_id": job.get("room_id"),
-                "request_id": state["request_id"],
+                "request_id": state.get("active_request_id",state["request_id"]),
+                "original_request_id":state["request_id"],
                 "reply_sha256": digest(raw), "result_sha256": digest(answer),
                 "validation": "server_verified_reply_sha256_and_all_original_source_ids",
                 "independently_verified_trade_facts": False})
@@ -260,6 +301,19 @@ def execute(batch, out, poll_seconds=10, max_seconds=15600, resume_only=False, d
             atomic(state_file, state)
             print("STOCK_TV_FULL_TEN_VERIFIED", batch, flush=True)
             return
+        if status in ("unknown","stalled","failed") and job.get("error_code")=="WORKER_CONNECTION_LOST":
+            try:
+                recovering=recover_clean_worker(state,job,state_file)
+            except (urllib.error.URLError,TimeoutError) as exc:
+                # The recovery endpoint is idempotent for the old job ID.
+                # Retry transport observations only; never create another prompt locally.
+                if isinstance(exc,urllib.error.HTTPError) and exc.code not in (500,502,503,504):
+                    raise
+                time.sleep(poll_seconds)
+                continue
+            if recovering:
+                time.sleep(poll_seconds)
+                continue
         if status == "failed":
             state["phase"] = "TERMINAL_FAILED"
             state["error_code"] = job.get("error_code")
