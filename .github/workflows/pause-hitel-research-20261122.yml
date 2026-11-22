@@ -17,10 +17,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          WORKFLOWS=(stock-a-task-isolated-chrome.yml stock-tv-task-isolated-research.yml stock-a-isolated-smoke-autostart-20261121.yml stock-tv-isolated-launch-once.yml)
+          WORKFLOWS=(stock-a-task-isolated-chrome.yml stock-tv-task-isolated-research.yml stock-a-isolated-smoke-autostart-20261121.yml)
           for W in "${WORKFLOWS[@]}"; do
             gh api "repos/$GITHUB_REPOSITORY/actions/workflows/$W" --jq '{id,path,state}'
-            gh workflow disable "$W" --repo "$GITHUB_REPOSITORY"
+            gh workflow disable "$W" --repo "$GITHUB_REPOSITORY" || true
             STATE="$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/$W" --jq .state)"
             [[ "$STATE" == disabled_manually ]]
             echo "PAUSE_VERIFIED $W $STATE"
