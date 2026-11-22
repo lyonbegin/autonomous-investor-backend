@@ -1,0 +1,330 @@
+{
+  "batch_number": 5,
+  "research_only": true,
+  "schema": "TV-TRADE-EVIDENCE-10-v2",
+  "source_results": [
+    {
+      "cases": [
+        {
+          "access_level": "FULL_TEXT",
+          "case_type": "HISTORICAL_DATA_BACKTEST",
+          "document_url": "https://cemarketsolutions.com/research/strategies/opening-range-breakout-5-minutes",
+          "economic_mechanism": "정규장 개장 직후 형성된 가격 범위의 상단 또는 하단을 돌파하는 방향으로 진입하여 장중 가격발견과 방향성 지속을 활용",
+          "entry_exit": "2026-10-05 미국 동부시간 09:36 매수 31162.50, 15:59 청산 31338.25. 2026-10-07 09:38 매도 31204.75, 10:25 손절 31275.50",
+          "evidence_location": "What it did, How it was tested, Results, All trades (515)",
+          "instrument": "CME E-mini Nasdaq-100 지수선물(NQ)",
+          "limitations": "VWAP 결합 조건과 프롭트레이딩 평가계좌의 실제 출금·체결은 입증하지 않음. 시장 원시데이터 독립 검증 미수행",
+          "publisher": "CE Market Solutions",
+          "relationship_to_source": "동일한 NQ 선물시장에서 개장 범위 돌파 전략의 거래 메커니즘을 검증한 사례",
+          "reported_numbers": "515건, 승률 35.7%, 누적 3513.50포인트, NQ 1계약 기준 70270달러 이익. 수수료 및 슬리피지 차감 전. 개별 사례 +175.75포인트 및 -70.75포인트",
+          "title": "5-minute opening range breakout backtest on NQ and ES futures",
+          "trade_period": "2024-10-08~2026-10-07",
+          "transaction_evidence": "과거 시장가격 기반 515건의 모의거래 기록. 날짜, 방향, 진입가격, 청산가격, 청산 사유 및 손익 공개"
+        }
+      ],
+      "exclusions": [
+        {
+          "reason": "브로커 체결명세서 및 실제 출금 증빙 미확인",
+          "title": "ORB+VWAP(NQ) 프롭트레이딩 수익 주장"
+        },
+        {
+          "reason": "개장 범위 돌파와 결합된 거래 구조가 아님",
+          "title": "VWAP 단독 교차 전략"
+        }
+      ],
+      "limitations": "ORB 부분의 날짜별 모의거래는 확인했으나 원본 전략 전체와 동일한 거래 시스템은 확인하지 못함",
+      "research_status": "SEARCHED",
+      "script_id": "0VpZ0HoM",
+      "search_queries": [
+        "TradingView 0VpZ0HoM ORB VWAP NQ",
+        "opening range breakout Nasdaq NQ futures VWAP historical backtest trade log",
+        "NQ opening range breakout individual trade entry exit prices"
+      ],
+      "source_order": 41,
+      "title": "ORB+VWAP(NQ)"
+    },
+    {
+      "cases": [
+        {
+          "access_level": "FULL_TEXT",
+          "case_type": "HISTORICAL_DATA_BACKTEST",
+          "document_url": "https://cemarketsolutions.com/research/strategies/kama-10-2-30-cross?market=ES",
+          "economic_mechanism": "시장 추세와 횡보에 따라 이동평균의 반응 속도를 조절하고 가격과 적응형 평균의 상대적 위치로 방향성 거래 수행",
+          "entry_exit": "2026-08-27 미국 동부시간 10:30 매수 7728.50, 14:15 반대 방향 교차로 7734.25 청산",
+          "evidence_location": "What it is, How it was tested, Results, All trades",
+          "instrument": "CME E-mini S&P 500 지수선물(ES)",
+          "limitations": "KAMA는 원본의 adaptive range filter와 동일한 계산법이 아니며 EMA·MACD·RSI 복합 확인 조건도 적용되지 않음",
+          "publisher": "CE Market Solutions",
+          "relationship_to_source": "시장 상태에 반응하는 적응형 필터를 이용한 추세추종이라는 하위 거래 메커니즘의 비교 사례",
+          "reported_numbers": "개별 거래 +5.75포인트. 전체 2128건, 승률 32.8%, 누적 746포인트, ES 1계약 기준 37300달러 이익. 수수료 및 슬리피지 제외",
+          "title": "KAMA cross backtest on NQ and ES futures",
+          "trade_period": "2024-08-28~2026-08-27",
+          "transaction_evidence": "15분봉 과거 시장가격 기반 2128건의 모의거래 및 날짜별 진입·청산 기록 공개"
+        }
+      ],
+      "exclusions": [
+        {
+          "reason": "복합 진입조건에 따른 거래 기록이 없음",
+          "title": "일반 EMA·MACD·RSI 지표 설명"
+        }
+      ],
+      "limitations": "적응형 추세 필터의 부분 메커니즘만 확인했으며 원본 복합 전략의 실증 성과는 미확인",
+      "research_status": "SEARCHED",
+      "script_id": "0WSC3HCF",
+      "search_queries": [
+        "TradingView 0WSC3HCF Adaptive Average Concept",
+        "adaptive range filter EMA MACD RSI historical trade list",
+        "Kaufman adaptive moving average backtest individual trades"
+      ],
+      "source_order": 42,
+      "title": "Adaptive Average Concept [Achira Meegasthanne]"
+    },
+    {
+      "cases": [],
+      "exclusions": [
+        {
+          "reason": "https://github.com/wilsonwijaya1/trading-strategy-validation — 공개 README에서 금 거래일지 9건과 검증 연구를 확인했으나 일부 기록이 실제 시장가격과 일치하지 않고 토요일 청산 기록도 존재함. 개별 거래 원자료와 상품 유형의 충분한 검증이 이루어지지 않아 채택 보류",
+          "title": "trading-strategy-validation: Ichimoku-RSI gold strategy"
+        },
+        {
+          "reason": "날짜별 진입·청산 및 체결가격 증거 부족",
+          "title": "Ichimoku 지표의 금시장 적용 설명"
+        }
+      ],
+      "limitations": "금 현물가격, XAUUSD 장외상품 및 금선물 간 가격자료 차이를 해소하지 못함. 원본과 동일한 일목균형표 교차조건의 검증된 거래기록 미확보",
+      "research_status": "PARTIAL",
+      "script_id": "0WjlUeyu",
+      "search_queries": [
+        "TradingView 0WjlUeyu Ichimoku Cloud strategy for gold market",
+        "Ichimoku gold XAUUSD historical backtest entry exit dates",
+        "Ichimoku RSI gold strategy manual trade journal validation"
+      ],
+      "source_order": 43,
+      "title": "Ichimoku Cloud strategy for gold market"
+    },
+    {
+      "cases": [],
+      "exclusions": [
+        {
+          "reason": "https://es.tradingview.com/script/0YIDSFka-Combo-Backtest-123-Reversal-T3-Averages/ — 원본 게시물 검색 확인. 개별 날짜별 거래 및 체결자료 미확보",
+          "title": "Combo Backtest 123 Reversal & T3 Averages"
+        },
+        {
+          "reason": "Ulf Jensen의 저서가 원본 전략의 출처로 언급되나 해당 페이지 원문과 구체적인 거래기록 미검증",
+          "title": "How I Tripled My Money In The Futures Market"
+        },
+        {
+          "reason": "123 반전 조건과 결합된 거래 증거 없음",
+          "title": "T3 이동평균 단독 전략"
+        }
+      ],
+      "limitations": "가격 반전과 T3 평균을 결합한 방식의 실제 거래 또는 날짜별 과거 시장가격 백테스트 미확보",
+      "research_status": "SEARCHED",
+      "script_id": "0YIDSFka",
+      "search_queries": [
+        "TradingView 0YIDSFka Combo Backtest 123 Reversal T3 Averages",
+        "123 reversal T3 average HPotter historical trade list",
+        "Ulf Jensen How I Tripled My Money In The Futures Market stochastic reversal actual trades"
+      ],
+      "source_order": 44,
+      "title": "Combo Backtest 123 Reversal & T3 Averages"
+    },
+    {
+      "cases": [
+        {
+          "access_level": "FULL_TEXT",
+          "case_type": "HISTORICAL_DATA_BACKTEST",
+          "document_url": "https://cemarketsolutions.com/research/strategies/bollinger-breakout-20-2",
+          "economic_mechanism": "이동평균 주변의 통계적 변동범위를 벗어난 방향으로 거래하여 변동성 확장과 장중 방향성 지속을 활용",
+          "entry_exit": "2026-10-07 미국 동부시간 11:45 매수 31345.75, 15:59 청산 31396.00. 2026-10-06 11:15 매수 31611.75, 12:30 청산 31523.25",
+          "evidence_location": "What it did, How it was tested, Results, All trades (648)",
+          "instrument": "CME E-mini Nasdaq-100 지수선물(NQ)",
+          "limitations": "원본은 고변동성 주식 적용을 권고하지만 이 사례는 지수선물임. 비표준 편차 설정, 두 단계 목표수익 및 원본 손절 방식은 재현되지 않음",
+          "publisher": "CE Market Solutions",
+          "relationship_to_source": "장중 볼린저밴드 돌파 진입이라는 공통 거래 구조의 실증 비교 사례",
+          "reported_numbers": "개별 손익 +50.25포인트 및 -88.50포인트. 전체 648건, 승률 42.4%, 누적 952.75포인트, NQ 1계약 기준 19055달러 이익. 수수료 및 슬리피지 제외",
+          "title": "Bollinger Bands breakout backtest on NQ and ES futures",
+          "trade_period": "2024-10-08~2026-10-07",
+          "transaction_evidence": "15분봉 과거 시장가격 기반 648건의 진입가격, 청산가격, 거래방향 및 개별 손익 공개"
+        }
+      ],
+      "exclusions": [
+        {
+          "reason": "원본의 장중 거래 제한과 불일치",
+          "title": "일봉 SPY Bollinger breakout"
+        },
+        {
+          "reason": "밴드 돌파 추세추종과 반대 거래 구조",
+          "title": "Bollinger Bands 평균회귀 전략"
+        }
+      ],
+      "limitations": "주식시장 내 원본의 두 단계 익절 방식과 동일한 검증 사례는 미확보",
+      "research_status": "SEARCHED",
+      "script_id": "0YlkZJ6P",
+      "search_queries": [
+        "TradingView 0YlkZJ6P Khair Day trade with profit loss",
+        "intraday Bollinger band breakout profit targets stop loss historical trade log",
+        "Bollinger Bands breakout intraday futures individual trade history"
+      ],
+      "source_order": 45,
+      "title": "Khair Day trade with profit loss"
+    },
+    {
+      "cases": [],
+      "exclusions": [
+        {
+          "reason": "https://www.backtestingmax.com/backtests/order-block — 오더블록 재접근 진입 방식, 거래비용 및 26546건의 집계 결과를 확인했으나 이번 열람에서 날짜별 개별 거래기록을 확보하지 못함",
+          "title": "Order Block Strategy Backtest: Do Order Blocks Work?"
+        },
+        {
+          "reason": "https://usekeel.io/strategies/backtested/order-blocks — 암호자산 바스켓 대상 전략으로 원본의 여섯 가지 분석 시스템과 복합 점수체계 일치 여부 및 개별 거래기록 미검증",
+          "title": "Order Blocks Strategy Backtest: Does It Work?"
+        },
+        {
+          "reason": "패턴 정의와 실제 체결내역 미확보",
+          "title": "Phantom Strike 독점 패턴 성과 주장"
+        }
+      ],
+      "limitations": "여섯 가지 탐지 시스템의 세부 정의, 점수 산출 방식 및 실제 거래기록 확인 불가. 오더블록을 실제 기관 미체결 주문의 증거로 해석하지 않음",
+      "research_status": "SEARCHED",
+      "script_id": "0Ymx2Gff",
+      "search_queries": [
+        "TradingView 0Ymx2Gff PHANTOM STRIKE Z-4 ApexLegion",
+        "order block multi confluence strategy historical trade log",
+        "Order Block Strategy Backtest displacement ATR entry exit"
+      ],
+      "source_order": 46,
+      "title": "PHANTOM STRIKE Z-4 [ApexLegion]"
+    },
+    {
+      "cases": [
+        {
+          "access_level": "FULL_TEXT",
+          "case_type": "HISTORICAL_DATA_BACKTEST",
+          "document_url": "https://cemarketsolutions.com/research/strategies/hull-ma-20-turn",
+          "economic_mechanism": "가중이동평균 기반의 빠른 방향 전환 감지로 추세추종 거래를 수행하며 횡보장에서 반복적인 방향 전환에 따른 손실이 발생할 수 있음",
+          "entry_exit": "2026-10-07 미국 동부시간 09:45 매도 31193.25, 10:30 청산 31254.75. 같은 날 10:30 매수 31254.75, 15:15 청산 31356.00",
+          "evidence_location": "What it is, Results, All trades (1410)",
+          "instrument": "CME E-mini Nasdaq-100 지수선물(NQ)",
+          "limitations": "RSI 결합 및 추적손절이 없는 HMA 단독 전략임. 원본 제목의 Hull이 동일한 HMA 계산을 의미하는지는 Pine 미열람으로 확정할 수 없음",
+          "publisher": "CE Market Solutions",
+          "relationship_to_source": "Hull 계열 추세추종의 비교 사례이자 해당 하위 메커니즘의 손실 가능성을 보여주는 반증 자료",
+          "reported_numbers": "개별 손익 -61.50포인트 및 +101.25포인트. 전체 1410건, 승률 39.9%, 손익비 지표 Profit Factor 0.936, 누적 -3317.50포인트, NQ 1계약 기준 -66350달러. 거래비용 차감 전",
+          "title": "Hull moving average turn backtest on NQ and ES futures",
+          "trade_period": "2024-10-08~2026-10-07",
+          "transaction_evidence": "15분봉 과거 시장가격을 이용한 1410건의 거래기록과 개별 손익 공개"
+        }
+      ],
+      "exclusions": [
+        {
+          "reason": "전략 규칙 설명은 확인되나 원본과 일치하는 날짜별 거래실적 미확보",
+          "title": "Hull Moving Average and RSI Strategy: When Both Agree"
+        }
+      ],
+      "limitations": "장기 보유 및 추적손절을 적용하는 원본의 성과는 검증되지 않음",
+      "research_status": "SEARCHED",
+      "script_id": "0ZBQpzty",
+      "search_queries": [
+        "TradingView 0ZBQpzty Hull RSI Trend Rider Pro",
+        "Hull moving average RSI trailing stop historical trade list",
+        "Hull moving average turn futures backtest individual trades"
+      ],
+      "source_order": 47,
+      "title": "Hull RSI - Trend Rider Pro"
+    },
+    {
+      "cases": [
+        {
+          "access_level": "FULL_TEXT",
+          "case_type": "EXECUTED_TRADE",
+          "document_url": "https://www.sec.gov/Archives/edgar/data/315090/000095017024071037/xslF345X03/ownership.xml",
+          "economic_mechanism": "상장기업 보통주를 실제 취득하고 보유함으로써 기업가치 변화와 주주수익에 지속적으로 노출되는 구조",
+          "entry_exit": "2024-06-05 524340주 주당 59.7452달러 매수. 2024-06-06 654293주 주당 59.9342달러 매수. 2024-06-07 1386844주 주당 59.6687달러 매수. 해당 공시에서 청산 없음",
+          "evidence_location": "Table I - Non-Derivative Securities Acquired, Disposed of, or Beneficially Owned; Explanation of Responses 1~6",
+          "instrument": "Occidental Petroleum Corporation 보통주(OXY)",
+          "limitations": "원본의 사전 설정 종료일에 따른 청산 사례는 확인되지 않음. 실제 매도 상대방 및 개별 체결가격 전체는 미공개",
+          "publisher": "Berkshire Hathaway Inc. / U.S. Securities and Exchange Commission EDGAR",
+          "relationship_to_source": "매수 후 포지션을 계속 보유하는 실제 거래 사례. 특정 기술지표에 따른 반복 매매와 구별되는 보유형 거래 구조",
+          "reported_numbers": "최종 공시 보통주 보유량 250583605주. 실현손익 및 거래수수료 미공개",
+          "title": "Form 4 - Statement of Changes in Beneficial Ownership of Securities",
+          "trade_period": "2024-06-05~2024-06-07 매수 및 공시 시점 보유",
+          "transaction_evidence": "SEC Form 4에 실제 보통주 취득일, 취득수량, 가중평균 거래가격 및 거래 후 보유수량 명시. Berkshire Hathaway가 자회사 National Indemnity Company를 통해 간접 보유"
+        }
+      ],
+      "exclusions": [
+        {
+          "reason": "기업 사업부 인수거래이며 상장 보통주 매수 후 보유 전략과 구별됨",
+          "title": "Occidental Chemical Corporation 인수"
+        },
+        {
+          "reason": "관련 주주서한 인용자료를 검색했으나 발행기관 원문 직접 검증은 이번 조사에서 완료하지 못함",
+          "title": "Berkshire Hathaway PetroChina 장기투자 매각"
+        }
+      ],
+      "limitations": "실제 매수 체결 및 보유는 공시로 확인. 동일 포지션의 최종 청산 및 완결된 투자수익률은 미확인",
+      "research_status": "SEARCHED",
+      "script_id": "0ZIDvEAV",
+      "search_queries": [
+        "TradingView 0ZIDvEAV Buy and hold strategy",
+        "Berkshire Hathaway stock investment purchase dates prices SEC Form 4",
+        "Berkshire Hathaway Occidental Petroleum June 2024 actual stock purchases"
+      ],
+      "source_order": 48,
+      "title": "Buy and hold strategy"
+    },
+    {
+      "cases": [],
+      "exclusions": [
+        {
+          "reason": "https://quantnomad.com/exporting-new-tradingview-trades-metrics-to-excel/ — 원저자의 거래데이터 추출 방법 설명으로 실제 거래자산, 기간, 체결 및 성과를 확인할 수 있는 독립 거래사례가 아님",
+          "title": "Exporting New TradingView Trades metrics to Excel"
+        },
+        {
+          "reason": "수익률 시계열만으로 실제 거래의 진입·청산 구조를 확인할 수 없음",
+          "title": "주간 펀드 수익률 및 벤치마크 비교자료"
+        }
+      ],
+      "limitations": "원본은 독립적인 매매 신호 생성 전략보다 성과 측정 및 벤치마크 비교 도구에 해당함. 진입·청산 자료가 결합된 적격 사례 미확보",
+      "research_status": "SEARCHED",
+      "script_id": "0a1Inu0A",
+      "search_queries": [
+        "TradingView 0a1Inu0A Weekly Returns with Benchmark QuantNomad",
+        "weekly strategy benchmark alpha historical transaction ledger",
+        "QuantNomad weekly returns strategy trade export"
+      ],
+      "source_order": 49,
+      "title": "Weekly Returns with Benchmark"
+    },
+    {
+      "cases": [],
+      "exclusions": [
+        {
+          "reason": "https://www.six7alpha.com/trade-like/darvas-box-method/history — 검색 결과에서 거래표 존재를 확인했으나 원문 접속 시 타임아웃 및 HTTP 502 오류 발생",
+          "title": "Darvas Box Method — Full Trade History"
+        },
+        {
+          "reason": "https://www.moeasymmetry.com/articles/darvas-box-tested — 실제 과거 주식가격을 이용한 실증 연구 본문은 확인했으나 날짜별 개별 진입·청산 기록 미확보",
+          "title": "We Tested the Darvas Box Breakout on 17 Years of US and Thai Data"
+        },
+        {
+          "reason": "https://darvastracker.com/ — 과거 돌파 신호와 목표가격 도달 여부를 제공하지만 완결된 개별 거래의 체결 및 청산 기록 검증 부족",
+          "title": "Darvas Box Breakout Signal Scanner & Historical Research"
+        },
+        {
+          "reason": "과거 시장가격 백테스트는 검색되었으나 원본 Stage2의 박스 생성 및 돌파·하향이탈 조건과의 구조적 일치 근거 부족",
+          "title": "Donchian 20 breakout"
+        }
+      ],
+      "limitations": "제공된 원본 설명은 제목 반복뿐이므로 박스 형성 조건, Stage2의 의미, BO·BD의 실제 진입조건을 확정할 수 없음. 유사한 명칭만으로 사례를 채택하지 않음",
+      "research_status": "PARTIAL",
+      "script_id": "0c6h7eQy",
+      "search_queries": [
+        "TradingView 0c6h7eQy BOX Structure Strategy Stage2 BO BD",
+        "box breakout breakdown historical individual trade entry exit prices",
+        "Darvas box historical backtest full trade history"
+      ],
+      "source_order": 50,
+      "title": "BOX Structure Strategy v1.72 - Stage2 BO+BD"
+    }
+  ]
+}
