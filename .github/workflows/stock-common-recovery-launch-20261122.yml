@@ -1,0 +1,62 @@
+name: Stock A and TV verified checkpoint restart
+on:
+  push:
+    branches: [ops/stock-clean-recovery-launch-20261122]
+    paths: [.github/workflows/stock-common-recovery-launch-20261122.yml]
+permissions:
+  contents: read
+  actions: write
+jobs:
+  restart-exact-stock-work:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Verify persisted TV first two groups and recover exact third
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT=https://hitel-integration-api-production.up.railway.app/integrations/v1/public
+          ROOT_DIR=research/serial10/fresh_runs/isolated_stock_tv_r4/results
+          REF=feature/stocktv-web2api-fresh-reset-20261121
+          for B in 0001 0002; do
+            gh api "repos/$GITHUB_REPOSITORY/contents/$ROOT_DIR/batch_$B.json?ref=$REF" --jq .sha
+            gh api "repos/$GITHUB_REPOSITORY/contents/$ROOT_DIR/batch_$B.summary.json?ref=$REF" --jq .sha
+          done
+          if gh api "repos/$GITHUB_REPOSITORY/contents/$ROOT_DIR/batch_0003.json?ref=$REF" --jq .sha; then
+            echo TV_BATCH_3_ALREADY_STORED_SKIP_RESTART
+          else
+            gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/14729683779" --jq 'select(.expired==false and .name=="stocktv-isolated-r4-0003")|.id' | grep -x 14729683779
+            OLD=44962109403
+            G="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$OLD")"
+            jq -e '.name=="STOCK TV | Isolated task 10 strategy research" and .path==".github/workflows/stock-tv-task-isolated-research.yml" and .head_branch=="main"' <<<"$G"
+            S="$(curl -fsS --max-time 10 "$ROOT/isolated/tasks/stock-tv/status")"
+            if jq -e '.worker_live_jobs_count==0 and .worker_active_jobs_count>=0' <<<"$S" >/dev/null; then
+              if [[ "$(jq -r .status <<<"$G")" != completed ]]; then
+                gh run cancel "$OLD" --repo "$GITHUB_REPOSITORY"
+                for i in $(seq 1 40); do
+                  [[ "$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$OLD" --jq .status)" != completed ]] || break
+                  sleep 2
+                done
+                test "$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$OLD" --jq .status)" = completed
+                echo "TV_OLD_PRODUCER_TERMINATED=$OLD"
+              fi
+              if ! gh api "repos/$GITHUB_REPOSITORY/actions/workflows/stock-tv-task-isolated-research.yml/runs?per_page=30" | jq -e 'any(.workflow_runs[];.status!="completed")' >/dev/null; then
+                gh workflow run stock-tv-task-isolated-research.yml --repo "$GITHUB_REPOSITORY" --ref main -f batch_number=3 -f resume_only=true -f attempt=0
+                echo TV_EXACT_THIRD_BATCH_RESTART_DISPATCH_ACCEPTED
+              fi
+            else
+              echo TV_LIVE_JOB_PRESERVED
+            fi
+          fi
+      - name: Start existing A full research only when no duplicate producer exists
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! gh api "repos/$GITHUB_REPOSITORY/actions/workflows/stock-a-task-isolated-chrome.yml/runs?per_page=30" | jq -e 'any(.workflow_runs[];.status!="completed")' >/dev/null; then
+            gh workflow run stock-a-task-isolated-chrome.yml --repo "$GITHUB_REPOSITORY" --ref main -f mode=full -f source_id=0LJUxO7T
+            echo STOCK_A_FULL_EXISTING_SOURCE_DISPATCH_ACCEPTED
+          else
+            echo STOCK_A_EXISTING_PRODUCER_PRESERVED
+          fi
