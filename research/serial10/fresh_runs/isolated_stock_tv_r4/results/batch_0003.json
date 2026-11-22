@@ -1,0 +1,265 @@
+{
+  "batch_number": 3,
+  "research_only": true,
+  "schema": "TV-TRADE-EVIDENCE-10-v2",
+  "source_results": [
+    {
+      "cases": [
+        {
+          "access_level": "FULL_TEXT",
+          "case_type": "HISTORICAL_DATA_BACKTEST",
+          "document_url": "https://ripbacktest.com/posts/rsi-2-strategy-spy/",
+          "economic_mechanism": "장기 상승 추세에 있는 ETF의 단기 가격 하락을 매수하여 가격 회복 과정에서 차익을 실현하는 평균회귀 거래.",
+          "entry_exit": "200일 이동평균 위에서 RSI(2)가 10 미만이면 종가 매수하고, 이후 5일 이동평균 위에서 종가 청산하는 모의거래.",
+          "evidence_location": "01 The RSI(2) strategy; 04 Results; 10 Check our arithmetic; Trade logs (CSV)",
+          "instrument": "미국 주식형 ETF SPY",
+          "limitations": "원본의 주봉 스토캐스틱 조건 및 청산 기준과 다름. 거래별 CSV 링크는 확인했으나 파일 형식 제한으로 개별 거래 행을 직접 열람하지 못함. 실체결 증거 없음.",
+          "publisher": "RIP Backtest",
+          "relationship_to_source": "SPY 상승 추세에서 RSI(2) 하락을 매수 기회로 사용하는 경제적 거래구조가 공통됨. 원본 전략의 이식이나 동일 전략 검증은 아님.",
+          "reported_numbers": "257건, 승률 75.9%, 거래당 평균 비용 차감 수익률 0.616%, 왕복 거래비용 0.04%, Profit Factor 2.91.",
+          "title": "RSI(2) Strategy on SPY: 32-Year Backtest of Larry Connors' Rules",
+          "trade_period": "1994-01-24~2026-10-20",
+          "transaction_evidence": "Yahoo Finance의 SPY 일별 가격 및 배당 자료를 이용한 과거가격 백테스트. 거래별 CSV 공개 링크가 본문에 존재함."
+        }
+      ],
+      "exclusions": [
+        {
+          "reason": "원본 설명에서 SPY 주봉 백테스트를 주장하지만 거래기간, 개별 거래일, 체결가격 및 정량적 성과가 확인되지 않음. https://www.tradingview.com/script/0EJ6ny4g-stoch-pop-and-RSI2-strategy/",
+          "title": "stoch pop and RSI2 strategy — eemani123"
+        }
+      ],
+      "limitations": "원본과 동일한 스토캐스틱 및 RSI(2) 결합 조건의 거래별 검증 자료는 확보하지 못함. 수록 사례는 부분적으로 동일한 거래 메커니즘의 실증 연구임.",
+      "research_status": "SEARCHED",
+      "script_id": "0EJ6ny4g",
+      "search_queries": [
+        "0EJ6ny4g stochastic pop RSI2 SPY weekly strategy backtest trades",
+        "stochastic pop RSI2 SPY weekly trade list Connors stochastic pop backtest entry exit dates"
+      ],
+      "source_order": 21,
+      "title": "stoch pop and RSI2 strategy"
+    },
+    {
+      "cases": [
+        {
+          "access_level": "FULL_TEXT",
+          "case_type": "HISTORICAL_DATA_BACKTEST",
+          "document_url": "https://janorium.com/articles/dca-bot-safety-orders-backtest",
+          "economic_mechanism": "가격 하락 시 추가매수로 가중평균 매입단가를 낮추고, 평균단가 대비 2% 상승하면 전체 보유량을 매도함. 장기 하락에서는 자본이 장기간 묶일 수 있음.",
+          "entry_exit": "BTC 사례에서 2021-11-10 최초 진입, 2021-11-17 마지막 추가매수 완료, 평균매입가격 61,946 USDT, 2024-02-28 청산.",
+          "evidence_location": "The bot and what it was compared with; Results; Where the time went; The longest waits",
+          "instrument": "Binance 암호화폐 현물 BTCUSDT 및 ETHUSDT",
+          "limitations": "실제 주문 체결이 아닌 과거가격 기반 모의거래이며 원본의 지표 기반 최초 진입 조건과 다를 수 있음. 전체 거래별 상세 보고서의 동적 데이터는 직접 확보하지 못함.",
+          "publisher": "Janorium",
+          "relationship_to_source": "하락 시 분할 추가매수, 평균단가 조정, 전체 포지션 통합 익절이라는 원본의 핵심 경제구조와 일치함.",
+          "reported_numbers": "전체 기간 BTC 수익률 94.77%, 최대낙폭 44.36%. ETH 수익률 122.79%, 최대낙폭 47.19%. BTC 2021~2022년 수익률 -29.11%. 매수와 매도 각각 수수료 0.1%, 슬리피지 0.05%.",
+          "title": "DCA bot with safety orders vs plain DCA: BTC and ETH backtest",
+          "trade_period": "2020-01-01~2026-09-30; 2021~2022년 및 2023~2024년 별도 분석 포함",
+          "transaction_evidence": "Binance 현물 1시간봉과 모의거래 목록을 이용한 분석. 거래 단위 진입일, 추가매수일, 평균매입가격 및 청산일이 본문에 제시됨."
+        }
+      ],
+      "exclusions": [
+        {
+          "reason": "Binance 공식 현물 DCA 서비스 설명이지만 특정 거래자의 완료된 주문 및 실현손익을 입증하는 자료가 아님. https://www.binance.com/en-NG/support/faq/detail/27713d3ddb3c406da52f36b9aaaa1360",
+          "title": "What Is Spot DCA and How Does It Work?"
+        },
+        {
+          "reason": "3Commas 거래이력 조회 API의 명세이며 실제 거래자의 체결기록은 확인되지 않음. https://trade.3commas.io/docs/rest-api/get-strategies-history",
+          "title": "History — REST API"
+        }
+      ],
+      "limitations": "TradingView 원본 페이지 접근이 제한됨. 관련 DCA 실증 백테스트는 확보했으나 거래소 계좌의 실체결 자료는 확보하지 못함.",
+      "research_status": "PARTIAL",
+      "script_id": "0GhXXwWS",
+      "search_queries": [
+        "0GhXXwWS advanced DCA bot actual trades safety orders take profit exchange historical deal",
+        "DCA bot completed deals actual trade history entry exit Binance 3Commas profit safety orders report",
+        "Advanced DCA Bot fullmax TradingView"
+      ],
+      "source_order": 22,
+      "title": "Advanced DCA Bot"
+    },
+    {
+      "cases": [],
+      "exclusions": [
+        {
+          "reason": "원본 설명을 확인했으나 특정 자산, 거래기간, 진입청산가격 및 손익 자료가 없음. https://www.tradingview.com/script/0I6kCcYq-fikira-Fibma-Fibema-Strategy/",
+          "title": "[fikira] Fibma/Fibema Strategy"
+        }
+      ],
+      "limitations": "Fibma/Fibema 고유 계산방식에 따른 실제 거래기록 또는 날짜별 백테스트를 확보하지 못함. 일반적인 피보나치 및 이동평균 연구는 동일한 거래구조가 입증되지 않아 제외함.",
+      "research_status": "SEARCHED",
+      "script_id": "0I6kCcYq",
+      "search_queries": [
+        "0I6kCcYq Fibma Fibema strategy backtest trades",
+        "fikira Fibma Fibema Strategy historical trades tradingview"
+      ],
+      "source_order": 23,
+      "title": "[fikira] Fibma/Fibema Strategy"
+    },
+    {
+      "cases": [],
+      "exclusions": [
+        {
+          "reason": "Gainium이 Binance 현물 8개 암호화폐의 QFL 백테스트를 공개함. 2024-01-01~2026-11-03 구간 수익률 24.3%, 최대낙폭 8.4%, 거래수 607건을 보고함. 거래별 날짜와 진입청산가격을 확인할 수 없어 엄격한 사례 채택 기준에서는 제외함. https://gainium.io/strategies/qfl",
+          "title": "QFL Trading Strategy: Rules and Tested Results"
+        },
+        {
+          "reason": "주문 자동화 연동 및 전략 기능 설명이며 실제 거래소 체결 증빙 또는 거래별 백테스트 기록이 확인되지 않음. https://www.tradingview.com/script/M8B9TsrG-Quickfingers-Luc-s-Base-Breaking-Strategy-v2-5-3Commas-Edition/",
+          "title": "Quickfingers Luc's Base Breaking Strategy v2.5 - 3Commas Edition"
+        }
+      ],
+      "limitations": "원본 페이지는 접근 및 응답 용량 제한으로 전체 열람하지 못함. QFL과 직접 관련된 실증 연구는 발견했지만 개별 거래 단위 검증 기준을 충족하지 못함.",
+      "research_status": "PARTIAL",
+      "script_id": "0Iu3OzhI",
+      "search_queries": [
+        "0Iu3OzhI Quickfingers Luc base breaking strategy actual trades backtest",
+        "Quickfingers Luc QFL base breaking strategy backtest trade list dates crypto",
+        "Quickfingers Luc's Base Breaking Strategy v2.5 prosum"
+      ],
+      "source_order": 24,
+      "title": "Quickfingers Luc's Base Breaking Strategy v2.5"
+    },
+    {
+      "cases": [],
+      "exclusions": [
+        {
+          "reason": "원본 제작자 TradeDots의 2024-12-04 설명문으로 연속 상승·하락 봉과 거래량 및 채널 필터를 설명함. 특정 기간의 거래 내역 및 정량적 백테스트 결과가 없음. https://www.tradedots.ai/blog/probably-the-stupidest-trading-strategy-but-it-works-bar-counting",
+          "title": "Probably The Stupidest Trading Strategy But It Works (Bar Counting)"
+        },
+        {
+          "reason": "연속 하락 이후 주가의 움직임을 분석한 통계자료이지만 원본 거래전략의 진입·청산·거래비용 및 손익 기록으로 확인되지 않음. https://www.gammadesk.app/analogues?condition=down-5&symbol=SPY",
+          "title": "Historical Analogues — SPY: 5 consecutive down closes"
+        }
+      ],
+      "limitations": "원본 제작자의 별도 설명문은 확인했으나 TradingView 원본은 접근이 제한됨. 연속 봉 방향을 이용한 반전 거래의 실체결 증거를 확보하지 못함.",
+      "research_status": "PARTIAL",
+      "script_id": "0KAtQQDD",
+      "search_queries": [
+        "0KAtQQDD bar counter trend reversal TradeDots backtest trades",
+        "TradeDots bar counting consecutive bars reversal backtest trade dates",
+        "bar counting consecutive down days reversal SPY historical backtest trade list dates consecutive bars",
+        "consecutive down days mean reversion strategy backtest trade list SPY three down days"
+      ],
+      "source_order": 25,
+      "title": "The Bar Counter Trend Reversal Strategy [TradeDots]"
+    },
+    {
+      "cases": [],
+      "exclusions": [
+        {
+          "reason": "International Journal of Entrepreneurial Knowledge, 2016년 제4권 제1호, 본문 55~58쪽 및 Table 1 확인. EUR/USD 환율을 기초자산으로 한 15분 만기 바이너리옵션 백테스트에서 볼린저밴드 2표준편차와 RSI 조합은 40건 중 22건 성공, 3표준편차와 RSI 조합은 5건 중 4건 성공으로 보고됨. 그러나 개별 거래일·진입가격·만기가격·실제 지급률이 없고 원본의 25분 만기와도 달라 제외함. https://scispace.com/pdf/binary-options-as-a-modern-fenomenon-of-financial-business-23pf06sv0n.pdf",
+          "title": "Binary Options as a Modern Fenomenon of Financial Business"
+        },
+        {
+          "reason": "원본 설명은 5분봉에서 25분 보유를 제안하지만 바이너리옵션 계약의 실제 체결가격, 지급률 및 정산기록이 없음. https://in.tradingview.com/script/0KqFN1vc-Double-Bollinger-Binary-Options/",
+          "title": "Double Bollinger Binary Options"
+        }
+      ],
+      "limitations": "관련 학술논문 본문 및 결과 페이지 이미지를 직접 확인함. 바이너리옵션은 일반 외환 현물거래나 표준 콜·풋옵션과 지급구조가 다르므로 해당 거래 사례로 대체하지 않음.",
+      "research_status": "SEARCHED",
+      "script_id": "0KqFN1vc",
+      "search_queries": [
+        "0KqFN1vc double bollinger binary options historical trades",
+        "double Bollinger bands RSI binary options 25 minute historical backtest trade list",
+        "Double Bollinger Binary Options Trade_by_DB"
+      ],
+      "source_order": 26,
+      "title": "Double Bollinger Binary Options"
+    },
+    {
+      "cases": [],
+      "exclusions": [
+        {
+          "reason": "PyneSys LLC의 동일 원본 스크립트 비교 보고서. BINANCE:BTCUSDT 30분봉, 2025-01-01~2026-09-14 구간에서 164건의 모의거래 진입·청산 시점 일치율 100%, 양쪽 엔진 순손익 -12,327을 보고함. Accuracy 및 Data window 절을 직접 확인함. 개별 거래 날짜·가격과 손익 통화 단위 및 비용 조건을 확인하지 못해 사례에서 제외함. https://wild.pynesys.io/scripts/trailing-stop-loss-to-long-and-short-0KrB3hnV",
+          "title": "TRAILING STOP LOSS TO LONG AND SHORT by exit490: PyneCore vs TradingView"
+        },
+        {
+          "reason": "추적손절 기능과 백테스트 설정을 제공하는 전략 도구이며 실제 브로커 체결 증거는 확인되지 않음. https://in.tradingview.com/script/0KrB3hnV-TRAILING-STOP-LOSS-TO-LONG-AND-SHORT/",
+          "title": "TRAILING STOP LOSS TO LONG AND SHORT — TradingView"
+        }
+      ],
+      "limitations": "동일 script_id의 독립적인 엔진 비교 보고서를 확보했으나 거래별 원자료는 확보하지 못함. BTCUSDT를 선물이나 실제 공매도 체결 사례로 단정하지 않음.",
+      "research_status": "SEARCHED",
+      "script_id": "0KrB3hnV",
+      "search_queries": [
+        "0KrB3hnV exit490 trailing stop loss long short backtest trades github",
+        "exit490 tradingview trailing stop loss to long and short github trade backtest"
+      ],
+      "source_order": 27,
+      "title": "TRAILING STOP LOSS TO LONG AND SHORT"
+    },
+    {
+      "cases": [],
+      "exclusions": [
+        {
+          "reason": "원본은 복수 지표 신호를 조합하는 백테스트 모듈임. 검색 결과에서 특정 지표 조합의 날짜별 거래 및 손익 기록을 확인하지 못함. https://vn.tradingview.com/script/0L1bTVBC-GKD-BT-Giga-Stacks-Backtest-Loxx/",
+          "title": "GKD-BT Giga Stacks Backtest [Loxx]"
+        },
+        {
+          "reason": "동일 모듈형 거래 시스템에 속하는 별도 도구이며 실제 체결 또는 원본 모듈로 수행한 거래별 검증 자료가 아님. https://www.tradingview.com/script/JU6tBPlC-GKD-BT-Multi-Ticker-Full-GKD-Backtest-Loxx/",
+          "title": "GKD-BT Multi-Ticker Full GKD Backtest [Loxx]"
+        }
+      ],
+      "limitations": "원본 및 베트남어 페이지 접근이 제한됨. 기준선·확인지표·거래량 및 변동성 모듈의 실제 조합과 검증 거래내역을 확정하지 못함.",
+      "research_status": "PARTIAL",
+      "script_id": "0L1bTVBC",
+      "search_queries": [
+        "0L1bTVBC GKD BT Giga Stacks backtest trades",
+        "Loxx Giga Stacks Backtest GKD actual backtest trades",
+        "GKD-BT Giga Stacks Backtest Loxx",
+        "Giga Stacks Backtest trade results"
+      ],
+      "source_order": 28,
+      "title": "GKD-BT Giga Stacks Backtest [Loxx]"
+    },
+    {
+      "cases": [],
+      "exclusions": [
+        {
+          "reason": "원본 설명 전체를 확인함. 미국 동부시간 09:00~09:30 고가·저가 돌파와 Stochastic RSI 확인을 사용하는 전략이지만 제작자의 수익성 주장 외에 거래별 기록이 없음. https://www.tradingview.com/script/0LJUxO7T-Pt-Premarket-Breakout-Strategy/",
+          "title": "[Pt] Premarket Breakout Strategy"
+        },
+        {
+          "reason": "QuantConnect 공개 백테스트 보고서. SPY, 2023-01-01~2024-12-31, 순수익률 9.250%, 최대낙폭 8.100%, 총 주문 483건, 총 수수료 428.25달러를 확인함. 프리마켓 돌파 후 EMA 반등을 이용하므로 경제적 거래구조가 유사하지만 개별 거래일 및 체결가격을 확보하지 못함. https://www.quantconnect.com/terminal/cache/embedded_backtest_90a6db2e744548578beabde8177769da.html",
+          "title": "Pre-market Gap and EMA Bounce Strategy - CLEAN PHASE 1 IMPLEMENTATION (3% Position Sizing)"
+        },
+        {
+          "reason": "SPY 및 QQQ의 정규장 개장 이후 범위 돌파 연구이며 원본의 정규장 개장 이전 가격 범위 돌파와 구별됨. https://getalphacharts.com/backtest/opening-range-breakout-strategy",
+          "title": "Opening range breakout strategy backtest results: 30-minute and 15-minute ranges"
+        }
+      ],
+      "limitations": "원본 거래조건은 확인했으나 동일 조건의 거래별 백테스트 또는 실체결 내역은 확보하지 못함. SPY와 QQQ는 ETF이며 지수선물 및 ETF 옵션 거래로 대체하지 않음.",
+      "research_status": "SEARCHED",
+      "script_id": "0LJUxO7T",
+      "search_queries": [
+        "0LJUxO7T premarket breakout strategy SPY QQQ backtest trades stochastic RSI",
+        "PtGambler premarket breakout strategy SPY QQQ stochastic RSI trade history",
+        "premarket high low breakout SPY QQQ backtest trade log entry exit dates premarket range",
+        "premarket breakout strategy backtest entry price SPY QQQ trades"
+      ],
+      "source_order": 29,
+      "title": "[Pt] Premarket Breakout Strategy"
+    },
+    {
+      "cases": [],
+      "exclusions": [
+        {
+          "reason": "기존 전략에 자본 및 주문 한도 설정을 추가했다는 설명만 확인됨. 원본의 구체적인 신호, 거래대상, 기간, 체결가격 및 손익 검증 자료가 없음. https://in.tradingview.com/script/0M0wfs7E-SlingShotStrategy/",
+          "title": "SlingShotStrategy — MoneyJourney"
+        }
+      ],
+      "limitations": "원본 및 지역별 페이지의 직접 접근이 제한됨. SlingShot이라는 명칭만 공유하는 다른 전략을 동일 거래전략으로 판단하지 않음. 검증 가능한 실제 거래 및 실증 백테스트를 확보하지 못함.",
+      "research_status": "PARTIAL",
+      "script_id": "0M0wfs7E",
+      "search_queries": [
+        "0M0wfs7E SlingShotStrategy MoneyJourney backtesting trades",
+        "MoneyJourney SlingShotStrategy tradingview trade history backtest",
+        "SlingShotStrategy MoneyJourney",
+        "SlingShotStrategy MoneyJourney backtest results",
+        "PyneCore SlingShotStrategy MoneyJourney"
+      ],
+      "source_order": 30,
+      "title": "SlingShotStrategy"
+    }
+  ]
+}

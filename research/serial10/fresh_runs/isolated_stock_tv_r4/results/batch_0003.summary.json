@@ -1,0 +1,28 @@
+{
+  "batch": 3,
+  "case_counts": [
+    1,
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+  ],
+  "first": 21,
+  "independently_verified_trade_facts": false,
+  "job_id": "job_7092299d03e842419fc5d9afb95f3227",
+  "last": 30,
+  "original_request_id": "stock-tv-r4-0003-d8900a70a2ee7837b010c06d1b7ccaea720f2017",
+  "reply_sha256": "793dabe9e6cb365a4da4d5cd92d178819af7dd05510e336c88d9e1e4f49156ad",
+  "request_id": "hitel-clean-stock-tv-b4ba061bee8d11ba9ee000a0828d07f6",
+  "result_sha256": "c89567f13121ceaa56f6da31cdbb4b10f5eccb86cb9d6a1a3085946fbe6b5f77",
+  "room_id": "room_b99c8a76924045f49ef0f7c6a6869538",
+  "source_count": 10,
+  "task_id": "stock-tv",
+  "total_cases": 2,
+  "validation": "server_verified_reply_sha256_and_all_original_source_ids"
+}
