@@ -1,0 +1,357 @@
+{
+  "batch_number": 4,
+  "research_only": true,
+  "schema": "TV-TRADE-EVIDENCE-10-v2",
+  "source_results": [
+    {
+      "cases": [
+        {
+          "access_level": "FULL_TEXT",
+          "case_type": "HISTORICAL_DATA_BACKTEST",
+          "document_url": "https://cemarketsolutions.com/research/strategies/supertrend-with-adx-above-25",
+          "economic_mechanism": "ATR 기반 추세전환 신호와 ADX 추세강도 조건을 결합하여 방향성 가격변동에 참여하고 반대 신호 또는 장 종료 시 청산.",
+          "entry_exit": "2026-10-07 11:45 ET 매수 31345.75, 15:59 ET 청산 31396.00.",
+          "evidence_location": "How it was tested; Results; All trades 표",
+          "instrument": "CME E-mini Nasdaq-100 선물(NQ)",
+          "limitations": "ADX에 따른 ATR 배수의 동적 변경, 이중 시간대 및 Smart Lock 기능은 검증하지 못함. 고정 조건을 사용한 비교 사례이며 실체결 기록이 아님.",
+          "publisher": "CE Market Solutions",
+          "relationship_to_source": "ATR 기반 추세추종과 ADX를 통한 횡보장 필터링이라는 부분 구조가 일치.",
+          "reported_numbers": "해당 거래 +50.25포인트. 전체 188건, 승률 46.3%, 총손익 -431포인트(-8,620달러), 최대낙폭 2260포인트. 수수료와 슬리피지 제외.",
+          "title": "Supertrend with ADX above 25 backtest on NQ and ES futures",
+          "trade_period": "2024-10-08~2026-10-07",
+          "transaction_evidence": "CME 역사적 가격자료 기반 15분봉 백테스트. 개별 거래 날짜, 방향, 진입가격, 청산가격 및 손익 공개."
+        }
+      ],
+      "exclusions": [
+        {
+          "reason": "TradingView 원본 설명은 확인했으나 브로커 실체결 및 날짜별 거래명세 미확인.",
+          "title": "Adaptive ATR Scalper - Instant & Lock Version"
+        },
+        {
+          "reason": "CFD 가격 기반 연구이나 ADX 적응형 조건 및 개별 거래가격 근거가 충분하지 않아 제외.",
+          "title": "ATR Trailing Stop Strategy Backtest: 2, 3 or 4 ATR?"
+        }
+      ],
+      "limitations": "원본 전략 자체의 실거래 수익성과 Pine 전체 구현은 검증하지 못함.",
+      "research_status": "SEARCHED",
+      "script_id": "0NWRtU59",
+      "search_queries": [
+        "Adaptive ATR Scalper Instant Lock emretw11 backtest",
+        "ATR ADX adaptive trailing stop scalping historical trades",
+        "ADX ATR trend following Supertrend filter backtest trade list entry price dates"
+      ],
+      "source_order": 31,
+      "title": "Adaptive ATR Scalper - Instant & Lock Version"
+    },
+    {
+      "cases": [],
+      "exclusions": [
+        {
+          "reason": "https://wild.pynesys.io/scripts/delta-rsi-strategy-with-filters-0OdCms2T 에서 BINANCE:BTCUSDT 30분봉, 2025-01-01~2026-08-15, 거래 2248건 및 두 엔진의 순손익 -49110 일치를 확인함. 그러나 개별 거래의 날짜별 진입·청산가격 및 비용 명세를 확보하지 못해 제외. 순손익 표시 통화도 확정하지 않음.",
+          "title": "Delta-RSI Strategy (with filters) by tbtkg: PyneCore vs TradingView"
+        },
+        {
+          "reason": "일반적인 RSI 과매수·과매도 전략이며 Delta-RSI 변화율 기반 거래구조와 다름.",
+          "title": "The Empirical Performance of RSI-Based Trading Strategies"
+        },
+        {
+          "reason": "GitHub 전략 코드 복제본은 거래 실행 기록이 아님.",
+          "title": "Delta-RSI Strategy (with filters).pine"
+        }
+      ],
+      "limitations": "동일 원본의 독립적인 엔진 비교 보고서는 발견했으나 요청된 개별 거래 증거 기준을 충족하지 못함.",
+      "research_status": "SEARCHED",
+      "script_id": "0OdCms2T",
+      "search_queries": [
+        "Delta RSI strategy relative strength index difference filtered trading backtest individual trades dates prices",
+        "Delta-RSI Strategy tbtkg backtest trades"
+      ],
+      "source_order": 32,
+      "title": "Delta-RSI Strategy (with filters)"
+    },
+    {
+      "cases": [
+        {
+          "access_level": "FULL_TEXT",
+          "case_type": "HISTORICAL_DATA_BACKTEST",
+          "document_url": "https://cemarketsolutions.com/research/strategies/inside-bar-breakout",
+          "economic_mechanism": "가격변동 범위가 축소된 이후 기존 범위를 이탈할 때 방향성 포지션을 취하여 가격 확장에 참여.",
+          "entry_exit": "2026-10-07 10:30 ET 매수 31254.75, 15:59 ET 청산 31396.00.",
+          "evidence_location": "What it is; How it was tested; All trades; FAQ",
+          "instrument": "CME E-mini Nasdaq-100 선물(NQ)",
+          "limitations": "단일 Inside Bar 전략이며 연속 두 개의 Inside Bar 및 이동평균 추세 필터는 적용하지 않음.",
+          "publisher": "CE Market Solutions",
+          "relationship_to_source": "Inside Bar 이후 가격범위 돌파를 거래하는 핵심 구조의 부분 검증.",
+          "reported_numbers": "해당 거래 +141.25포인트. 전체 436건, 총손익 +2121포인트, 최대낙폭 2099.25포인트. 수수료와 슬리피지 제외.",
+          "title": "Inside bar breakout backtest on NQ and ES futures",
+          "trade_period": "2024-10-08~2026-10-07",
+          "transaction_evidence": "역사적 선물 가격자료 기반 15분봉 전략의 거래별 진입·청산 명세 공개."
+        }
+      ],
+      "exclusions": [
+        {
+          "reason": "https://tradesearcher.ai/strategies/2369-double-inside-bar-trend-strategy-kaspricci 에서 동일 원본의 종목별 백테스트 수익률과 거래 횟수를 확인했으나 개별 거래명세와 정확한 검증기간을 확보하지 못함.",
+          "title": "Double Inside Bar & Trend Strategy - Kaspricci - TradeSearcher"
+        },
+        {
+          "reason": "패턴 설명과 예시 그림으로 실제 가격 기반 거래를 입증하지 못함.",
+          "title": "Double Inside Bar (ii) Pattern: How the Break Works"
+        }
+      ],
+      "limitations": "동일 원본 전체 조건을 적용한 날짜별 거래명세 및 실체결 자료 미확보.",
+      "research_status": "SEARCHED",
+      "script_id": "0Q7aNBdV",
+      "search_queries": [
+        "Double inside bar trend moving average breakout strategy backtest trade dates entry exit",
+        "Double Inside Bar Trend Strategy Kaspricci historical trades"
+      ],
+      "source_order": 33,
+      "title": "Double Inside Bar & Trend Strategy - Kaspricci"
+    },
+    {
+      "cases": [],
+      "exclusions": [
+        {
+          "reason": "https://www.tradingview.com/script/0QA81Yfv-BUG-strategy-direction-all/ 원본 확인. 거래 방향 설정에 따른 청산 함수 작동 문제를 보고한 기술적 재현 사례이며 금융거래 경제현상을 연구하는 전략이 아님.",
+          "title": "BUG - strategy.direction.all"
+        },
+        {
+          "reason": "https://www.tradingview.com/pine-script-docs/concepts/strategies/ 주문 방향 및 브로커 에뮬레이터 설명으로 실제 시장 체결 사례가 아님.",
+          "title": "TradingView Pine Script Strategies documentation"
+        }
+      ],
+      "limitations": "해당 오류 때문에 실제 금융손실이 발생했다는 거래소·브로커 기록을 발견하지 못함. 현재 버전에서도 동일 오류가 발생하는지는 미확인.",
+      "research_status": "SEARCHED",
+      "script_id": "0QA81Yfv",
+      "search_queries": [
+        "TradingView strategy direction all bug strategy risk allow entry in RicardoSantos 0QA81Yfv",
+        "TradingView strategy risk allow_entry_in strategy exit close all"
+      ],
+      "source_order": 34,
+      "title": "BUG - strategy.direction.all"
+    },
+    {
+      "cases": [
+        {
+          "access_level": "FULL_TEXT",
+          "case_type": "HISTORICAL_DATA_BACKTEST",
+          "document_url": "https://cemarketsolutions.com/research/strategies/stochastic-with-an-ema-50-trend-filter?market=NQ&tf=1h",
+          "economic_mechanism": "EMA로 추세 방향을 제한하고 Stochastic의 상대적 가격위치 변화를 이용하여 해당 방향으로 진입.",
+          "entry_exit": "2026-06-23 10:45 ET 매도 29885.00, 15:15 ET 청산 29673.25.",
+          "evidence_location": "What it is; Results; The other trades quoted above의 NQ 15분봉 거래표",
+          "instrument": "CME E-mini Nasdaq-100 선물(NQ)",
+          "limitations": "SMC 시장구조, 캔들 패턴, 다중 시간대 지지·저항 및 종합 신호 정렬은 검증하지 않음.",
+          "publisher": "CE Market Solutions",
+          "relationship_to_source": "EMA 추세 조건과 Stochastic 모멘텀을 결합하는 부분 거래구조의 실증 비교.",
+          "reported_numbers": "해당 거래 +211.75포인트. 15분봉 전체 39건, 승률 46.2%, 총손익 +492.25포인트(+9845달러), Profit Factor 1.490. 수수료와 슬리피지 제외.",
+          "title": "Stochastic with an EMA 50 trend filter backtest on NQ and ES futures",
+          "trade_period": "2024-10-08~2026-10-07",
+          "transaction_evidence": "동일 보고서에 15분봉 전략의 개별 거래 날짜와 가격 공개."
+        }
+      ],
+      "exclusions": [
+        {
+          "reason": "TradingView 원본 페이지 검색 결과에서 실체결 자료 및 날짜별 거래 결과를 확보하지 못함.",
+          "title": "Ultimate Pattern Engine (EMA + Stochastic) by rony"
+        }
+      ],
+      "limitations": "원본의 세부 신호 조합을 동일하게 적용한 실증 연구는 확보하지 못함.",
+      "research_status": "SEARCHED",
+      "script_id": "0QQRJbcN",
+      "search_queries": [
+        "Ultimate Pattern Engine teabit168 strategy backtest",
+        "EMA stochastic candlestick support resistance multi timeframe trading backtest individual trades",
+        "Stochastic EMA trend filter historical trade records"
+      ],
+      "source_order": 35,
+      "title": "Ultimate Pattern Engine (EMA + Stochastic) by rony "
+    },
+    {
+      "cases": [
+        {
+          "access_level": "FULL_TEXT",
+          "case_type": "HISTORICAL_DATA_BACKTEST",
+          "document_url": "https://cemarketsolutions.com/research/strategies/cci-20-above-100?market=ES",
+          "economic_mechanism": "CCI가 평균 대비 높은 양의 편차 또는 낮은 음의 편차를 나타낼 때 추세 방향으로 진입하고 편차 축소 시 청산.",
+          "entry_exit": "2026-08-27 12:00 ET 매수 7738.00, 13:45 ET 청산 7747.75. CCI가 +100 아래로 재진입하여 청산.",
+          "evidence_location": "What it is; How it was tested; Results; All trades",
+          "instrument": "CME E-mini S&P 500 선물(ES)",
+          "limitations": "임계값을 ±100으로 고정한 사례. 원본의 제로선 방식 및 서로 다른 진입·청산 임계값은 검증하지 않음.",
+          "publisher": "CE Market Solutions",
+          "relationship_to_source": "원본의 사용자 지정 CCI 상단·하단 임계값 돌파 진입 및 역교차 청산 방식과 직접적으로 연결.",
+          "reported_numbers": "해당 거래 +9.75포인트. 전체 승률 37.3%, 총손익 +208.50포인트(+10425달러). 수수료와 슬리피지 제외.",
+          "title": "CCI 100 breakout backtest on NQ and ES futures",
+          "trade_period": "2024-08-28~2026-08-27",
+          "transaction_evidence": "ES 15분봉 역사적 가격을 사용한 1230건의 거래 백테스트 보고서."
+        }
+      ],
+      "exclusions": [
+        {
+          "reason": "신호 이후 평균수익률 분석 중심이며 개별 포지션의 완전한 진입·청산 기록을 확보하지 못함.",
+          "title": "Commodity Channel Index backtest: 4M triggers"
+        },
+        {
+          "reason": "지표 교육자료이며 독립적인 실거래 검증자료가 아님.",
+          "title": "How to Use Commodity Channel Index (CCI)"
+        }
+      ],
+      "limitations": "거래소 체결 확인서 및 원본 전략의 수수료 적용 후 손익은 미확인.",
+      "research_status": "SEARCHED",
+      "script_id": "0QgigMhj",
+      "search_queries": [
+        "CCI commodity channel index zero cross trading strategy backtest trade list dates prices",
+        "CCI 100 breakout historical futures trades entry exit"
+      ],
+      "source_order": 36,
+      "title": "CCI Strategy"
+    },
+    {
+      "cases": [
+        {
+          "access_level": "FULL_TEXT",
+          "case_type": "HISTORICAL_DATA_BACKTEST",
+          "document_url": "https://backtester.daenadigital.com/strategies/volume-confirmed-breakout/",
+          "economic_mechanism": "평균보다 높은 거래량이 동반된 가격 돌파만 선택하여 거래 참여가 확대되는 가격 움직임에 투자.",
+          "entry_exit": "2016-11-10 매수 216.92달러, 2016-12-29 매도 224.35달러. 20일 가격 돌파 및 50일 평균 거래량의 1.5배 초과가 진입 조건이고 10일 최저가가 청산 조건.",
+          "evidence_location": "The rule; Every trade",
+          "instrument": "미국 주식형 ETF SPDR S&P 500 ETF Trust(SPY)",
+          "limitations": "SPY는 ETF이며 나스닥 선물, 금 또는 원유가 아님. EMA 200 및 고정 SL/TP 조건을 적용하지 않은 부분 비교.",
+          "publisher": "Daena Digital Backtester",
+          "relationship_to_source": "원본의 평균 이상 거래량으로 가격 돌파를 확인하는 구조와 직접 연결.",
+          "reported_numbers": "전체 전략 수익률 -2.4%, 매수보유 수익률 +185.3%, 최대낙폭 15.2%. 수수료 0bps, 슬리피지 0bps 가정.",
+          "title": "Volume-confirmed breakout",
+          "trade_period": "2015-01-02~2024-12-31",
+          "transaction_evidence": "역사적 SPY 가격자료를 이용한 8건의 완결 거래와 16건의 모의 체결을 날짜별 공개."
+        },
+        {
+          "access_level": "FULL_TEXT",
+          "case_type": "HISTORICAL_DATA_BACKTEST",
+          "document_url": "https://cemarketsolutions.com/research/strategies/volume-spike-candle?market=NQ&tf=1h",
+          "economic_mechanism": "직전 평균의 두 배 이상 거래량이 발생한 봉의 방향으로 진입하고 해당 봉의 반대편 손절 및 2R 목표를 사용.",
+          "entry_exit": "2026-10-07 11:00 ET 매수 31254.00, 13:08 ET 목표가격 31380.00에서 청산.",
+          "evidence_location": "What it is; How it was tested; All trades",
+          "instrument": "CME E-mini Nasdaq-100 선물(NQ)",
+          "limitations": "독립적인 가격범위 돌파 조건이나 EMA 200 필터는 사용하지 않음.",
+          "publisher": "CE Market Solutions",
+          "relationship_to_source": "나스닥 관련 선물에서 거래량 확인 및 손절·익절에 따른 포지션 관리 구조의 비교.",
+          "reported_numbers": "해당 거래 +126포인트. 수수료와 슬리피지 제외.",
+          "title": "Volume spike candle backtest on NQ and ES futures",
+          "trade_period": "2024-10-08~2026-10-07",
+          "transaction_evidence": "NQ 1시간봉 거래량 급증 전략의 날짜별 진입·청산가격과 손익 공개."
+        }
+      ],
+      "exclusions": [
+        {
+          "reason": "백테스트 실행 도구와 조건 설정은 확인했으나 기존에 완결된 거래명세를 확보하지 못함. 새 백테스트를 수행하지 않음.",
+          "title": "ChartNox Volume Breakout Backtester"
+        }
+      ],
+      "limitations": "TradingView 원본 접근 제한. 금·원유에 대한 동일 조건의 개별 거래기록과 실거래 체결 증거 미확보.",
+      "research_status": "PARTIAL",
+      "script_id": "0R52t1hx",
+      "search_queries": [
+        "Nasdaq oro bruto 24H Mejorada tradingview",
+        "site:tradingview.com/script/0R52t1hx",
+        "Nasdaq gold crude oil EMA 200 volume breakout strategy historical backtest trade entry exit",
+        "volume breakout price break above previous high volume average backtest trade log"
+      ],
+      "source_order": 37,
+      "title": "Nasdaq oro bruto 24H Mejorada"
+    },
+    {
+      "cases": [],
+      "exclusions": [
+        {
+          "reason": "https://github.com/IcarusBai/order-imbalance-research 에서 CFFEX CSI 300 주가지수선물의 주문 불균형 기반 연구, 2018년 및 2026년 상반기 자료, 거래비용 모형을 확인함. 날짜별 개별 진입·청산가격을 확보하지 못했고 원본의 신경망 복합점수 및 국면별 전략과도 차이가 있어 제외.",
+          "title": "order-imbalance-research"
+        },
+        {
+          "reason": "검색 결과에 성과 수치가 표시되었으나 실제 페이지 접속 시 일반 전략 생성 서비스 내용만 확인되어 해당 수치의 원문 검증 실패.",
+          "title": "NQ Volume Imbalance Stacking Backtest"
+        },
+        {
+          "reason": "호가자료 기반 예측 연구이나 요청된 개별 거래의 진입·청산·손익 명세를 검증하지 못함.",
+          "title": "Order Flow Imbalance as a short-horizon price predictor on LOBSTER data"
+        }
+      ],
+      "limitations": "TradingView 원본 접근 제한. 신경망 출력, 주문 흐름, 시장국면, 차등 진입·반전 임계값을 결합한 동일 경제구조의 실체결 또는 거래별 백테스트 자료 미확보.",
+      "research_status": "PARTIAL",
+      "script_id": "0SLWfSj3",
+      "search_queries": [
+        "Tendencia Avanzada v7.0 SignalForge-Ai",
+        "site:tradingview.com/script/0SLWfSj3",
+        "order flow directional volume neural network regime trading strategy historical trade entry exit backtest microstructure",
+        "order flow imbalance historical backtest trade log dated trades entry exit prices"
+      ],
+      "source_order": 38,
+      "title": "Tendencia Avanzada v7.0 [IA + Microestructura]"
+    },
+    {
+      "cases": [],
+      "exclusions": [
+        {
+          "reason": "https://www.tradingview.com/script/0UrZ3bqo-Cyatophilum-Universal-Oscillator-Trader/ 외부 지표를 연결하여 전략을 구성하는 도구. 특정 외부 지표 및 거래조건이 확정되지 않아 독립적인 경제적 거래구조를 특정할 수 없음.",
+          "title": "Cyatophilum Universal Oscillator Trader"
+        },
+        {
+          "reason": "외부 지표 기반 전략 구성 도구이며 검증 가능한 날짜별 거래명세 미확보.",
+          "title": "Cyatophilum Swing Trader [BACKTEST]"
+        },
+        {
+          "reason": "다른 전략 구성 도구로서 원본의 특정 실거래 사례를 입증하지 못함.",
+          "title": "Cyatophilum Ultimate Trading Bot [BACKTEST]"
+        }
+      ],
+      "limitations": "유료 지표 내부 자료 및 사용자별 설정 미확인. 임의의 오실레이터 전략을 동일 사례로 간주하지 않음.",
+      "research_status": "SEARCHED",
+      "script_id": "0UrZ3bqo",
+      "search_queries": [
+        "Cyatophilum Universal Oscillator Trader backtest trades external indicator actual trade examples",
+        "Cyatophilum external oscillator strategy historical transaction records"
+      ],
+      "source_order": 39,
+      "title": "Cyatophilum Universal Oscillator Trader"
+    },
+    {
+      "cases": [
+        {
+          "access_level": "FULL_TEXT",
+          "case_type": "HISTORICAL_DATA_BACKTEST",
+          "document_url": "https://cemarketsolutions.com/research/strategies/macd-cross-with-a-200-ema-filter?market=NQ&tf=daily",
+          "economic_mechanism": "MACD 신호선 교차에 장기 EMA 방향 조건을 결합하여 추세 방향에 부합하는 포지션만 진입하고 반대 신호에서 청산.",
+          "entry_exit": "2025-04-02 18:02 ET 매도 19020.00, 2025-04-14 18:00 ET 반대 교차로 청산 18902.50.",
+          "evidence_location": "What it is; How it was tested; Results; 일봉 개별 거래표",
+          "instrument": "CME E-mini Nasdaq-100 선물(NQ)",
+          "limitations": "원본의 EMA 34·8 횡보장 차단, 다중 시간대 MACD, 역추세 신호 및 Bybit 자동주문은 검증하지 않음. 암호화폐 거래가 아닌 주가지수선물 백테스트.",
+          "publisher": "CE Market Solutions",
+          "relationship_to_source": "MACD 교차와 이동평균 기반 방향성 필터를 결합하는 부분 거래구조의 실증 비교.",
+          "reported_numbers": "해당 거래 +117.50포인트. 전체 20건, 승률 30%, 총손익 -2863.75포인트(-57275달러), Profit Factor 0.443. 수수료와 슬리피지 제외.",
+          "title": "MACD crossover with a 200 EMA filter backtest on NQ and ES futures",
+          "trade_period": "2024-10-08~2026-10-07",
+          "transaction_evidence": "역사적 선물 가격자료 기반 일봉 전략의 20건 거래명세 공개."
+        }
+      ],
+      "exclusions": [
+        {
+          "reason": "Binance 역사적 가격자료 기반 백테스트 도구이지만 원본 조건과 연결된 기존 거래명세를 확보하지 못함.",
+          "title": "Crypto Backtester - Golden Cross, RSI, MACD & Supertrend"
+        },
+        {
+          "reason": "백테스트 엔진과 설정 예제이며 검증된 원본 전략의 실거래 기록이 아님.",
+          "title": "Multi-Timeframe-Crypto-Backtester-with-Telegram-UI"
+        }
+      ],
+      "limitations": "TradingView 원본 접근 제한 및 Bybit 주문 체결 확인서 미확보. 이번 배치에서 채택한 사례는 모두 외부 제공자의 역사적 가격 기반 모의거래이며, 거래소 원시 가격자료와 독립적으로 대조하지 않았음. 10개 원본 각각을 검색했으며 실체결 입증 사례 0건, 실제 거래 사건 0건, 역사적 가격 기반 백테스트 비교 사례 7건을 채택함. 원본과 완전히 동일한 전략의 실증 사례로 확정한 건은 없음.",
+      "research_status": "PARTIAL",
+      "script_id": "0VIgV9kM",
+      "search_queries": [
+        "Hungpixi MACD Enhanced MTF trades backtest",
+        "site:tradingview.com/script/0VIgV9kM",
+        "MACD multi timeframe strategy backtest trade log date entry exit cryptocurrency trend filter",
+        "MACD trend filter historical backtest every trade date entry exit"
+      ],
+      "source_order": 40,
+      "title": "Hungpixi MACD Enhanced MTF with Signal Filter & Anti-Sideway"
+    }
+  ]
+}
