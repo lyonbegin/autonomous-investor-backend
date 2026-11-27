@@ -69,7 +69,8 @@ def source_rows(source_root=SOURCE):
             n = int(record["order"])
             if n != len(result) + 1 or record_id in seen:
                 raise ValueError("원본 순서·ID 중복 또는 누락")
-            if not record["url"].startswith("https://www.tradingview.com/script/" + record_id + "-"):
+            prefix = "https://www.tradingview.com/script/" + record_id
+            if not (record["url"] == prefix + "/" or record["url"].startswith(prefix + "-")):
                 raise ValueError("TradingView ID/URL 불일치")
             seen.add(record_id)
             result.append({
