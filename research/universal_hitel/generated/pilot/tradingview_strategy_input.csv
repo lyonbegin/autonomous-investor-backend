@@ -1,0 +1,12 @@
+﻿record_id,order,title,url,author,description_preview,source_type
+02yfhjiz,1,Complex Single Trade Strategy,https://www.tradingview.com/script/02yfhjiz-Complex-Single-Trade-Strategy/,JustinTimeTunes,"This 'Complex Single Trade Strategy' is a generic trading strategy that features three different types of stops, and four take profits.
+It takes a Buy/Sell source input of:  
+
+The first signal will trigger a position to open immediately in that direction, but subsequent signals in the same direction will be ignored whilst the position remains open, as this strategy allows only one position at once.
+A signal in the opposite direction to the current position can either be ignored, or it can close ",Strategy
+03zgCMqx,2,PROP_Scalper_V2 FINAL,https://www.tradingview.com/script/03zgCMqx-PROP-Scalper-V2-FINAL/,TalaeaElhussein,"PROP_Scalper_V2 FINAL is a non-repainting, multi-filter scalping strategy designed for XAUUSD and other active markets. It uses adaptive moving-average signals, optional higher-timeframe trend confirmation, ADX and ATR filters, session filtering, cooldown control, and partial profit-taking with break-even protection to help manage entries and exits more systematically.",Strategy
+04erUlJM,3,LINK Above $12.20: Is $15 Back on the Table?,https://www.tradingview.com/script/04erUlJM-LINK-Above-12-20-Is-15-Back-on-the-Table/,Crypto_Andy_,"Hey traders! 👋
+
+After that solid push higher, LINK is now pulling back into the breakout zone, so $12.00–$12.20 is back on my radar. This was the area that kept a lid on price through most of August and I still see it as the key zone for keeping the bullish structure alive.
+
+I’m definitely not the guy who wants to jump on a moving train just because everyone else is buying. 😄 My plan is simple and emotionless: close above $12.20, then checks three things before entering: price above the long-ter",Strategy
