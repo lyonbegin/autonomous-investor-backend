@@ -28,8 +28,7 @@ def snapshot(read_content, project_ids, previous_milestone=0):
     """Return audit snapshot; never send notifications or change upstream state."""
     if previous_milestone < 0 or previous_milestone % REPORT_INTERVAL:
         raise ValueError("last milestone must be multiple of 50")
-    ids = set()
-    papers = cases = internal_cases = candidates = 0
+    by_source = {}
     alerts = []
     events = []
     examined = set()
@@ -64,24 +63,34 @@ def snapshot(read_content, project_ids, previous_milestone=0):
             raise ValueError("Verified AI count mismatch in " + pid)
         expected = {x["record_id"] for x in project["records"]}
         seen_this = set()
+        project_records = {x["record_id"]: x for x in project["records"]}
         for row in results:
             rid = row["record_id"]
             if rid not in expected or rid in seen_this:
                 raise ValueError("Unknown or duplicate record_id in " + pid)
             seen_this.add(rid)
             details = check_record(row)
+            search_pass = int(project_records[rid].get("search_pass", 1))
+            if search_pass < 1:
+                raise ValueError("Invalid search pass in " + pid)
+            bucket = by_source.setdefault(rid, {"passes": {}, "papers": set(),
+                                                "cases": set(), "linked_cases": set(),
+                                                "candidates": set()})
+            if search_pass in bucket["passes"]:
+                raise ValueError("Duplicate research pass for " + rid)
+            bucket["passes"][search_pass] = details["has_more"]
+            for paper in json.loads(row["papers_json"]):
+                bucket["papers"].add(str(paper["paper_id"]))
+            for case in json.loads(row["cases_json"]):
+                key = str(case["case_id"])
+                bucket["cases"].add(key)
+                if case.get("parent_paper_id") not in (None, ""):
+                    bucket["linked_cases"].add(key)
+            for candidate in json.loads(row["candidate_cases_json"]):
+                bucket["candidates"].add(json.dumps(candidate, sort_keys=True, ensure_ascii=False))
             if details["has_more"]:
                 pending_expansions.append({"project_id": pid, "record_id": rid,
                                            "reason": "CONTINUATION_REQUIRED"})
-                continue
-            if rid in ids:
-                # Multiple research passes for one source must not inflate counts.
-                continue
-            ids.add(rid)
-            papers += details["papers"]
-            cases += details["cases"]
-            internal_cases += details["paper_internal_cases"]
-            candidates += details["candidates"]
         state_status = state.get("status")
         if state_status in ("blocked", "paused") or state.get("error"):
             alerts.append({"project_id": pid, "status": state_status,
@@ -100,7 +109,16 @@ def snapshot(read_content, project_ids, previous_milestone=0):
                                "delivery": item.get("delivery"),
                                "run_url": payload.get("run_url")})
 
-    n = len(ids)
+    # A source is completed only when its latest verified search pass states
+    # no more evidence remains.  Distinct passes must be collected once each.
+    complete_ids = {rid for rid, bucket in by_source.items()
+                    if bucket["passes"] and
+                    bucket["passes"][max(bucket["passes"])] is False}
+    n = len(complete_ids)
+    papers = sum(len(b["papers"]) for b in by_source.values())
+    cases = sum(len(b["cases"]) for b in by_source.values())
+    internal_cases = sum(len(b["linked_cases"]) for b in by_source.values())
+    candidates = sum(len(b["candidates"]) for b in by_source.values())
     last = n // REPORT_INTERVAL * REPORT_INTERVAL
     reached = list(range(previous_milestone + REPORT_INTERVAL, last + 1, REPORT_INTERVAL))
     return {
