@@ -1,0 +1,15 @@
+name: One-time TradingView approved pilot dispatch
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/stocktv-universal-pilot-dispatch-20261127.yml']
+permissions:
+  actions: write
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch existing signed stock-tv workflow once
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run stock-tv-task-isolated-research.yml --repo "$GITHUB_REPOSITORY" --ref main -f universal_pilot=true -f batch_number=1
