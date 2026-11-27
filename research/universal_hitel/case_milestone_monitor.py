@@ -70,6 +70,14 @@ def snapshot(read_content, project_ids, previous_milestone=0):
                 raise ValueError("Unknown or duplicate record_id in " + pid)
             seen_this.add(rid)
             details = check_record(row)
+            research_status = str(row.get("research_status", ""))
+            if research_status != "SEARCH_EXECUTED_AND_ASSESSED":
+                if research_status == "SEARCH_NOT_EXECUTED" and details["cases"]:
+                    raise ValueError("Cases claimed without search: " + rid)
+                alerts.append({"project_id": pid, "record_id": rid,
+                               "status": research_status or "RESEARCH_STATUS_MISSING",
+                               "reason": "NOT_COUNTED_AS_COMPLETED_SOURCE"})
+                continue
             search_pass = int(project_records[rid].get("search_pass", 1))
             if search_pass < 1:
                 raise ValueError("Invalid search pass in " + pid)
