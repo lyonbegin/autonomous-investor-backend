@@ -1,12 +1,14 @@
 {
   "attempted": true,
+  "job_id": "job_0b4cee1d4b3546299caa8c35f7814fdf",
   "project_id": "stocktv-cases-20261127-0001-p01-v2",
   "prompt_sha256": "aa33dcf7bb45e3f476bf314bec27fe292cb20817b6b34563053d512dc2bfb248",
   "provider": "hitel",
   "record_id": "02yfhjiz",
   "request_id": "stock-tv-universal-pilot-aa33dcf7bb45e3f476bf314bec27fe292cb20817",
+  "room_id": "room_84b7e18acb4d45f0976ac9455fa6b6e4",
   "room_name": "TV-UNIVERSAL-PILOT-aa33dcf7bb45e3f476bf314b",
-  "status": "request_prepared",
+  "status": "accepted",
   "task_id": "stock-tv",
   "verified_ai_completed": 0
 }
