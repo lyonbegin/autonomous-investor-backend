@@ -1,0 +1,129 @@
+{
+  "schema": "stocktv-universal-adapter-plan-v1",
+  "generated_date": "2026-11-27",
+  "source": "research/serial10/source_manifest.json",
+  "source_schema": "TV-STRATEGY-4428-SOURCE-20261108-v1",
+  "full_source_count": 4428,
+  "unique_ids_checked": 4428,
+  "invalid_rows": 0,
+  "api_repo": "lyonbegin/hitel-scribd-runner",
+  "api_branch": "feature/hitel-universal-ai-ui-api-20261127",
+  "engine_modified": false,
+  "provider_for_initial_package": "mock",
+  "staged_only": true,
+  "live_ai_authorization_verified": false,
+  "project_json_limit_bytes": 850000,
+  "prompt_limit_chars": 24000,
+  "batch_size": 10,
+  "chunk_size": 400,
+  "projects": [
+    {
+      "project_id": "stocktv-study-20261127-0001-0400",
+      "first": 1,
+      "last": 400,
+      "records": 400,
+      "approx_project_bytes": 272283,
+      "max_prompt_chars": 8747,
+      "within_limits": true
+    },
+    {
+      "project_id": "stocktv-study-20261127-0401-0800",
+      "first": 401,
+      "last": 800,
+      "records": 400,
+      "approx_project_bytes": 267665,
+      "max_prompt_chars": 8649,
+      "within_limits": true
+    },
+    {
+      "project_id": "stocktv-study-20261127-0801-1200",
+      "first": 801,
+      "last": 1200,
+      "records": 400,
+      "approx_project_bytes": 273823,
+      "max_prompt_chars": 8610,
+      "within_limits": true
+    },
+    {
+      "project_id": "stocktv-study-20261127-1201-1600",
+      "first": 1201,
+      "last": 1600,
+      "records": 400,
+      "approx_project_bytes": 274391,
+      "max_prompt_chars": 8713,
+      "within_limits": true
+    },
+    {
+      "project_id": "stocktv-study-20261127-1601-2000",
+      "first": 1601,
+      "last": 2000,
+      "records": 400,
+      "approx_project_bytes": 269681,
+      "max_prompt_chars": 8747,
+      "within_limits": true
+    },
+    {
+      "project_id": "stocktv-study-20261127-2001-2400",
+      "first": 2001,
+      "last": 2400,
+      "records": 400,
+      "approx_project_bytes": 271916,
+      "max_prompt_chars": 8582,
+      "within_limits": true
+    },
+    {
+      "project_id": "stocktv-study-20261127-2401-2800",
+      "first": 2401,
+      "last": 2800,
+      "records": 400,
+      "approx_project_bytes": 275945,
+      "max_prompt_chars": 8773,
+      "within_limits": true
+    },
+    {
+      "project_id": "stocktv-study-20261127-2801-3200",
+      "first": 2801,
+      "last": 3200,
+      "records": 400,
+      "approx_project_bytes": 269729,
+      "max_prompt_chars": 8730,
+      "within_limits": true
+    },
+    {
+      "project_id": "stocktv-study-20261127-3201-3600",
+      "first": 3201,
+      "last": 3600,
+      "records": 400,
+      "approx_project_bytes": 272577,
+      "max_prompt_chars": 8741,
+      "within_limits": true
+    },
+    {
+      "project_id": "stocktv-study-20261127-3601-4000",
+      "first": 3601,
+      "last": 4000,
+      "records": 400,
+      "approx_project_bytes": 263635,
+      "max_prompt_chars": 8555,
+      "within_limits": true
+    },
+    {
+      "project_id": "stocktv-study-20261127-4001-4400",
+      "first": 4001,
+      "last": 4400,
+      "records": 400,
+      "approx_project_bytes": 270612,
+      "max_prompt_chars": 8696,
+      "within_limits": true
+    },
+    {
+      "project_id": "stocktv-study-20261127-4401-4428",
+      "first": 4401,
+      "last": 4428,
+      "records": 28,
+      "approx_project_bytes": 19149,
+      "max_prompt_chars": 7991,
+      "within_limits": true
+    }
+  ]
+}
