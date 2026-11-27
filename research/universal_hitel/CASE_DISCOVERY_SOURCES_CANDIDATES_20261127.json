@@ -1,0 +1,159 @@
+{
+  "schema": "tradingview-case-research-discovery-channels-v1",
+  "date": "2026-11-27",
+  "historical_source_list_recovered": false,
+  "notice": "과거 대화에서 확정한 10~20개 사이트의 정확한 목록은 확인되지 않음. 본 목록은 공개 검색을 위한 재구성 후보이며, 접속/검색 수행/원문 확인을 뜻하지 않음.",
+  "official_historical_categories_confirmed": [
+    "논문 정본·PDF/DOI",
+    "거래소 공식 교육/연구",
+    "저자 공개 백테스트",
+    "공개 주문·손익 사례",
+    "검증 가능한 오픈소스"
+  ],
+  "sources": [
+    {
+      "id": "tradingview",
+      "url": "https://www.tradingview.com/scripts/",
+      "kind": "source-original",
+      "purpose": "TradingView 전략·원본 공개 내용",
+      "search_executed": false,
+      "access_verified": false
+    },
+    {
+      "id": "google-scholar",
+      "url": "https://scholar.google.com/",
+      "kind": "academic-index",
+      "purpose": "학술자료 발견",
+      "search_executed": false,
+      "access_verified": false
+    },
+    {
+      "id": "semantic-scholar",
+      "url": "https://www.semanticscholar.org/",
+      "kind": "academic-index",
+      "purpose": "논문 검색·인용 연결",
+      "search_executed": false,
+      "access_verified": false
+    },
+    {
+      "id": "openalex",
+      "url": "https://openalex.org/",
+      "kind": "academic-index",
+      "purpose": "논문 메타데이터/후속 인용",
+      "search_executed": false,
+      "access_verified": false
+    },
+    {
+      "id": "crossref",
+      "url": "https://search.crossref.org/",
+      "kind": "doi-index",
+      "purpose": "DOI·발행정보 확인",
+      "search_executed": false,
+      "access_verified": false
+    },
+    {
+      "id": "arxiv",
+      "url": "https://arxiv.org/",
+      "kind": "preprint",
+      "purpose": "quantitative finance 사전공개논문",
+      "search_executed": false,
+      "access_verified": false
+    },
+    {
+      "id": "ssrn",
+      "url": "https://www.ssrn.com/",
+      "kind": "working-paper",
+      "purpose": "금융 연구 워킹페이퍼",
+      "search_executed": false,
+      "access_verified": false
+    },
+    {
+      "id": "repec",
+      "url": "https://ideas.repec.org/",
+      "kind": "economics-index",
+      "purpose": "경제·금융 실증논문",
+      "search_executed": false,
+      "access_verified": false
+    },
+    {
+      "id": "nber",
+      "url": "https://www.nber.org/papers",
+      "kind": "working-paper",
+      "purpose": "경제·금융 워킹페이퍼",
+      "search_executed": false,
+      "access_verified": false
+    },
+    {
+      "id": "doi-resolver",
+      "url": "https://doi.org/",
+      "kind": "primary-document-redirect",
+      "purpose": "DOI로 출판사 원문 확인",
+      "search_executed": false,
+      "access_verified": false
+    },
+    {
+      "id": "cme",
+      "url": "https://www.cmegroup.com/",
+      "kind": "exchange-primary",
+      "purpose": "거래소 공식 계약·연구",
+      "search_executed": false,
+      "access_verified": false
+    },
+    {
+      "id": "cboe",
+      "url": "https://www.cboe.com/",
+      "kind": "exchange-primary",
+      "purpose": "옵션·변동성 연구",
+      "search_executed": false,
+      "access_verified": false
+    },
+    {
+      "id": "ice",
+      "url": "https://www.ice.com/",
+      "kind": "exchange-primary",
+      "purpose": "선물·시장 관련 연구",
+      "search_executed": false,
+      "access_verified": false
+    },
+    {
+      "id": "nasdaq",
+      "url": "https://www.nasdaq.com/",
+      "kind": "market-primary",
+      "purpose": "시장 연구·실제 상품 자료",
+      "search_executed": false,
+      "access_verified": false
+    },
+    {
+      "id": "quantconnect",
+      "url": "https://www.quantconnect.com/",
+      "kind": "public-backtest",
+      "purpose": "공개 백테스트·코드(재현 여부 확인 필수)",
+      "search_executed": false,
+      "access_verified": false
+    },
+    {
+      "id": "github",
+      "url": "https://github.com/",
+      "kind": "source-code",
+      "purpose": "공개 연구 코드 및 실험 결과",
+      "search_executed": false,
+      "access_verified": false
+    },
+    {
+      "id": "zenodo",
+      "url": "https://zenodo.org/",
+      "kind": "research-repository",
+      "purpose": "DOI·데이터·재현 자료",
+      "search_executed": false,
+      "access_verified": false
+    },
+    {
+      "id": "aqr",
+      "url": "https://www.aqr.com/Insights/Research",
+      "kind": "practitioner-research",
+      "purpose": "자산운용 연구 논문",
+      "search_executed": false,
+      "access_verified": false
+    }
+  ]
+}
