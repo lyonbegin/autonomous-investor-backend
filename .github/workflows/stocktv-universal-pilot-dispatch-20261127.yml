@@ -1,4 +1,4 @@
-name: One-time TradingView approved pilot dispatch
+name: Stop TradingView pilot and disable related workflows
 on:
   push:
     branches: [main]
@@ -6,13 +6,17 @@ on:
 permissions:
   actions: write
 jobs:
-  dispatch:
+  stop:
     runs-on: ubuntu-latest
     steps:
-      - name: Dispatch existing signed stock-tv workflow once
+      - name: Disable stock-tv research and cancel the specific pilot
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          gh workflow enable stock-tv-task-isolated-research.yml --repo "$GITHUB_REPOSITORY"
-          gh workflow run stock-tv-task-isolated-research.yml --repo "$GITHUB_REPOSITORY" --ref main -f universal_pilot=true -f batch_number=1
+          gh workflow disable stock-tv-task-isolated-research.yml --repo "$GITHUB_REPOSITORY"
+          status=$(gh run view 45971247658 --repo "$GITHUB_REPOSITORY" --json status --jq .status)
+          if [ "$status" != completed ]; then
+            gh run cancel 45971247658 --repo "$GITHUB_REPOSITORY"
+          fi
+          gh workflow disable stocktv-universal-pilot-dispatch-20261127.yml --repo "$GITHUB_REPOSITORY"
